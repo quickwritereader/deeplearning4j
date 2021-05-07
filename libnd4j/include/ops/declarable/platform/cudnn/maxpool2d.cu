@@ -95,6 +95,16 @@ PLATFORM_IMPL(maxpool2d_bp, ENGINE_CUDA) {
     const auto paddingMode = INT_ARG(8);                                               // 0-VALID, 1-SAME
     const auto isNCHW = block.getIArguments()->size() > 10 ? !INT_ARG(10) : 1;         // INT_ARG(10): 0-NCHW, 1-NHWC
 
+#if 0
+    input->printShapeInfo("2d bp input");
+    input->printIndexedBuffer("2d bp input");
+    gradO->printShapeInfo("2d bp gradO");
+    gradO->printIndexedBuffer("2d bp gradO");
+    gradO->printBuffer("2d bp gradO raw");
+    nd4j_printf("kH %d kW %d sH %d sW %d pH %d pW %d dH %d dW %d paddingMode %d isNCHW %d \n",
+    (int)kH, (int)kW, (int)sH, (int)sW, (int)pH, (int)pW, (int)dH, (int)dW, (int)paddingMode, (int)isNCHW);
+#endif
+
     REQUIRE_TRUE(input->rankOf() == 4, 0, "MAXPOOL2D_BP CUDNN op: input should have rank of 4, but got %i instead", input->rankOf());
     REQUIRE_TRUE(dH != 0 && dW != 0, 0, "MAXPOOL2D_BP CUDNN op: dilation must not be zero, but got instead {%i, %i}", dH, dW);
 
@@ -111,7 +121,10 @@ PLATFORM_IMPL(maxpool2d_bp, ENGINE_CUDA) {
         ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW);
 
     pooling2dBpCUDNN(block.launchContext(), input, gradO, gradI, kH, kW, sH, sW, pH, pW, dH, dW, isNCHW, CUDNN_POOLING_MAX);
-
+#if 0
+    gradI->printShapeInfo("2d bp gradI");
+    gradI->printIndexedBuffer("2d bp gradI");
+#endif
     return Status::OK();
 }
 
@@ -123,9 +136,12 @@ PLATFORM_CHECK(maxpool2d_bp, ENGINE_CUDA) {
 
     const auto goodType = input->dataType() == DataType::DOUBLE || input->dataType() == DataType::FLOAT32 || input->dataType() == DataType::HALF || input->dataType() == DataType::INT32;
 
-    return goodType && (input->dataType() == gradO->dataType())
-                    && (input->dataType() == gradI->dataType())
-                    && shape::haveSameShapeAndStrides(input->shapeInfo(), gradI->shapeInfo());
+    return  goodType && (input->dataType() == gradO->dataType())
+                     && (input->dataType() == gradI->dataType())
+                     && shape::haveSameShapeAndStrides(input->shapeInfo(), gradI->shapeInfo())
+                     && (input->ews()==1 && input->ordering()=='c')
+                     && (gradO->ews() ==1 && gradO->ordering()=='c')
+                     && (gradI->ews() ==1 && gradI->ordering()=='c'); //actually its already tested with haveSameShape
 }
 
 

@@ -21,7 +21,7 @@
 
 #include <system/op_boilerplate.h>
 #include <ops/declarable/CustomOperations.h>
-#include <ops/declarable/helpers/ctcLoss.h>
+#include <ops/declarable/helpers/ctc.h>
 
 namespace sd {
 namespace ops  {
@@ -52,7 +52,7 @@ CUSTOM_OP_IMPL(ctc_loss, 4, 1, false, 0, 1) {
     bool check_batches = (batchSize0 == batchSize1) && (batchSize2 == batchSize3);
     check_batches = check_batches && (batchSize0 == batchSize4) && (batchSize0 == batchSize2);
 
-    REQUIRE_TRUE(check_batches, 0, "CtcLoss: All batch sizes should be equal %i", batchSize0);
+    REQUIRE_TRUE(check_batches, 0, "CtcLoss: All batch sizes should be %i", batchSize0);
     REQUIRE_TRUE(outputLosses->isSameShape(targetLabelLengths), 0, "CtcLoss: wrong shape of output array, expected is %s but got %s instead !", ShapeUtils::shapeAsString(targetLabelLengths).c_str(), ShapeUtils::shapeAsString(outputLosses).c_str());
 
     auto emptyGradients = NDArrayFactory::empty<float>();
@@ -104,7 +104,7 @@ CUSTOM_OP_IMPL(ctc_loss_grad, 4, 1, false, 0, 1) {
     bool check_batches = (batchSize0 == batchSize1) && (batchSize2 == batchSize3);
     check_batches = check_batches && (batchSize0 == batchSize4) && (batchSize0 == batchSize2);
 
-    REQUIRE_TRUE(check_batches, 0, "CtcLoss Gradient: All batch sizes should be equal %i", batchSize0);
+    REQUIRE_TRUE(check_batches, 0, "CtcLoss Gradient: All batch sizes should be %i", batchSize0);
     REQUIRE_TRUE(outputGradients->isSameShape(logitInput), 0, "CtcLoss Gradient: wrong shape of output array, expected is %s but got %s instead !", ShapeUtils::shapeAsString(logitInput).c_str(), ShapeUtils::shapeAsString(outputGradients).c_str());
 
     auto emptyLoss = NDArrayFactory::empty<float>();

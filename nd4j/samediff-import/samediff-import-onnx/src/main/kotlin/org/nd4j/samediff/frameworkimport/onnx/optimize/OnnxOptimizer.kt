@@ -6,8 +6,8 @@
  *  * terms of the Apache License, Version 2.0 which is available at
  *  * https://www.apache.org/licenses/LICENSE-2.0.
  *  *
- *  * See the NOTICE file distributed with this work for additional
- *  * information regarding copyright ownership.
+ *  *  See the NOTICE file distributed with this work for additional
+ *  *  information regarding copyright ownership.
  *  * Unless required by applicable law or agreed to in writing, software
  *  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  *  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -17,19 +17,16 @@
  *  * SPDX-License-Identifier: Apache-2.0
  *  *****************************************************************************
  */
+package org.nd4j.samediff.frameworkimport.onnx.optimize
 
-//
-// @author raver119@gmail.com
-//
+import org.nd4j.samediff.frameworkimport.optimize.ModelOptimizer
+import java.io.File
+import org.bytedeco.onnx.*
+import org.bytedeco.onnx.global.onnx.*
 
+class OnnxOptimizer: ModelOptimizer {
 
-#include <loops/cpu/reduce/reduce_float.hpp>
-#cmakedefine FLOAT_TYPE_GEN
-#if defined(FLOAT_TYPE_GEN) && defined(FLOAT_TYPES_@FL_TYPE_INDEX@)
-namespace functions {
-    namespace reduce {
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL ReduceFloatFunction, , LIBND4J_TYPES, FLOAT_TYPES_@FL_TYPE_INDEX@);
+    override fun optimize(input: File, outputFile: File) {
+        TODO("Not yet implemented")
     }
 }
-#endif
-

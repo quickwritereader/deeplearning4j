@@ -31,7 +31,7 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-     NDArray matrixMinor(NDArray& in, Nd4jLong col) {
+    NDArray matrixMinor(NDArray& in, sd::LongType col) {
         NDArray m = in.ulike();
         m.setIdentity();
         m({col, m.rows(), col, m.columns()}).assign(in({col, m.rows(), col, m.columns()}));
@@ -41,7 +41,7 @@ namespace helpers {
 
 /* m = I - v v^T */
     template <typename T>
-     NDArray vmul(NDArray const& v, int n)
+    NDArray vmul(NDArray const& v, int n)
     {
         NDArray res('c', {n,n}, v.dataType(), v.getContext()); // x = matrix_new(n, n);
         T const* vBuf = v.getDataBuffer()->primaryAsT<T>();
@@ -57,9 +57,9 @@ namespace helpers {
     }
 
     template <typename T>
-     void qrSingle(NDArray* matrix, NDArray* Q, NDArray* R, bool const fullMatricies) {
-        Nd4jLong M = matrix->sizeAt(-2);
-        Nd4jLong N = matrix->sizeAt(-1);
+    void qrSingle(NDArray* matrix, NDArray* Q, NDArray* R, bool const fullMatricies) {
+        sd::LongType M = matrix->sizeAt(-2);
+        sd::LongType N = matrix->sizeAt(-1);
         auto resQ = fullMatricies?Q->ulike():NDArrayFactory::create<T>(matrix->ordering(), {M,M}, Q->getContext());
         auto resR = fullMatricies?R->ulike():matrix->ulike();
         std::vector<NDArray> q(M);
@@ -67,7 +67,7 @@ namespace helpers {
         NDArray z = *matrix;
         NDArray e('c', {M}, DataTypeUtils::fromT<T>(), Q->getContext()); // two internal buffers and scalar for squared norm
 
-        for (Nd4jLong k = 0; k < N && k < M - 1; k++) { // loop for columns, but not further then row number
+        for (sd::LongType k = 0; k < N && k < M - 1; k++) { // loop for columns, but not further then row number
             e.nullify();
             z = matrixMinor<T>(z, k); // minor computing for current column with given matrix z (initally is a input matrix)
 //            z.printIndexedBuffer("Minor!!!");
@@ -91,7 +91,7 @@ namespace helpers {
         }
         resQ.assign(q[0]); //
 //        MmulHelper::matmul(&q[0], matrix, &resR, false, false);
-        for (Nd4jLong i = 1; i < N && i < M - 1; i++) {
+        for (sd::LongType i = 1; i < N && i < M - 1; i++) {
             auto tempResQ = resQ;
             MmulHelper::matmul(&q[i], &resQ, &tempResQ, false, false); // use mmulMxM?
             resQ = std::move(tempResQ);
@@ -110,9 +110,9 @@ namespace helpers {
     }
 
     template <typename T>
-     void qr_(NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
-        Nd4jLong lastDim = input->rankOf() - 1;
-        Nd4jLong preLastDim = input->rankOf() - 2;
+    void qr_(NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
+        sd::LongType lastDim = input->rankOf() - 1;
+        sd::LongType preLastDim = input->rankOf() - 2;
         ResultSet listOutQ(outputQ->allTensorsAlongDimension({(int)preLastDim, (int)lastDim}));
         ResultSet listOutR(outputR->allTensorsAlongDimension({(int)preLastDim, (int)lastDim}));
         ResultSet listInput(input->allTensorsAlongDimension({(int)preLastDim, (int)lastDim}));
@@ -127,8 +127,8 @@ namespace helpers {
 
     }
 
-     void qr(sd::LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), qr_, (input, outputQ, outputR, fullMatricies), FLOAT_TYPES);
+    void qr(sd::LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), qr_, (input, outputQ, outputR, fullMatricies), SD_FLOAT_TYPES);
     }
 
 }

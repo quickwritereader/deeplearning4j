@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(to_float32) {

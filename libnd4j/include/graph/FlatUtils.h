@@ -22,20 +22,18 @@
 
 #ifndef LIBND4J_FLATUTILS_H
 #define LIBND4J_FLATUTILS_H
-
 #include <utility>
-#include <system/pointercast.h>
 #include <graph/generated/array_generated.h>
 #include <graph/generated/node_generated.h>
 #include <array/NDArray.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT FlatUtils {
+        class SD_LIB_EXPORT FlatUtils {
         public:
             static std::pair<int, int> fromIntPair(IntPair* pair);
 
-            static std::pair<Nd4jLong, Nd4jLong> fromLongPair(LongPair* pair);
+            static std::pair<sd::LongType, sd::LongType> fromLongPair(LongPair* pair);
 
             static NDArray* fromFlatArray(const sd::graph::FlatArray* flatArray);
 

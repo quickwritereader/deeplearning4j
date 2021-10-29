@@ -19,14 +19,13 @@
 //
 // @author Alex Black
 //
-
 #include "../OpBenchmark.h"
 
 #ifndef DEV_TESTS_BROADCASTBENCHMARK_H
 #define DEV_TESTS_BROADCASTBENCHMARK_H
 
 namespace sd {
-    class ND4J_EXPORT BroadcastBenchmark : public OpBenchmark {
+    class SD_LIB_EXPORT BroadcastBenchmark : public OpBenchmark {
     public:
         BroadcastBenchmark() : OpBenchmark() {
             //
@@ -81,7 +80,7 @@ void executeOnce() override {
     auto tadOffsetsZ = Environment::getInstance().isCPU() ? packZ.primaryOffsets() : packZ.specialOffsets();
 
     NativeOpExecutioner::execBroadcast(LaunchContext::defaultContext(), _opNum, _x->buffer(), _x->shapeInfo(), _x->specialBuffer(), _x->specialShapeInfo(), _y->buffer(), _y->shapeInfo(), _y->specialBuffer(), _y->specialShapeInfo(), _z->buffer(), _z->shapeInfo(), _z->specialBuffer(), _z->specialShapeInfo(), nullptr, _axis.size(),
-            /*Nd4jLong **/ tadOnlyShapeInfo, /*Nd4jLong */ tadOffsets, /*Nd4jLong */ tadOnlyShapeInfoZ, /*Nd4jLong */ tadOffsetsZ);
+            /*sd::LongType **/ tadOnlyShapeInfo, /*sd::LongType */ tadOffsets, /*sd::LongType */ tadOnlyShapeInfoZ, /*sd::LongType */ tadOffsetsZ);
 
     manager.synchronize();
         }

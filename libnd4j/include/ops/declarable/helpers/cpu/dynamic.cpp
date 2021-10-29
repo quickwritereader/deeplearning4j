@@ -55,8 +55,8 @@ namespace sd {
                         outputs[i].second = 0;
 
                         //PRAGMA_OMP_PARALLEL_FOR_IF(indices->lengthOf() > Environment::getInstance().elementwiseThreshold())
-                        for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                            if ((*indices).e<Nd4jLong>(e) == i)
+                        for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                            if ((*indices).e<sd::LongType>(e) == i)
                                 listOutForCurrent.at(outputs[i].second++)->assign(listOfTensors.at(e));
                     }
 
@@ -67,8 +67,8 @@ namespace sd {
                         for (auto i = start; i < stop; i++) {
                             outputs[i].first = outputList[i];
                             outputs[i].second = 0;
-                            for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                                if (indices->e<Nd4jLong>(e) == i)
+                            for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                                if (indices->e<sd::LongType>(e) == i)
                                     outputs[i].first->p(outputs[i].second++, input->e<T>(e));
                         }
                     };
@@ -77,7 +77,7 @@ namespace sd {
                 }
             }
             template <typename T>
-            static int _dynamicStitchFunctor(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
+            static sd::Status _dynamicStitchFunctor(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
 
                 int numOfData = inputs.size();
 
@@ -85,16 +85,16 @@ namespace sd {
                     for (int e = 0; e < numOfData; e++) {
                         auto data = inputs[e];
                         auto index = indices[e];
-                        for (Nd4jLong i = 0; i < index->lengthOf(); i++) {
-                            Nd4jLong pos = index->e<Nd4jLong>(i);
+                        for (sd::LongType i = 0; i < index->lengthOf(); i++) {
+                            sd::LongType pos = index->e<sd::LongType>(i);
                             if (pos < 0) {
-                                nd4j_printf("dynamic_stitch: Index value should be non-negative. But %i was given", pos);
-                                return ND4J_STATUS_VALIDATION;
+                                sd_printf("dynamic_stitch: Index value should be non-negative. But %i was given", pos);
+                                return sd::Status::VALIDATION;
                             }
                             if (pos >= output->lengthOf()) {
-                                nd4j_printf("dynamic_stitch: Index should be less than %i. But %i was given",
+                                sd_printf("dynamic_stitch: Index should be less than %i. But %i was given",
                                             output->lengthOf(), pos);
-                                return ND4J_STATUS_VALIDATION;
+                                return sd::Status::VALIDATION;
                             }
                             output->p<T>(pos, data->e<T>(i));
                         }
@@ -116,23 +116,23 @@ namespace sd {
 
                         ResultSet listOfTensors = data->allTensorsAlongDimension(sourceDims)    ;
 
-                        for (Nd4jLong i = 0; i < index->lengthOf(); i++) {
-                            auto pos = index->e<Nd4jLong>(i);
+                        for (sd::LongType i = 0; i < index->lengthOf(); i++) {
+                            auto pos = index->e<sd::LongType>(i);
                             if (pos < 0) {
-                                nd4j_printf("dynamic_stitch: Index value should be non-negative. But %i was given", pos);
-                                return ND4J_STATUS_VALIDATION;
+                                sd_printf("dynamic_stitch: Index value should be non-negative. But %i was given", pos);
+                                return sd::Status::VALIDATION;
                             }
                             if (pos >= output->lengthOf()) {
-                                nd4j_printf("dynamic_stitch: Index should be less than %i. But %i was given",
+                                sd_printf("dynamic_stitch: Index should be less than %i. But %i was given",
                                          output->lengthOf(), pos);
-                                return ND4J_STATUS_VALIDATION;
+                                return sd::Status::VALIDATION;
                             }
 
                             listOfOutTensors.at(pos)->assign(listOfTensors.at(i));
                         }
                     }
                 }
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
             template <typename T>
@@ -160,8 +160,8 @@ namespace sd {
 
                         outputs[i].second = 0;
 
-                        for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                            if (indices->e<Nd4jLong>(e) == i)
+                        for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                            if (indices->e<sd::LongType>(e) == i)
                                 listOfTensors.at(e)->assign(listOutForCurrent.at(outputs[i].second++));
                     }
                 }
@@ -173,8 +173,8 @@ namespace sd {
                         for (auto i = start; i < stop; i++) {
                             outputs[i].first = inputGradientList[i];
                             outputs[i].second = 0;
-                            for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                                if (indices->e<Nd4jLong>(e) == i)
+                            for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                                if (indices->e<sd::LongType>(e) == i)
                                     output->p<T>(e, outputs[i].first->e<T>(outputs[i].second++));
                         }
                     };
@@ -185,40 +185,40 @@ namespace sd {
                 outputList[1]->assign(indices);
             }
 
-            ND4J_LOCAL void dynamicPartitionFunctor(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList) {
+            void dynamicPartitionFunctor(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList) {
                 auto xType = input->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctor, (input, indices, outputList), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctor, (input, indices, outputList), SD_COMMON_TYPES);
             }
 
             template <typename T>
-            static int _dynamicStitchFunctorBP(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList){
+            static sd::Status _dynamicStitchFunctorBP(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList){
                 throw std::runtime_error("Not umplemented yet");
             }
 
-            ND4J_LOCAL int dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
+            sd::Status dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
                 auto xType = inputs.at(0)->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctor, (inputs, indices, output), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctor, (inputs, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL int dynamicStitchFunctorBP(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList) {
+            sd::Status dynamicStitchFunctorBP(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList) {
                 auto xType = inputs.at(0)->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctorBP, (inputs, indices, gradInput, outputList), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctorBP, (inputs, indices, gradInput, outputList), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void dynamicPartitionFunctorBP(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList) {
+            void dynamicPartitionFunctorBP(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList) {
                 auto xType = input->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctorBP, (input, indices, inputGradientList, outputList), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctorBP, (input, indices, inputGradientList, outputList), SD_COMMON_TYPES);
             }
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _dynamicPartitionFunctorBP, (NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList);, LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int _dynamicStitchFunctorBP, (std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList);, LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void _dynamicPartitionFunctorBP, (NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList);, SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template sd::Status _dynamicStitchFunctorBP, (std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList);, SD_COMMON_TYPES);
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _dynamicPartitionFunctor, (NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList);, LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int _dynamicStitchFunctor, (std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output);, LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void _dynamicPartitionFunctor, (NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList);, SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template sd::Status _dynamicStitchFunctor, (std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output);, SD_COMMON_TYPES);
 
 
         }

@@ -19,13 +19,11 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/generated/node_generated.h>
 #include <graph/generated/graph_generated.h>
 #include <graph/generated/result_generated.h>
 
 //#include <protobuf/core/framework/graph.pb.h>
-
 #include <graph/Variable.h>
 #include <graph/VariableSpace.h>
 #include <memory/MemoryRegistrator.h>
@@ -40,9 +38,7 @@
 
 //#include <google/protobuf/text_format.h>
 //#include <google/protobuf/io/zero_copy_stream_impl.h>
-
 #include <fcntl.h>
-
 #include <chrono>
 #include <ctime>
 #include <graph/execution/LogicExecutor.h>
@@ -50,7 +46,7 @@
 #include <helpers/BitwiseUtils.h>
 #include <graph/generated/array_generated.h>
 #include <helpers/ShapeUtils.h>
-#include <graph/Status.h>
+
 #include <deque>
 #include <graph/ResultWrapper.h>
 #include <graph/ExecutionResult.h>
@@ -71,27 +67,27 @@ namespace graph {
  * @param variableSpace - VariableSpace instance pointer - varspace specific to current Thread/Session
  * @return
  */
- Nd4jStatus GraphExecutioner::executeFlatNode(Graph *graph, Node *node, VariableSpace *variableSpace) {
+ sd::Status GraphExecutioner::executeFlatNode(Graph *graph, Node *node, VariableSpace *variableSpace) {
     OpType opType = node->opType();
     int opNum = node->opNum();
 //    std::string opName = *(node->getCustomOp()->getOpName());
 
     if (opType == OpType_BOOLEAN) {
-        nd4j_debug("Executing boolean graph node_%i", node->id());
+        sd_debug("Executing boolean graph node_%i", node->id());
     } else if (opType == OpType_LOGIC) {
-        nd4j_debug("Executing logic graph node_%i", node->id());
+        sd_debug("Executing logic graph node_%i", node->id());
     } else if (opType == OpType_GRAPH) {
-        nd4j_debug("Executing embedded graph node_%i", node->id());
+        sd_debug("Executing embedded graph node_%i", node->id());
     } else if (opType != OpType_CUSTOM) {
-        nd4j_debug("Executing node_%i{%i}\n", node->id(), opNum);
+        sd_debug("Executing node_%i{%i}\n", node->id(), opNum);
     } else {
-        nd4j_debug("Executing node_%i{%s}\n", node->id(), node->getCustomOp()->getOpName()->c_str());
+        sd_debug("Executing node_%i{%s}\n", node->id(), node->getCustomOp()->getOpName()->c_str());
     }
 
     Context context(node->getContextPrototype(), variableSpace);
 
     if (sd::Environment::getInstance().isDebugAndVerbose()) {
-        //nd4j_debug("Input variables: %i\n", node->input()->size());
+        //sd_debug("Input variables: %i\n", node->input()->size());
         printf("       Inputs: {");
         for (int e = 0; e < node->input()->size(); e++) {
             printf("[%i:%i]", node->input()->at(e).first, node->input()->at(e).second);
@@ -104,7 +100,7 @@ namespace graph {
     }
 
     if (node->id() == 13)
-        nd4j_debug("","");
+        sd_debug("","");
 
     // if true - this is special case: Graph-in-Graph.
     if (node->hasGraphEmbedded()) {
@@ -121,8 +117,8 @@ namespace graph {
         //embedded->getExecutorConfiguration()->_outputMode = OutputMode_IMPLICIT;
 
         if (node->input()->size() != embedded->numberOfPlaceholders()) {
-            nd4j_debug("Placeholders amount mismatch: %i expected, and %i available\n",node->input()->size(), embedded->numberOfPlaceholders());
-            return ND4J_STATUS_BAD_INPUT;
+            sd_debug("Placeholders amount mismatch: %i expected, and %i available\n",node->input()->size(), embedded->numberOfPlaceholders());
+            return sd::Status::BAD_INPUT;
         }
 
         // we need to propagate required variables to the embedded graph
@@ -139,8 +135,8 @@ namespace graph {
 //                    deletables.push_back(vr);
                     v->setNDArray(vr);
                 } else {
-                    nd4j_debug("Can't find variable [%s] in parent graph...", v->getName()->c_str());
-                    return ND4J_STATUS_BAD_INPUT;
+                    sd_debug("Can't find variable [%s] in parent graph...", v->getName()->c_str());
+                    return sd::Status::BAD_INPUT;
                     //throw "Can't find desired variable";
                 }
             } else {
@@ -156,8 +152,8 @@ namespace graph {
         }
 
         // executing embedded graph as independent one
-        Nd4jStatus status = GraphExecutioner::execute(embedded);
-        if (status != ND4J_STATUS_OK)
+        sd::Status status = GraphExecutioner::execute(embedded);
+        if (status != sd::Status::OK)
             return status;
 
         //  now we should migrate its results to this node, as its own outputs
@@ -172,18 +168,18 @@ namespace graph {
 
             auto var = variableSpace->getVariable(pair);
 
-            //nd4j_printf("HasArray: [%i]; Removable: [%i]\n", var->hasNDArray(), var->isRemovable());
+            //sd_printf("HasArray: [%i]; Removable: [%i]\n", var->hasNDArray(), var->isRemovable());
             var->setNDArray(array);
             var->markRemovable(true);
         }
         deletables.size();
         delete outputs;
-        nd4j_debug("Embedded graph execution finished. %i variable(s) migrated\n", cnt);
+        sd_debug("Embedded graph execution finished. %i variable(s) migrated\n", cnt);
 
     } else if (node->hasCustomOp()) {
         // now, if we have something to execute - lets just execute it.
         auto status = node->getCustomOp()->execute(&context);
-        if (status != ND4J_STATUS_OK)
+        if (status != sd::Status::OK)
             return status;
 
         // propagate variables
@@ -197,7 +193,7 @@ namespace graph {
 
         return status;
     }
-    return ND4J_STATUS_OK;
+    return sd::Status::OK;
 }
 
 
@@ -207,7 +203,7 @@ namespace graph {
  * @param graph
  * @return one of error codes defined in pointercast.h
  */
-Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace) {
+sd::Status GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace) {
     auto __variableSpace = variableSpace == nullptr ? graph->getVariableSpace() : variableSpace;
 
     bool tempFlow = false;
@@ -217,14 +213,14 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
     }
     auto flowPath = __variableSpace->flowPath();
 
-    Nd4jLong tb0 = Environment::getInstance().isProfiling() ? GraphProfile::currentTime() : 0L;
+    sd::LongType tb0 = Environment::getInstance().isProfiling() ? GraphProfile::currentTime() : 0L;
     graph->buildGraph();
 
     auto footprintForward = sd::memory::MemoryRegistrator::getInstance().getGraphMemoryFootprint(graph->hashCode());
     if (footprintForward > 0) {
         if (__variableSpace->launchContext()->getWorkspace() != nullptr) {
             // this method will work only if current workspace size is smaller then proposed value
-            nd4j_debug("Setting workspace to %lld bytes\n", footprintForward);
+            sd_debug("Setting workspace to %lld bytes\n", footprintForward);
             __variableSpace->launchContext()->getWorkspace()->expandTo(footprintForward);
         }
     }
@@ -233,20 +229,20 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
     if (Environment::getInstance().isProfiling())
         flowPath->profile()->setBuildTime(GraphProfile::relativeTime(tb0));
 
-    Nd4jLong timeStart = Environment::getInstance().isProfiling() ? GraphProfile::currentTime() : 0L;
+    sd::LongType timeStart = Environment::getInstance().isProfiling() ? GraphProfile::currentTime() : 0L;
 
     bool pe = graph->getExecutorConfiguration()->_executionMode == ExecutionMode_AUTO;
 
 
     // basically if at some point code diverges, code branch might be _DISABLED_, and all nodes within that branch will be disabled as well
 
-    std::deque<Nd4jLong> frames;
+    std::deque<sd::LongType> frames;
     bool inFrame =  false;
     bool leftFrame = false;
 
     auto nodeTime = GraphProfile::currentTime();
     int lastId = -10000000;
-    Nd4jLong exec_counter = 0;
+    sd::LongType exec_counter = 0;
     // we loop through op layers here
     for (int l = 0; l < (int) graph->getOnion()->size(); l++) {
         int layerSize = graph->getOnion()->count(l) == 1 ? graph->getOnion()->at(l)->size() : 0;
@@ -256,7 +252,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
         for (; n < layerSize; n++) {
             if (++exec_counter > 10000) {
                 l = graph->getOnion()->size();
-                return Status::THROW("Early termination hit");
+                return Logger::logKernelFailureMsg("Early termination hit");
             }
 
             Node* node = graph->getOnion()->at(l)->at(n);
@@ -272,7 +268,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                 nodeTime = GraphProfile::currentTime();
             }
 
-            nd4j_debug("Step: %lld; Node: %i <%s>\n", exec_counter, node->id(), node->name()->c_str());
+            sd_debug("Step: %lld; Node: %i <%s>\n", exec_counter, node->id(), node->name()->c_str());
 
             // on first non-Exit node after loop we can rewind (if planned)
             if (!(node->opType() == OpType_LOGIC && node->opNum() == sd::logic::Exit)) {
@@ -320,14 +316,14 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                             shouldSkip = true;
                             flowPath->markNodeActive(node->id(), false);
 
-                            nd4j_debug("Skipping Node_%i due to inactive input [%i]\n", node->id(), inputId.first);
+                            sd_debug("Skipping Node_%i due to inactive input [%i]\n", node->id(), inputId.first);
                             break;
 
                         } else if (prevNode->isDivergencePoint()) { // literally checking for switch here
                             if (flowPath->branch(inputId.first) != inputId.second) {
                                 shouldSkip = true;
                                 flowPath->markNodeActive(node->id(), false);
-                                nd4j_debug("Skipping Node_%i due to divergent branch [%i]\n", node->id(),
+                                sd_debug("Skipping Node_%i due to divergent branch [%i]\n", node->id(),
                                            inputId.first);
                                 break;
                             }
@@ -362,7 +358,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
 
 
                 auto status = LogicExecutor::processNode(graph, node);
-                if (status != Status::OK())
+                if (status != sd::Status::OK)
                     return status;
 
             } else if (node->opType() == OpType_LOGIC && node->opNum() == sd::logic::NextIteration) {
@@ -373,7 +369,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                 auto inputId = node->input()->at(0);
 
                 auto status = LogicExecutor::processNode(graph, node);
-                if (status != Status::OK())
+                if (status != sd::Status::OK)
                     return status;
 
                 auto frame_id = frames.back();
@@ -384,7 +380,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                 if (!flowPath->isRewindPlanned(frame_id)) {
                     auto nextLayer = node->getRewindLayer();
 
-                    nd4j_debug("Node_%i planned rewind to Node_%i at [%i:%i]\n", node->id(), node->getRewindNode(), nextLayer.first, nextLayer.second);
+                    sd_debug("Node_%i planned rewind to Node_%i at [%i:%i]\n", node->id(), node->getRewindNode(), nextLayer.first, nextLayer.second);
 
                     flowPath->planRewind(frame_id, true);
                     flowPath->setRewindPositionOnce(frame_id, nextLayer.first - 1);
@@ -418,7 +414,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                     // execute Exit node otherwise
 
                     auto status = LogicExecutor::processNode(graph, node);
-                    if (status != Status::OK())
+                    if (status != sd::Status::OK)
                         return status;
 
                     leftFrame = true;
@@ -431,7 +427,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                  */
                 auto status = LogicExecutor::processNode(graph, node);
 
-                if (status != Status::OK())
+                if (status != sd::Status::OK)
                     return status;
             } else {
 
@@ -439,7 +435,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                 auto timeStart = std::chrono::system_clock::now();
 
                 // actual node execution happens right here
-                Nd4jStatus status = executeFlatNode(graph, node, __variableSpace);
+                sd::Status status = executeFlatNode(graph, node, __variableSpace);
 
                 auto timeEnd = std::chrono::system_clock::now();
 
@@ -448,14 +444,14 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
 
                 flowPath->setOuterTime(node->id(), outerTime);
 
-                if (status != ND4J_STATUS_OK)
+                if (status != sd::Status::OK)
                     return status;
 
 
                 // here we should handle divergent ops, and disable nodes accordingly
                 if (node->isDivergencePoint()) {
                     auto activeBranch = flowPath->branch(node->id());
-                    nd4j_debug("Active branch at node [%i]: %i\n", node->id(), activeBranch);
+                    sd_debug("Active branch at node [%i]: %i\n", node->id(), activeBranch);
 
                     // now we skip all branches except of this active one
                 }
@@ -467,12 +463,12 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
                         auto shape = ShapeUtils::shapeAsString(array);
                         auto values = array->asIndexedString(16);
                         auto type = DataTypeUtils::asString(array->dataType());
-                        nd4j_debug("node_%i finished. result shape: %s; data type: %s; first values: %s\n", node->id(), shape.c_str(), type.c_str(), values.c_str());
+                        sd_debug("node_%i finished. result shape: %s; data type: %s; first values: %s\n", node->id(), shape.c_str(), type.c_str(), values.c_str());
                     } else if (__variableSpace->getVariable(node->id())->hasNDArrayList()) {
                         auto list = __variableSpace->getVariable(node->id())->hasNDArrayList() ? __variableSpace->getVariable(node->id())->getNDArrayList() : nullptr;
-                        nd4j_debug("node_% is ListOp, skipping evaluation", node->id());
+                        sd_debug("node_% is ListOp, skipping evaluation", node->id());
                     } else {
-                        nd4j_debug("node_% is Unknown: has no NDArray or NDArrayList", node->id());
+                        sd_debug("node_% is Unknown: has no NDArray or NDArrayList", node->id());
                     }
                 }
             }
@@ -501,7 +497,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
         __variableSpace->setFlowPath(nullptr);
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 /**
@@ -513,14 +509,14 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
  * 5) Returns pointer to FlatBuffer results buffer
  *
  */
-    sd::graph::ResultWrapper* GraphExecutioner::executeFlatBuffer(Nd4jPointer pointer) {
+    sd::graph::ResultWrapper* GraphExecutioner::executeFlatBuffer(sd::Pointer pointer) {
     uint8_t *buffer = reinterpret_cast<uint8_t *>(pointer);
 
-    // nd4j_debug("Trying to restore graph\n", 0);
+    // sd_debug("Trying to restore graph\n", 0);
 
     auto restoredGraph = GetFlatGraph(buffer);
 
-    // nd4j_debug("Graph restored\n", 0);
+    // sd_debug("Graph restored\n", 0);
 
     // converting FlatGraph to internal representation
     auto nativeGraph = new Graph(restoredGraph);
@@ -533,16 +529,16 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
     nativeGraph->getVariableSpace()->setFlowPath(&flowPath);
 
 
-    // nd4j_debug("Going to execute graph\n", 0);
+    // sd_debug("Going to execute graph\n", 0);
 
     // executing internal representation
     auto status = GraphExecutioner::execute(nativeGraph);
-    if (status != ND4J_STATUS_OK) {
-        nd4j_printf("Graph execution failed with status: [%i]\n", status)
+    if (status != sd::Status::OK) {
+        sd_printf("Graph execution failed with status: [%i]\n", status)
         return nullptr;
     }
 
-    // nd4j_debug("Building output...\n", 0);
+    // sd_debug("Building output...\n", 0);
 
     flatbuffers::FlatBufferBuilder builder(1024);
 
@@ -593,7 +589,7 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
         arrays++;
     }
 
-    nd4j_debug("Returning %i variables back\n", arrays);
+    sd_debug("Returning %i variables back\n", arrays);
 
     auto varTimings = builder.CreateVector(timings_vector);
     auto varVectors = builder.CreateVector(variables_vector);
@@ -607,9 +603,9 @@ Nd4jStatus GraphExecutioner::execute(Graph *graph, VariableSpace* variableSpace)
     char* res = new char[builder.GetSize()];
     memcpy(res, builder.GetBufferPointer(), builder.GetSize());
 
-    nd4j_debug("Buffer size: %lld\n", static_cast<Nd4jLong>(builder.GetSize()));
+    sd_debug("Buffer size: %lld\n", static_cast<sd::LongType>(builder.GetSize()));
 
-    return new ResultWrapper(builder.GetSize(), reinterpret_cast<Nd4jPointer>(res));
+    return new ResultWrapper(builder.GetSize(), reinterpret_cast<sd::Pointer>(res));
 }
 
 Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
@@ -620,11 +616,11 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
     int fd = open(fileName, O_RDONLY);
 
     if (fd < 0) {
-        nd4j_printf("File not found: [%s]\n", fileName);
+        sd_printf("File not found: [%s]\n", fileName);
         return nullptr;
     }
 
-    nd4j_verbose("Trying to load TF GraphDef from file [%s]\n", fileName);
+    sd_verbose("Trying to load TF GraphDef from file [%s]\n", fileName);
 
     tensorflow::GraphDef graphDef;
     bool res = graphDef.ParseFromFileDescriptor(fd);
@@ -638,7 +634,7 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
         fileInput.SetCloseOnDelete(true);
 
         if (!google::protobuf::TextFormat::Parse(&fileInput, &graphDef)) {
-            nd4j_printf("Failed to read file\n","");
+            sd_printf("Failed to read file\n","");
         } else {
             res = true;
         }
@@ -656,13 +652,13 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
 
     int variablesCounter = 0;
     int nodesCounter = 0;
-    nd4j_verbose("Number of nodes in graphDef: %i\n", graphDef.node_size());
+    sd_verbose("Number of nodes in graphDef: %i\n", graphDef.node_size());
     for (int n = 0; n < graphDef.node_size(); n++) {
         auto node = graphDef.node(n);
 
         // if that's external variable - we put it to variable space
         if (strcmp(TF_VAR, node.op().c_str()) == 0 || strcmp(TF_CONST, node.op().c_str()) == 0 || strcmp(TF_INPUT, node.op().c_str()) == 0) {
-            nd4j_printf("Variable found: %s\n", node.name().c_str());
+            sd_printf("Variable found: %s\n", node.name().c_str());
             auto variable = new Variable();
             variable->setName(new std::string(node.name().c_str()));
             variable->setId(--variablesCounter);
@@ -695,7 +691,7 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
 
                     variable->setNDArray(new NDArray('c', __shape));
 
-                    nd4j_printf("Shape found: %i dims;\n", dims);
+                    sd_printf("Shape found: %i dims;\n", dims);
                     variable->getNDArray()->printShapeInfo();
                 }
             }
@@ -706,11 +702,11 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
 
                 // int
                 if (attr.tensor().dtype() == ::tensorflow::DataType::DT_INT32) {
-                    nd4j_verbose("Int size: %i\n", attr.tensor().int_val_size());
+                    sd_verbose("Int size: %i\n", attr.tensor().int_val_size());
 
-                    Nd4jLong __length = 0;
+                    sd::LongType __length = 0;
 
-                    nd4j_verbose("Tensor has shape: %i\n", attr.tensor().has_tensor_shape());
+                    sd_verbose("Tensor has shape: %i\n", attr.tensor().has_tensor_shape());
                     if (attr.tensor().has_tensor_shape()) {
                         auto shape = attr.tensor().tensor_shape();
                         int dims = shape.dim_size();
@@ -729,7 +725,7 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
                             variable->setNDArray(new NDArray('c', __shape));
                             __length = variable->getNDArray()->lengthOf();
 
-                            nd4j_printf("Tensor shape found: %i dims;\n", dims);
+                            sd_printf("Tensor shape found: %i dims;\n", dims);
                             variable->getNDArray()->printShapeInfo();
                         }
                     }
@@ -741,13 +737,13 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
                 }
             }
         } else {
-            nd4j_verbose("Node id: [%i]; name: [%s]; opName: [%s]\n", n + 1, node.name().c_str(),
+            sd_verbose("Node id: [%i]; name: [%s]; opName: [%s]\n", n + 1, node.name().c_str(),
                          node.op().c_str());
 
             sd::ops::DeclarableOp *op = sd::ops::OpRegistrator::getInstance().getOperationFloat(node.op().c_str());
 
             if (op == nullptr) {
-                nd4j_verbose("Op wasn't found: %s\n", node.op().c_str());
+                sd_verbose("Op wasn't found: %s\n", node.op().c_str());
                 return nullptr;
             }
 
@@ -784,7 +780,7 @@ Graph* GraphExecutioner::importFromTensorFlow(const char *fileName) {
 
             printf("             Inputs: [");
             for (int i = 0; i < node.input_size(); i++) {
-                nd4j_printf("Trying input: %s\n", node.input(i).c_str());
+                sd_printf("Trying input: %s\n", node.input(i).c_str());
 
                 // if this fails - we're probably on partial input :)
                 if (!variablesMap.count(node.input(i)))
@@ -827,11 +823,11 @@ long getFileSize(const char * filename) {
 uint8_t* readFlatBuffers(const char * filename) {
     long fileLen = getFileSize(filename);
     if (fileLen < 0) {
-        nd4j_printf("File [%s] wasn't found. Please check path and permissions\n", filename);
+        sd_printf("File [%s] wasn't found. Please check path and permissions\n", filename);
         throw std::runtime_error("File not found");
     }
 
-    nd4j_debug("File length: %i\n", fileLen);
+    sd_debug("File length: %i\n", fileLen);
 
     uint8_t * data = new uint8_t[fileLen];
 
@@ -865,7 +861,7 @@ flatbuffers::Offset<FlatResult> GraphExecutioner::execute(Graph *graph, flatbuff
         graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    if (status != sd::Status::OK())
+    if (status != sd::Status::OK)
         throw graph_execution_exception(request->id());
 
     auto outputs = graph->fetchOutputs();
@@ -893,12 +889,12 @@ flatbuffers::Offset<FlatResult> GraphExecutioner::execute(Graph *graph, flatbuff
         */
         Graph* GraphExecutioner::importFromFlatBuffers(const char *filename) {
             auto data = readFlatBuffers(filename);
-            auto restoredGraph = importFromFlatPointer(reinterpret_cast<Nd4jPointer>(data));
+            auto restoredGraph = importFromFlatPointer(reinterpret_cast<sd::Pointer>(data));
             delete[] data;
             return restoredGraph;
         }
 
-        Graph *GraphExecutioner::importFromFlatPointer(Nd4jPointer ptr) {
+        Graph *GraphExecutioner::importFromFlatPointer(sd::Pointer ptr) {
             auto fg = GetFlatGraph(reinterpret_cast<uint8_t *>(ptr));
             auto restoredGraph = new Graph(fg);
 

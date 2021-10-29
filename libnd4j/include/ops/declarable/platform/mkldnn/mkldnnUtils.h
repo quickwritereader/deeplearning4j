@@ -24,7 +24,6 @@
 #ifndef DEV_TESTS_MKLDNNUTILS_H
 #define DEV_TESTS_MKLDNNUTILS_H
 
-
 #include <legacy/NativeOps.h>
 #include <array/NDArray.h>
 #include <dnnl.hpp>
@@ -203,7 +202,6 @@ namespace sd {
          */
     }
 }
-
 
 
 #endif //DEV_TESTS_MKLDNNUTILS_H

@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include "cudnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -49,7 +48,7 @@ checkConv2dCUDNNPadAsymmetric(const NDArray* input, const NDArray* gradI,
     if(!isPHasymm && !isPWasymm)
         return std::make_tuple(std::move(uNewInput), std::move(uNewGradI));
 
-    std::vector<Nd4jLong> newShape = input->getShapeAsVector();
+    std::vector<sd::LongType> newShape = input->getShapeAsVector();
 
     const int iHposition = isNCHW ? 2 : 1;
 
@@ -95,7 +94,7 @@ checkConv3dCUDNNPadAsymmetric(const NDArray* input,const NDArray* gradI,
     if(!isPDasymm && !isPHasymm && !isPWasymm)
         return std::make_tuple(std::move(uNewInput), std::move(uNewGradI));
 
-    std::vector<Nd4jLong> newShape = input->getShapeAsVector();
+    std::vector<sd::LongType> newShape = input->getShapeAsVector();
 
     const int iDposition = isNCDHW ? 2 : 1;
 

@@ -33,16 +33,16 @@ namespace sd {
 
             // in case of empty input there's nothing to do
             if (input->isEmpty())
-                return ND4J_STATUS_TRUE;
+                return sd::Status::TRUE;
 
             bool isNonDecreasing = true;
 
             sd::ops::helpers::compare_elem(block.launchContext(), input, false, isNonDecreasing);
 
             if (isNonDecreasing)
-                return ND4J_STATUS_TRUE;
+                return sd::Status::TRUE;
             else
-                return ND4J_STATUS_FALSE;
+                return sd::Status::FALSE;
         }
 
         DECLARE_TYPES(is_non_decreasing) {

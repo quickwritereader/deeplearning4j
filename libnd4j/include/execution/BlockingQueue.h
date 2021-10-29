@@ -22,7 +22,6 @@
 
 #ifndef SAMEDIFF_BLOCKINGQUEUE_H
 #define SAMEDIFF_BLOCKINGQUEUE_H
-
 #include <functional>
 #include <queue>
 #include <mutex>

@@ -24,9 +24,7 @@
 
 #ifndef LIBND4J_ATTENTIONHELPER_CPP
 #define LIBND4J_ATTENTIONHELPER_CPP
-
 #include <helpers/AttentionHelper.h>
-
 #include "../AttentionHelper.h"
 #include <ops/declarable/CustomOperations.h>
 #if NOT_EXCLUDED(OP_multi_head_dot_product_attention)

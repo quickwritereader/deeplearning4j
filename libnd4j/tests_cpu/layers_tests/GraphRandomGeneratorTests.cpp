@@ -15,7 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
-
 #include "testlayers.h"
 #include <graph/RandomGenerator.h>
 #include <array/DataTypeUtils.h>
@@ -176,19 +175,19 @@ TEST_F(GraphRandomGeneratorTests, Long_Test_1) {
     sd::graph::RandomGenerator g0(119, 5);
     sd::graph::RandomGenerator g1(119, 5);
 
-    std::array<Nd4jLong, 10000> z0, z1, z2, z3; 
+    std::array<sd::LongType, 10000> z0, z1, z2, z3; 
 
     for (int e = 0; e < z0.size(); e++) {
-        z0[e] = g0.relativeT<Nd4jLong>(e);
-        z1[e] = g1.relativeT<Nd4jLong>(e);
+        z0[e] = g0.relativeT<sd::LongType>(e);
+        z1[e] = g1.relativeT<sd::LongType>(e);
     }
 
     g0.rewindH(z0.size());
     g1.rewindH(z0.size());
 
     for (int e = 0; e < z0.size(); e++) {
-        z2[e] = g0.relativeT<Nd4jLong>(e);
-        z3[e] = g1.relativeT<Nd4jLong>(e);
+        z2[e] = g0.relativeT<sd::LongType>(e);
+        z3[e] = g1.relativeT<sd::LongType>(e);
     }
 
     // these sequences should be equal
@@ -249,7 +248,7 @@ TEST_F(GraphRandomGeneratorTests, FloatingPoint_Test_1) {
     for (int e = 0; e < z0.size(); e++) {
         auto v = z0[e];
         if (!(v >= -1.0 && v <= 1.0)) {
-            nd4j_printf("Failed at idx [%i]: %f\n", e, (float) v);
+            sd_printf("Failed at idx [%i]: %f\n", e, (float) v);
             ASSERT_TRUE(v >= -1.0 && v <= 1.0);
         }
 

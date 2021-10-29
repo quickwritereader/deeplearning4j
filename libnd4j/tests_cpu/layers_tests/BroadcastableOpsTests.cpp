@@ -20,7 +20,6 @@
 // Created by raver119 on 23.11.17.
 //
 
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <graph/Node.h>
@@ -50,7 +49,7 @@ TEST_F(BroadcastableOpsTests, Test_Add_1) {
     sd::ops::add op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -76,7 +75,7 @@ TEST_F(BroadcastableOpsTests, Test_Multiply_1) {
     sd::ops::multiply op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -99,7 +98,7 @@ TEST_F(BroadcastableOpsTests, Test_SquaredSubtract_1) {
     sd::ops::squaredsubtract op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -117,7 +116,7 @@ TEST_F(BroadcastableOpsTests, Test_ScalarBroadcast_1) {
     sd::ops::subtract op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -134,7 +133,7 @@ TEST_F(BroadcastableOpsTests, Test_ScalarBroadcast_2) {
     sd::ops::add op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -150,7 +149,7 @@ TEST_F(BroadcastableOpsTests, Test_Maximum_1) {
 
     sd::ops::maximum op;
     auto result = op.evaluate({&x, &row});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -166,7 +165,7 @@ TEST_F(BroadcastableOpsTests, Test_Minimum_1) {
 
     sd::ops::minimum op;
     auto result = op.evaluate({&x, &col});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -180,8 +179,8 @@ TEST_F(BroadcastableOpsTests, Test_Minimum_1) {
 TEST_F(BroadcastableOpsTests, Test_Shape_1) {
     sd::ops::minimum op;
 
-    Nd4jLong shapeX[] = {2, 2, 5, 5, 1, 8192, 1, 99};
-    Nd4jLong shapeY[] = {2, 2, 5, 5, 1, 8192, 1, 99};
+    sd::LongType shapeX[] = {2, 2, 5, 5, 1, 8192, 1, 99};
+    sd::LongType shapeY[] = {2, 2, 5, 5, 1, 8192, 1, 99};
     ShapeList inputShape({shapeX, shapeY});
     VariableSpace vs;
     Context ctx(1, &vs, false);
@@ -197,8 +196,8 @@ TEST_F(BroadcastableOpsTests, Test_Shape_1) {
 TEST_F(BroadcastableOpsTests, Test_Shape_2) {
     sd::ops::minimum op;
 
-    const Nd4jLong shapeX[] = {2, 1, 1, 1, 1, 8192, 1, 99};
-    const Nd4jLong shapeY[] = {2, 2, 5, 5, 1, 8192, 1, 99};
+    const sd::LongType shapeX[] = {2, 1, 1, 1, 1, 8192, 1, 99};
+    const sd::LongType shapeY[] = {2, 2, 5, 5, 1, 8192, 1, 99};
     ShapeList inputShape({shapeX, shapeY});
     VariableSpace vs;
     Context ctx(1, &vs, false);
@@ -215,8 +214,8 @@ TEST_F(BroadcastableOpsTests, Test_Shape_2) {
 TEST_F(BroadcastableOpsTests, Test_Shape_3) {
     sd::ops::minimum op;
 
-    const Nd4jLong shapeX[] = {2, 5, 3, 1, 1, 8192, 1, 99};
-    const Nd4jLong shapeY[] = {2, 1, 3, 3, 1, 8192, 1, 99};
+    const sd::LongType shapeX[] = {2, 5, 3, 1, 1, 8192, 1, 99};
+    const sd::LongType shapeY[] = {2, 1, 3, 3, 1, 8192, 1, 99};
     ShapeList inputShape({shapeX, shapeY});
     VariableSpace vs;
     Context ctx(1, &vs, false);
@@ -233,8 +232,8 @@ TEST_F(BroadcastableOpsTests, Test_Shape_3) {
 TEST_F(BroadcastableOpsTests, Test_Shape_4) {
     sd::ops::minimum op;
 
-    const Nd4jLong shapeX[] = {2, 5, 3, 1, 1, 8192, 1, 99};
-    const Nd4jLong shapeY[] = {2, 5, 1, 1, 1, 8192, 1, 99};
+    const sd::LongType shapeX[] = {2, 5, 3, 1, 1, 8192, 1, 99};
+    const sd::LongType shapeY[] = {2, 5, 1, 1, 1, 8192, 1, 99};
     ShapeList inputShape({shapeX, shapeY});
     VariableSpace vs;
     Context ctx(1, &vs, false);
@@ -252,9 +251,9 @@ TEST_F(BroadcastableOpsTests, Test_Shape_4) {
 TEST_F(BroadcastableOpsTests, Test_Shape_5) {
     sd::ops::minimum op;
 
-    const Nd4jLong shapeX[] = {3, 2, 1, 3, 3, 3, 1, 8192, 1, 99};
-    const Nd4jLong shapeY[] = {2, 4, 3, 3, 1, 8192, 1, 99};
-    const Nd4jLong shapeE[] = {3, 2, 4, 3, 12, 3, 1, 8192, 1, 99};
+    const sd::LongType shapeX[] = {3, 2, 1, 3, 3, 3, 1, 8192, 1, 99};
+    const sd::LongType shapeY[] = {2, 4, 3, 3, 1, 8192, 1, 99};
+    const sd::LongType shapeE[] = {3, 2, 4, 3, 12, 3, 1, 8192, 1, 99};
     ShapeList inputShape({shapeX, shapeY});
     VariableSpace vs;
     Context ctx(1, &vs, false);
@@ -274,7 +273,7 @@ TEST_F(BroadcastableOpsTests, Test_Scalar_Add_1) {
 
     sd::ops::add op;
     auto result = op.evaluate({&x, &y});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -295,7 +294,7 @@ TEST_F(BroadcastableOpsTests, Test_Inplace_Output_1) {
 
     sd::ops::add op;
     auto result = op.execute({&x, &y}, {&o}, {}, {}, {});
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     auto buffO2 = reinterpret_cast<float *>(o.buffer());
 
@@ -337,7 +336,7 @@ TEST_F(BroadcastableOpsTests, Test_Subtract_3) {
     sd::ops::subtract op;
     auto result = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
     ASSERT_TRUE(e.equalsTo(z));
 }
 
@@ -499,7 +498,7 @@ TEST_F(BroadcastableOpsTests, Test_Multiply_7) {
 
     sd::ops::multiply op;
     auto result = op.evaluate({&x, &y});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -514,7 +513,7 @@ TEST_F(BroadcastableOpsTests, Test_Multiply_8) {
 
     sd::ops::multiply op;
     auto result = op.evaluate({&x, &y});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -532,7 +531,7 @@ TEST_F(BroadcastableOpsTests, broadcast_add_1) {
     sd::ops::add op;
     auto status = op.execute({&x, &y}, {&z});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(z.equalsTo(exp));
 }
 
@@ -548,7 +547,7 @@ TEST_F(BroadcastableOpsTests, broadcast_equals_1) {
     auto status = op.execute({&x, &y}, {&z});
     // z.printIndexedBuffer();
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(z.equalsTo(exp));
 }
 
@@ -563,7 +562,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_1) {
     sd::ops::multiply op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(z.isSameShape(zExp));
     ASSERT_TRUE(z.equalsTo(zExp));
 }
@@ -577,7 +576,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_2) {
     sd::ops::multiply op;
     auto status = op.execute({&x, &y}, {&x}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(e.isSameShape(x));
     ASSERT_TRUE(e.equalsTo(x));
 }
@@ -591,7 +590,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_3) {
     sd::ops::maximum op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -608,7 +607,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_4) {
     sd::ops::maximum op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -626,7 +625,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_5) {
     sd::ops::realdiv op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -644,7 +643,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_6) {
     sd::ops::realdiv op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -662,7 +661,7 @@ TEST_F(BroadcastableOpsTests, broadcast_empty_7) {
     sd::ops::realdiv op;
     auto result = op.evaluate({&x, &y});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -681,7 +680,7 @@ TEST_F(BroadcastableOpsTests, broadcast_bool_empty_1) {
     sd::ops::greater op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(z.isSameShape(zExp));
     ASSERT_TRUE(z.equalsTo(zExp));
 }
@@ -700,7 +699,7 @@ TEST_F(BroadcastableOpsTests, broadcast_bool_empty_2) {
 
     // z->printShapeInfo("z");
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     ASSERT_TRUE(e.isSameShape(z));
     ASSERT_TRUE(e.equalsTo(*z));
 }
@@ -720,7 +719,7 @@ TEST_F(BroadcastableOpsTests, broadcast_bool_1) {
 
     auto status = op.execute({&x, &y}, {&z});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // z.printIndexedBuffer("Z");
 
@@ -743,7 +742,7 @@ TEST_F(BroadcastableOpsTests, broadcast_bool_2) {
 
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // z.printIndexedBuffer("Z");
 
@@ -763,7 +762,7 @@ TEST_F(BroadcastableOpsTests, broadcast_bool_3) {
     sd::ops::less op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // z.printIndexedBuffer("Z");
 
@@ -785,7 +784,7 @@ TEST_F(BroadcastableOpsTests, broadcast_2) {
 
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // z.printIndexedBuffer("Z");
 
@@ -802,7 +801,7 @@ TEST_F(BroadcastableOpsTests, broadcast_3) {
     sd::ops::add op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // z.printIndexedBuffer("Z");
 
@@ -828,7 +827,7 @@ TEST_F(BroadcastableOpsTests, test_bert_multiply_1) {
 
     sd::ops::multiply op;
     auto status = op.execute(&ctx);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     z.printIndexedBuffer();
 */

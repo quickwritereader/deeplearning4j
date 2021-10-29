@@ -29,7 +29,7 @@ namespace sd {
     namespace ops {
         OP_IMPL(noop, -2, -2, true) {
             // Fastest op ever.
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(noop) {

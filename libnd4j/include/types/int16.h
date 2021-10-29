@@ -22,34 +22,33 @@
 
 #ifndef LIBND4J_INT16_H
 #define LIBND4J_INT16_H
-
 #include <stdint.h>
 #include <system/op_boilerplate.h>
 
 
 namespace sd {
 
-    float _CUDA_HD FORCEINLINE cpu_int162float(int16_t data);
-    int16_t _CUDA_HD FORCEINLINE cpu_float2int16(float data);
+    float SD_INLINE SD_HOST_DEVICE cpu_int162float(int16_t data);
+    int16_t SD_INLINE SD_HOST_DEVICE cpu_float2int16(float data);
 
     struct int16 {
         int16_t data;
 
-        _CUDA_HD FORCEINLINE int16();
-        _CUDA_HD FORCEINLINE ~int16() = default;
+        SD_INLINE SD_HOST_DEVICE int16();
+        SD_INLINE SD_HOST_DEVICE ~int16() = default;
 
         template <class T>
-        _CUDA_HD FORCEINLINE int16(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE int16(const T& rhs);
 
         template <class T>
-        _CUDA_HD FORCEINLINE int16& operator=(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE int16& operator=(const T& rhs);
 
 
-        _CUDA_HD FORCEINLINE operator float() const;
+        SD_INLINE SD_HOST_DEVICE operator float() const;
 
-        _CUDA_HD FORCEINLINE void assign(double rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(double rhs);
 
-        _CUDA_HD FORCEINLINE void assign(float rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(float rhs);
     };
 
 

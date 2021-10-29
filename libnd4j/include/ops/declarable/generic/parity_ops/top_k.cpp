@@ -51,7 +51,7 @@ namespace sd {
             REQUIRE_TRUE(k <= x->sizeAt(-1), 0, "top_k: k should not be greater than last dimension");
             REQUIRE_TRUE(k > 0, 0, "top_k: k should be positive, but %i given.", k);
 
-            int res =  helpers::topKFunctor(block.launchContext(), x, values, indices, k, needSort);
+            auto res =  helpers::topKFunctor(block.launchContext(), x, values, indices, k, needSort);
             return res;
         }
 
@@ -70,8 +70,8 @@ namespace sd {
             REQUIRE_TRUE(k > 0, 0, "top_k: k should be positive, but %i given.", k);
 
             for (int e = 0; e < 2; e++) { // 2 element tuple at output
-                Nd4jLong* aShape;
-                ALLOCATE(aShape, block.getWorkspace(), shape::shapeInfoLength(shapeRank), Nd4jLong);
+                sd::LongType* aShape;
+                ALLOCATE(aShape, block.getWorkspace(), shape::shapeInfoLength(shapeRank), sd::LongType);
                 aShape[0] = shapeRank;
                 for (int i = 1 ; i < shapeRank; ++i)
                     aShape[i] = shape::sizeAt(in, i - 1);

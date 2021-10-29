@@ -80,7 +80,7 @@ CUSTOM_OP_IMPL(reduce_dot_bp, -1, 2, false, 0, 0) {
         }
 
     }
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 
@@ -107,7 +107,7 @@ DECLARE_SHAPE_FN(reduce_dot_bp) {
             REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_DOT_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !" , inputShape->at(0)[0], inputShape->at(0)[0], item);
     }
 
-    Nd4jLong *outShapeInfo1, *outShapeInfo2;
+    sd::LongType *outShapeInfo1, *outShapeInfo2;
     COPY_SHAPE(inputShape->at(0), outShapeInfo1);
     COPY_SHAPE(inputShape->at(1), outShapeInfo2);
 

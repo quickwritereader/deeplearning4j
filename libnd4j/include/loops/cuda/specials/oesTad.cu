@@ -19,15 +19,14 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/specials_cuda.h>
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
-__global__ void execOesTadKernelKey(void *vx, Nd4jLong const* xShapeInfo,
-                                    void *vy, Nd4jLong const* yShapeInfo,
+SD_KERNEL void execOesTadKernelKey(void *vx, sd::LongType const* xShapeInfo,
+                                    void *vy, sd::LongType const* yShapeInfo,
                                  int *dimension, int dimensionLength,
-                                 Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
+                                 sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
                                  bool descending) {
 
     auto x = static_cast<X*>(vx);
@@ -96,9 +95,9 @@ __global__ void execOesTadKernelKey(void *vx, Nd4jLong const* xShapeInfo,
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void execOesTadKernel(void *vx, Nd4jLong const* xShapeInfo,
+SD_KERNEL void execOesTadKernel(void *vx, sd::LongType const* xShapeInfo,
                                 int *dimension, int dimensionLength,
-                                Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
+                                sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
                                 bool descending) {
 
     auto x = static_cast<T*>(vx);
@@ -183,25 +182,25 @@ __global__ void execOesTadKernel(void *vx, Nd4jLong const* xShapeInfo,
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void oesTadGeneric(dim3 &launchDims, cudaStream_t *stream,
-                                void *vx, Nd4jLong const* xShapeInfo,
+SD_HOST void oesTadGeneric(dim3 &launchDims, cudaStream_t *stream,
+                                void *vx, sd::LongType const* xShapeInfo,
                                 int *dimension, int dimensionLength,
-                                Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
+                                sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
                                 bool descending) {
 
     execOesTadKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffsets, descending);
 }
 
 template <typename X, typename Y>
-__host__ void oesTadGenericKey(dim3 &launchDims, cudaStream_t *stream,
-                            void *vx, Nd4jLong const* xShapeInfo,
-                            void *vy, Nd4jLong const* yShapeInfo,
+SD_HOST void oesTadGenericKey(dim3 &launchDims, cudaStream_t *stream,
+                            void *vx, sd::LongType const* xShapeInfo,
+                            void *vy, sd::LongType const* yShapeInfo,
                             int *dimension, int dimensionLength,
-                            Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
+                            sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
                             bool descending) {
 
     execOesTadKernelKey<X,Y><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffsets, descending);
 }
 
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL oesTadGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, int *dimension, int dimensionLength, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool descending), LIBND4J_TYPES);
-BUILD_DOUBLE_TEMPLATE(template void ND4J_LOCAL oesTadGenericKey, (dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int *dimension, int dimensionLength, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool descending), LIBND4J_TYPES, LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN oesTadGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, int *dimension, int dimensionLength, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool descending), SD_COMMON_TYPES);
+BUILD_DOUBLE_TEMPLATE(template void SD_LIB_HIDDEN oesTadGenericKey, (dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int *dimension, int dimensionLength, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool descending), SD_COMMON_TYPES, SD_COMMON_TYPES);

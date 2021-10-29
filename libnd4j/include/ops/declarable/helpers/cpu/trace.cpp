@@ -20,12 +20,11 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/Loops.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
@@ -41,8 +40,8 @@ static void trace_(const NDArray& input, NDArray& output) {
     samediff::Threads::parallel_for(func, 0, setOfSubArrs.size());
 }
 
-    ND4J_LOCAL void trace(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
-        BUILD_SINGLE_SELECTOR(input.dataType(), trace_, (input, output), LIBND4J_TYPES);
+    void trace(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
+        BUILD_SINGLE_SELECTOR(input.dataType(), trace_, (input, output), SD_COMMON_TYPES);
     }
 }
 }

@@ -15,32 +15,31 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
-
 #include <config.h>
 #include <build_info.h>
 
 const char* buildInfo() {
-	return ""
+    return ""
 #if defined(__clang__)
-        "Clang: " TOSTRING(__clang_version__)
+        "Clang: " STRINGIZE(__clang_version__)
 #elif defined(_MSC_VER)
-        "MSVC: " TOSTRING(_MSC_FULL_VER)
+        "MSVC: " STRINGIZE(_MSC_FULL_VER)
 #else
-        "GCC: " TOSTRING(__VERSION__)
+        "GCC: " STRINGIZE(__VERSION__)
 #endif
 #if defined(_MSC_VER) && defined(_MSVC_LANG)  
-        "\nSTD version: " TOSTRING(_MSVC_LANG)
+        "\nSTD version: " STRINGIZE(_MSVC_LANG)
 #elif defined(__cplusplus)
-        "\nSTD version: " TOSTRING(__cplusplus)
+        "\nSTD version: " STRINGIZE(__cplusplus)
 #endif
 
 #if defined(__CUDACC__)
-        "\nCUDA: " TOSTRING(__CUDACC_VER_MAJOR__)
-        "."  TOSTRING(__CUDACC_VER_MINOR__)
-        "." TOSTRING(__CUDACC_VER_BUILD__)
+        "\nCUDA: " STRINGIZE(__CUDACC_VER_MAJOR__)
+        "."  STRINGIZE(__CUDACC_VER_MINOR__)
+        "." STRINGIZE(__CUDACC_VER_BUILD__)
 #endif
 #if defined(DEFAULT_ENGINE)
-        "\nDEFAULT_ENGINE: " TOSTRING(DEFAULT_ENGINE)
+        "\nDEFAULT_ENGINE: " STRINGIZE(DEFAULT_ENGINE)
 #endif
 #if defined(HAVE_FLATBUFFERS)
         "\nHAVE_FLATBUFFERS"
@@ -60,5 +59,5 @@ const char* buildInfo() {
 #if defined(HAVE_ARMCOMPUTE)
         "\nHAVE_ARMCOMPUTE"
 #endif
-		;
+        ;
 }

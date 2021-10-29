@@ -22,29 +22,28 @@
 
 #ifndef LIBND4J_OPTUPLE_H
 #define LIBND4J_OPTUPLE_H
-
 #include <vector>
 #include <initializer_list>
 #include <array/NDArray.h>
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT OpTuple {
+        class SD_LIB_EXPORT OpTuple {
         public:
             std::string _opName;
             std::vector<sd::NDArray*> _inputs;
             std::vector<sd::NDArray*> _outputs;
             std::vector<double> _tArgs;
-            std::vector<Nd4jLong> _iArgs;
+            std::vector<sd::LongType> _iArgs;
 
             OpTuple(const char *opName);
-            OpTuple(const char *opName, std::initializer_list<sd::NDArray *>&& inputs, std::initializer_list<double>&& tArgs, std::initializer_list<Nd4jLong>&& iArgs);
+            OpTuple(const char *opName, std::initializer_list<sd::NDArray *>&& inputs, std::initializer_list<double>&& tArgs, std::initializer_list<sd::LongType>&& iArgs);
             ~OpTuple();
 
             OpTuple* addInput(sd::NDArray *array);
             OpTuple* addOutput(sd::NDArray *array);
             OpTuple* setTArgs(std::initializer_list<double> tArgs);
-            OpTuple* setIArgs(std::initializer_list<Nd4jLong> iArgs);
+            OpTuple* setIArgs(std::initializer_list<sd::LongType> iArgs);
         };
     }
 }

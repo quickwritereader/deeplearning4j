@@ -26,11 +26,9 @@
 #ifdef __CUDACC__
 #include <curand.h>
 #endif
-
 #include <helpers/helper_generator.h>
 
 #ifndef __CUDACC__
-
 #include <mutex>
 
 #endif
@@ -49,12 +47,12 @@ namespace sd {
 
         public:
 
-            _CUDA_HD RandomHelper(sd::random::IGenerator *generator) {
+            SD_HOST_DEVICE RandomHelper(sd::random::IGenerator *generator) {
                 this->generator = generator;
                 this->buffer = generator->getBuffer();
             }
 
-            _CUDA_HD RandomHelper(sd::random::RandomBuffer *buffer) {
+            SD_HOST_DEVICE RandomHelper(sd::random::RandomBuffer *buffer) {
                 this->buffer = buffer;
             }
 
@@ -63,12 +61,12 @@ namespace sd {
              * This method returns random int in range [0..MAX_INT]
              * @return
              */
-            inline _CUDA_D int nextInt() {
+            SD_INLINE SD_DEVICE int nextInt() {
                 int r = (int) nextUInt();
                 return r < 0 ? -1 * r : r;
             };
 
-            inline _CUDA_D uint64_t nextUInt() {
+            SD_INLINE SD_DEVICE uint64_t nextUInt() {
                 return buffer->getNextElement();
             }
 
@@ -77,7 +75,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D int nextInt(int to) {
+            SD_INLINE SD_DEVICE int nextInt(int to) {
                 int r = nextInt();
                 int m = to - 1;
                 if ((to & m) == 0)  // i.e., bound is a power of 2
@@ -96,7 +94,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D int nextInt(int from, int to) {
+            SD_INLINE SD_DEVICE int nextInt(int from, int to) {
                 if (from == 0)
                     return nextInt(to);
 
@@ -108,7 +106,7 @@ namespace sd {
              * This method returns random T in range of [0..MAX_FLOAT]
              * @return
              */
-            inline _CUDA_D T nextMaxT() {
+            SD_INLINE SD_DEVICE T nextMaxT() {
                 T rnd = (T) buffer->getNextElement();
                 return rnd < 0 ? -1 * rnd : rnd;
             };
@@ -118,8 +116,8 @@ namespace sd {
              * This method returns random T in range of [0..1]
              * @return
              */
-            inline _CUDA_D T nextT() {
-                return (T) nextUInt() / (T) sd::DataTypeUtils::max<Nd4jULong>();
+            SD_INLINE SD_DEVICE T nextT() {
+                return (T) nextUInt() / (T) sd::DataTypeUtils::max<sd::UnsignedLong>();
             }
 
             /**
@@ -127,7 +125,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D T nextT(T to) {
+            SD_INLINE SD_DEVICE T nextT(T to) {
                 if (to == (T) 1.0f)
                     return nextT();
 
@@ -140,18 +138,18 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D T nextT(T from, T to) {
+            SD_INLINE SD_DEVICE T nextT(T from, T to) {
                 return from + (nextT() * (to - from));
             }
 
-            inline _CUDA_D uint64_t relativeUInt(Nd4jLong index) {
+            SD_INLINE SD_DEVICE uint64_t relativeUInt(sd::LongType index) {
                 return buffer->getElement(index);
             }
 
             /**
              *  relative methods are made as workaround for lock-free concurrent execution
              */
-            inline _CUDA_D int relativeInt(Nd4jLong index) {
+            SD_INLINE SD_DEVICE int relativeInt(sd::LongType index) {
                 return (int) (relativeUInt(index) % (sd::DataTypeUtils::max<uint32_t>() + 1));
             }
 
@@ -162,7 +160,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D int relativeInt(Nd4jLong index, int to) {
+            SD_INLINE SD_DEVICE int relativeInt(sd::LongType index, int to) {
                 int rel = relativeInt(index);
                 return rel % to;
             }
@@ -175,7 +173,7 @@ namespace sd {
              * @param from
              * @return
              */
-            inline int _CUDA_D relativeInt(Nd4jLong index, int to, int from) {
+            inline int SD_DEVICE relativeInt(sd::LongType index, int to, int from) {
                 if (from == 0)
                     return relativeInt(index, to);
 
@@ -189,7 +187,7 @@ namespace sd {
              * @return
              */
 
-            inline _CUDA_D T relativeT(Nd4jLong index) {
+            SD_INLINE SD_DEVICE T relativeT(sd::LongType index) {
                 if (sizeof(T) < 4) {
                     // FIXME: this is fast hack for short types, like fp16. This should be improved.
                     return (T)((float) relativeUInt(index) / (float) sd::DataTypeUtils::max<uint32_t>());
@@ -203,7 +201,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D T relativeT(Nd4jLong index, T to) {
+            SD_INLINE SD_DEVICE T relativeT(sd::LongType index, T to) {
                 if (to == (T) 1.0f)
                     return relativeT(index);
 
@@ -218,7 +216,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline _CUDA_D T relativeT(Nd4jLong index, T from, T to) {
+            SD_INLINE SD_DEVICE T relativeT(sd::LongType index, T from, T to) {
                 return from + (relativeT(index) * (to - from));
             }
 
@@ -228,7 +226,7 @@ namespace sd {
              *
              * @param numberOfElements number of elements to skip
              */
-            inline _CUDA_D void rewind(Nd4jLong numberOfElements) {
+            SD_INLINE SD_DEVICE void rewind(sd::LongType numberOfElements) {
                 buffer->rewindH(numberOfElements);
             }
         };

@@ -36,7 +36,7 @@ namespace sd {
 
             auto output  = OUTPUT_VARIABLE(0);
 
-            int reductionMode = INT_ARG(0);			// 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
+            int reductionMode = INT_ARG(0);            // 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
 
             // input validation
             REQUIRE_TRUE(labels->isSameShape(logits), 0, "HINGE_LOSS OP: labels and logits arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labels).c_str(), ShapeUtils::shapeAsString(logits).c_str());
@@ -60,15 +60,15 @@ namespace sd {
             E *= *weightsBroad;
 
             switch (reductionMode) {
-                case 0: {											// 0 - "none", un-reduced weighted losses with the same shape as labels.
+                case 0: {                                            // 0 - "none", un-reduced weighted losses with the same shape as labels.
                     output->assign(E);
                     break;
                 }
-                case 1: {											// 1 - "weighted_sum", output is scalar and equal to sum of all elements of E array
+                case 1: {                                            // 1 - "weighted_sum", output is scalar and equal to sum of all elements of E array
                     E.reduceNumber(reduce::Sum, *output);
                     break;
                 }
-                case 2: {											// 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
+                case 2: {                                            // 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
                     NDArray sum;
                     sum.setContext(block.launchContext());
                     if (weights->isScalar())
@@ -82,14 +82,14 @@ namespace sd {
                         output->assign(E.reduceNumber(reduce::Sum) / sum);
                     break;
                 }
-                case 3: {											// 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
-                    Nd4jLong numOfNonZeroWeights = 0;
+                case 3: {                                            // 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
+                    sd::LongType numOfNonZeroWeights = 0;
                     if(weights->isScalar()) {
                         if(weights->e<double>(0) != 0.)
                             numOfNonZeroWeights = E.lengthOf();
                     }
                     else {
-                        numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<Nd4jLong>(0);
+                        numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<sd::LongType>(0);
                     }
 
                     if (numOfNonZeroWeights == 0)
@@ -103,7 +103,7 @@ namespace sd {
             if(weightsBroad != weights)
                 delete weightsBroad;
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 //////////////////////////////////////////////////////////////////////////
@@ -127,11 +127,11 @@ namespace sd {
             REQUIRE_TRUE(shape::isScalar(weightsShapeInfo) || ShapeUtils::areShapesBroadcastable(weightsShapeInfo, labelsShapeInfo), 0, "HINGE_LOSS OP: shapes of weights and labels arrays should be broadcastable, but got weights = %s and labels = %s instead!", ShapeUtils::shapeAsString(weightsShapeInfo).c_str(), ShapeUtils::shapeAsString(labelsShapeInfo).c_str());
 
             DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
-            Nd4jLong const* outShapeInfo = nullptr;
+            sd::LongType const* outShapeInfo = nullptr;
 
-            if(INT_ARG(0) != 0) 			// in this case output is scalar
+            if(INT_ARG(0) != 0)             // in this case output is scalar
                 outShapeInfo = ConstantShapeHelper::getInstance().scalarShapeInfo(outType);
-            else 							// in this case output has the same shape as labels and predictions
+            else                             // in this case output has the same shape as labels and predictions
                 outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(outType, shape::order(labelsShapeInfo), shape::shapeOf(labelsShapeInfo), shape::rank(labelsShapeInfo)));
 
             return SHAPELIST(outShapeInfo);
@@ -148,11 +148,11 @@ namespace sd {
             auto weights = INPUT_VARIABLE(1);
             auto labels  = INPUT_VARIABLE(2);
 
-            auto dLdp = OUTPUT_VARIABLE(0);		// dL/dpredictions
-            auto dLdw = OUTPUT_VARIABLE(1);		// dL/dweights
-            auto dLdl = OUTPUT_VARIABLE(2);		// dL/dlabels
+            auto dLdp = OUTPUT_VARIABLE(0);        // dL/dpredictions
+            auto dLdw = OUTPUT_VARIABLE(1);        // dL/dweights
+            auto dLdl = OUTPUT_VARIABLE(2);        // dL/dlabels
 
-            int reductionMode = INT_ARG(0);			// 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
+            int reductionMode = INT_ARG(0);            // 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
             // take into account Alex's proposition to treat "none" the same as "weighted_sum" mode when calculating gradients
             if(reductionMode == 0)
                 reductionMode = 1;
@@ -186,7 +186,7 @@ namespace sd {
 
             switch (reductionMode) {
 
-                case 1: {											// 1 - "none" and "weighted_sum", output is scalar and equal to sum of all elements of E array
+                case 1: {                                            // 1 - "none" and "weighted_sum", output is scalar and equal to sum of all elements of E array
 
                     *dLdp *= *weightsBroad;
                     *dLdl *= *weightsBroad;
@@ -201,7 +201,7 @@ namespace sd {
                         dLdw->assign(E);
                     break;
                 }
-                case 2: {											// 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
+                case 2: {                                            // 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
 
                     NDArray sum;
                     sum.setContext(block.launchContext());
@@ -231,15 +231,15 @@ namespace sd {
                     }
                     break;
                 }
-                case 3: {											// 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
+                case 3: {                                            // 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
 
-                    Nd4jLong numOfNonZeroWeights = 0;
+                    sd::LongType numOfNonZeroWeights = 0;
                     if(weights->isScalar()) {
                         if(weights->e<double>(0) != 0.)
                             numOfNonZeroWeights = E.lengthOf();
                     }
                     else
-                        numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<Nd4jLong>(0);
+                        numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<sd::LongType>(0);
 
                     if (numOfNonZeroWeights == 0) {
                         *dLdp = 0.;
@@ -270,7 +270,7 @@ namespace sd {
             if(weightsBroad != weights)
                 delete weightsBroad;
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(hinge_loss_grad) {
@@ -281,8 +281,8 @@ namespace sd {
         DECLARE_SHAPE_FN(hinge_loss_grad) {
 
             auto predictionsShapeInfo = inputShape->at(0);
-            auto weightsShapeInfo 	  = inputShape->at(1);
-            auto labelsShapeInfo  	  = inputShape->at(2);
+            auto weightsShapeInfo       = inputShape->at(1);
+            auto labelsShapeInfo        = inputShape->at(2);
 
             // labels and predictions must have the same shapes
             REQUIRE_TRUE(shape::shapeEquals(labelsShapeInfo, predictionsShapeInfo), 0, "HINGE_LOSS_GRAD OP: labels and predictions arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labelsShapeInfo).c_str(), ShapeUtils::shapeAsString(predictionsShapeInfo).c_str());
@@ -293,9 +293,9 @@ namespace sd {
 
             DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(predictionsShapeInfo));
 
-            Nd4jLong *dLdpShapeInfo = ShapeBuilders::copyShapeInfoAndType(predictionsShapeInfo, outType, false, block.getWorkspace());
-            Nd4jLong *dLdwShapeInfo = ShapeBuilders::copyShapeInfoAndType(weightsShapeInfo, outType, false, block.getWorkspace());
-            Nd4jLong *dLdlShapeInfo = ShapeBuilders::copyShapeInfoAndType(labelsShapeInfo, outType, false, block.getWorkspace());
+            sd::LongType *dLdpShapeInfo = ShapeBuilders::copyShapeInfoAndType(predictionsShapeInfo, outType, false, block.getWorkspace());
+            sd::LongType *dLdwShapeInfo = ShapeBuilders::copyShapeInfoAndType(weightsShapeInfo, outType, false, block.getWorkspace());
+            sd::LongType *dLdlShapeInfo = ShapeBuilders::copyShapeInfoAndType(labelsShapeInfo, outType, false, block.getWorkspace());
 
             return SHAPELIST(dLdpShapeInfo, dLdwShapeInfo, dLdlShapeInfo);
         }

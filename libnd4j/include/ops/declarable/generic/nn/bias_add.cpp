@@ -50,7 +50,7 @@ CUSTOM_OP_IMPL(biasadd, 2, 1, true, 0, 0) {
     helpers::addBias(block, *input, *bias, *output, isNCHW);
     // input->applyBroadcast(sd::broadcast::Add, {channelDim}, bias, output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(bias_add, biasadd);
 
@@ -86,7 +86,7 @@ CUSTOM_OP_IMPL(biasadd_bp, 3, 2, false, 0, 0) {
 
     gradO->reduceAlongDimension(sd::reduce::Sum, *gradB, ShapeUtils::evalDimsToExclude(gradO->rankOf(), {channelDim}));
 
-    return ND4J_STATUS_OK;
+    return sd::Status::OK;
 }
 DECLARE_SYN(BiasAddGrad, biasadd_bp);
 
@@ -95,8 +95,8 @@ DECLARE_SHAPE_FN(biasadd_bp) {
     auto input = inputShape->at(0);
     auto bias = inputShape->at(1);
 
-    Nd4jLong* epsShape;
-    Nd4jLong* gradShape;
+    sd::LongType* epsShape;
+    sd::LongType* gradShape;
 
     COPY_SHAPE(input, epsShape);
     COPY_SHAPE(bias, gradShape);

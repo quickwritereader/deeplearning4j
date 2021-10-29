@@ -22,49 +22,48 @@
 
 #ifndef DEV_TESTS_HASHCODE_H
 #define DEV_TESTS_HASHCODE_H
-
 #include "helpers.h"
 
 namespace sd {
     namespace ops {
         namespace helpers {
             template <typename T>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(T value);
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(T value);
 
             template <>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(float value) {
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(float value) {
                 int intie = *(int *)&value;
-                return static_cast<Nd4jLong>(intie);
+                return static_cast<sd::LongType>(intie);
             }
 
             template <>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(double value) {
-                Nd4jLong longie = *(Nd4jLong *)&value;
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(double value) {
+                sd::LongType longie = *(sd::LongType *)&value;
                 return longie;
             }
 
             template <>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(float16 value) {
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(float16 value) {
                 return longBytes<float>((float) value);
             }
 
             template <>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(Nd4jLong value) {
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(sd::LongType value) {
                 return value;
             }
 
             template <>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(bfloat16 value) {
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(bfloat16 value) {
                 return longBytes<float>((float) value);
             }
 
             template <typename T>
-            FORCEINLINE _CUDA_HD Nd4jLong longBytes(T value) {
-                return longBytes<Nd4jLong>((Nd4jLong) value);
+            SD_INLINE SD_HOST_DEVICE sd::LongType longBytes(T value) {
+                return longBytes<sd::LongType>((sd::LongType) value);
             }
 
 
-            void hashCode(LaunchContext *context, NDArray &array, NDArray &result);
+            SD_LIB_HIDDEN void hashCode(LaunchContext *context, NDArray &array, NDArray &result);
         }
     }
 }

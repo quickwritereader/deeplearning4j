@@ -39,17 +39,17 @@ CUSTOM_OP_IMPL(flatten_2d, 1, 1, false, 0, -2) {
     //Special case: empty.reshape(<other empty shape>) -> return empty
     if (x->isEmpty()) {
         REQUIRE_TRUE(z->isEmpty(), 0, "Reshape: when input is empty, output must also be empty");
-        return Status::OK();    //No op
+        return sd::Status::OK;    //No op
     }
 
     REQUIRE_TRUE(x->lengthOf() == z->lengthOf(), 0, "Reshape: lengths before and after reshape should match, but got %i vs %i", x->lengthOf(), z->lengthOf());
 
     if (Environment::getInstance().isDebugAndVerbose())
-        nd4j_printv("Reshape: new shape", z->getShapeAsVector());
+        sd_printv("Reshape: new shape", z->getShapeAsVector());
 
     z->assign(x->reshape(z->ordering(), z->getShapeAsVector()));
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 
@@ -69,7 +69,7 @@ DECLARE_SHAPE_FN(flatten_2d) {
         axis += x->rankOf();
     }
     std::vector<int> reshapeArgs;
-    std::vector<Nd4jLong> shapeNew;
+    std::vector<sd::LongType> shapeNew;
     auto firstDim = 1;
     auto lastDim = 1;
     for(int i = 0; i < axis; i++) {

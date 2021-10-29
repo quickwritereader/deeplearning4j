@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/segment.h>
 #include <ops/declarable/helpers/segment_common.h>
 #include <array/NDArrayFactory.h>
@@ -41,17 +40,17 @@ namespace helpers {
         return true;
     }
 
-    ND4J_LOCAL bool segmentIndicesValidate(sd::LaunchContext* context , NDArray* indices, NDArray& expected, NDArray& output) {
-        BUILD_DOUBLE_SELECTOR(output.dataType(), indices->dataType(), return segmentIndicesValidate_, (indices, expected, output), NUMERIC_TYPES, INDEXING_TYPES);
+    bool segmentIndicesValidate(sd::LaunchContext* context , NDArray* indices, NDArray& expected, NDArray& output) {
+        BUILD_DOUBLE_SELECTOR(output.dataType(), indices->dataType(), return segmentIndicesValidate_, (indices, expected, output), SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
     // Unsorted segment ops functors implementation
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename I>
-    static __global__ void unsortedSegmentIndexValidateKernel(const I* indices, const Nd4jLong* indicesShape, I expected, I* found) {
+    static SD_KERNEL void unsortedSegmentIndexValidateKernel(const I* indices, const sd::LongType* indicesShape, I expected, I* found) {
         __shared__ bool onlyTrue;
-        __shared__ Nd4jLong len;
+        __shared__ sd::LongType len;
 
         if (threadIdx.x == 0) {
             onlyTrue = true;
@@ -61,14 +60,14 @@ namespace helpers {
         auto start = threadIdx.x + blockIdx.x * blockDim.x;
         auto step = gridDim.x * blockDim.x;
         for (int e = start; e < len && onlyTrue; e += step) {
-            sd::math::atomics::nd4j_atomicMax(found, indices[e]);
+            sd::math::atomics::sd_atomicMax(found, indices[e]);
             if (expected < *found)
                 onlyTrue = false;
         }
     }
 
     template <typename I>
-    static bool unsortedSegmentIndicesValidate_(sd::LaunchContext* context , NDArray* indices, Nd4jLong expected, Nd4jLong& output) {
+    static bool unsortedSegmentIndicesValidate_(sd::LaunchContext* context , NDArray* indices, sd::LongType expected, sd::LongType& output) {
         output = expected;
         I found = output;
         I exp = expected;
@@ -83,8 +82,8 @@ namespace helpers {
         return expected == output;
     }
 
-    ND4J_LOCAL bool unsortedSegmentIndicesValidate(sd::LaunchContext* context , NDArray* indices, Nd4jLong expected, Nd4jLong& output) {
-        BUILD_SINGLE_SELECTOR(indices->dataType(), return unsortedSegmentIndicesValidate_, (context, indices, expected, output), INDEXING_TYPES);
+    bool unsortedSegmentIndicesValidate(sd::LaunchContext* context , NDArray* indices, sd::LongType expected, sd::LongType& output) {
+        BUILD_SINGLE_SELECTOR(indices->dataType(), return unsortedSegmentIndicesValidate_, (context, indices, expected, output), SD_INDEXING_TYPES);
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
@@ -92,9 +91,9 @@ namespace helpers {
     // -------------------------------------------------------------------------------------------------------------- //
     // fill up segments starts and ends - splitted ordered case
     template <typename I>
-    static __global__ void fillUpSegmentsKernel(const void* indices, const Nd4jLong* indexShape, int numClasses, int* classesRangesStart, int* classesRangesLenghts) {
+    static SD_KERNEL void fillUpSegmentsKernel(const void* indices, const sd::LongType* indexShape, int numClasses, int* classesRangesStart, int* classesRangesLenghts) {
         __shared__ const I* idxBuf;
-        __shared__ Nd4jLong idxLen;
+        __shared__ sd::LongType idxLen;
         __shared__ int* result;
         if (threadIdx.x == 0) {
             idxBuf = reinterpret_cast<const I*>(indices);
@@ -107,15 +106,15 @@ namespace helpers {
 
         for (auto j = tid; j < idxLen; j += step) {
             auto pos = idxBuf[j];
-            sd::math::atomics::nd4j_atomicMin<int>(&classesRangesStart[pos], (int)j);
-            sd::math::atomics::nd4j_atomicAdd<int>(&classesRangesLenghts[pos], 1);
+            sd::math::atomics::sd_atomicMin<int>(&classesRangesStart[pos], (int)j);
+            sd::math::atomics::sd_atomicAdd<int>(&classesRangesLenghts[pos], 1);
         }
     }
 
         // -------------------------------------------------------------------------------------------------------------- //
 
         template <typename I>
-        static void fillUpSegments_(NDArray* indices, Nd4jLong numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens) {
+        static void fillUpSegments_(NDArray* indices, sd::LongType numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens) {
             dim3 dims(numClasses, indices->lengthOf(), numClasses * 32 + 32);
             int* begins = reinterpret_cast<int*>(classesRangesBegs.specialBuffer());
             int* lengths = reinterpret_cast<int*>(classesRangesLens.specialBuffer());
@@ -124,8 +123,8 @@ namespace helpers {
         }
         // -------------------------------------------------------------------------------------------------------------- //
 
-        ND4J_LOCAL void fillUpSegments(NDArray* indices, Nd4jLong numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens) {
-            BUILD_SINGLE_SELECTOR(indices->dataType(), fillUpSegments_, (indices, numClasses, classesRangesBegs, classesRangesLens), INDEXING_TYPES);
+        void fillUpSegments(NDArray* indices, sd::LongType numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens) {
+            BUILD_SINGLE_SELECTOR(indices->dataType(), fillUpSegments_, (indices, numClasses, classesRangesBegs, classesRangesLens), SD_INDEXING_TYPES);
         }
         // -------------------------------------------------------------------------------------------------------------- //
 

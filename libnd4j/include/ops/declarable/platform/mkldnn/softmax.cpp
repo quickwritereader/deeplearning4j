@@ -22,7 +22,6 @@
  //  @author Oleg Semeniv <oleg.semeniv@gmail.com>
  //
  //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
@@ -124,7 +123,7 @@ namespace sd {
                 // mkldnnSoftMax
                 softmaxMKLDNN(input, output, dim);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(softmax, ENGINE_CPU) {
@@ -227,7 +226,7 @@ namespace sd {
                 // mkldnnSoftMax
                 softmaxBpMKLDNN(input, dLdz, dLdx, dim);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(softmax_bp, ENGINE_CPU) {

@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(histogram_fixed_width, 2, 1, false, 0, 0) {
 
     helpers::histogramFixedWidth(block.launchContext(), *input, *range, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(histogram_fixed_width) {

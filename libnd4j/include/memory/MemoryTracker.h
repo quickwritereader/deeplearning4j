@@ -22,23 +22,22 @@
 
 #ifndef DEV_TESTS_MEMORYTRACKER_H
 #define DEV_TESTS_MEMORYTRACKER_H
-
 #include <map>
 #include <string>
-#include <system/pointercast.h>
 #include <mutex>
+#include <system/common.h>
 #include "AllocationEntry.h"
-#include <system/dll.h>
+
 
 namespace sd {
     namespace memory {
         /**
          * This class is used for tracking memory allocation wrt their allocation points in code
          */
-        class ND4J_EXPORT MemoryTracker {
+        class SD_LIB_EXPORT MemoryTracker {
         private:
-            std::map<Nd4jLong, AllocationEntry> _allocations;
-            std::map<Nd4jLong, AllocationEntry> _released;
+            std::map<sd::LongType, AllocationEntry> _allocations;
+            std::map<sd::LongType, AllocationEntry> _released;
             std::mutex _locker;
 
             MemoryTracker();
@@ -46,8 +45,8 @@ namespace sd {
         public:
             static MemoryTracker& getInstance();
 
-            void countIn(MemoryType type, Nd4jPointer ptr, Nd4jLong numBytes);
-            void countOut(Nd4jPointer ptr);
+            void countIn(MemoryType type, sd::Pointer ptr, sd::LongType numBytes);
+            void countOut(sd::Pointer ptr);
 
             void summarize();
             void reset();

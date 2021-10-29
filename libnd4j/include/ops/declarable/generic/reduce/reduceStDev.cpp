@@ -60,7 +60,7 @@ CUSTOM_OP_IMPL(reduce_stdev, -1, 1, false, 0, 0) {
 
     sd::ops::helpers::standardDeviation(*input, *output, dimensions, biasCorrected);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_stdev) {
@@ -130,8 +130,8 @@ CUSTOM_OP_IMPL(reduce_stdev_bp, -1, 1, false, 0, 0) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -input->rankOf() && item < input->rankOf(), 0, "REDUCE_STDEV_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !" , input->rankOf(), input->rankOf(), item);
 
-    const Nd4jLong N = input->lengthOf() / gradO->lengthOf();
-    const Nd4jLong NminusOne = biasCorrected ? N - 1 : N;
+    const sd::LongType N = input->lengthOf() / gradO->lengthOf();
+    const sd::LongType NminusOne = biasCorrected ? N - 1 : N;
 
     auto mean = input->reduceAlongDimension(reduce::Mean, dimensions, true);
 
@@ -147,7 +147,7 @@ CUSTOM_OP_IMPL(reduce_stdev_bp, -1, 1, false, 0, 0) {
     else
         *gradI *= *gradO;           // automatic broadcasting happens here
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_stdev_bp) {
@@ -164,7 +164,7 @@ DECLARE_SHAPE_FN(reduce_stdev_bp) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_STDEV_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !" , inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-    Nd4jLong* gradIshapeInfo(nullptr);
+    sd::LongType* gradIshapeInfo(nullptr);
     COPY_SHAPE(in, gradIshapeInfo);
 
     return SHAPELIST(CONSTANT(gradIshapeInfo));

@@ -19,7 +19,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <helpers/PointersManager.h>
@@ -32,9 +31,9 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL __global__ void adaDeltaUpdaterCuda(const void* vx, const Nd4jLong* xShapeInfo, const void* vinMsg, const Nd4jLong* inMsgShapeInfo, 
-    const void* vinMsdx, const Nd4jLong* inMsdxShapeInfo, void* vz, const Nd4jLong* zShapeInfo, void* vstMsg, 
-    const Nd4jLong* stMsgShapeInfo, void* vstMsdx, const Nd4jLong* stMsdxShapeInfo, const T rho, const T epsilon) {
+SD_KERNEL void adaDeltaUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vinMsg, const sd::LongType* inMsgShapeInfo, 
+    const void* vinMsdx, const sd::LongType* inMsdxShapeInfo, void* vz, const sd::LongType* zShapeInfo, void* vstMsg, 
+    const sd::LongType* stMsgShapeInfo, void* vstMsdx, const sd::LongType* stMsdxShapeInfo, const T rho, const T epsilon) {
 
     const auto grad = reinterpret_cast<const T*>(vx);
     const auto initMsg= reinterpret_cast<const T*>(vinMsg);
@@ -44,7 +43,7 @@ ND4J_LOCAL __global__ void adaDeltaUpdaterCuda(const void* vx, const Nd4jLong* x
     auto stMsg = reinterpret_cast<T*>(vstMsg);
     auto stMsdx = reinterpret_cast<T*>(vstMsdx);
 
-    __shared__ Nd4jLong xLen;
+    __shared__ sd::LongType xLen;
     __shared__ T rhoT;
     __shared__ bool bEWS, bOrdering, bXZsame, bXInMsgSame, bXStMsgSame, bXInMsdxSame, bXStMsdxSame;
 
@@ -68,9 +67,9 @@ ND4J_LOCAL __global__ void adaDeltaUpdaterCuda(const void* vx, const Nd4jLong* x
     }
     __syncthreads();
 
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
 
         auto xOffset = i, zOffset = i, initMsgOffset = i, initMsdxOffset = i, stMsgOffset = i, stMsdxOffset = i;
 
@@ -87,7 +86,7 @@ ND4J_LOCAL __global__ void adaDeltaUpdaterCuda(const void* vx, const Nd4jLong* x
 
         stMsg[stMsgOffset] = rho * initMsg[initMsgOffset] + grad[xOffset] * grad[xOffset] * rhoT;
 
-        up[zOffset] = grad[xOffset] * (sd::math::nd4j_sqrt<T, T>(initMsdx[initMsdxOffset] + epsilon) / sd::math::nd4j_sqrt<T, T>(stMsg[stMsgOffset] + epsilon));
+        up[zOffset] = grad[xOffset] * (sd::math::sd_sqrt<T, T>(initMsdx[initMsdxOffset] + epsilon) / sd::math::sd_sqrt<T, T>(stMsg[stMsgOffset] + epsilon));
 
         stMsdx[stMsdxOffset] = rho * initMsdx[initMsdxOffset] + up[zOffset] * up[zOffset] * rhoT;
     }
@@ -95,10 +94,10 @@ ND4J_LOCAL __global__ void adaDeltaUpdaterCuda(const void* vx, const Nd4jLong* x
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL linkage void adaDeltaUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const Nd4jLong* xShapeInfo,
-    const void* vinMsg, const Nd4jLong* inMsgShapeInfo, const void* vinMsdx, const Nd4jLong* inMsdxShapeInfo,
-    void* vz, const Nd4jLong* zShapeInfo, void* vstMsg, const Nd4jLong* stMsgShapeInfo, 
-    void* vstMsdx, const Nd4jLong* stMsdxShapeInfo, const double dRho, const double dEpsilon) {
+void adaDeltaUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo,
+    const void* vinMsg, const sd::LongType* inMsgShapeInfo, const void* vinMsdx, const sd::LongType* inMsdxShapeInfo,
+    void* vz, const sd::LongType* zShapeInfo, void* vstMsg, const sd::LongType* stMsgShapeInfo, 
+    void* vstMsdx, const sd::LongType* stMsdxShapeInfo, const double dRho, const double dEpsilon) {
 
     const T rho = static_cast<T>(dRho);
     const T epsilon = static_cast<T>(dEpsilon);
@@ -108,19 +107,19 @@ ND4J_LOCAL linkage void adaDeltaUpdaterCudaLauncher(const int blocksPerGrid, con
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void updaterAdaDelta(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateMsg, const NDArray& initStateMsdx, 
+void updaterAdaDelta(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateMsg, const NDArray& initStateMsdx, 
                     NDArray& update, NDArray& stateMsg, NDArray& stateMsdx, const double dRho, const double dEpsilon) {
 
     PointersManager manager(context, "adaDeltaUpdater");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
     NDArray::prepareSpecialUse({ &update, &stateMsg, &stateMsdx }, { &gradient, &initStateMsg, &initStateMsdx });
     BUILD_SINGLE_SELECTOR(gradient.dataType(), adaDeltaUpdaterCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
         initStateMsg.specialBuffer(), initStateMsg.specialShapeInfo(), initStateMsdx.specialBuffer(), initStateMsdx.specialShapeInfo(),
         update.specialBuffer(), update.specialShapeInfo(),stateMsg.specialBuffer(), stateMsg.specialShapeInfo(),
-        stateMsdx.specialBuffer(), stateMsdx.specialShapeInfo(), dRho, dEpsilon), FLOAT_TYPES);
+        stateMsdx.specialBuffer(), stateMsdx.specialShapeInfo(), dRho, dEpsilon), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({ &update, &stateMsg, &stateMsdx }, { &gradient, &initStateMsg, &initStateMsdx });
 
     manager.synchronize();

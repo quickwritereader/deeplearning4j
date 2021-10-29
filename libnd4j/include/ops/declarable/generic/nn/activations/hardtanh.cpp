@@ -35,7 +35,7 @@ namespace sd {
             input->applyTransform(sd::transform::HardTanh, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(hardtanh) {
@@ -52,7 +52,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::HardTanhDerivativeE, epsilon, z, nullptr);
             helpers::hardTanhDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(hardtanh_bp) {

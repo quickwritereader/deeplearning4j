@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LSTM_H
 #define LIBND4J_LSTM_H
-
 #include <ops/declarable/helpers/helpers.h>
 
 namespace sd    {
@@ -30,20 +29,20 @@ namespace ops     {
 namespace helpers {
 
     //////////////////////////////////////////////////////////////////////////
-    static FORCEINLINE NDArray sigmoid(const NDArray& arr) {
+    static SD_INLINE NDArray sigmoid(const NDArray& arr) {
         return (const_cast<NDArray&>(arr)).transform(transform::Sigmoid);
     }
 
-    static FORCEINLINE void sigmoidInplace(const NDArray& arr) {
+    static SD_INLINE void sigmoidInplace(const NDArray& arr) {
         (const_cast<NDArray&>(arr)).applyTransform(transform::Sigmoid, const_cast<NDArray&>(arr));
     }
 
 //////////////////////////////////////////////////////////////////////////
-    static FORCEINLINE NDArray tanh(const NDArray& arr) {
+    static SD_INLINE NDArray tanh(const NDArray& arr) {
         return (const_cast<NDArray&>(arr)).transform(transform::Tanh);
     }
 
-    static FORCEINLINE void tanhInplace(const NDArray& arr) {
+    static SD_INLINE void tanhInplace(const NDArray& arr) {
         (const_cast<NDArray&>(arr)).applyTransform(transform::Tanh, const_cast<NDArray&>(arr));
     }
 
@@ -61,16 +60,15 @@ namespace helpers {
         }
     }
 
-	void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
+SD_LIB_HIDDEN void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
                   NDArray* ht, NDArray* ct, const std::vector<double>& params);
 
-	void lstmTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* h0, const NDArray* c0, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
+SD_LIB_HIDDEN void lstmTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* h0, const NDArray* c0, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
                       NDArray* h, NDArray* c, const std::vector<double>& params);
 
-    void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
+SD_LIB_HIDDEN void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
                        const NDArray* W, const NDArray* Wci, const NDArray* Wcf, const NDArray* Wco, const NDArray* b,
                        NDArray* i, NDArray* c, NDArray* f, NDArray* o, NDArray* z, NDArray* h, NDArray* y, const std::vector<double>& params);
-
 
 
 }

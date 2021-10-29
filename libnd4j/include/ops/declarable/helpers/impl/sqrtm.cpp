@@ -20,12 +20,11 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include <ops/declarable/CustomOperations.h>
 #include <helpers/Sqrtm.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,13 +53,12 @@ static void sqrtm_(const NDArray* x, NDArray* z) {
 
 
 //////////////////////////////////////////////////////////////////////////
- void sqrtm(sd::LaunchContext* context, const NDArray* x, NDArray* z) {
+void sqrtm(sd::LaunchContext* context, const NDArray* x, NDArray* z) {
 
     x->syncToHost();
-    BUILD_SINGLE_SELECTOR(z->dataType(), sqrtm_, (x, z), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(z->dataType(), sqrtm_, (x, z), SD_FLOAT_TYPES);
     z->syncToDevice();
 }
-
 
 
 }

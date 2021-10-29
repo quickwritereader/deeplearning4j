@@ -47,10 +47,10 @@ namespace helpers {
         auto rows = leftInput->rows();
         auto cols = rightInput->columns();
         //output->r<T>(0,0) = rightInput->t<T>(0,0) / leftInput->t<T>(0,0);
-        for (Nd4jLong r = 0; r < rows; r++) {
-            for (Nd4jLong j = 0; j < cols; j++) {
+        for (sd::LongType r = 0; r < rows; r++) {
+            for (sd::LongType j = 0; j < cols; j++) {
                 auto sum = rightInput->t<T>(r, j);
-                for (Nd4jLong c = 0; c < r; c++) {
+                for (sd::LongType c = 0; c < r; c++) {
                     sum -= leftInput->t<T>(r, c) * output->t<T>(c, j);
                 }
                 output->r<T>(r, j) = unitsOnDiag?sum: sum / leftInput->t<T>(r, r);
@@ -76,10 +76,10 @@ namespace helpers {
     static void upperTriangularSolve(sd::LaunchContext* context, NDArray const* leftInput, NDArray const* rightInput, bool const unitsOnDiag, NDArray* output) {
         auto rows = leftInput->rows();
         auto cols = rightInput->columns();
-        for (Nd4jLong r = rows; r > 0; r--) {
-            for (Nd4jLong j = 0; j < cols; j++) {
+        for (sd::LongType r = rows; r > 0; r--) {
+            for (sd::LongType j = 0; j < cols; j++) {
                 auto sum = rightInput->t<T>(r - 1, j);
-                for (Nd4jLong c = r; c < rows; c++) {
+                for (sd::LongType c = r; c < rows; c++) {
                     sum -= leftInput->t<T>(r - 1, c) * output->t<T>(c, j);
                 }
                 output->r<T>(r - 1, j) = unitsOnDiag? sum : sum / leftInput->t<T>(r - 1, r - 1);
@@ -97,7 +97,7 @@ namespace helpers {
     /// \param output - output vector (x on equation Tx = b)
     ///
     template <typename T>
-     void triangularSolve2D(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output) {
+    void triangularSolve2D(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output) {
         if (lower) {
             lowerTriangularSolve<T>(context, &leftInput, &rightInput, unitsOnDiag, &output);
         }
@@ -105,10 +105,10 @@ namespace helpers {
             upperTriangularSolve<T>(context, &leftInput, &rightInput, unitsOnDiag, &output);
         }
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), SD_FLOAT_TYPES);
 
     template <typename T>
-    static int triangularSolveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool adjoint, NDArray* output) {
+    static sd::Status triangularSolveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool adjoint, NDArray* output) {
         auto leftPart = leftInput->allTensorsAlongDimension({-2, -1});
         auto rightPart = rightInput->allTensorsAlongDimension({-2, -1});
         auto outputPart = output->allTensorsAlongDimension({-2, -1});
@@ -125,7 +125,7 @@ namespace helpers {
 
         samediff::Threads::parallel_tad(batchLoop, 0, leftPart.size(), 1);
 
-        return Status::OK();
+        return sd::Status::OK;
 
     }
     template <typename T>
@@ -138,14 +138,14 @@ namespace helpers {
         auto batchLoop = PRAGMA_THREADS_FOR {
             for (auto batch = start; batch < stop; batch++) {
                 if (!lower) {
-                    for (Nd4jLong r = 0; r < rows; r++) {
-                        for (Nd4jLong c = 0; c <= r; c++) {
+                    for (sd::LongType r = 0; r < rows; r++) {
+                        for (sd::LongType c = 0; c <= r; c++) {
                             outputPart[batch]->r<T>(r, c) = inputPart[batch]->t<T>(c, r);
                         }
                     }
                 } else {
-                    for (Nd4jLong r = 0; r < rows; r++) {
-                        for (Nd4jLong c = r; c < cols; c++) {
+                    for (sd::LongType r = 0; r < rows; r++) {
+                        for (sd::LongType c = r; c < cols; c++) {
                             outputPart[batch]->r<T>(r, c) = inputPart[batch]->t<T>(c, r);
                         }
                     }
@@ -155,12 +155,12 @@ namespace helpers {
         samediff::Threads::parallel_tad(batchLoop, 0, inputPart.size(), 1);
     }
 
-     int triangularSolveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool adjoint, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(leftInput->dataType(), return triangularSolveFunctor_, (context, leftInput, rightInput, lower, adjoint, output), FLOAT_NATIVE);
+    sd::Status triangularSolveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool adjoint, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(leftInput->dataType(), return triangularSolveFunctor_, (context, leftInput, rightInput, lower, adjoint, output), SD_FLOAT_NATIVE);
     }
 
-     void adjointMatrix(sd::LaunchContext* context, NDArray const* input, bool const lower, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), adjointTriangularMatrix_, (context, input, lower, output), FLOAT_NATIVE);
+    void adjointMatrix(sd::LaunchContext* context, NDArray const* input, bool const lower, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), adjointTriangularMatrix_, (context, input, lower, output), SD_FLOAT_NATIVE);
     }
 }
 }

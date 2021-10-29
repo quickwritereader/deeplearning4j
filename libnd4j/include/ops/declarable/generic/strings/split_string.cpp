@@ -31,7 +31,7 @@ namespace sd {
             auto input = INPUT_VARIABLE(0);
             auto delim = INPUT_VARIABLE(1);
 
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_SHAPE_FN(split_string) {

@@ -56,7 +56,7 @@ CUSTOM_OP_IMPL(batch_to_space, 2, 1, false, 0, 1) {
 
     auto output = OUTPUT_VARIABLE(0);
 
-    const uint blockSize = INT_ARG(0);
+    const sd::Unsigned blockSize = INT_ARG(0);
     REQUIRE_TRUE(blockSize >= 2, 0, "BatchToSpace: integer parameter block_size must be >= 2, but got %i instead", blockSize);
 
     const int rank = input->rankOf();
@@ -67,10 +67,10 @@ CUSTOM_OP_IMPL(batch_to_space, 2, 1, false, 0, 1) {
     if(crop->sizeAt(0) != 2 || crop->sizeAt(1) != 2)
         REQUIRE_TRUE(false, 0, "BatchToSpace: operation expects crop shape to be {2, 2}, but got %s instead", ShapeUtils::shapeAsString(crop).c_str());
 
-    const uint cropBottom = crop->e<uint>(0,0);
-    const uint cropTop    = crop->e<uint>(0,1);
-    const uint cropLeft   = crop->e<uint>(1,0);
-    const uint cropRight  = crop->e<uint>(1,1);
+    const sd::Unsigned cropBottom = crop->e<sd::Unsigned>(0,0);
+    const sd::Unsigned cropTop    = crop->e<sd::Unsigned>(0,1);
+    const sd::Unsigned cropLeft   = crop->e<sd::Unsigned>(1,0);
+    const sd::Unsigned cropRight  = crop->e<sd::Unsigned>(1,1);
 
     const int oH = input->sizeAt(1) * blockSize - cropBottom - cropTop;  // top and bottom
     const int oW = input->sizeAt(2) * blockSize - cropLeft - cropRight;  // left and right
@@ -82,7 +82,7 @@ CUSTOM_OP_IMPL(batch_to_space, 2, 1, false, 0, 1) {
     else
         helpers::batchToSpace(block.launchContext(), input->dup(), *output, cropBottom, cropTop, cropLeft, cropRight, blockSize);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +99,7 @@ DECLARE_SHAPE_FN(batch_to_space) {
     auto inputShapeInfo = inputShape->at(0);
     auto cropShapeInfo  = inputShape->at(1);
 
-    const uint blockSize = INT_ARG(0);
+    const sd::Unsigned blockSize = INT_ARG(0);
     REQUIRE_TRUE(blockSize >= 2, 0, "BatchToSpace: integer parameter block_size must be >= 2, but got %i instead", blockSize);
 
     const int rank = inputShapeInfo[0];
@@ -110,10 +110,10 @@ DECLARE_SHAPE_FN(batch_to_space) {
     if(cropShapeInfo[1] != 2 || cropShapeInfo[2] != 2)
         REQUIRE_TRUE(false, 0, "BatchToSpace: operation expects crop shape to be {2, 2}, but got %s instead", ShapeUtils::shapeAsString(cropShapeInfo).c_str());
 
-    const uint cropBottom = INPUT_VARIABLE(1)->e<Nd4jLong>(0,0);
-    const uint cropTop    = INPUT_VARIABLE(1)->e<Nd4jLong>(0,1);
-    const uint cropLeft   = INPUT_VARIABLE(1)->e<Nd4jLong>(1,0);
-    const uint cropRight  = INPUT_VARIABLE(1)->e<Nd4jLong>(1,1);
+    const sd::Unsigned cropBottom = INPUT_VARIABLE(1)->e<sd::LongType>(0,0);
+    const sd::Unsigned cropTop    = INPUT_VARIABLE(1)->e<sd::LongType>(0,1);
+    const sd::Unsigned cropLeft   = INPUT_VARIABLE(1)->e<sd::LongType>(1,0);
+    const sd::Unsigned cropRight  = INPUT_VARIABLE(1)->e<sd::LongType>(1,1);
 
     const int oH = inputShapeInfo[2] * blockSize - cropTop  - cropBottom;   // top and bottom
     const int oW = inputShapeInfo[3] * blockSize - cropLeft - cropRight;    // left and right

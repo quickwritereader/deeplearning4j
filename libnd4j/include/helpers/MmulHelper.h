@@ -24,11 +24,10 @@
 
 #ifndef LIBND4J_MMULHELPER_H
 #define LIBND4J_MMULHELPER_H
-
 #include "array/NDArray.h"
 
 namespace sd {
-    class ND4J_EXPORT MmulHelper {
+    class SD_LIB_EXPORT MmulHelper {
 
     private:
 
@@ -59,8 +58,8 @@ namespace sd {
         /**
         *  modif - (can be empty) vector containing a subsequence of permutation/reshaping arrays (in any order), user must take care of correctness of such arrays by himself
         */
-        static void tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::NDArray* c, const std::vector<std::vector<Nd4jLong>>& modifA, const std::vector<std::vector<Nd4jLong>>& modifB, const std::vector<std::vector<Nd4jLong>>& modifC);
-        static sd::NDArray* tensorDot(const sd::NDArray* a, const sd::NDArray* b, const std::vector<std::vector<Nd4jLong>>& modifA, const std::vector<std::vector<Nd4jLong>>& modifB);
+        static void tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::NDArray* c, const std::vector<std::vector<sd::LongType>>& modifA, const std::vector<std::vector<sd::LongType>>& modifB, const std::vector<std::vector<sd::LongType>>& modifC);
+        static sd::NDArray* tensorDot(const sd::NDArray* a, const sd::NDArray* b, const std::vector<std::vector<sd::LongType>>& modifA, const std::vector<std::vector<sd::LongType>>& modifB);
 #endif
 
         static void matmul(const sd::NDArray* x, const sd::NDArray* y, sd::NDArray* z, const bool transX, const bool transY, double alpha = 1.0, double beta = 0.0);

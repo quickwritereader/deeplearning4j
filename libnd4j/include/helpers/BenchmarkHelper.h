@@ -23,7 +23,6 @@
 #ifndef LIBND4J_BENCHMARKHELPER_H
 #define LIBND4J_BENCHMARKHELPER_H
 
-
 #include <helpers/OpBenchmark.h>
 #include <helpers/benchmark/ScalarBenchmark.h>
 #include <helpers/benchmark/TransformBenchmark.h>
@@ -46,7 +45,7 @@
 
 namespace sd {
 
-    class ND4J_EXPORT BenchmarkHelper {
+    class SD_LIB_EXPORT BenchmarkHelper {
     private:
         unsigned int _wIterations;
         unsigned int _rIterations;
@@ -58,7 +57,7 @@ namespace sd {
 
         void benchmarkDeclarableOp(sd::ops::DeclarableOp &op, std::string testName, Context &context);
 
-        void benchmarkGEMM(char orderA, std::initializer_list<Nd4jLong> shapeA, char orderB, std::initializer_list<Nd4jLong> shapeB, char orderC, std::initializer_list<Nd4jLong> shapeC);
+        void benchmarkGEMM(char orderA, std::initializer_list<sd::LongType> shapeA, char orderB, std::initializer_list<sd::LongType> shapeB, char orderC, std::initializer_list<sd::LongType> shapeC);
 
         std::string printHeader();
     public:

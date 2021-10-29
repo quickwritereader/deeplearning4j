@@ -42,22 +42,22 @@ namespace ops {
         const int indRank   = indices->rankOf();
         const int updRank   = updates->rankOf();
         const int shapeRank = shape->rankOf();
-        const Nd4jLong shapeLen  = shape->lengthOf();
+        const sd::LongType shapeLen  = shape->lengthOf();
 
         REQUIRE_TRUE(shapeRank == 1, 0, "SCATTER_ND OP: the rank of shape array must be 1, but got %i instead !", shapeRank);
         REQUIRE_TRUE(indices->sizeAt(-1) <= shapeLen, 0, "SCATTER_ND OP: last dimension of indices array must be <= length of shape array, but got %i and %i correspondingly !", indices->sizeAt(-1), shapeLen);
         // REQUIRE_TRUE(updRank == (indRank + shapeLen - 2), 0, "SCATTER_ND OP: the equality updates_rank = (indices_rank + shape_length - 2) must be true for input arrays, but got instead: updates_rank = %i, indices_rank = %i, shape_length = %i !", updRank, indRank, shapeLen);
         REQUIRE_TRUE(updRank == (indRank - 1 + shapeLen - indices->sizeAt(-1)), 0, "SCATTER_ND OP: the equality updates_rank = (indices_rank - 1 + shape_length - last_indices_dimension) must be true for input arrays, but got instead: updates_rank = %i, shape_length = %i, last_indices_dimension = %i !", updRank, shapeLen, indices->sizeAt(-1));
 
-        std::vector<Nd4jLong> outShape = shape->getBufferAsVector<Nd4jLong>();
-        std::vector<Nd4jLong> updShape = updates->getShapeAsVector();
-        std::vector<Nd4jLong> indShape = indices->getShapeAsVector();
-        std::vector<Nd4jLong> expectedUpdShape(std::begin(indShape), std::end(indShape) - 1);
+        std::vector<sd::LongType> outShape = shape->getBufferAsVector<sd::LongType>();
+        std::vector<sd::LongType> updShape = updates->getShapeAsVector();
+        std::vector<sd::LongType> indShape = indices->getShapeAsVector();
+        std::vector<sd::LongType> expectedUpdShape(std::begin(indShape), std::end(indShape) - 1);
         std::move(std::begin(outShape) + indices->sizeAt(-1), std::end(outShape), std::back_inserter(expectedUpdShape));
         REQUIRE_TRUE(expectedUpdShape == updShape, 0, "SCATTER_ND OP: wrong shape of updates array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedUpdShape).c_str(), ShapeUtils::shapeAsString(updShape).c_str());
 
         if(checkIndices) {
-            const Nd4jLong numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *output);
+            const sd::LongType numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *output);
             REQUIRE_TRUE(numOfBadIndx == 0, 0, "SCATTER_ND OP: please check elements of indices-array, total number of wrong elements is %lld!", numOfBadIndx);
         }
 
@@ -66,7 +66,7 @@ namespace ops {
 
         helpers::scatterND(block.launchContext(), pairwise::Add, *indices, *updates, *output, lock);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(scatter_nd) {
@@ -83,12 +83,12 @@ namespace ops {
             auto shape = INPUT_VARIABLE(2);
             auto updShapeInfo = inputShape->at(1);
 
-            Nd4jLong *outShapeInfo;
-            ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(shape->lengthOf()), Nd4jLong);
+            sd::LongType *outShapeInfo;
+            ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(shape->lengthOf()), sd::LongType);
 
             outShapeInfo[0] = shape->lengthOf();
             for (int i = 0; i < outShapeInfo[0]; ++i)
-                outShapeInfo[i + 1] = shape->e<Nd4jLong>(i);
+                outShapeInfo[i + 1] = shape->e<sd::LongType>(i);
 
             ShapeUtils::updateStridesAndType(outShapeInfo, updShapeInfo, shape::order(updShapeInfo));
 

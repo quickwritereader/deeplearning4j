@@ -19,15 +19,14 @@
 //
 // @author GS <sgazeos@gmail.com>, created on 16.01.2019
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
-    static Nd4jLong __device__ __noinline__ getIndexOffset_(Nd4jLong index, Nd4jLong const* shapeInfo) {
+    static sd::LongType SD_DEVICE __noinline__ getIndexOffset_(sd::LongType index, sd::LongType const* shapeInfo) {
         return shape::getIndexOffset(index, shapeInfo);
     }
 
-    static Nd4jLong __device__ __noinline__ subArrayOffset(Nd4jLong index, Nd4jLong const* shapeInfoA, Nd4jLong const* shapeInfoB) {
+    static sd::LongType SD_DEVICE __noinline__ subArrayOffset(sd::LongType index, sd::LongType const* shapeInfoA, sd::LongType const* shapeInfoB) {
         return shape::subArrayOffset(index, shapeInfoA, shapeInfoB);
     }
 
@@ -38,9 +37,9 @@ namespace sd {
 //  output: (outputBuffer and outputShape) - NDArray to tile input
 //  resultLength - length for output array
     template<typename T>
-    static __global__ void
-    tileKernel(void const *inputBuffer, Nd4jLong const* inputShape, void *outputBuffer, Nd4jLong const* outputShape,
-               Nd4jLong resultLength) {
+    static SD_KERNEL void
+    tileKernel(void const *inputBuffer, sd::LongType const* inputShape, void *outputBuffer, sd::LongType const* outputShape,
+               sd::LongType resultLength) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //        Original code to transform in cuda-based
         auto tid = blockIdx.x * blockDim.x + threadIdx.x; // copy linear sequence of elements, so one-level threading
@@ -60,22 +59,22 @@ namespace sd {
 
     }
 
-    BUILD_SINGLE_TEMPLATE(template __global__ void tileKernel,(void const* inputBuffer, Nd4jLong const* inputShape, void* outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_KERNEL void tileKernel,(void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template<typename T>
-    void tileKernelH(void const *inputBuffer, Nd4jLong const* inputShape, void *outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, cudaStream_t *stream) {
+    void tileKernelH(void const *inputBuffer, sd::LongType const* inputShape, void *outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, cudaStream_t *stream) {
         dim3 launchDims(256, 512, 8192);
         tileKernel<T> << < launchDims.x, launchDims.y, launchDims.z, *stream>>>(inputBuffer, inputShape, outputBuffer, outputShape, resultLength);
     }
 
-    BUILD_SINGLE_TEMPLATE(template void tileKernelH, (void const* inputBuffer, Nd4jLong const* inputShape, void* outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, cudaStream_t *stream), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void tileKernelH, (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, cudaStream_t *stream), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // enhancement for tileKernel to different input and output data types: X - output type, Y - input type
     template<typename X, typename Y>
-    static __global__ void
-    tileKernelDouble(void const *inputBuffer, Nd4jLong const* inputShape, void *outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, Nd4jLong ews) {
+    static SD_KERNEL void
+    tileKernelDouble(void const *inputBuffer, sd::LongType const* inputShape, void *outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews) {
         char ordering = shape::order(outputShape);
         auto tid = blockIdx.x * blockDim.x + threadIdx.x;
         int totalThreads = gridDim.x * blockDim.x;
@@ -101,13 +100,13 @@ namespace sd {
         }
     }
 
-    BUILD_SINGLE_TEMPLATE_TWICE(template __global__ void tileKernelDouble, (void const* inputBuffer, Nd4jLong const* inputShape, void* outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, Nd4jLong ews), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE_TWICE(template SD_KERNEL void tileKernelDouble, (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews), SD_COMMON_TYPES);
 
     template<typename X, typename Y>
-    void tileKernelHH(void const *inputBuffer, Nd4jLong const* inputShape, void *outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, Nd4jLong ews, cudaStream_t *stream) {
+    void tileKernelHH(void const *inputBuffer, sd::LongType const* inputShape, void *outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews, cudaStream_t *stream) {
         dim3 launchDims(256, 512, 8192);
         tileKernelDouble<X, Y><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(inputBuffer, inputShape, outputBuffer, outputShape, resultLength, ews);
     }
 
-    BUILD_SINGLE_TEMPLATE_TWICE(template void tileKernelHH, (void const* inputBuffer, Nd4jLong const* inputShape, void* outputBuffer, Nd4jLong const* outputShape, Nd4jLong resultLength, Nd4jLong ews, cudaStream_t *stream),LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE_TWICE(template void tileKernelHH, (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer, sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews, cudaStream_t *stream),SD_COMMON_TYPES);
 }

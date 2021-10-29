@@ -37,12 +37,12 @@ CUSTOM_OP_IMPL(matrix_diag, 1, 1, false, 0, 0) {
 
     helpers::matrixSetDiag(block.launchContext(), *output, *diagonal, *output, true);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(matrix_diag) {
 
-    Nd4jLong* outShapeInfo = nullptr;
+    sd::LongType* outShapeInfo = nullptr;
     auto in = inputShape->at(0);
     int inRank = shape::rank(in);
 
@@ -50,7 +50,7 @@ DECLARE_SHAPE_FN(matrix_diag) {
 
     int outRank = inRank + 1;
 
-    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
     outShapeInfo[0] = outRank;
     for(int i = 0; i < inRank; ++i)
         outShapeInfo[i + 1] = shape::sizeAt(in, i);

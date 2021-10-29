@@ -21,7 +21,6 @@
 //
 
 // function nnCell implements an Elman RNN cell: output = activation(Wx*x + bx  +  Wh*ht  + bh)
-
 #include<ops/declarable/helpers/rnn.h>
 #include <helpers/BlasHelper.h>
 
@@ -32,7 +31,7 @@ namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
- void rnnCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* hPrev, NDArray* ht) {
+void rnnCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* hPrev, NDArray* ht) {
 
     // xt    input [bS x iS]
     // Wx    input-to-hidden weights, [iS  x nU]
@@ -48,15 +47,15 @@ namespace helpers {
 }
 
 //////////////////////////////////////////////////////////////////////////
- void rnnTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* h0, const NDArray* maxTimeStep, NDArray* h, NDArray* hFinal) {
+void rnnTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* h0, const NDArray* maxTimeStep, NDArray* h, NDArray* hFinal) {
 
     // x   input [time x bS x iS]
-	// Wx  input-to-hidden  weights, [iS  x nU]
+    // Wx  input-to-hidden  weights, [iS  x nU]
     // Wh  hidden-to-hidden weights, [nU x nU]
-	// b   biases for, [2*nU]
+    // b   biases for, [2*nU]
 
-	// h0          initial cell output (at time step = 0) [bS x nU]
-	// maxTimeStep vector [bS] containing integer values within [0,time), each element of this vector set max time step per each input in batch, this means there are no calculations for time >= maxTimeStep
+    // h0          initial cell output (at time step = 0) [bS x nU]
+    // maxTimeStep vector [bS] containing integer values within [0,time), each element of this vector set max time step per each input in batch, this means there are no calculations for time >= maxTimeStep
 
     const int time = x->sizeAt(0);
     const int bS   = x->sizeAt(1);

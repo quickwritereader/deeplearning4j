@@ -19,28 +19,26 @@
 //
 // Created by raver on 4/9/2018.
 //
-
 #include <system/Environment.h>
 #include "../indexreduce.h"
 #include <system/op_boilerplate.h>
 #include <helpers/DebugHelper.h>
 #include <types/types.h>
-
 #include "../legacy_ops.h"
 
 using namespace simdOps;
 
 
 template <typename X, typename Z>
-static __global__ void simpleIndexReduceGeneric(const int op,
+static SD_KERNEL void simpleIndexReduceGeneric(const int op,
                                            void const* dx,
-                                           Nd4jLong const* xShapeInfo, int xRank,
+                                           sd::LongType const* xShapeInfo, int xRank,
                                            void *extraParams,
                                            void *result,
-                                           Nd4jLong const* zShapeInfo, int zRank,
+                                           sd::LongType const* zShapeInfo, int zRank,
                                            int *dimension,
                                            int dimensionLength,
-                                           int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+                                           int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
 
      functions::indexreduce::IndexReduce<X, Z>::transform(op,dx,xShapeInfo,extraParams,result,zShapeInfo,dimension,dimensionLength,postProcessOrNot,allocationBuffer,reductionBuffer,tadOnlyShapeInfo,tadOffsets);
 }
@@ -49,17 +47,17 @@ namespace functions {
     namespace indexreduce {
 
         template <typename X, typename Z>
-        _CUDA_H void IndexReduce<X,Z>::executeIndexReduceScalar(dim3 launchDims, cudaStream_t *stream,
+        SD_HOST void IndexReduce<X,Z>::executeIndexReduceScalar(dim3 launchDims, cudaStream_t *stream,
                                                                 const int opNum,
-                                                                void const* dx, Nd4jLong const* xShapeInfo,
+                                                                void const* dx, sd::LongType const* xShapeInfo,
                                                                 int xRank,
                                                                 void *extraParams,
-                                                                void *result, Nd4jLong const* zShapeInfo,
+                                                                void *result, sd::LongType const* zShapeInfo,
                                                                 int zRank,
                                                                 int *dimension, int dimensionLength,
                                                                 int postProcessOrNot,
                                                                 int *allocationBuffer, void *reductionBuffer,
-                                                                Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+                                                                sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
 
             simpleIndexReduceGeneric<X, Z><<<launchDims.x,launchDims.y,launchDims.z, *stream>>>(opNum,
                                                                                             dx, xShapeInfo, xRank,
@@ -72,17 +70,17 @@ namespace functions {
         }
 
         template <typename X, typename Z>
-        _CUDA_H void IndexReduce<X, Z>::executeIndexReduce(dim3 launchDims, cudaStream_t *stream, const int opNum, void const* dx, Nd4jLong const* xShapeInfo, int xRank, void *extraParams, void *result, Nd4jLong const* zShapeInfo, int zRank, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+        SD_HOST void IndexReduce<X, Z>::executeIndexReduce(dim3 launchDims, cudaStream_t *stream, const int opNum, void const* dx, sd::LongType const* xShapeInfo, int xRank, void *extraParams, void *result, sd::LongType const* zShapeInfo, int zRank, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
             simpleIndexReduceGeneric<X, Z><<<launchDims.x,launchDims.y,launchDims.z, *stream>>>(
-			 opNum,
-			 dx,
-			 xShapeInfo, xRank,
-			 extraParams,
-			 result,
-			 zShapeInfo, zRank,
-			 dimension,
-			 dimensionLength,
-			 1, allocationBuffer, reductionBuffer, tadOnlyShapeInfo, tadOffsets);
+             opNum,
+             dx,
+             xShapeInfo, xRank,
+             extraParams,
+             result,
+             zShapeInfo, zRank,
+             dimension,
+             dimensionLength,
+             1, allocationBuffer, reductionBuffer, tadOnlyShapeInfo, tadOffsets);
         }
 
         // This is the un-specialized struct.  Note that we prevent instantiation of this
@@ -90,31 +88,31 @@ namespace functions {
         template<typename T>
         struct SharedIndexValue {
             // Ensure that we won't compile any un-specialized types
-            __device__ T * getPointer() {
-                extern __device__ void error(void);
+            SD_DEVICE T * getPointer() {
+                extern SD_DEVICE void error(void);
                 error();
                 return 0;
             }
         };
 
 // Following are the specializations for the following types.
-// int, uint, char, uchar, short, ushort, long long, ulong long, bool, float, and double
+// int, sd::Unsigned, char, uchar, short, ushort, long long, ulong long, bool, float, and double
 // One could also specialize it for user-defined types.
 
         template<>
         struct SharedIndexValue<float> {
-            __device__ IndexValue<float> * getPointer() {
+            SD_DEVICE IndexValue<float> * getPointer() {
                 extern __shared__ IndexValue<float> s_int2[];
                 return s_int2;
             }
         };
 // Following are the specializations for the following types.
-// int, uint, char, uchar, short, ushort, long long, ulong long, bool, float, and double
+// int, sd::Unsigned, char, uchar, short, ushort, long long, ulong long, bool, float, and double
 // One could also specialize it for user-defined types.
 
         template<>
         struct SharedIndexValue<double> {
-            __device__ IndexValue<double> * getPointer() {
+            SD_DEVICE IndexValue<double> * getPointer() {
                 extern __shared__ IndexValue<double> s_int6[];
                 return s_int6;
             }
@@ -122,12 +120,12 @@ namespace functions {
 
         template <typename X, typename Z>
         template <typename OpType>
-        __device__ void IndexReduce<X, Z>::aggregatePartials(IndexValue<X> *sPartials, Nd4jLong tid, Nd4jLong numElements, void *vextraParams) {
+        SD_DEVICE void IndexReduce<X, Z>::aggregatePartials(IndexValue<X> *sPartials, sd::LongType tid, sd::LongType numElements, void *vextraParams) {
             // start the shared memory loop on the next power of 2 less
             // than the block size.  If block size is not a power of 2,
             // accumulate the intermediate sums in the remainder range.
             auto extraParams = static_cast<X*>(vextraParams);
-            Nd4jLong floorPow2 = blockDim.x;
+            sd::LongType floorPow2 = blockDim.x;
 
             if (floorPow2 & (floorPow2 - 1)) {
                 while ( floorPow2 & (floorPow2 - 1) ) {
@@ -153,33 +151,33 @@ namespace functions {
         }
 
         template <typename X, typename Y>
-        __device__ void IndexReduce<X, Y>::transform(
+        SD_DEVICE void IndexReduce<X, Y>::transform(
                 const int opNum,
                 void const* x,
-                Nd4jLong const* xShapeInfo,
+                sd::LongType const* xShapeInfo,
                 void *extraParams,
                 void *result,
-                Nd4jLong const* zShapeInfo,
+                sd::LongType const* zShapeInfo,
                 int *dimension,
                 int dimensionLength,
                 int postProcessOrNot,
                 int *allocationBuffer,
                 void *reductionBuffer,
-                Nd4jLong const* tadShapeInfo,
-                Nd4jLong const* tadOffset) {
+                sd::LongType const* tadShapeInfo,
+                sd::LongType const* tadOffset) {
              DISPATCH_BY_OPNUM_TT(transform, PARAMS(x, xShapeInfo, extraParams, result, zShapeInfo, dimension, dimensionLength, postProcessOrNot, allocationBuffer, reductionBuffer, tadShapeInfo, tadOffset), INDEX_REDUCE_OPS);
         }
 
 
         template <typename X, typename Z>
         template <typename OpType>
-        __device__ void IndexReduce<X, Z>::transform(void const* vdx, Nd4jLong const* xShapeInfo,
+        SD_DEVICE void IndexReduce<X, Z>::transform(void const* vdx, sd::LongType const* xShapeInfo,
                                                 void *vextraParams,
-                                                void* vz, Nd4jLong const* zShapeInfo,
+                                                void* vz, sd::LongType const* zShapeInfo,
                                                 int *dimension, int dimensionLength,
                                                 int postProcessOrNot,
                                                 int *allocationBuffer, void *vreductionBuffer,
-                                                Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets){
+                                                sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets){
             /**int
              * Gpu information for the problem
              */
@@ -192,14 +190,14 @@ namespace functions {
             __shared__ volatile bool resultScalar;
 
             //shared memory space for storing intermediate results
-            __shared__ IndexValue<X> sPartials[CUDA_BLOCK_SIZE];
+            __shared__ IndexValue<X> sPartials[SD_CUDA_BLOCK_SIZE];
 
             sPartials[threadIdx.x] = OpType::startingIndexValue(dx);
 
             //length for the tad
-            __shared__ volatile Nd4jLong xLength;
+            __shared__ volatile sd::LongType xLength;
 
-            __shared__ volatile Nd4jLong zLen;
+            __shared__ volatile sd::LongType zLen;
 
 
             //only compute the tad indexes once
@@ -224,7 +222,7 @@ namespace functions {
                 if(sd::ArrayOptions::arrayType(zShapeInfo) == sd::ArrayType::EMPTY)
                     return;
 
-                for (uint i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x)
+                for (sd::Unsigned i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x)
                     z[i] = (Z) reduction.index;
 
                 return;
@@ -232,7 +230,7 @@ namespace functions {
 
             if (!resultScalar) {
 
-                __shared__ Nd4jLong tadLength;
+                __shared__ sd::LongType tadLength;
                 __shared__ int tadEWS;
                 __shared__ int numTads;
 
@@ -257,7 +255,7 @@ namespace functions {
                         }
 
                         __syncthreads();
-                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, tadLength),extraParams);
+                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, tadLength),extraParams);
 
                         __syncthreads();
                         if (threadIdx.x == 0) {
@@ -268,7 +266,7 @@ namespace functions {
                 } else {
 
                     for(int i = blockIdx.x; i < numTads; i+= gridDim.x) {
-                        Nd4jLong tadOffsetForBlock = tadOffsets[i];
+                        sd::LongType tadOffsetForBlock = tadOffsets[i];
 
                         sPartials[threadIdx.x] = OpType::startingIndexValue(dx);
 
@@ -278,7 +276,7 @@ namespace functions {
                         }
 
                         __syncthreads();
-                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, tadLength),extraParams);
+                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, tadLength),extraParams);
 
                         __syncthreads();
                         if (threadIdx.x == 0) {
@@ -292,13 +290,13 @@ namespace functions {
                 auto xElementWiseStride = shape::elementWiseStride(xShapeInfo);
 
                 if(xElementWiseStride >= 1 && order == 'c') {
-                    for(Nd4jLong i = tid;i < n; i += (blockDim.x * gridDim.x)) {
+                    for(sd::LongType i = tid;i < n; i += (blockDim.x * gridDim.x)) {
                         IndexValue<X> indexVal = {dx[i * xElementWiseStride], i};
                         reduction = OpType::update(reduction, indexVal, extraParams);
                     }
                 } else {
 
-                    for(Nd4jLong i = tid;i < n; i += blockDim.x * gridDim.x) {
+                    for(sd::LongType i = tid;i < n; i += blockDim.x * gridDim.x) {
                         auto offset = shape::getIndexOffset(i, xShapeInfo);
                         IndexValue<X> indexVal = {dx[offset], i};
                         reduction = OpType::update(reduction, indexVal, extraParams);
@@ -309,7 +307,7 @@ namespace functions {
                 sPartials[threadIdx.x] = reduction;
                 __syncthreads();
 
-                aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, (int) n),extraParams);
+                aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, (int) n),extraParams);
                 __syncthreads();
 
                 if (gridDim.x > 1) {
@@ -336,12 +334,12 @@ namespace functions {
 
                         sPartials[threadIdx.x] = OpType::startingIndexValue(dx);
 
-                        for (Nd4jLong i = threadIdx.x; i < gridDim.x; i += blockDim.x) {
+                        for (sd::LongType i = threadIdx.x; i < gridDim.x; i += blockDim.x) {
                             sPartials[threadIdx.x] = OpType::update(sPartials[threadIdx.x], pBuffer[i], extraParams);
                         }
 
                         __syncthreads();
-                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(gridDim.x, blockDim.x),extraParams);
+                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(gridDim.x, blockDim.x),extraParams);
 
                         __syncthreads();
                         if (tid == 0) {
@@ -359,9 +357,8 @@ namespace functions {
             }
         }
 
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL IndexReduce, , LIBND4J_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_TEMPLATE(template class SD_LIB_HIDDEN IndexReduce, , SD_COMMON_TYPES, SD_INDEXING_TYPES);
     }
 }
-
 
 

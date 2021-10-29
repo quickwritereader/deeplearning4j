@@ -22,7 +22,6 @@
 //
 #ifndef __NDARRAY__HPP__
 #define __NDARRAY__HPP__
-
 #include <array/ShapeDescriptor.h>
 #include <helpers/ConstantShapeHelper.h>
 #include <helpers/ConstantShapeHelper.h>
@@ -33,13 +32,13 @@
 namespace sd {
 
     template <>
-    ND4J_EXPORT utf8string NDArray::e(const Nd4jLong i) const;
+    SD_LIB_EXPORT utf8string NDArray::e(const sd::LongType i) const;
     template <>
-    ND4J_EXPORT std::string NDArray::e(const Nd4jLong i) const;
+    SD_LIB_EXPORT std::string NDArray::e(const sd::LongType i) const;
     template <>
-    ND4J_EXPORT std::u16string NDArray::e(const Nd4jLong i) const;
+    SD_LIB_EXPORT std::u16string NDArray::e(const sd::LongType i) const;
     template <>
-    ND4J_EXPORT std::u32string NDArray::e(const Nd4jLong i) const;
+    SD_LIB_EXPORT std::u32string NDArray::e(const sd::LongType i) const;
 
 ////////////////////////////////////////////////////////////////////////
 // copy constructor
@@ -59,9 +58,9 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const char order, const std::vector<Nd4jLong> &shape, sd::DataType dtype, sd::LaunchContext * context) {
+    NDArray::NDArray(const char order, const std::vector<sd::LongType> &shape, sd::DataType dtype, sd::LaunchContext * context) {
 
-        if ((int) shape.size() > MAX_RANK)
+        if ((int) shape.size() > SD_MAX_RANK)
             throw std::invalid_argument("Rank of NDArray can't exceed 32");
 
         _context = context;
@@ -78,9 +77,9 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const char order, const std::vector<Nd4jLong> &shape, const std::vector<double>& data, sd::DataType dtype, sd::LaunchContext * context) {
+    NDArray::NDArray(const char order, const std::vector<sd::LongType> &shape, const std::vector<double>& data, sd::DataType dtype, sd::LaunchContext * context) {
 
-        if ((int) shape.size() > MAX_RANK)
+        if ((int) shape.size() > SD_MAX_RANK)
             throw std::invalid_argument("Rank of NDArray can't exceed 32");
 
         _context = context;
@@ -96,14 +95,14 @@ namespace sd {
         }
 
         if (lengthOf() != data.size()) {
-            nd4j_printf("NDArray constructor: data size [%i] doesn't match shape length [%i]\n", data.size(), lengthOf());
+            sd_printf("NDArray constructor: data size [%i] doesn't match shape length [%i]\n", data.size(), lengthOf());
             throw std::runtime_error("Data size doesn't match shape");
         }
 
         _buffer = std::make_shared<DataBuffer>(lengthOf() * DataTypeUtils::sizeOf(dtype), dtype, getContext()->getWorkspace(), true);
 
-        for(Nd4jLong i=0; i < lengthOf(); ++i) {
-            BUILD_SINGLE_PARTIAL_SELECTOR(dtype, templatedDoubleAssign<, double>(buffer(), i, reinterpret_cast<const void *>(data.data()), i), LIBND4J_TYPES);
+        for(sd::LongType i=0; i < lengthOf(); ++i) {
+            BUILD_SINGLE_PARTIAL_SELECTOR(dtype, templatedDoubleAssign<, double>(buffer(), i, reinterpret_cast<const void *>(data.data()), i), SD_COMMON_TYPES);
         }
         tickWriteHost();
         syncToDevice();
@@ -127,12 +126,12 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(void* buffer, const char order, const std::vector<Nd4jLong> &shape,  sd::DataType dtype, sd::LaunchContext * context, const bool isBuffAlloc) {
+    NDArray::NDArray(void* buffer, const char order, const std::vector<sd::LongType> &shape,  sd::DataType dtype, sd::LaunchContext * context, const bool isBuffAlloc) {
 
         if (shape.empty())
             throw std::runtime_error("NDArray constructor: input shape is empty !");
 
-        if ((int) shape.size() > MAX_RANK)
+        if ((int) shape.size() > SD_MAX_RANK)
             throw std::invalid_argument("Rank of NDArray can't exceed 32");
 
         _context = context;
@@ -146,12 +145,12 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
 // creates new NDArray using shape information from "shapeInfo" array, set all elements in new array to be zeros
-    NDArray::NDArray(const Nd4jLong* shapeInfo, const sd::DataType dtype, const bool copyStrides, sd::LaunchContext * context, const bool nullify) {
+    NDArray::NDArray(const sd::LongType* shapeInfo, const sd::DataType dtype, const bool copyStrides, sd::LaunchContext * context, const bool nullify) {
 
         if (shapeInfo == nullptr)
             throw std::runtime_error("NDArray constructor: can't be initalized without shapeinfo");
 
-        if ((int) shapeInfo[0] > MAX_RANK)
+        if ((int) shapeInfo[0] > SD_MAX_RANK)
             throw std::invalid_argument("Rank of NDArray can't exceed 32");
 
         _context = context;
@@ -218,12 +217,12 @@ namespace sd {
 
     ////////////////////////////////////////////////////////////////////////
     // creates new NDArray using shape information from "shapeInfo" array, set all elements in new array to be zeros, set dtype as array type
-    NDArray::NDArray(const Nd4jLong* shapeInfo, const bool copyStrides, sd::LaunchContext * context, const bool nullify):
+    NDArray::NDArray(const sd::LongType* shapeInfo, const bool copyStrides, sd::LaunchContext * context, const bool nullify):
             NDArray(shapeInfo, ArrayOptions::dataType(shapeInfo), copyStrides, context) {
     }
 
     ////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(std::shared_ptr<DataBuffer> buffer, const ShapeDescriptor& descriptor, sd::LaunchContext* context, const Nd4jLong offset) {
+    NDArray::NDArray(std::shared_ptr<DataBuffer> buffer, const ShapeDescriptor& descriptor, sd::LaunchContext* context, const sd::LongType offset) {
 
         _context = context;
         _offset  = offset;
@@ -235,13 +234,13 @@ namespace sd {
         _isView = offset > 0 || _length * DataTypeUtils::sizeOf(_dataType) < buffer->getLenInBytes();
     }
 
-    NDArray::NDArray(void *buffer, Nd4jLong *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc) : NDArray::NDArray(buffer, const_cast<const Nd4jLong *>(shapeInfo), context, isBuffAlloc) {
+    NDArray::NDArray(void *buffer, sd::LongType *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc) : NDArray::NDArray(buffer, const_cast<const sd::LongType *>(shapeInfo), context, isBuffAlloc) {
         //
     }
 
     ////////////////////////////////////////////////////////////////////////
     // do not allocate memory, memory for array is passed from outside
-    NDArray::NDArray(void *buffer, const Nd4jLong *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc) {
+    NDArray::NDArray(void *buffer, const sd::LongType *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc) {
 
         if (buffer == nullptr && ArrayOptions::arrayType(shapeInfo) != ArrayType::EMPTY)
             throw std::runtime_error("NDArray constructor: can't be initalized with nullptr buffer !");
@@ -249,7 +248,7 @@ namespace sd {
         if (shapeInfo == nullptr)
             throw std::runtime_error("NDArray constructor: can't be initalized without shapeinfo !");
 
-        if ((int) shapeInfo[0] > MAX_RANK)
+        if ((int) shapeInfo[0] > SD_MAX_RANK)
             throw std::invalid_argument("NDArray constructor: rank of NDArray can't exceed 32 !");
 
         _context = context;
@@ -270,12 +269,12 @@ namespace sd {
     ////////////////////////////////////////////////////////////////////////
     // do not allocate memory, memory for array is passed from outside
     // we suppose the content of both (device and host) buffers is identical
-    NDArray::NDArray(void *buffer, void* bufferD, const Nd4jLong *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc, const bool isBuffDAlloc) {
+    NDArray::NDArray(void *buffer, void* bufferD, const sd::LongType *shapeInfo, sd::LaunchContext * context, const bool isBuffAlloc, const bool isBuffDAlloc) {
 
         if (shapeInfo == nullptr)
             throw std::runtime_error("NDArray constructor cuda: can't be initalized without shapeinfo");
 
-        if ((int) shapeInfo[0] > MAX_RANK)
+        if ((int) shapeInfo[0] > SD_MAX_RANK)
             throw std::invalid_argument("NDArray constructor cuda: rank of NDArray can't exceed 32");
 
         _context = context;
@@ -288,12 +287,12 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(std::shared_ptr<DataBuffer> buffer, const char order, const std::vector<Nd4jLong> &shape, sd::LaunchContext* context) {
+    NDArray::NDArray(std::shared_ptr<DataBuffer> buffer, const char order, const std::vector<sd::LongType> &shape, sd::LaunchContext* context) {
 
         if (shape.empty())
             throw std::runtime_error("NDArray constructor: input shape is empty !");
 
-        if ((int) shape.size() > MAX_RANK)
+        if ((int) shape.size() > SD_MAX_RANK)
             throw std::invalid_argument("NDArray constructor: rank of NDArray can't exceed 32");
 
         _context = context;
@@ -318,11 +317,11 @@ namespace sd {
         }
 
         // one word that is why used 1
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(1);
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(1);
 
-        Nd4jLong dataLength = [&] {
+        sd::LongType dataLength = [&] {
             if (dtype == DataType::UTF16) {
-                return static_cast<Nd4jLong>(u16string.size() * sizeof(uint16_t));
+                return static_cast<sd::LongType>(u16string.size() * sizeof(uint16_t));
             }
             if (dtype == DataType::UTF32) {
                 return unicode::offsetUtf16StringInUtf32(u16string.data(), u16string.size());
@@ -330,7 +329,7 @@ namespace sd {
             return unicode::offsetUtf16StringInUtf8(u16string.data(), u16string.size());
         }();
 
-        Nd4jLong offsets[2] = { 0 , dataLength };
+        sd::LongType offsets[2] = { 0 , dataLength };
 
         _buffer = std::make_shared<DataBuffer>(headerLength + dataLength, dtype, context->getWorkspace(), true);
 
@@ -340,7 +339,7 @@ namespace sd {
 
         setShapeInfo(ShapeDescriptor::scalarDescriptor(dtype));
 
-        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
         if (dtype == DataType::UTF8) {
@@ -369,19 +368,19 @@ namespace sd {
             throw std::invalid_argument("NDArray::NDArray: invalid character in input string");
         }
         // one word that is why used 1
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(1);
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(1);
 
-        Nd4jLong dataLength = [&] {
+        sd::LongType dataLength = [&] {
             if (dtype == DataType::UTF16) {
                 return unicode::offsetUtf32StringInUtf16(u32string.data(), u32string.size());
             }
             if (dtype == DataType::UTF32) {
-                return static_cast<Nd4jLong>(sizeof(uint32_t) * u32string.size());
+                return static_cast<sd::LongType>(sizeof(uint32_t) * u32string.size());
             }
             return unicode::offsetUtf32StringInUtf8(u32string.data(), u32string.size());
         }();
 
-        Nd4jLong offsets[2] = { 0 , dataLength };
+        sd::LongType offsets[2] = { 0 , dataLength };
 
         _buffer = std::make_shared<DataBuffer>(headerLength + dataLength, dtype, context->getWorkspace(), true);
 
@@ -391,7 +390,7 @@ namespace sd {
 
         setShapeInfo(ShapeDescriptor::scalarDescriptor(dtype));
 
-        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
         if (dtype == DataType::UTF8) {
@@ -423,17 +422,17 @@ namespace sd {
         // one word that is why used 1
         auto headerLength = ShapeUtils::stringBufferHeaderRequirements(1);
 
-        Nd4jLong dataLength = [&] {
+        sd::LongType dataLength = [&] {
             if (dtype == DataType::UTF16) {
                 return unicode::offsetUtf8StringInUtf16(str.data(), str.size());
             }
             if (dtype == DataType::UTF32) {
                 return unicode::offsetUtf8StringInUtf32(str.data(), str.size());
             }
-            return static_cast<Nd4jLong>(str.size());
+            return static_cast<sd::LongType>(str.size());
         }();
 
-        Nd4jLong offsets[2] = { 0 , dataLength };
+        sd::LongType offsets[2] = { 0 , dataLength };
 
         _buffer = std::make_shared<DataBuffer>(headerLength + dataLength, dtype, context->getWorkspace(), true);
 
@@ -443,7 +442,7 @@ namespace sd {
 
         setShapeInfo(ShapeDescriptor::scalarDescriptor(dtype));
 
-        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), &offsets[0], 2 * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -462,7 +461,7 @@ namespace sd {
     }
 /////////////////////////////////////////////////////////////////////////
 // constructors for vector of  strings
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<const char*>& string, const sd::DataType dataType, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<const char*>& string, const sd::DataType dataType, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dataType))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType, only string dataTypes have to be used");
@@ -476,10 +475,10 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
-        Nd4jLong dataLength = 0;
+        std::vector<sd::LongType> offsets(string.size() + 1);
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
@@ -487,7 +486,7 @@ namespace sd {
                     return unicode::offsetUtf8StringInUtf16(string[e], std::char_traits<char>::length(string[e]));
                 if (dataType == DataType::UTF32)
                     return  unicode::offsetUtf8StringInUtf32(string[e], std::char_traits<char>::length(string[e]));
-                return static_cast<Nd4jLong>(std::char_traits<char>::length(string[e]));
+                return static_cast<sd::LongType>(std::char_traits<char>::length(string[e]));
             }();
         }
         offsets[string.size()] = dataLength;
@@ -503,7 +502,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -528,7 +527,7 @@ namespace sd {
         syncToDevice();
     }
 /////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<std::string>& string, const sd::DataType dataType, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<std::string>& string, const sd::DataType dataType, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dataType))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType, only string dataTypes have to be used");
@@ -542,10 +541,10 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
-        Nd4jLong dataLength = 0;
+        std::vector<sd::LongType> offsets(string.size() + 1);
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
@@ -553,7 +552,7 @@ namespace sd {
                     return unicode::offsetUtf8StringInUtf16(string[e].data(), string[e].size());
                 if (dataType == DataType::UTF32)
                     return  unicode::offsetUtf8StringInUtf32(string[e].data(), string[e].size());
-                return static_cast<Nd4jLong>(string[e].size());
+                return static_cast<sd::LongType>(string[e].size());
             }();
         }
 
@@ -570,7 +569,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -596,7 +595,7 @@ namespace sd {
         syncToDevice();
     }
 /////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<std::u16string>& string, sd::DataType dtype, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<std::u16string>& string, sd::DataType dtype, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dtype))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType, only string dataTypes have to be used");
@@ -610,15 +609,15 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
-        Nd4jLong dataLength = 0;
+        std::vector<sd::LongType> offsets(string.size() + 1);
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
                 if (dtype == DataType::UTF16)
-                    return static_cast<Nd4jLong>(sizeof(uint16_t) * string[e].size());
+                    return static_cast<sd::LongType>(sizeof(uint16_t) * string[e].size());
                 if (dtype == DataType::UTF32)
                     return unicode::offsetUtf16StringInUtf32(string[e].data(), string[e].size());
                 return unicode::offsetUtf16StringInUtf8(string[e].data(), string[e].size());
@@ -637,7 +636,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -661,7 +660,7 @@ namespace sd {
         syncToDevice();
     }
 /////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<const char16_t*>& string, sd::DataType dtype, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<const char16_t*>& string, sd::DataType dtype, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dtype))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType, only string dataTypes have to be used");
@@ -675,15 +674,15 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
-        Nd4jLong dataLength = 0;
+        std::vector<sd::LongType> offsets(string.size() + 1);
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
                 if (dtype == DataType::UTF16)
-                    return static_cast<Nd4jLong>(sizeof(uint16_t) * std::char_traits<char16_t>::length(string[e]));
+                    return static_cast<sd::LongType>(sizeof(uint16_t) * std::char_traits<char16_t>::length(string[e]));
                 if (dtype == DataType::UTF32)
                     return unicode::offsetUtf16StringInUtf32(string[e], std::char_traits<char16_t>::length(string[e]));
                 return unicode::offsetUtf16StringInUtf8(string[e], std::char_traits<char16_t>::length(string[e]));
@@ -702,7 +701,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -727,7 +726,7 @@ namespace sd {
         syncToDevice();
     }
 /////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<std::u32string>& string, sd::DataType dtype, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<std::u32string>& string, sd::DataType dtype, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dtype))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType, only string dataTypes have to be used");
@@ -741,18 +740,18 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
+        std::vector<sd::LongType> offsets(string.size() + 1);
 
-        Nd4jLong dataLength = 0;
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
                 if (dtype == DataType::UTF16)
                     return unicode::offsetUtf32StringInUtf16(string[e].data(), string[e].size());
                 if (dtype == DataType::UTF32)
-                    return static_cast<Nd4jLong>(sizeof(uint32_t) * string[e].size());
+                    return static_cast<sd::LongType>(sizeof(uint32_t) * string[e].size());
                 return unicode::offsetUtf32StringInUtf16(string[e].data(), string[e].size());
             }();
         }
@@ -769,7 +768,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -793,7 +792,7 @@ namespace sd {
         syncToDevice();
     }
 /////////////////////////////////////////////////////////////////////////
-    NDArray::NDArray(const std::vector<Nd4jLong>& shape, const std::vector<const char32_t *>& string, sd::DataType dtype, sd::LaunchContext* context) {
+    NDArray::NDArray(const std::vector<sd::LongType>& shape, const std::vector<const char32_t *>& string, sd::DataType dtype, sd::LaunchContext* context) {
 
         if (!DataTypeUtils::isS(dtype))
             throw std::invalid_argument("NDArray::NDArray: invalid DataType used");
@@ -807,18 +806,18 @@ namespace sd {
             }
         }
 
-        Nd4jLong headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
+        sd::LongType headerLength = ShapeUtils::stringBufferHeaderRequirements(string.size());
 
-        std::vector<Nd4jLong> offsets(string.size() + 1);
+        std::vector<sd::LongType> offsets(string.size() + 1);
 
-        Nd4jLong dataLength = 0;
+        sd::LongType dataLength = 0;
         for (int e = 0; e < string.size(); e++) {
             offsets[e] = dataLength;
             dataLength += [&] {
                 if (dtype == DataType::UTF16)
                     return unicode::offsetUtf32StringInUtf16(string[e], std::char_traits<char32_t>::length(string[e]));
                 if (dtype == DataType::UTF32)
-                    return static_cast<Nd4jLong>(sizeof(uint32_t) * std::char_traits<char32_t>::length(string[e]));
+                    return static_cast<sd::LongType>(sizeof(uint32_t) * std::char_traits<char32_t>::length(string[e]));
                 return unicode::offsetUtf32StringInUtf16(string[e], std::char_traits<char32_t>::length(string[e]));
             }();
         }
@@ -835,7 +834,7 @@ namespace sd {
 
         setAttached(context->getWorkspace() != nullptr);
 
-        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto data = reinterpret_cast<int8_t*>(bufferAsT<int8_t>() + headerLength);
 
@@ -947,12 +946,12 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    std::string NDArray::asIndexedString(Nd4jLong limit) {
+    std::string NDArray::asIndexedString(sd::LongType limit) {
         std::ostringstream os;
         os << "[";
         if (limit < 1 || limit > this->lengthOf())
             limit = this->lengthOf();
-        for (Nd4jLong e = 0; e < limit; e++) {
+        for (sd::LongType e = 0; e < limit; e++) {
             os << toStringValue(this->e<float>(e));
             if (e < limit - 1)
                 os << ", ";
@@ -962,16 +961,16 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    std::string NDArray::asString(Nd4jLong limit) {
+    std::string NDArray::asString(sd::LongType limit) {
         std::ostringstream os;
         os << "[";
         if (limit < 1 || limit > this->lengthOf())
             limit = this->lengthOf();
-        for (Nd4jLong e = 0; e < limit; e++) {
+        for (sd::LongType e = 0; e < limit; e++) {
             if (this->isR())
                 os << toStringValue(this->e<float>(e));
             else if (this->isZ())
-                os << toStringValue(this->e<Nd4jLong>(e));
+                os << toStringValue(this->e<sd::LongType>(e));
             else if (this->isB())
                 os << toStringValue(this->e<bool>(e));
             else if (this->isS()) // todo add utf16 and utf32
@@ -987,11 +986,11 @@ namespace sd {
     template<typename T>
     std::vector<T> NDArray::getBufferAsVector() const {
         std::vector<T> vector(lengthOf());
-        for (Nd4jLong e = 0; e < lengthOf(); e++)
+        for (sd::LongType e = 0; e < lengthOf(); e++)
             vector[e] = this->e<T>(e);
         return vector;
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT std::vector, NDArray::getBufferAsVector() const, COMMON_TYPES_LIST);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT std::vector, NDArray::getBufferAsVector() const, SD_COMMON_TYPES_ALL);
 
 ////////////////////////////////////////////////////////////////////////
     std::vector<int64_t> NDArray::getShapeAsFlatVector() const {
@@ -1002,9 +1001,9 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    std::vector<Nd4jLong> NDArray::getShapeAsVector() const {
+    std::vector<sd::LongType> NDArray::getShapeAsVector() const {
 
-        std::vector<Nd4jLong> vector(this->rankOf());
+        std::vector<sd::LongType> vector(this->rankOf());
         for (int e = 0; e < this->rankOf(); e++)
             vector[e] = this->sizeAt(e);
 
@@ -1033,9 +1032,9 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    std::vector<Nd4jLong> NDArray::getShapeInfoAsVector() const {
+    std::vector<sd::LongType> NDArray::getShapeInfoAsVector() const {
         int magicNumber = shape::shapeInfoLength(this->rankOf());
-        std::vector<Nd4jLong> vector(magicNumber);
+        std::vector<sd::LongType> vector(magicNumber);
         for (int e = 0; e < magicNumber; e++)
             vector[e] = this->_shapeInfo[e];
         return vector;
@@ -1048,7 +1047,7 @@ namespace sd {
             // string data type requires special treatment
             syncToHost();
             auto numWords = this->lengthOf();
-            auto offsetsBuffer = this->bufferAsT<Nd4jLong>();
+            auto offsetsBuffer = this->bufferAsT<sd::LongType>();
             auto headerLength = ShapeUtils::stringBufferHeaderRequirements(numWords);
             auto dataLength = offsetsBuffer[numWords];
             std::vector<int8_t> result(headerLength + dataLength);
@@ -1081,8 +1080,8 @@ namespace sd {
     void NDArray::linspace(const double start, const double step) {
         if (isS())
             throw std::runtime_error("NDArray::linspace: you can't use this method on String array!");
-        Nd4jLong numElements = this->lengthOf();
-        for (Nd4jLong e = 0; e < numElements; e++)
+        sd::LongType numElements = this->lengthOf();
+        for (sd::LongType e = 0; e < numElements; e++)
             this->p(e, start + (step * e));
     }
 
@@ -1129,22 +1128,22 @@ namespace sd {
         this->assign(scalar);
         return *this;
     }
-    template ND4J_EXPORT NDArray& NDArray::operator=(const double scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const float scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const float16 scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const bfloat16 scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const Nd4jLong scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const int scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const int8_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const uint8_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const uint16_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const uint32_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const uint64_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const int16_t scalar);
-    template ND4J_EXPORT NDArray& NDArray::operator=(const bool scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const double scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const float scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const float16 scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const bfloat16 scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const sd::LongType scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const int scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const int8_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const uint8_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const uint16_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const uint32_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const uint64_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const int16_t scalar);
+    template SD_LIB_EXPORT NDArray& NDArray::operator=(const bool scalar);
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::copyBuffersContinuouslyFrom(const NDArray& other, size_t sizeToCopyInBytes, Nd4jLong offsetThis, Nd4jLong offsetOther) {
+    void NDArray::copyBuffersContinuouslyFrom(const NDArray& other, size_t sizeToCopyInBytes, sd::LongType offsetThis, sd::LongType offsetOther) {
 
         if(offsetThis == 0)
             offsetThis = bufferOffset();
@@ -1177,7 +1176,7 @@ namespace sd {
 
             if(lengthOf() == 1) {
                 NDArray::preparePrimaryUse({this}, {&other});
-                BUILD_DOUBLE_SELECTOR(dataType(), other.dataType(), templatedDoubleAssign, (buffer(), 0, other.buffer(), 0), LIBND4J_TYPES, LIBND4J_TYPES);
+                BUILD_DOUBLE_SELECTOR(dataType(), other.dataType(), templatedDoubleAssign, (buffer(), 0, other.buffer(), 0), SD_COMMON_TYPES, SD_COMMON_TYPES);
                 NDArray::registerPrimaryUse({this}, {&other});
                 this->syncToDevice();
             }
@@ -1199,7 +1198,7 @@ namespace sd {
             if (other.lengthOf() != lengthOf()) {
                 auto shapeThis = ShapeUtils::shapeAsString(this);
                 auto shapeThat = ShapeUtils::shapeAsString(&other);
-                nd4j_printf("Can't assign array: this shape %s; other shape: %s\n", shapeThis.c_str(), shapeThat.c_str());
+                sd_printf("Can't assign array: this shape %s; other shape: %s\n", shapeThis.c_str(), shapeThat.c_str());
                 throw std::runtime_error("NDArray::assign: lengths of arrays are mismatched");
             }
 
@@ -1225,19 +1224,19 @@ namespace sd {
         NativeOpExecutioner::execScalar(getContext(), sd::scalar::CopyPws, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), temp.buffer(), temp.shapeInfo(), temp.specialBuffer(), temp.specialShapeInfo(), nullptr, allowParallelism);
         NDArray::registerSpecialUse(std::vector<const NDArray*>{this}, std::vector<const NDArray*>{&temp});
     }
-    template ND4J_EXPORT void NDArray::assign(const double& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const float& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const float16& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const bfloat16& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const Nd4jLong& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const int& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const int8_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const int16_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const uint8_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const uint16_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const uint32_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const uint64_t& value, bool allowParallelism);
-    template ND4J_EXPORT void NDArray::assign(const bool& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const double& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const float& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const float16& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const bfloat16& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const sd::LongType& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const int& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const int8_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const int16_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const uint8_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const uint16_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const uint32_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const uint64_t& value, bool allowParallelism);
+    template SD_LIB_EXPORT void NDArray::assign(const bool& value, bool allowParallelism);
 
 //////////////////////////////////////////////////////////////////////////
     NDArray* NDArray::detach() {
@@ -1317,24 +1316,24 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T, typename Y>
-    void NDArray::templatedSet(void *buffer, const Nd4jLong *indices, const void *value) {
+    void NDArray::templatedSet(void *buffer, const sd::LongType *indices, const void *value) {
         auto t = reinterpret_cast<T *>(buffer);
         const auto y = *(reinterpret_cast<const Y *>(value));
 
         auto xOffset = shape::getOffset(shapeInfo(), indices);
         t[xOffset] = static_cast<T>(y);
     }
-    BUILD_DOUBLE_TEMPLATE(template ND4J_EXPORT void NDArray::templatedSet, (void *buffer, const Nd4jLong *indices, const void *value), LIBND4J_TYPES, LIBND4J_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template SD_LIB_EXPORT void NDArray::templatedSet, (void *buffer, const sd::LongType *indices, const void *value), SD_COMMON_TYPES, SD_COMMON_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T, typename Y>
-    void NDArray::templatedSet(void *buffer, const Nd4jLong offset, const void *value) {
+    void NDArray::templatedSet(void *buffer, const sd::LongType offset, const void *value) {
         auto t = reinterpret_cast<T *>(buffer);
         const auto y = *(reinterpret_cast<const Y *>(value));
 
         t[offset] = static_cast<T>(y);
     }
-    BUILD_DOUBLE_TEMPLATE(template ND4J_EXPORT void NDArray::templatedSet, (void *buffer, const Nd4jLong offset, const void *value), LIBND4J_TYPES, LIBND4J_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template SD_LIB_EXPORT void NDArray::templatedSet, (void *buffer, const sd::LongType offset, const void *value), SD_COMMON_TYPES, SD_COMMON_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
     void NDArray::setContext(sd::LaunchContext  *context) {
@@ -1345,12 +1344,12 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void const* NDArray::bufferWithOffset(Nd4jLong offset) const {
+    void const* NDArray::bufferWithOffset(sd::LongType offset) const {
         return const_cast<int8_t *>(buffer() != nullptr ? static_cast<const int8_t*>(buffer()) + (offset * sizeOfT()) : nullptr);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void* NDArray::bufferWithOffset(Nd4jLong offset) {
+    void* NDArray::bufferWithOffset(sd::LongType offset) {
         return const_cast<int8_t *>(buffer() != nullptr ? static_cast<const int8_t*>(buffer()) + (offset * sizeOfT()) : nullptr);
     }
 
@@ -1547,7 +1546,7 @@ namespace sd {
         if (isS())
             throw std::runtime_error("NDArray::indexReduceNumber: you can't use this method on String array!");
 
-        auto res = NDArrayFactory::create<Nd4jLong>(0);
+        auto res = NDArrayFactory::create<sd::LongType>(0);
 
         NDArray::NDArray::prepareSpecialUse({&res}, {this});
         NativeOpExecutioner::execIndexReduceScalar(getContext(), op, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), extraParams == nullptr ? nullptr : extraParams->argumentsAsT(this->dataType()), res.buffer(), res.shapeInfo(), res.specialBuffer(), res.specialShapeInfo());
@@ -1557,17 +1556,17 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::tensorsAlongDimension(std::initializer_list<int> dimensions) const {
+    sd::LongType NDArray::tensorsAlongDimension(std::initializer_list<int> dimensions) const {
         return tensorsAlongDimension(std::vector<int>(dimensions));
     }
 
 //////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::tensorsAlongDimension(const std::vector<int>& dimensions) const {
+    sd::LongType NDArray::tensorsAlongDimension(const std::vector<int>& dimensions) const {
         std::vector<int> copy(dimensions);
         shape::checkDimensions(rankOf(), copy);
 
-        Nd4jLong tadLength = shape::tadLength(this->_shapeInfo, copy.data(), copy.size());
-        Nd4jLong numTads = this->lengthOf() / tadLength;
+        sd::LongType tadLength = shape::tadLength(this->_shapeInfo, copy.data(), copy.size());
+        sd::LongType numTads = this->lengthOf() / tadLength;
 
         return numTads;
     }
@@ -1579,25 +1578,25 @@ namespace sd {
         int lim = shape::shapeInfoLength(rank);
 
         if(msg != nullptr) {
-            nd4j_printf("shapeInfo %s: [", msg);
+            sd_printf("shapeInfo %s: [", msg);
         } else {
-            nd4j_printf("shapeInfo: [%s", "");
+            sd_printf("shapeInfo: [%s", "");
         }
-        nd4j_printf("%i,  ", rank);
+        sd_printf("%i,  ", rank);
         for (int i = 1; i < shape::shapeInfoLength(rank) - 3; i++){
             if(i == rank + 1)
-                nd4j_printf("  ","");
-            nd4j_printf("%lld,", _shapeInfo[i]);
+                sd_printf("  ","");
+            sd_printf("%lld,", _shapeInfo[i]);
         }
-        nd4j_printf("  %lld,", shape::type(_shapeInfo));
-        nd4j_printf("%lld,", shape::elementWiseStride(_shapeInfo));
-        nd4j_printf("%lld]\n", (Nd4jLong)shape::order(_shapeInfo));
+        sd_printf("  %lld,", shape::type(_shapeInfo));
+        sd_printf("%lld,", shape::elementWiseStride(_shapeInfo));
+        sd_printf("%lld]\n", (sd::LongType)shape::order(_shapeInfo));
 
         fflush(stdout);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::printBuffer(const char* msg, Nd4jLong limit, const bool sync) const{
+    void NDArray::printBuffer(const char* msg, sd::LongType limit, const bool sync) const{
         if (sync)
             syncToHost();
 
@@ -1609,24 +1608,24 @@ namespace sd {
         else
             printf("[");
         if (this->isR()) {
-            for (Nd4jLong e = 0; e < limit; e++) {
+            for (sd::LongType e = 0; e < limit; e++) {
                 if (e)
                     printf(", ");
                 printf("%f", this->e<float>(e));
             }
         }
         else if (this->isZ()) {
-            for (Nd4jLong e = 0; e < limit; e++) {
+            for (sd::LongType e = 0; e < limit; e++) {
                 if (this->dataType() != sd::DataType::INT64 && this->dataType() != sd::DataType::UINT64)
                     printf("%d", this->e<int>(e));
                 else
-                    printf("%llu", this->e<Nd4jLong>(e));
+                    printf("%llu", this->e<sd::LongType>(e));
                 if (e < limit - 1)
                     printf(", ");
             }
         }
         else if (this->isB()) {
-            for (Nd4jLong e = 0; e < limit; e++) {
+            for (sd::LongType e = 0; e < limit; e++) {
                 if (this->e<bool>(e))
                     printf("true");
                 else
@@ -1638,14 +1637,14 @@ namespace sd {
         else if (this->isS()) {
             // todo do we need this print offsets
             /*
-        for (Nd4jLong e = 0; e < limit; e++) {
+        for (sd::LongType e = 0; e < limit; e++) {
             printf("\"%lld\"", this->getOffset(e));
             if (e < limit - 1)
                 printf(", ");
         }
         printf("]\n[");
         */
-            for (Nd4jLong e = 0; e < limit; e++) {
+            for (sd::LongType e = 0; e < limit; e++) {
                 printf("\"%s\"", this->e<std::string>(e).c_str());
                 if (e < limit - 1)
                     printf(", ");
@@ -1667,19 +1666,19 @@ namespace sd {
         printf("[");
 
         if (this->dataType() == sd::DataType::INT32) {
-            for(Nd4jLong e = 0; e < len; e++)
+            for(sd::LongType e = 0; e < len; e++)
                 printf("%d, ", this->bufferAsT<int>()[e * ews]);
         }
         else if(this->dataType() == sd::DataType::INT64) {
-            for(Nd4jLong e = 0; e < len; e++)
-                printf("%lld, ", this->bufferAsT<Nd4jLong>()[e * ews]);
+            for(sd::LongType e = 0; e < len; e++)
+                printf("%lld, ", this->bufferAsT<sd::LongType>()[e * ews]);
         }
         else if(this->dataType() == sd::DataType::FLOAT32) {
-            for(Nd4jLong e = 0; e < len; e++)
+            for(sd::LongType e = 0; e < len; e++)
                 printf("%.8f, ", this->bufferAsT<float>()[e * ews]);
         }
         else if(this->dataType() == sd::DataType::DOUBLE) {
-            for(Nd4jLong e = 0; e < len; e++)
+            for(sd::LongType e = 0; e < len; e++)
                 printf("%.8f, ", this->bufferAsT<double>()[e * ews]);
         }
         else
@@ -1693,11 +1692,11 @@ namespace sd {
 
         if (arr->rankOf() == 1) {
             printf("[ ");
-            for (Nd4jLong i = 0; i < arr->lengthOf(); ++i) {
+            for (sd::LongType i = 0; i < arr->lengthOf(); ++i) {
                 if (arr->isR())
                     printf("%f, ", arr->e<float>(i));
                 else if (arr->isZ())
-                    printf("%lld, ", arr->e<Nd4jLong>(i));
+                    printf("%lld, ", arr->e<sd::LongType>(i));
                 else if (arr->isB())
                     printf("%s, ", arr->e<bool>(i)?"true":"false");
                 else if (arr->isS()) {
@@ -1707,24 +1706,24 @@ namespace sd {
             printf("]\n");
         }
         else if (arr->rankOf() == 2) {
-            Nd4jLong rows = arr->rows();
-            Nd4jLong cols = arr->columns();
+            sd::LongType rows = arr->rows();
+            sd::LongType cols = arr->columns();
             char* padding = new char[depth + 1];
             memset(padding, ' ', depth);
             padding[depth] = 0;
             printf("[");
-            for (Nd4jLong row = 0; row < rows; ++row) {
+            for (sd::LongType row = 0; row < rows; ++row) {
                 if (row && depth > 0)
                     printf("%s", padding);
                 printf("[");
-                Nd4jLong colLimit = cols > limit?cols:limit;
-                for (Nd4jLong col = 0; col < colLimit; ++col) {
+                sd::LongType colLimit = cols > limit?cols:limit;
+                for (sd::LongType col = 0; col < colLimit; ++col) {
                     if (col)
                         printf(", ");
                     if (arr->isR())
                         printf("%f", arr->e<float>(row, col));
                     else if (arr->isZ())
-                        printf("%lld", arr->e<Nd4jLong>(row, col));
+                        printf("%lld", arr->e<sd::LongType>(row, col));
                     else if (arr->isB())
                         printf("%s", arr->e<bool>(row, col)?"true":"false");
                     else if (arr->isS()) {
@@ -1749,9 +1748,9 @@ namespace sd {
                 NDArray subArr = (*arr)(arrIndex, {0});
                 printFormatted(&subArr, depth + 1, limit);
                 if (arrIndex < restCount - 1) {
-                    for (Nd4jLong i = 1; i < arr->rankOf(); ++i)
+                    for (sd::LongType i = 1; i < arr->rankOf(); ++i)
                         printf("\n");
-                    for (Nd4jLong i = 0; i < depth - 2; ++i)
+                    for (sd::LongType i = 0; i < depth - 2; ++i)
                         printf(" ");
                 }
             }
@@ -1760,11 +1759,11 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::printIndexedBuffer(const char* msg, Nd4jLong limit) const {
+    void NDArray::printIndexedBuffer(const char* msg, sd::LongType limit) const {
 
         syncToHost();
 
-        Nd4jLong rank = this->rankOf();
+        sd::LongType rank = this->rankOf();
 
         bool rowFlag = (rank < 2) || (rank == 2 && this->sizeAt(0) == 1);
 
@@ -1776,7 +1775,7 @@ namespace sd {
         }
         else if (this->rankOf() == 0) {
             if (this->isZ())
-                printf("%lld\n", this->e<Nd4jLong>(0));
+                printf("%lld\n", this->e<sd::LongType>(0));
             else if (this->isR())
                 printf("%.8f\n", this->e<float>(0));
             else if (this->isB()) {
@@ -1801,10 +1800,10 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T>
-    void* NDArray::templatedPointerShift(const Nd4jLong offset) const {
+    void* NDArray::templatedPointerShift(const sd::LongType offset) const {
         return const_cast<T*>(reinterpret_cast<T const*>(buffer()) + offset);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void* NDArray::templatedPointerShift, (const Nd4jLong offset) const, LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void* NDArray::templatedPointerShift, (const sd::LongType offset) const, SD_COMMON_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
 // method makes copy of this array and applies to the copy transpose operation, this array remains unaffected
@@ -1864,38 +1863,38 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
 // set new order and shape in case of suitable array length
-    bool NDArray::reshapei(const char order, const std::initializer_list<Nd4jLong>& shape, const bool copyToNewBuff) {
-        std::vector<Nd4jLong> vShape(shape);
+    bool NDArray::reshapei(const char order, const std::initializer_list<sd::LongType>& shape, const bool copyToNewBuff) {
+        std::vector<sd::LongType> vShape(shape);
         return reshapei(order, vShape, copyToNewBuff);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    bool NDArray::reshapei(const std::initializer_list<Nd4jLong>& shape, const bool copyToNewBuff) {
+    bool NDArray::reshapei(const std::initializer_list<sd::LongType>& shape, const bool copyToNewBuff) {
         return reshapei(ordering(), shape, copyToNewBuff);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    bool NDArray::reshapei(const std::vector<Nd4jLong>& shape, const bool copyToNewBuff) {
+    bool NDArray::reshapei(const std::vector<sd::LongType>& shape, const bool copyToNewBuff) {
         return reshapei(ordering(), shape, copyToNewBuff);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::enforce(const std::initializer_list<Nd4jLong> &dimensions, char order) {
-        std::vector<Nd4jLong> dims(dimensions);
+    void NDArray::enforce(const std::initializer_list<sd::LongType> &dimensions, char order) {
+        std::vector<sd::LongType> dims(dimensions);
         enforce(dims, order);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::enforce(std::vector<Nd4jLong> &dimensions, char o) {
+    void NDArray::enforce(std::vector<sd::LongType> &dimensions, char o) {
 
-        Nd4jLong prod = 1;
+        sd::LongType prod = 1;
         for (int e = 0; e < dimensions.size(); e++)
             prod *= dimensions[e];
 
         if (prod != this->lengthOf()) {
             std::string current = ShapeUtils::shapeAsString(this);
             std::string enforced = ShapeUtils::shapeAsString(dimensions);
-            nd4j_printf("Can't enforce new shape, lengths mismatch. Original shape: %s; Requested shape: %s\n", current.c_str(), enforced.c_str());
+            sd_printf("Can't enforce new shape, lengths mismatch. Original shape: %s; Requested shape: %s\n", current.c_str(), enforced.c_str());
             throw std::runtime_error("Incompatible shape");
         }
 
@@ -1904,15 +1903,15 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::argMax(std::initializer_list<int> dimensions) {
+    sd::LongType NDArray::argMax(std::initializer_list<int> dimensions) {
 
         if (isS())
             throw std::runtime_error("NDArray::argMax: you can't use this method on String array!");
 
         if (dimensions.size() == 0) {
-            Nd4jLong max = 0;
+            sd::LongType max = 0;
             auto mv = -DataTypeUtils::max<float>();
-            for (Nd4jLong e = 0; e < this->lengthOf(); e++) {
+            for (sd::LongType e = 0; e < this->lengthOf(); e++) {
                 auto val = this->e<float>(e);
                 if (mv < val) {
                     mv = val;
@@ -1927,7 +1926,7 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
 // create new array with corresponding order and shape, new array will point to the same _buffer as this array
-    NDArray NDArray::reshape(const char order, const std::vector<Nd4jLong>& shape, const bool copyToNewBuff) const & {
+    NDArray NDArray::reshape(const char order, const std::vector<sd::LongType>& shape, const bool copyToNewBuff) const & {
 
         NDArray newArr(getDataBuffer(), ShapeDescriptor(shapeInfo()), getContext(), bufferOffset());
         newArr.reshapei(order, shape, copyToNewBuff);
@@ -1936,7 +1935,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::reshape(const char order, const std::vector<Nd4jLong>& shape, const bool copyToNewBuff) && {
+    NDArray NDArray::reshape(const char order, const std::vector<sd::LongType>& shape, const bool copyToNewBuff) && {
 
         this->reshapei(order, shape, copyToNewBuff);
         return std::move(*this);
@@ -1944,12 +1943,12 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
 // change an array by repeating it the number of times given by reps.
-    void NDArray::tilei(const std::vector<Nd4jLong>& reps) {
+    void NDArray::tilei(const std::vector<sd::LongType>& reps) {
         *this = this->tile(reps);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::sizeAt(const int dim) const {
+    sd::LongType NDArray::sizeAt(const int dim) const {
 
         if (dim >= this->rankOf() || dim < -this->rankOf())
             throw std::runtime_error("NDArray::sizeAt: bad size index requested");
@@ -1961,7 +1960,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::strideAt(const int dim) const {
+    sd::LongType NDArray::strideAt(const int dim) const {
 
         if (dim >= this->rankOf() || dim < -this->rankOf())
             throw std::runtime_error("NDArray::strideAt: Bad size index requested");
@@ -1984,8 +1983,8 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    bool NDArray::permutei(const std::initializer_list<Nd4jLong>& dimensions) {
-        std::vector<Nd4jLong> vec(dimensions);
+    bool NDArray::permutei(const std::initializer_list<sd::LongType>& dimensions) {
+        std::vector<sd::LongType> vec(dimensions);
         std::vector<int> ivec(dimensions.size());
 
         for (int e = 0; e < vec.size(); e++)
@@ -1995,7 +1994,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    bool NDArray::permutei(const std::vector<Nd4jLong>& dimensions) {
+    bool NDArray::permutei(const std::vector<sd::LongType>& dimensions) {
 
         std::vector<int> ivec(dimensions.size());
 
@@ -2023,14 +2022,14 @@ namespace sd {
     }
 
 /////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const Nd4jLong* dimensions, const int rank) const &{
-        int tempDims[MAX_RANK];
-        shape::convertT<Nd4jLong, int>(const_cast<Nd4jLong *>(dimensions), tempDims, rank);
+    NDArray NDArray::permute(const sd::LongType* dimensions, const int rank) const &{
+        int tempDims[SD_MAX_RANK];
+        shape::convertT<sd::LongType, int>(const_cast<sd::LongType *>(dimensions), tempDims, rank);
         return permute(tempDims, rank);
     }
 
 /////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const Nd4jLong* dimensions, const int rank) && {
+    NDArray NDArray::permute(const sd::LongType* dimensions, const int rank) && {
 
         this->permutei(dimensions, rank);
         return std::move(*this);
@@ -2050,13 +2049,13 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const std::vector<Nd4jLong>& dimensions) const & {
+    NDArray NDArray::permute(const std::vector<sd::LongType>& dimensions) const & {
 
         return permute(dimensions.data(), rankOf());
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const std::vector<Nd4jLong>& dimensions) && {
+    NDArray NDArray::permute(const std::vector<sd::LongType>& dimensions) && {
 
         this->permutei(dimensions);
         return std::move(*this);
@@ -2077,13 +2076,13 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const std::initializer_list<Nd4jLong>& dimensions) const & {
-        std::vector<Nd4jLong> vec(dimensions);
+    NDArray NDArray::permute(const std::initializer_list<sd::LongType>& dimensions) const & {
+        std::vector<sd::LongType> vec(dimensions);
         return permute(vec);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::permute(const std::initializer_list<Nd4jLong>& dimensions) && {
+    NDArray NDArray::permute(const std::initializer_list<sd::LongType>& dimensions) && {
 
         this->permutei(dimensions);
         return std::move(*this);
@@ -2102,7 +2101,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::permute(const Nd4jLong *dimensions, const int rank, NDArray& target) const {
+    void NDArray::permute(const sd::LongType *dimensions, const int rank, NDArray& target) const {
         if (!nonNull() || !target.nonNull() || rank != rankOf() || rank != target.rankOf() )
             throw std::runtime_error("NDArray<T>::permute method: either arrays are nullptr or ranks are not suitable!");
 
@@ -2119,7 +2118,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::permute(const std::vector<Nd4jLong>& dimensions, NDArray& target) const {
+    void NDArray::permute(const std::vector<sd::LongType>& dimensions, NDArray& target) const {
         permute(dimensions.data(), rankOf(), target);
     }
 
@@ -2132,15 +2131,15 @@ namespace sd {
             throw std::runtime_error("isIdentityMatrix method: matrix must be square and have rank = 2 !");
 
         const double eps = 1e-5f;
-        for(Nd4jLong i=0; i<rows(); ++i)
-            if(sd::math::nd4j_abs(e<double>(i,i) - 1.f) > eps)
+        for(sd::LongType i=0; i<rows(); ++i)
+            if(sd::math::sd_abs(e<double>(i,i) - 1.f) > eps)
                 return false;
 
-        for(Nd4jLong i=0; i<rows(); ++i) {
-            for(Nd4jLong j=0; j<columns(); ++j) {
+        for(sd::LongType i=0; i<rows(); ++i) {
+            for(sd::LongType j=0; j<columns(); ++j) {
                 if (i == j)
                     continue;
-                if(sd::math::nd4j_abs(e<double>(i,j)) > eps)
+                if(sd::math::sd_abs(e<double>(i,j)) > eps)
                     return false;
             }
         }
@@ -2166,7 +2165,7 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <>
-    const std::string* ND4J_EXPORT NDArray::bufferAsT() const {
+    const std::string* SD_LIB_EXPORT NDArray::bufferAsT() const {
         throw std::runtime_error("This method is NOT supposed to be used");
     }
 
@@ -2178,14 +2177,14 @@ namespace sd {
 
         return reinterpret_cast<const T*>(buffer());
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT const, * NDArray::bufferAsT() const, LIBND4J_TYPES);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT const, * NDArray::bufferAsT() const, SD_COMMON_TYPES);
 
     template <typename T>
     T* NDArray::bufferAsT() {
         syncToHost();
         return reinterpret_cast<T*>(buffer());
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT, * NDArray::bufferAsT(), LIBND4J_TYPES);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT, * NDArray::bufferAsT(), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
     NDArray NDArray::subarray(IndicesList& idx) const {
@@ -2194,7 +2193,7 @@ namespace sd {
         if (idxSize != this->rankOf())
             throw std::runtime_error("NDArray::subarray: number of indices should match");
 
-        std::vector<Nd4jLong> indexes(3 * idxSize);
+        std::vector<sd::LongType> indexes(3 * idxSize);
 
         // convert IndicesList to vector
         for (int d = 0; d < idxSize; ++d) {
@@ -2230,7 +2229,7 @@ namespace sd {
         if (idxSize != this->rankOf())
             throw std::runtime_error("NDArray::subarray: number of indices should match the array rank");
 
-        std::vector<Nd4jLong> indexes(3 * idxSize);
+        std::vector<sd::LongType> indexes(3 * idxSize);
 
         // convert NDIndex to vector
         int d = 0;
@@ -2273,7 +2272,7 @@ namespace sd {
         if (idxSize != this->rankOf())
             throw std::runtime_error("NDArray::subarray: number of indices should match the rank of array!");
 
-        std::vector<Nd4jLong> indexes(2 * idxSize);
+        std::vector<sd::LongType> indexes(2 * idxSize);
 
         // convert Intervals to vector
         for (int d = 0; d < idxSize; ++d) {
@@ -2303,7 +2302,7 @@ namespace sd {
 
         return result;
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT NDArray NDArray::asT, () const, LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT NDArray NDArray::asT, () const, SD_COMMON_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T>
@@ -2319,8 +2318,8 @@ namespace sd {
 
         if (dtype == dataType()) {
 
-            Nd4jLong offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
-            const auto nInputoffsets = bufferAsT<Nd4jLong>();
+            sd::LongType offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
+            const auto nInputoffsets = bufferAsT<sd::LongType>();
             std::shared_ptr<DataBuffer> pBuffer = std::make_shared<DataBuffer>(offsetsLength + nInputoffsets[lengthOf()], dtype, getContext()->getWorkspace(), true);
 
             NDArray res(pBuffer, ShapeDescriptor(dtype, ordering(), getShapeAsVector()), getContext());
@@ -2336,17 +2335,17 @@ namespace sd {
             return res;
         }
 
-        Nd4jLong offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
+        sd::LongType offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
 
-        std::vector<Nd4jLong> offsets(lengthOf() + 1);
+        std::vector<sd::LongType> offsets(lengthOf() + 1);
 
-        const auto nInputoffsets = bufferAsT<Nd4jLong>();
+        const auto nInputoffsets = bufferAsT<sd::LongType>();
 
-        Nd4jLong start = 0, stop = 0;
-        Nd4jLong dataLength = 0;
+        sd::LongType start = 0, stop = 0;
+        sd::LongType dataLength = 0;
 
         auto data = bufferAsT<int8_t>() + offsetsLength;
-        for (Nd4jLong e = 0; e < lengthOf(); e++) {
+        for (sd::LongType e = 0; e < lengthOf(); e++) {
             offsets[e] = dataLength;
             start = nInputoffsets[e];
             stop = nInputoffsets[e + 1];
@@ -2372,7 +2371,7 @@ namespace sd {
 
         preparePrimaryUse({ &res }, { this });
 
-        memcpy(res.bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(Nd4jLong));
+        memcpy(res.bufferAsT<int8_t>(), offsets.data(), offsets.size() * sizeof(sd::LongType));
 
         auto outData = res.bufferAsT<int8_t>() + offsetsLength;
         const auto inData = bufferAsT<int8_t>() + offsetsLength;
@@ -2415,7 +2414,7 @@ namespace sd {
 
         return res;
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT NDArray NDArray::asS, () const, LIBND4J_STRINGTYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT NDArray NDArray::asS, () const, SD_STRING_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
     NDArray NDArray::asT(DataType dtype) const {
@@ -2427,9 +2426,9 @@ namespace sd {
             throw std::runtime_error("NDArray::asT: you can't use this method on not String array with string DataType!");
 
         if (isS()){
-            BUILD_SINGLE_SELECTOR(dtype, return asS, (), LIBND4J_STRINGTYPES);
+            BUILD_SINGLE_SELECTOR(dtype, return asS, (), SD_STRING_TYPES);
         } else {
-            BUILD_SINGLE_SELECTOR(dtype, return asT, (), LIBND4J_TYPES);
+            BUILD_SINGLE_SELECTOR(dtype, return asT, (), SD_COMMON_TYPES);
         }
 
         return NDArray();
@@ -2474,7 +2473,7 @@ namespace sd {
             NDArray::registerSpecialUse({this}, {this, &other});
         }
         else{
-            const Nd4jLong *bShape = nullptr;
+            const sd::LongType *bShape = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, bShape, getContext()->getWorkspace()))
                 throw std::invalid_argument("NDArray::operator+=: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -2508,7 +2507,7 @@ namespace sd {
             NDArray::registerSpecialUse({this}, {this, &other});
         }
         else{
-            const Nd4jLong *bShape = nullptr;
+            const sd::LongType *bShape = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, bShape, getContext()->getWorkspace()))
                 throw std::invalid_argument("NDArray::operator-=: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -2541,7 +2540,7 @@ namespace sd {
             NDArray::registerSpecialUse({this}, {this, &other});
         }
         else{
-            const Nd4jLong *bShape = nullptr;
+            const sd::LongType *bShape = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, bShape, getContext()->getWorkspace()))
                 throw std::invalid_argument("NDArray::operator*=: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -2578,7 +2577,7 @@ namespace sd {
             NDArray::registerSpecialUse({this}, {this, &other});
         }
         else{
-            const Nd4jLong *bShape = nullptr;
+            const sd::LongType *bShape = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, bShape, getContext()->getWorkspace()))
                 throw std::invalid_argument("NDArray::operator/=: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -2605,13 +2604,13 @@ namespace sd {
         NativeOpExecutioner::execScalar(getContext(), sd::scalar::Add, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), other.buffer(), other.shapeInfo(), other.specialBuffer(), other.specialShapeInfo(), nullptr);
         NDArray::registerSpecialUse({this}, {this, &other});
     }
-    template ND4J_EXPORT void NDArray::operator+=(const double value);
-    template ND4J_EXPORT void NDArray::operator+=(const float value);
-    template ND4J_EXPORT void NDArray::operator+=(const float16 value);
-    template ND4J_EXPORT void NDArray::operator+=(const bfloat16 value);
-    template ND4J_EXPORT void NDArray::operator+=(const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::operator+=(const int value);
-    template ND4J_EXPORT void NDArray::operator+=(const bool value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const double value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const float value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const float16 value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const int value);
+    template SD_LIB_EXPORT void NDArray::operator+=(const bool value);
 
 ////////////////////////////////////////////////////////////////////////
     template<typename T>
@@ -2625,13 +2624,13 @@ namespace sd {
         NativeOpExecutioner::execScalar(getContext(), sd::scalar::Subtract, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), other.buffer(), other.shapeInfo(), other.specialBuffer(), other.specialShapeInfo(), nullptr);
         NDArray::registerSpecialUse({this}, {this, &other});
     }
-    template ND4J_EXPORT void NDArray::operator-=(const double value);
-    template ND4J_EXPORT void NDArray::operator-=(const float value);
-    template ND4J_EXPORT void NDArray::operator-=(const float16 value);
-    template ND4J_EXPORT void NDArray::operator-=(const bfloat16 value);
-    template ND4J_EXPORT void NDArray::operator-=(const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::operator-=(const int value);
-    template ND4J_EXPORT void NDArray::operator-=(const bool value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const double value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const float value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const float16 value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const int value);
+    template SD_LIB_EXPORT void NDArray::operator-=(const bool value);
 
 ////////////////////////////////////////////////////////////////////////
     template<typename T>
@@ -2644,16 +2643,16 @@ namespace sd {
         NativeOpExecutioner::execScalar(getContext(), sd::scalar::Multiply, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), other.buffer(), other.shapeInfo(), other.specialBuffer(), other.specialShapeInfo(), nullptr);
         NDArray::registerSpecialUse({this}, {this, &other});
     }
-    template ND4J_EXPORT void NDArray::operator*=(const double scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const float scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const float16 scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const bfloat16 scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const Nd4jLong scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const int scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const int16_t scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const int8_t scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const uint8_t scalar);
-    template ND4J_EXPORT void NDArray::operator*=(const bool scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const double scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const float scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const float16 scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const bfloat16 scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const sd::LongType scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const int scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const int16_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const int8_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const uint8_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator*=(const bool scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template<typename T>
@@ -2666,16 +2665,16 @@ namespace sd {
         NativeOpExecutioner::execScalar(getContext(), sd::scalar::Divide, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), other.buffer(), other.shapeInfo(), other.specialBuffer(), other.specialShapeInfo(), nullptr);
         NDArray::registerSpecialUse({this}, {this, &other});
     }
-    template ND4J_EXPORT void NDArray::operator/=(const double scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const float scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const float16 scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const bfloat16 scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const Nd4jLong scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const int scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const int16_t scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const int8_t scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const uint8_t scalar);
-    template ND4J_EXPORT void NDArray::operator/=(const bool scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const double scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const float scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const float16 scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const bfloat16 scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const sd::LongType scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const int scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const int16_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const int8_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const uint8_t scalar);
+    template SD_LIB_EXPORT void NDArray::operator/=(const bool scalar);
 
 ////////////////////////////////////////////////////////////////////////
 // negative operator, it makes all array elements = -elements
@@ -2716,13 +2715,13 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::tileToShape(const std::vector<Nd4jLong>& shape, NDArray& target) {
+    void NDArray::tileToShape(const std::vector<sd::LongType>& shape, NDArray& target) {
         if(&target != this) {
             this->tile(target);
             return;
         }
 
-        std::vector<Nd4jLong> thisShape(rankOf());
+        std::vector<sd::LongType> thisShape(rankOf());
         for(int i = 0; i < rankOf(); ++i)
             thisShape[i] = sizeAt(i);
 
@@ -2730,7 +2729,7 @@ namespace sd {
             throw std::runtime_error("NDArray::tileToShape method: the shape of this array and input shape are not suitable for broadcast operation !");
 
         const int newRank = shape.size();
-        std::vector<Nd4jLong> repeats(newRank);
+        std::vector<sd::LongType> repeats(newRank);
 
         for(int i = 1; i <= newRank; ++i) {
             if(i > rankOf())
@@ -2743,14 +2742,14 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::tileToShape(const std::initializer_list<Nd4jLong>& shape, NDArray& target) {
-        tileToShape(std::vector<Nd4jLong>(shape), target);
+    void NDArray::tileToShape(const std::initializer_list<sd::LongType>& shape, NDArray& target) {
+        tileToShape(std::vector<sd::LongType>(shape), target);
     }
 
 ////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::tileToShape(const Nd4jLong* shapeInfo) {
+    NDArray NDArray::tileToShape(const sd::LongType* shapeInfo) {
 
-        NDArray result(const_cast<Nd4jLong*>(shapeInfo), false, getContext());
+        NDArray result(const_cast<sd::LongType*>(shapeInfo), false, getContext());
         tile(result);
         return result;
     }
@@ -2764,7 +2763,7 @@ namespace sd {
         auto shape   = shapeOf();
         int  minDim  = 100000000;
 
-        Nd4jLong indices[MAX_RANK];
+        sd::LongType indices[SD_MAX_RANK];
         for(int j = 0; j < rank; ++j)
             indices[j] = 1;
 
@@ -2790,7 +2789,7 @@ namespace sd {
 
         auto ws = array.getContext()->getWorkspace();
 
-        Nd4jLong* shapeInfo = ShapeBuilders::copyShapeInfo(array.shapeInfo(), true, ws);
+        sd::LongType* shapeInfo = ShapeBuilders::copyShapeInfo(array.shapeInfo(), true, ws);
         ArrayOptions::setPropertyBit(shapeInfo, ARRAY_QUANTIZED);
 
         std::shared_ptr<DataBuffer> buffer = std::make_shared<DataBuffer>(TypeCast::estimateQuantizedSize(array.lengthOf()), ArrayOptions::dataType(shapeInfo), ws);
@@ -2823,17 +2822,17 @@ namespace sd {
         // }
 
         if(checkTargetShape) {
-            const Nd4jLong* newShapeInfo = nullptr;
+            const sd::LongType* newShapeInfo = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of target array must be equal to max->rankOf)()
                 throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
             if(!shape::equalsTypesAndShapesSoft(target.shapeInfo(), newShapeInfo))
                 throw std::runtime_error("NDArray::applyTrueBroadcast method: the shape or type of target array is wrong !");
         }
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace());
@@ -2872,7 +2871,7 @@ namespace sd {
         // }
 
         if(checkTargetShape) {
-            const Nd4jLong* newShapeInfo = nullptr;
+            const sd::LongType* newShapeInfo = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of target array must be equal to max->rankOf)()
                 throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
             if(!shape::equalsSoft(target._shapeInfo, newShapeInfo) || target.dataType() != DataType::BOOL)
@@ -2881,10 +2880,10 @@ namespace sd {
                 throw std::invalid_argument("NDArray::applyTrueBroadcast bool method: this and other arrays must have the same type !");
         }
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace());
@@ -2923,7 +2922,7 @@ namespace sd {
         // }
 
         if(checkTargetShape) {
-            const Nd4jLong* newShapeInfo = nullptr;
+            const sd::LongType* newShapeInfo = nullptr;
             if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, false, newShapeInfo, getContext()->getWorkspace()))          // the rank of target array must be equal to max->rankOf)()
                 throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
             if(!shape::equalsSoft(target._shapeInfo, newShapeInfo) || target.dataType() != this->dataType())
@@ -2932,20 +2931,20 @@ namespace sd {
                 throw std::invalid_argument("NDArray::applyTrueBroadcast int method: this and other arrays must have the same type !");
         }
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace());
-            xShapeInfoH = reinterpret_cast<Nd4jLong const*>(xPack.primary());
-            xShapeInfoD = reinterpret_cast<Nd4jLong const*>(xPack.special());
+            xShapeInfoH = reinterpret_cast<sd::LongType const*>(xPack.primary());
+            xShapeInfoD = reinterpret_cast<sd::LongType const*>(xPack.special());
         }
         if(!other.isSameShape(target)) {
             auto yPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), other.shapeInfo(), other.getContext()->getWorkspace());
-            yShapeInfoH = reinterpret_cast<Nd4jLong const*>(yPack.primary());
-            yShapeInfoD = reinterpret_cast<Nd4jLong const*>(yPack.special());
+            yShapeInfoH = reinterpret_cast<sd::LongType const*>(yPack.primary());
+            yShapeInfoD = reinterpret_cast<sd::LongType const*>(yPack.special());
         }
 
         NDArray::prepareSpecialUse({&target}, {this, &other});
@@ -2962,7 +2961,7 @@ namespace sd {
                 return NDArray(other);
         }
 
-        const Nd4jLong* newShapeInfo = nullptr;
+        const sd::LongType* newShapeInfo = nullptr;
         if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of new array = max->rankOf)()
             throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
         NDArray result(newShapeInfo, true, getContext());
@@ -2981,7 +2980,7 @@ namespace sd {
                 return NDArray(other);
         }
 
-        const Nd4jLong* newShapeInfo = nullptr;
+        const sd::LongType* newShapeInfo = nullptr;
         if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of new array = max->rankOf)()
             throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -3005,7 +3004,7 @@ namespace sd {
                 return NDArray(other);
         }
 
-        const Nd4jLong* newShapeInfo = nullptr;
+        const sd::LongType* newShapeInfo = nullptr;
         if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of new array = max->rankOf)()
             throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -3029,7 +3028,7 @@ namespace sd {
                 return NDArray(other);
         }
 
-        const Nd4jLong* newShapeInfo = nullptr;
+        const sd::LongType* newShapeInfo = nullptr;
         if(!ShapeUtils::evalBroadcastShapeInfo(*this, other, true, newShapeInfo, getContext()->getWorkspace()))          // the rank of new array = max->rankOf)()
             throw std::runtime_error("NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast operation !");
 
@@ -3086,20 +3085,20 @@ namespace sd {
         if (dimensions.size() > 1)
             std::sort(copy.begin(), copy.end());
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace(), copy);
-            xShapeInfoH = reinterpret_cast<Nd4jLong const*>(xPack.primary());
-            xShapeInfoD = reinterpret_cast<Nd4jLong const*>(xPack.special());
+            xShapeInfoH = reinterpret_cast<sd::LongType const*>(xPack.primary());
+            xShapeInfoD = reinterpret_cast<sd::LongType const*>(xPack.special());
         }
         if(!other.isSameShape(target)) {
             auto yPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), other.shapeInfo(), other.getContext()->getWorkspace(), copy);
-            yShapeInfoH = reinterpret_cast<Nd4jLong const*>(yPack.primary());
-            yShapeInfoD = reinterpret_cast<Nd4jLong const*>(yPack.special());
+            yShapeInfoH = reinterpret_cast<sd::LongType const*>(yPack.primary());
+            yShapeInfoD = reinterpret_cast<sd::LongType const*>(yPack.special());
         }
 
         NDArray::prepareSpecialUse({&target}, {this, &other});
@@ -3140,20 +3139,20 @@ namespace sd {
         if (dimensions.size() > 1)
             std::sort(copy.begin(), copy.end());
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace(), copy);
-            xShapeInfoH = reinterpret_cast<Nd4jLong const*>(xPack.primary());
-            xShapeInfoD = reinterpret_cast<Nd4jLong const*>(xPack.special());
+            xShapeInfoH = reinterpret_cast<sd::LongType const*>(xPack.primary());
+            xShapeInfoD = reinterpret_cast<sd::LongType const*>(xPack.special());
         }
         if(!other.isSameShape(target)) {
             auto yPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), other.shapeInfo(), other.getContext()->getWorkspace(), copy);
-            yShapeInfoH = reinterpret_cast<Nd4jLong const*>(yPack.primary());
-            yShapeInfoD = reinterpret_cast<Nd4jLong const*>(yPack.special());
+            yShapeInfoH = reinterpret_cast<sd::LongType const*>(yPack.primary());
+            yShapeInfoD = reinterpret_cast<sd::LongType const*>(yPack.special());
         }
 
         NDArray::prepareSpecialUse({&target}, {this, &other});
@@ -3195,20 +3194,20 @@ namespace sd {
         if (dimensions.size() > 1)
             std::sort(copy.begin(), copy.end());
 
-        Nd4jLong const* xShapeInfoH = shapeInfo();
-        Nd4jLong const* yShapeInfoH = other.shapeInfo();
-        Nd4jLong const* xShapeInfoD = specialShapeInfo();
-        Nd4jLong const* yShapeInfoD = other.specialShapeInfo();
+        sd::LongType const* xShapeInfoH = shapeInfo();
+        sd::LongType const* yShapeInfoH = other.shapeInfo();
+        sd::LongType const* xShapeInfoD = specialShapeInfo();
+        sd::LongType const* yShapeInfoD = other.specialShapeInfo();
 
         if(!isSameShape(target)) {
             auto xPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), shapeInfo(), getContext()->getWorkspace(), copy);
-            xShapeInfoH = reinterpret_cast<Nd4jLong const*>(xPack.primary());
-            xShapeInfoD = reinterpret_cast<Nd4jLong const*>(xPack.special());
+            xShapeInfoH = reinterpret_cast<sd::LongType const*>(xPack.primary());
+            xShapeInfoD = reinterpret_cast<sd::LongType const*>(xPack.special());
         }
         if(!other.isSameShape(target)) {
             auto yPack = ConstantShapeHelper::getInstance().createShapeInfoWithUnitiesForBroadcast(target.shapeInfo(), other.shapeInfo(), other.getContext()->getWorkspace(), copy);
-            yShapeInfoH = reinterpret_cast<Nd4jLong const*>(yPack.primary());
-            yShapeInfoD = reinterpret_cast<Nd4jLong const*>(yPack.special());
+            yShapeInfoH = reinterpret_cast<sd::LongType const*>(yPack.primary());
+            yShapeInfoD = reinterpret_cast<sd::LongType const*>(yPack.special());
         }
 
         NDArray::prepareSpecialUse({&target}, {this, &other});
@@ -3226,7 +3225,7 @@ namespace sd {
     void* NDArray::operator new(size_t i) {
         if (sd::memory::MemoryRegistrator::getInstance().hasWorkspaceAttached()) {
             sd::memory::Workspace* ws = sd::memory::MemoryRegistrator::getInstance().getWorkspace();
-            return ws->allocateBytes((Nd4jLong) i);
+            return ws->allocateBytes((sd::LongType) i);
         }
         else {
             auto p = malloc(i);
@@ -3253,11 +3252,11 @@ namespace sd {
 
         return result;
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT std::vector, NDArray::asVectorT(), COMMON_TYPES_LIST);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT std::vector, NDArray::asVectorT(), SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
 // set new order and shape in case of suitable array length
-    bool NDArray::reshapei(const char order, const std::vector<Nd4jLong>& cshape, const bool copyToNewBuff) {
+    bool NDArray::reshapei(const char order, const std::vector<sd::LongType>& cshape, const bool copyToNewBuff) {
 
         // check firstly whether cshape is identical to shape of array, if yes then reshape is unnecessary
         if(order == ordering() && shape::shapeEquals(rankOf(), shapeOf(), cshape.size(), cshape.data()))
@@ -3270,20 +3269,20 @@ namespace sd {
         if(!isEmpty() && isOutShapeEmpty)
             throw std::invalid_argument("NDArray::reshapei: can't reshape non-empty array to empty !");
         if(isEmpty() && isOutShapeEmpty) {
-            Nd4jLong* shapeInfoNew = ShapeBuilders::emptyShapeInfo(dataType(), order, cshape, getContext()->getWorkspace());
+            sd::LongType* shapeInfoNew = ShapeBuilders::emptyShapeInfo(dataType(), order, cshape, getContext()->getWorkspace());
             setShapeInfo(shapeInfoNew);
             RELEASE(shapeInfoNew, getContext()->getWorkspace());
             return true;
         }
 
-        std::vector<Nd4jLong> shape(cshape);
+        std::vector<sd::LongType> shape(cshape);
         int rank = shape.size();
 
         // looking for negative in shape
 
         int numberNegativesOnes = 0;
 
-        Nd4jLong* shape_ = shape.data();
+        sd::LongType* shape_ = shape.data();
         for (int i = 0; i < (int) shape.size(); i++) {
             if (shape[i] < 0) {
                 if (numberNegativesOnes >= 1)
@@ -3296,8 +3295,8 @@ namespace sd {
                     if (i != j)
                         shapeLength *= shape_[j];
 
-                Nd4jLong realShape = sd::math::nd4j_abs<int>(lengthOf() / shapeLength);
-                auto thisNewShape = new Nd4jLong[shape.size()];
+                sd::LongType realShape = sd::math::sd_abs<int>(lengthOf() / shapeLength);
+                auto thisNewShape = new sd::LongType[shape.size()];
 
                 for (int j = 0; j < (int) shape.size(); j++)
                     if (i != j)
@@ -3315,19 +3314,19 @@ namespace sd {
         if (numberNegativesOnes > 0)
             delete[] shape_;
 
-        Nd4jLong arrLength = 1;
+        sd::LongType arrLength = 1;
         for(const auto& item : shape)
             arrLength *= item;
 
         if(platformBuffer() == nullptr || arrLength != this->lengthOf()) {
             this->printShapeInfo("Mismatched shape");
             sd::Logger::printv("Shape requested: ", shape);
-            nd4j_debug("Requested length in reshape: %i; Existing length: %i;\n", arrLength, this->lengthOf());
+            sd_debug("Requested length in reshape: %i; Existing length: %i;\n", arrLength, this->lengthOf());
             throw std::runtime_error("NDArray::reshapei: bad input shape!");
         }
 
-        Nd4jLong *shapeInfoNew;
-        ALLOCATE(shapeInfoNew, getContext()->getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);
+        sd::LongType *shapeInfoNew;
+        ALLOCATE(shapeInfoNew, getContext()->getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);
 
         bool canReshape = shape::reshapeC(shapeInfo(), order, shape.size(), shape.data(), shapeInfoNew);
 
@@ -3360,10 +3359,10 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
-    void NDArray::templatedSet(void *buffer, const Nd4jLong xOfsset, sd::DataType dtype, const void *value) {
-        BUILD_SINGLE_PARTIAL_SELECTOR(dtype, templatedSet< , T>(buffer, xOfsset, value), LIBND4J_TYPES);
+    void NDArray::templatedSet(void *buffer, const sd::LongType xOfsset, sd::DataType dtype, const void *value) {
+        BUILD_SINGLE_PARTIAL_SELECTOR(dtype, templatedSet< , T>(buffer, xOfsset, value), SD_COMMON_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void NDArray::templatedSet, (void *buffer, const Nd4jLong xOfsset, sd::DataType dtype, const void *value), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void NDArray::templatedSet, (void *buffer, const sd::LongType xOfsset, sd::DataType dtype, const void *value), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
     void NDArray::applyPairwiseTransform(sd::pairwise::Ops op, const NDArray& other, NDArray& target, ExtraArguments *extraParams) const{
@@ -3421,12 +3420,12 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template <typename X, typename Y>
-    void NDArray::templatedDoubleAssign(void *xBuffer, const Nd4jLong xOffset, const void *yBuffer, const Nd4jLong yOffset) const {
+    void NDArray::templatedDoubleAssign(void *xBuffer, const sd::LongType xOffset, const void *yBuffer, const sd::LongType yOffset) const {
         auto x = reinterpret_cast<X *>(xBuffer);
         const auto y = reinterpret_cast<const Y *>(yBuffer);
         x[xOffset] = static_cast<X>(y[yOffset]);
     }
-    BUILD_DOUBLE_TEMPLATE(template ND4J_EXPORT void NDArray::templatedDoubleAssign, (void *xBuffer, const Nd4jLong xOffset, const void *yBuffer, const Nd4jLong yOffset) const, LIBND4J_TYPES, LIBND4J_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template SD_LIB_EXPORT void NDArray::templatedDoubleAssign, (void *xBuffer, const sd::LongType xOffset, const void *yBuffer, const sd::LongType yOffset) const, SD_COMMON_TYPES, SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
     void NDArray::varianceAlongDimension(sd::variance::Ops op, NDArray& target, const bool biasCorrected, const std::vector<int>& dimensions) const {
@@ -3529,7 +3528,7 @@ namespace sd {
             return NDArray(getShapeAsVector(), strings, dataType(), getContext());
         }
 
-        NDArray result(order, isScalar() ? std::vector<Nd4jLong>({0}) : getShapeAsVector(), dataType(), getContext());
+        NDArray result(order, isScalar() ? std::vector<sd::LongType>({0}) : getShapeAsVector(), dataType(), getContext());
         result.assign(*this);
 
         return result;
@@ -3552,7 +3551,7 @@ namespace sd {
             // string is special case, we'll compare them one by one, considering both arrays are guaranteed to have the same length
 
             if (dataType() == DataType::UTF8) {
-                for (Nd4jLong e = 0; e < this->lengthOf(); e++) {
+                for (sd::LongType e = 0; e < this->lengthOf(); e++) {
                     auto s1 = this->e<std::string>(e);
                     auto s2 = other->e<std::string>(e);
 
@@ -3561,7 +3560,7 @@ namespace sd {
                 }
             }
             else if (dataType() == DataType::UTF16) {
-                for (Nd4jLong e = 0; e < this->lengthOf(); e++) {
+                for (sd::LongType e = 0; e < this->lengthOf(); e++) {
                     auto s1 = this->e<std::u16string>(e);
                     auto s2 = other->e<std::u16string>(e);
 
@@ -3570,7 +3569,7 @@ namespace sd {
                 }
             }
             else {
-                for (Nd4jLong e = 0; e < this->lengthOf(); e++) {
+                for (sd::LongType e = 0; e < this->lengthOf(); e++) {
                     auto s1 = this->e<std::u32string>(e);
                     auto s2 = other->e<std::u32string>(e);
 
@@ -3597,7 +3596,7 @@ namespace sd {
 
             synchronize("NDArray::equalsTo");
 
-            if (tmp.e<Nd4jLong>(0) != 0)
+            if (tmp.e<sd::LongType>(0) != 0)
                 return false;
 
             return true;
@@ -3606,7 +3605,7 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <>
-    std::string NDArray::e(const Nd4jLong i) const {
+    std::string NDArray::e(const sd::LongType i) const {
 
         if (!isS())
             throw std::runtime_error("Can't get std::string out of non-string array");
@@ -3631,7 +3630,7 @@ namespace sd {
 
         NDArray::preparePrimaryUse({}, {this});
 
-        auto offsets = bufferAsT<Nd4jLong>();
+        auto offsets = bufferAsT<sd::LongType>();
         auto offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
         auto start = offsets[i];
         auto end = offsets[i + 1];
@@ -3645,7 +3644,7 @@ namespace sd {
     }
 
     template <>
-    std::u16string NDArray::e(const Nd4jLong i) const {
+    std::u16string NDArray::e(const sd::LongType i) const {
 
         if (!isS())
             throw std::runtime_error("Can't get std::u16string out of non-string array");
@@ -3669,10 +3668,10 @@ namespace sd {
 
         NDArray::preparePrimaryUse({}, { this });
 
-        auto offsets = bufferAsT<Nd4jLong>();
-        Nd4jLong offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
-        Nd4jLong start = offsets[i];
-        Nd4jLong end = offsets[i + 1];
+        auto offsets = bufferAsT<sd::LongType>();
+        sd::LongType offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
+        sd::LongType start = offsets[i];
+        sd::LongType end = offsets[i + 1];
         auto data = bufferAsT<int8_t>() + offsetsLength + start;
 
         std::u16string r(reinterpret_cast<const char16_t*>(data), (end - start) / sizeof(char16_t));
@@ -3683,7 +3682,7 @@ namespace sd {
     }
 
     template <>
-    std::u32string NDArray::e(const Nd4jLong i) const {
+    std::u32string NDArray::e(const sd::LongType i) const {
 
         if (!isS())
             throw std::runtime_error("Can't get std::u32string out of non-string array");
@@ -3707,10 +3706,10 @@ namespace sd {
 
         NDArray::preparePrimaryUse({}, { this });
 
-        auto offsets = bufferAsT<Nd4jLong>();
-        Nd4jLong offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
-        Nd4jLong start = offsets[i];
-        Nd4jLong end = offsets[i + 1];
+        auto offsets = bufferAsT<sd::LongType>();
+        sd::LongType offsetsLength = ShapeUtils::stringBufferHeaderRequirements(lengthOf());
+        sd::LongType start = offsets[i];
+        sd::LongType end = offsets[i + 1];
 
         auto data = bufferAsT<int8_t>() + offsetsLength + start;
 
@@ -3723,7 +3722,7 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <>
-    utf8string NDArray::e(const Nd4jLong i) const {
+    utf8string NDArray::e(const sd::LongType i) const {
 
         if (!isS())
             throw std::runtime_error("This method is available for String arrays only");
@@ -3738,21 +3737,21 @@ namespace sd {
 
 /////////////////////////////////////////////////////////////////////////
     template <typename T>
-    T NDArray::e(const Nd4jLong i) const {
+    T NDArray::e(const sd::LongType i) const {
 
         const auto rp = getOffset(i);
 
         NDArray::preparePrimaryUse({}, {this});
         NDArray::registerPrimaryUse({}, {this});
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), rp), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), rp), SD_COMMON_TYPES);
 
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT , NDArray::e(const Nd4jLong) const, COMMON_TYPES_LIST);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT , NDArray::e(const sd::LongType) const, SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
 // Returns value from 2D matrix by coordinates/indexes
     template <typename T>
-    T NDArray::e(const Nd4jLong i, const Nd4jLong j) const {
+    T NDArray::e(const sd::LongType i, const sd::LongType j) const {
 
         if (rankOf() != 2 || i >= shapeOf()[0] || j >= shapeOf()[1])
             throw std::invalid_argument("NDArray::e(i,j): one of input indexes is out of array length or rank!=2 !");
@@ -3762,16 +3761,16 @@ namespace sd {
         NDArray::preparePrimaryUse({}, {this});
         NDArray::registerPrimaryUse({}, {this});
 
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), SD_COMMON_TYPES);
 
         return static_cast<T>(119);
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT , NDArray::e(const Nd4jLong, const Nd4jLong) const, COMMON_TYPES_LIST);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT , NDArray::e(const sd::LongType, const sd::LongType) const, SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
 // returns value from 3D tensor by coordinates
     template <typename T>
-    T NDArray::e(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k) const {
+    T NDArray::e(const sd::LongType i, const sd::LongType j, const sd::LongType k) const {
 
         if (rankOf() != 3 || i >= shapeOf()[0] || j >= shapeOf()[1] || k >= shapeOf()[2])
             throw std::invalid_argument("NDArray::e(i,j,k): one of input indexes is out of array length or rank!=3 !");
@@ -3781,16 +3780,16 @@ namespace sd {
         NDArray::preparePrimaryUse({}, {this});
         NDArray::registerPrimaryUse({}, {this});
 
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), SD_COMMON_TYPES);
 
         return static_cast<T>(119);
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT , NDArray::e(const Nd4jLong, const Nd4jLong, const Nd4jLong) const, COMMON_TYPES_LIST);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT , NDArray::e(const sd::LongType, const sd::LongType, const sd::LongType) const, SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
 // returns value from 3D tensor by coordinates
     template <typename T>
-    T NDArray::e(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l) const {
+    T NDArray::e(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l) const {
 
         if (rankOf() != 4 || i >= shapeOf()[0] || j >= shapeOf()[1] || k >= shapeOf()[2] || l >= shapeOf()[3])
             throw std::invalid_argument("NDArray::e(i,j,k,l): one of input indexes is out of array length or rank!=4 !");
@@ -3800,14 +3799,14 @@ namespace sd {
         NDArray::preparePrimaryUse({}, {this});
         NDArray::registerPrimaryUse({}, {this});
 
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), return templatedGet<, T>(buffer(), xOffset), SD_COMMON_TYPES);
 
         return static_cast<T>(119);
     }
-    BUILD_SINGLE_UNCHAINED_TEMPLATE(template ND4J_EXPORT , NDArray::e(const Nd4jLong, const Nd4jLong, const Nd4jLong, const Nd4jLong) const, COMMON_TYPES_LIST);
+    BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT , NDArray::e(const sd::LongType, const sd::LongType, const sd::LongType, const sd::LongType) const, SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::e(const Nd4jLong i) const {
+    NDArray NDArray::e(const sd::LongType i) const {
 
         const auto offset = getOffset(i);
 
@@ -4010,7 +4009,7 @@ namespace sd {
         if (!target.isB())
             throw std::invalid_argument("NDArray::applyScalarArr bool method: target has not bool type!");
         if (dataType() != scalar.dataType()) {
-            nd4j_printf("NDArray::applyScalarArr BoolOps: this dtype: [%i]; scalar dtype: [%i]\n", this->dataType(), scalar.dataType());
+            sd_printf("NDArray::applyScalarArr BoolOps: this dtype: [%i]; scalar dtype: [%i]\n", this->dataType(), scalar.dataType());
             throw std::invalid_argument("NDArray::applyScalarArr bool method: this and scalar arrays must have the same type!");
         }
 
@@ -4027,7 +4026,7 @@ namespace sd {
         if (target.dataType() != this->dataType())
             throw std::invalid_argument("NDArray::applyScalarArr int method: target has not bool type!");
         if (dataType() != scalar.dataType()) {
-            nd4j_printf("NDArray::applyScalarArr IntOps: this dtype: [%i]; scalar dtype: [%i]\n", this->dataType(), scalar.dataType());
+            sd_printf("NDArray::applyScalarArr IntOps: this dtype: [%i]; scalar dtype: [%i]\n", this->dataType(), scalar.dataType());
             throw std::invalid_argument("NDArray::applyScalarArr int method: this and scalar arrays must have the same type!");
         }
 
@@ -4044,17 +4043,17 @@ namespace sd {
         applyScalarArr(op, scalarArr, target, extraParams);
     }
 
-    template <> ND4J_EXPORT void NDArray::applyScalar(sd::scalar::IntOps op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) const { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
-    template ND4J_EXPORT void NDArray::applyScalar<double>(sd::scalar::IntOps op, const double scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<float>(sd::scalar::IntOps op, const float scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<float16>(sd::scalar::IntOps op, const float16 scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<bfloat16>(sd::scalar::IntOps op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<Nd4jLong>(sd::scalar::IntOps op, const Nd4jLong scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int>(sd::scalar::IntOps op, const int scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int16_t>(sd::scalar::IntOps op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int8_t>(sd::scalar::IntOps op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<uint8_t>(sd::scalar::IntOps op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<bool>(sd::scalar::IntOps op, const bool scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template <> SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::IntOps op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) const { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
+    template SD_LIB_EXPORT void NDArray::applyScalar<double>(sd::scalar::IntOps op, const double scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<float>(sd::scalar::IntOps op, const float scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<float16>(sd::scalar::IntOps op, const float16 scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<bfloat16>(sd::scalar::IntOps op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<sd::LongType>(sd::scalar::IntOps op, const sd::LongType scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int>(sd::scalar::IntOps op, const int scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int16_t>(sd::scalar::IntOps op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int8_t>(sd::scalar::IntOps op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<uint8_t>(sd::scalar::IntOps op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<bool>(sd::scalar::IntOps op, const bool scalar, NDArray &target, ExtraArguments *extraParams) const;
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
@@ -4063,17 +4062,17 @@ namespace sd {
         auto scalarArr = NDArrayFactory::create<T>(dataType(), scalar, this->getContext());
         applyScalarArr(op, scalarArr, target, extraParams);
     }
-    template <> ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const double scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const float scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const float16 scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const Nd4jLong scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams);
-    template ND4J_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const bool scalar, NDArray &target, ExtraArguments *extraParams);
+    template <> SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const double scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const float scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const float16 scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const sd::LongType scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams);
+    template SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::Ops op, const bool scalar, NDArray &target, ExtraArguments *extraParams);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
@@ -4083,17 +4082,17 @@ namespace sd {
         applyScalarArr(op, scalarArr, target, extraParams);
     }
 
-    template <> ND4J_EXPORT void NDArray::applyScalar(sd::scalar::BoolOps op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) const { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
-    template ND4J_EXPORT void NDArray::applyScalar<double>(sd::scalar::BoolOps op, const double scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<float>(sd::scalar::BoolOps op, const float scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<float16>(sd::scalar::BoolOps op, const float16 scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<bfloat16>(sd::scalar::BoolOps op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<Nd4jLong>(sd::scalar::BoolOps op, const Nd4jLong scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int>(sd::scalar::BoolOps op, const int scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int16_t>(sd::scalar::BoolOps op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<int8_t>(sd::scalar::BoolOps op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<uint8_t>(sd::scalar::BoolOps op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
-    template ND4J_EXPORT void NDArray::applyScalar<bool>(sd::scalar::BoolOps op, const bool scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template <> SD_LIB_EXPORT void NDArray::applyScalar(sd::scalar::BoolOps op, const NDArray& scalar, NDArray &target, ExtraArguments *extraParams) const { throw std::runtime_error("NDArray::applyScalar<NDArray*> method: do not use me!");}
+    template SD_LIB_EXPORT void NDArray::applyScalar<double>(sd::scalar::BoolOps op, const double scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<float>(sd::scalar::BoolOps op, const float scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<float16>(sd::scalar::BoolOps op, const float16 scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<bfloat16>(sd::scalar::BoolOps op, const bfloat16 scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<sd::LongType>(sd::scalar::BoolOps op, const sd::LongType scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int>(sd::scalar::BoolOps op, const int scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int16_t>(sd::scalar::BoolOps op, const int16_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<int8_t>(sd::scalar::BoolOps op, const int8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<uint8_t>(sd::scalar::BoolOps op, const uint8_t scalar, NDArray &target, ExtraArguments *extraParams) const;
+    template SD_LIB_EXPORT void NDArray::applyScalar<bool>(sd::scalar::BoolOps op, const bool scalar, NDArray &target, ExtraArguments *extraParams) const;
 
 ////////////////////////////////////////////////////////////////////////
     void NDArray::applyIndexReduce(sd::indexreduce::Ops op, NDArray& target, const std::vector<int>& dimensions, const ExtraArguments *extraParams) const {
@@ -4264,13 +4263,13 @@ namespace sd {
             NativeOpExecutioner::execReduceFloatScalar(getContext(), op, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(),nullptr, target.buffer(), target.shapeInfo(), target.specialBuffer(), target.specialShapeInfo());
         }
         else {
-            const Nd4jLong* zShapeInfoH = target.shapeInfo();
-            const Nd4jLong* zShapeInfoD = target.specialShapeInfo();
+            const sd::LongType* zShapeInfoH = target.shapeInfo();
+            const sd::LongType* zShapeInfoD = target.specialShapeInfo();
 
             if(rankOf() - dimensions.size() != target.rankOf()) {
                 auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(target.shapeInfo(), copy, target.getContext()->getWorkspace());
-                zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
             }
 
             std::vector<int> dims = ShapeUtils::evalDimsForReduceOp(rankOf(), copy);
@@ -4306,13 +4305,13 @@ namespace sd {
         }
         else {
 
-            const Nd4jLong* zShapeInfoH = target.shapeInfo();
-            const Nd4jLong* zShapeInfoD = target.specialShapeInfo();
+            const sd::LongType* zShapeInfoH = target.shapeInfo();
+            const sd::LongType* zShapeInfoD = target.specialShapeInfo();
 
             if(rankOf() - dimensions.size() != target.rankOf()) {
                 auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(target.shapeInfo(), copy, target.getContext()->getWorkspace());
-                zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
             }
 
             std::vector<int> dims = ShapeUtils::evalDimsForReduceOp(rankOf(), copy);
@@ -4346,13 +4345,13 @@ namespace sd {
             NativeOpExecutioner::execReduceLongScalar(getContext(), op, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), nullptr, target.buffer(), target.shapeInfo(), target.specialBuffer(), target.specialShapeInfo());
         }
         else {
-            const Nd4jLong* zShapeInfoH = target.shapeInfo();
-            const Nd4jLong* zShapeInfoD = target.specialShapeInfo();
+            const sd::LongType* zShapeInfoH = target.shapeInfo();
+            const sd::LongType* zShapeInfoD = target.specialShapeInfo();
 
             if(rankOf() - dimensions.size() != target.rankOf()) {
                 auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(target.shapeInfo(), copy, target.getContext()->getWorkspace());
-                zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
             }
 
             std::vector<int> dims = ShapeUtils::evalDimsForReduceOp(rankOf(), copy);
@@ -4386,13 +4385,13 @@ namespace sd {
             NativeOpExecutioner::execReduceBoolScalar(getContext(), op, buffer(), shapeInfo(), specialBuffer(), specialShapeInfo(), nullptr, target.buffer(), target.shapeInfo(), target.specialBuffer(), target.specialShapeInfo());
         }
         else {
-            const Nd4jLong* zShapeInfoH = target.shapeInfo();
-            const Nd4jLong* zShapeInfoD = target.specialShapeInfo();
+            const sd::LongType* zShapeInfoH = target.shapeInfo();
+            const sd::LongType* zShapeInfoD = target.specialShapeInfo();
 
             if(rankOf() - dimensions.size() != target.rankOf()) {
                 auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(target.shapeInfo(), copy, target.getContext()->getWorkspace());
-                zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
             }
 
             std::vector<int> dims = ShapeUtils::evalDimsForReduceOp(rankOf(), copy);
@@ -4406,7 +4405,7 @@ namespace sd {
 //////////////////////////////////////////////////////////////////////////
 // This method sets value in linear buffer to position i
     template <typename T>
-    void NDArray::p(const Nd4jLong i, const T value) {
+    void NDArray::p(const sd::LongType i, const T value) {
 
         if (i >= lengthOf())
             throw std::invalid_argument("NDArray::p(i, value): input index is out of array length !");
@@ -4415,28 +4414,28 @@ namespace sd {
         const void *pV = reinterpret_cast<const void*>(const_cast<T *>(&value));
 
         NDArray::preparePrimaryUse({this}, {}, true);
-        BUILD_SINGLE_PARTIAL_SELECTOR(this->dataType(), templatedSet<, T>(this->buffer(), rp, pV), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(this->dataType(), templatedSet<, T>(this->buffer(), rp, pV), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {});
     }
 
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const double value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const float value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const float16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const bfloat16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const int value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const int8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const uint8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const uint16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const uint32_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const uint64_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const int16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const bool value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const double value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const float value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const float16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const int value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const int8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const uint8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const uint16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const uint32_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const uint64_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const int16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const bool value);
 
 //////////////////////////////////////////////////////////////////////////
 // This method sets value in 2D matrix to position i, j
     template <typename T>
-    void NDArray::p(const Nd4jLong i, const Nd4jLong j, const T value) {
+    void NDArray::p(const sd::LongType i, const sd::LongType j, const T value) {
 
         if (rankOf() != 2 || i >= shapeOf()[0] || j >= shapeOf()[1])
             throw std::invalid_argument("NDArray:pe(i,j, value): one of input indexes is out of array length or rank!=2 !");
@@ -4445,27 +4444,27 @@ namespace sd {
         auto xOffset = i * strideAt(0) + j * strideAt(1);
 
         NDArray::preparePrimaryUse({this}, {}, true);
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {});
     }
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const double value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const float value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const float16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const bfloat16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const int value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const int8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const uint8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const uint16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const uint32_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const uint64_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const int16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const bool value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const double value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const float value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const float16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const int value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const int8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const uint8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const uint16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const uint32_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const uint64_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const int16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const bool value);
 
 //////////////////////////////////////////////////////////////////////////
 // This method sets value in 3D matrix to position i,j,k
     template <typename T>
-    void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const T value) {
+    void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const T value) {
         //(*this)(i,j,k) = value;
         if (rankOf() != 3 || i >= shapeOf()[0] || j >= shapeOf()[1] || k >= shapeOf()[2])
             throw std::invalid_argument("NDArray:pe(i,j,k, value): one of input indexes is out of array length or rank!=3 !");
@@ -4474,26 +4473,26 @@ namespace sd {
         auto xOffset = i * strideAt(0) + j * strideAt(1) + k * strideAt(2);
 
         NDArray::preparePrimaryUse({this}, {}, true);
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {});
     }
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const double value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const float value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const float16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const bfloat16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const int value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const int8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const uint8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const uint16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const uint32_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const uint64_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const int16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const bool value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const double value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const float value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const float16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const int value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const int8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const uint8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const uint16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const uint32_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const uint64_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const int16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const bool value);
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T>
-    void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const T value) {
+    void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const T value) {
         //(*this)(i,j,k) = value;
         if (rankOf() != 4 || i >= shapeOf()[0] || j >= shapeOf()[1] || k >= shapeOf()[2] || l >= shapeOf()[3])
             throw std::invalid_argument("NDArray::p(i,j,k,l, value): one of input indexes is out of array length or rank!=4 !");
@@ -4502,25 +4501,25 @@ namespace sd {
         auto xOffset = i * strideAt(0) + j * strideAt(1) + k * strideAt(2) + l * strideAt(3);
 
         NDArray::preparePrimaryUse({this}, {}, true);
-        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), LIBND4J_TYPES);
+        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {});
     }
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const double value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const float value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const float16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const bfloat16 value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const Nd4jLong value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const int value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const int8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const uint8_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const uint16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const uint32_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const uint64_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const int16_t value);
-    template ND4J_EXPORT void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const bool value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const double value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const float value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const float16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const bfloat16 value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const sd::LongType value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const int value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const int8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const uint8_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const uint16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const uint32_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const uint64_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const int16_t value);
+    template SD_LIB_EXPORT void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const bool value);
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::p(const Nd4jLong i, const NDArray& scalar) {
+    void NDArray::p(const sd::LongType i, const NDArray& scalar) {
 
         if(scalar.lengthOf() != 1)
             throw std::invalid_argument("NDArray::p method: input array must be scalar!");
@@ -4529,12 +4528,12 @@ namespace sd {
 
         NDArray::preparePrimaryUse({this}, {&scalar}, true);
         auto rp = getOffset(i);
-        BUILD_SINGLE_SELECTOR(scalar.dataType(), templatedSet, (buffer(), rp, scalar.dataType(), scalar.buffer()), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(scalar.dataType(), templatedSet, (buffer(), rp, scalar.dataType(), scalar.buffer()), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {&scalar});
     }
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::p(const Nd4jLong i, const Nd4jLong j, const Nd4jLong k, const Nd4jLong l, const NDArray& scalar) {
+    void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k, const sd::LongType l, const NDArray& scalar) {
 
         if(scalar.lengthOf() != 1)
             throw std::invalid_argument("NDArray::p method: input array must be scalar!");
@@ -4542,12 +4541,12 @@ namespace sd {
             throw std::invalid_argument("NDArray::p(i, NDArray_scalar): input index is out of array length !");
 
 //        void *p = reinterpret_cast<void *>(scalar.buffer());
-        Nd4jLong coords[4] = {i, j, k, l};
+        sd::LongType coords[4] = {i, j, k, l};
         auto xOffset = shape::getOffset(shapeInfo(), coords);
 
         NDArray::preparePrimaryUse({this}, {&scalar}, true);
-//        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), LIBND4J_TYPES);
-        BUILD_SINGLE_SELECTOR(scalar.dataType(), templatedSet, (this->buffer(), xOffset, scalar.dataType(), scalar.buffer()), LIBND4J_TYPES);
+//        BUILD_SINGLE_PARTIAL_SELECTOR(dataType(), templatedSet<, T>(this->buffer(), xOffset, p), SD_COMMON_TYPES);
+        BUILD_SINGLE_SELECTOR(scalar.dataType(), templatedSet, (this->buffer(), xOffset, scalar.dataType(), scalar.buffer()), SD_COMMON_TYPES);
         NDArray::registerPrimaryUse({this}, {&scalar});
     }
 
@@ -4702,11 +4701,11 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
     template <typename T>
-    void NDArray::templatedAssign(void *xBuffer, Nd4jLong xOffset, const void *yBuffer, const Nd4jLong yOffset) const {
+    void NDArray::templatedAssign(void *xBuffer, sd::LongType xOffset, const void *yBuffer, const sd::LongType yOffset) const {
         if (xBuffer != nullptr && yBuffer != nullptr)
             *(reinterpret_cast<T*>(xBuffer) + xOffset) = *(reinterpret_cast<const T*>(yBuffer) + yOffset);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void NDArray::templatedAssign, (void *xBuffer, const Nd4jLong xOffset, const void *yBuffer, const Nd4jLong yOffset) const, LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void NDArray::templatedAssign, (void *xBuffer, const sd::LongType xOffset, const void *yBuffer, const sd::LongType yOffset) const, SD_COMMON_TYPES);
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -4719,7 +4718,7 @@ namespace sd {
     }
 
 //////////////////////////////////////////////////////////////////////////
-    bool NDArray::permutei(const Nd4jLong* dimensions, const int rank) {
+    bool NDArray::permutei(const sd::LongType* dimensions, const int rank) {
 
         auto shapeInfo = ShapeUtils::evalPermShapeInfo(dimensions, rank, *this, getContext()->getWorkspace());
         setShapeInfo(shapeInfo);
@@ -4741,7 +4740,7 @@ namespace sd {
 
         for (auto idx: indices) {
             if (idx >= numTads) {
-                nd4j_printf("NDArray::multipleTensorsAlongDimension: index %i is higher then number of TADs: %i\n", idx, numTads);
+                sd_printf("NDArray::multipleTensorsAlongDimension: index %i is higher then number of TADs: %i\n", idx, numTads);
                 throw std::runtime_error("Bad index");
             }
 
@@ -4767,7 +4766,7 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    Nd4jLong NDArray::getOffset(const Nd4jLong i) const {
+    sd::LongType NDArray::getOffset(const sd::LongType i) const {
 
         if (i >= lengthOf())
             throw std::invalid_argument("NDArray::getOffset: input index is out of array length !");
@@ -4795,8 +4794,8 @@ namespace sd {
 
         const char order = ordering();
         const int  rank  = rankOf();
-        Nd4jLong *outShapeInfo;
-        ALLOCATE(outShapeInfo, getContext()->getWorkspace(), 8, Nd4jLong);
+        sd::LongType *outShapeInfo;
+        ALLOCATE(outShapeInfo, getContext()->getWorkspace(), 8, sd::LongType);
         outShapeInfo[0] = 2;
         outShapeInfo[5] = 0;
 
@@ -4809,7 +4808,7 @@ namespace sd {
         else {
 
             int diagSize  = 100000000;
-            Nd4jLong indices[MAX_RANK];
+            sd::LongType indices[SD_MAX_RANK];
 
             for(int i = 0; i < rank; ++i) {
                 if(diagSize > shapeOf()[i])
@@ -4854,13 +4853,13 @@ namespace sd {
             auto array = new NDArray(_buffer, this->shapeInfo(), getContext(),bufferOffset());
             array->_isView = true;
             result.push_back(array);
-            nd4j_debug("NDArray::allTensorsAlongDimension: Dimensions were equal %d with this rank of %d\n",dimensions.back(),rankOf());
+            sd_debug("NDArray::allTensorsAlongDimension: Dimensions were equal %d with this rank of %d\n",dimensions.back(),rankOf());
             return result;
         }
 
 
         if(dimensions.back() >= rankOf()) {
-            nd4j_debug("Dimensions failure %d and rank %d\n",dimensions.back(),rankOf());
+            sd_debug("Dimensions failure %d and rank %d\n",dimensions.back(),rankOf());
             throw std::runtime_error(
                     "NDArray::allTensorsAlongDimension static function: all input dimensions must be smaller than rank of input array !");
         }
@@ -4868,7 +4867,7 @@ namespace sd {
         auto pack = ConstantTadHelper::getInstance().tadForDimensions(_shapeInfo, const_cast<int*>(dimensions.data()), dimensions.size());
         auto numTads = pack.numberOfTads();
 
-        for (Nd4jLong idx = 0; idx < numTads; idx++ ) {
+        for (sd::LongType idx = 0; idx < numTads; idx++ ) {
             auto array = new NDArray(_buffer, ShapeDescriptor(pack.primaryShapeInfo()), getContext(), pack.primaryOffsets()[idx] + bufferOffset());
             array->_isView = true;
             result.push_back(array);
@@ -4879,24 +4878,24 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
 // operator returns sub-array with buffer pointing at this->_buffer + certain offset
-    NDArray NDArray::operator()(const std::vector<Nd4jLong>& idx, const bool keepUnitiesInShape, const bool isStrided)  const {
+    NDArray NDArray::operator()(const std::vector<sd::LongType>& idx, const bool keepUnitiesInShape, const bool isStrided)  const {
 
         if(isEmpty())
             throw std::invalid_argument("NDArray::operator(sub-arrays): array is empty !");
 
-        // Nd4jLong *outShapeInfo = nullptr;
-        //     ALLOCATE(outShapeInfo, workspace, shape::shapeInfoLength(inShapeInfo), Nd4jLong);
+        // sd::LongType *outShapeInfo = nullptr;
+        //     ALLOCATE(outShapeInfo, workspace, shape::shapeInfoLength(inShapeInfo), sd::LongType);
 
         int numOfUntiesInSubArrShape = 0;
 
-        Nd4jLong* subArrShapeInfo = nullptr;
+        sd::LongType* subArrShapeInfo = nullptr;
 
         if(!keepUnitiesInShape) {
 
             int n(isStrided ? 3 : 2), first, last;
 
             // calculate the number of unities in shape
-            for (uint d = 0; d < rankOf(); ++d) {
+            for (sd::Unsigned d = 0; d < rankOf(); ++d) {
 
                 if (idx[n * d] != idx[n * d + 1]) {
 
@@ -4908,9 +4907,9 @@ namespace sd {
             }
         }
 
-        ALLOCATE(subArrShapeInfo, getContext()->getWorkspace(), shape::shapeInfoLength(rankOf() - numOfUntiesInSubArrShape), Nd4jLong);
+        ALLOCATE(subArrShapeInfo, getContext()->getWorkspace(), shape::shapeInfoLength(rankOf() - numOfUntiesInSubArrShape), sd::LongType);
 
-        Nd4jLong offset;
+        sd::LongType offset;
 
         shape::calcSubArrShapeInfoAndOffset(idx.data(), shapeInfo(), subArrShapeInfo, offset, keepUnitiesInShape, isStrided, numOfUntiesInSubArrShape);
 
@@ -4923,23 +4922,23 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    NDArray NDArray::operator()(const Nd4jLong subArrIdx, const std::vector<int>& dimsToExclude, bool keepUnitiesInShape)  const {
+    NDArray NDArray::operator()(const sd::LongType subArrIdx, const std::vector<int>& dimsToExclude, bool keepUnitiesInShape)  const {
 
-        std::vector<Nd4jLong> idxRanges(2 * rankOf());
+        std::vector<sd::LongType> idxRanges(2 * rankOf());
 
         const auto rank = rankOf();
         const auto subArrRank = static_cast<int>(dimsToExclude.size());
 
         if(subArrRank > rank)
-            throw std::invalid_argument("NDArray::operator(const Nd4jLong subArrIdx, const std::vector<int>& dimsToExclude, bool keepUnitiesInShape): static method: dimsToExclude is empty or has size > rank of array !");
+            throw std::invalid_argument("NDArray::operator(const sd::LongType subArrIdx, const std::vector<int>& dimsToExclude, bool keepUnitiesInShape): static method: dimsToExclude is empty or has size > rank of array !");
 
-        memset(idxRanges.data(), 0, 2 * rank * sizeof(Nd4jLong));
+        memset(idxRanges.data(), 0, 2 * rank * sizeof(sd::LongType));
 
         // subArrRank == 0 means whole array, idxRanges should contain zeros only
 
         if(subArrRank != 0) {
 
-            std::vector<Nd4jLong> shapeOfSubArr(subArrRank), indexes(subArrRank);
+            std::vector<sd::LongType> shapeOfSubArr(subArrRank), indexes(subArrRank);
             for(int i = 0; i < subArrRank; ++i)
                 shapeOfSubArr[i] = sizeAt(dimsToExclude[i]);
 
@@ -4956,24 +4955,24 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::getSubArrShapeAndOffsets(const std::vector<int>& dimsToExclude, Nd4jLong* &subArrShapeInfo, Nd4jLong* &subArrOffsets, bool keepUnitiesInShape) const {
+    void NDArray::getSubArrShapeAndOffsets(const std::vector<int>& dimsToExclude, sd::LongType* &subArrShapeInfo, sd::LongType* &subArrOffsets, bool keepUnitiesInShape) const {
 
         if(isEmpty())
             throw std::invalid_argument("NDArray::getSubArrShapeAndOffsets: array is empty !");
 
         const int rank = rankOf();
         const int subArrRank = (rank == dimsToExclude.size() || keepUnitiesInShape) ? rank : rank - dimsToExclude.size();
-        const Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(_shapeInfo, dimsToExclude);
+        const sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(_shapeInfo, dimsToExclude);
 
         // allocate memory
-        ALLOCATE(subArrShapeInfo, getContext()->getWorkspace(), shape::shapeInfoLength(subArrRank), Nd4jLong);
-        ALLOCATE(subArrOffsets,   getContext()->getWorkspace(), numOfSubArrs, Nd4jLong);
+        ALLOCATE(subArrShapeInfo, getContext()->getWorkspace(), shape::shapeInfoLength(subArrRank), sd::LongType);
+        ALLOCATE(subArrOffsets,   getContext()->getWorkspace(), numOfSubArrs, sd::LongType);
 
         shape::calcSubArrsShapeInfoAndOffsets(_shapeInfo, numOfSubArrs, dimsToExclude.size(), dimsToExclude.data(), subArrShapeInfo, subArrOffsets, keepUnitiesInShape);
     }
 
 //////////////////////////////////////////////////////////////////////////
-    void NDArray::setShapeInfo(const Nd4jLong *shapeInfo) {
+    void NDArray::setShapeInfo(const sd::LongType *shapeInfo) {
 
         if (shapeInfo != nullptr) {
 
@@ -4999,11 +4998,11 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////
-    void NDArray::setShapeInfo(const Nd4jLong *shapeInfo, const sd::DataType dtype) {
+    void NDArray::setShapeInfo(const sd::LongType *shapeInfo, const sd::DataType dtype) {
 
         if (shapeInfo != nullptr) {
 
-            Nd4jLong* shapeInfoTemp = ShapeBuilders::copyShapeInfoAndType(shapeInfo, dtype, true, getContext()->getWorkspace());
+            sd::LongType* shapeInfoTemp = ShapeBuilders::copyShapeInfoAndType(shapeInfo, dtype, true, getContext()->getWorkspace());
             ShapeDescriptor descriptor(shapeInfoTemp);
             auto shapeBuffer = ConstantShapeHelper::getInstance().bufferForShapeInfo(descriptor);
 
@@ -5080,11 +5079,11 @@ namespace sd {
 
         return std::move(arr);
     }
-    template ND4J_EXPORT NDArray operator+(NDArray&& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator+(NDArray&& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator+(NDArray&& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator+(NDArray&& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator+(NDArray&& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator+(NDArray&& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator+(NDArray&& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator+(NDArray&& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator+(NDArray&& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator+(NDArray&& arr, const int& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5102,22 +5101,22 @@ namespace sd {
 
         return result;
     }
-    template ND4J_EXPORT NDArray operator+(const NDArray& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator+(const NDArray& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator+(const NDArray& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator+(const NDArray& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator+(const NDArray& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator+(const NDArray& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator+(const NDArray& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator+(const NDArray& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator+(const NDArray& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator+(const NDArray& arr, const int& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
     NDArray operator+(const T& scalar, NDArray&& arr) {
         return  std::move(arr) + scalar;
     }
-    template ND4J_EXPORT NDArray operator+(const double& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator+(const float& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator+(const float16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator+(const bfloat16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator+(const int& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator+(const double& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator+(const float& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator+(const float16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator+(const bfloat16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator+(const int& scalar, NDArray&& arr);
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -5125,9 +5124,9 @@ namespace sd {
     NDArray operator+(const T& scalar, const NDArray& arr) {
         return arr + scalar;
     }
-    template ND4J_EXPORT NDArray operator+(const double& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator+(const float& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator+(const int& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator+(const double& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator+(const float& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator+(const int& scalar, const NDArray& arr);
 
 ///////////////////////////////////////////////////////////////////////
 // addition operator array - scalar
@@ -5150,8 +5149,8 @@ namespace sd {
 
         return std::move(arr);
     }
-    template ND4J_EXPORT NDArray operator-(NDArray&& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator-(NDArray&& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator-(NDArray&& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator-(NDArray&& arr, const float& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5169,11 +5168,11 @@ namespace sd {
 
         return result;
     }
-    template ND4J_EXPORT NDArray operator-(const NDArray& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator-(const NDArray& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator-(const NDArray& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator-(const NDArray& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator-(const NDArray& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator-(const NDArray& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator-(const NDArray& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator-(const NDArray& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator-(const NDArray& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator-(const NDArray& arr, const int& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5194,11 +5193,11 @@ namespace sd {
         return std::move(arr);
 
     }
-    template ND4J_EXPORT NDArray operator-(const double& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator-(const float& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator-(const float16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator-(const bfloat16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator-(const int& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator-(const double& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator-(const float& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator-(const float16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator-(const bfloat16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator-(const int& scalar, NDArray&& arr);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5216,9 +5215,9 @@ namespace sd {
 
         return result;
     }
-    template ND4J_EXPORT NDArray operator-(const double& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator-(const float& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator-(const int& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator-(const double& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator-(const float& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator-(const int& scalar, const NDArray& arr);
 
 ///////////////////////////////////////////////////////////////////////
 // addition operator array + scalar
@@ -5241,12 +5240,12 @@ namespace sd {
 
         return std::move(arr);
     }
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const int& scalar);
-    template ND4J_EXPORT NDArray operator*(NDArray&& arr, const long long& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator*(NDArray&& arr, const long long& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5265,24 +5264,24 @@ namespace sd {
         return result;
     }
 
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const int& scalar);
-    template ND4J_EXPORT NDArray operator*(const NDArray& arr, const long long& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator*(const NDArray& arr, const long long& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
     NDArray operator*(const T& scalar, NDArray&& arr) {
         return  std::move(arr) * scalar;
     }
-    template ND4J_EXPORT NDArray operator*(const double& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator*(const float& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator*(const float16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator*(const bfloat16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator*(const int& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator*(const long long& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const double& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const float& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const float16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const bfloat16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const int& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator*(const long long& scalar, NDArray&& arr);
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -5290,12 +5289,12 @@ namespace sd {
     NDArray operator*(const T& scalar, const NDArray& arr) {
         return arr * scalar;
     }
-    template ND4J_EXPORT NDArray operator*(const double& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator*(const float& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator*(const float16& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator*(const bfloat16& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator*(const int& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator*(const long long& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const double& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const float& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const float16& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const bfloat16& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const int& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator*(const long long& scalar, const NDArray& arr);
 
 ///////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5317,11 +5316,11 @@ namespace sd {
 
         return std::move(arr);
     }
-    template ND4J_EXPORT NDArray operator/(NDArray&& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator/(NDArray&& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator/(NDArray&& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator/(NDArray&& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator/(NDArray&& arr, const long long& scalar);
+    template SD_LIB_EXPORT NDArray operator/(NDArray&& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator/(NDArray&& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator/(NDArray&& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator/(NDArray&& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator/(NDArray&& arr, const long long& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5339,12 +5338,12 @@ namespace sd {
 
         return result;
     }
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const double& scalar);
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const float& scalar);
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const float16& scalar);
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const bfloat16& scalar);
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const int& scalar);
-    template ND4J_EXPORT NDArray operator/(const NDArray& arr, const long long& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const double& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const float& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const float16& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const bfloat16& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const int& scalar);
+    template SD_LIB_EXPORT NDArray operator/(const NDArray& arr, const long long& scalar);
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T, typename>
@@ -5365,11 +5364,11 @@ namespace sd {
         return std::move(arr);
 
     }
-    template ND4J_EXPORT NDArray operator/(const double& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator/(const float& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator/(const float16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator/(const bfloat16& scalar, NDArray&& arr);
-    template ND4J_EXPORT NDArray operator/(const int& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator/(const double& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator/(const float& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator/(const float16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator/(const bfloat16& scalar, NDArray&& arr);
+    template SD_LIB_EXPORT NDArray operator/(const int& scalar, NDArray&& arr);
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -5388,9 +5387,9 @@ namespace sd {
 
         return result;
     }
-    template ND4J_EXPORT NDArray operator/(const double& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator/(const float& scalar, const NDArray& arr);
-    template ND4J_EXPORT NDArray operator/(const int& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator/(const double& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator/(const float& scalar, const NDArray& arr);
+    template SD_LIB_EXPORT NDArray operator/(const int& scalar, const NDArray& arr);
 
 ////////////////////////////////////////////////////////////////////////
 // addition operator array + array
@@ -5432,15 +5431,15 @@ namespace sd {
 
         return std::forward<T1>(arr1).applyTrueBroadcast(sd::BroadcastOpsTuple::Add(), std::forward<T2>(arr2));
     }
-    template ND4J_EXPORT NDArray operator+<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator+<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator+<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator+<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator+<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator+<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
 
 ////////////////////////////////////////////////////////////////////////
 // addition operator array - array
@@ -5482,15 +5481,15 @@ namespace sd {
 
         return std::forward<T1>(arr1).applyTrueBroadcast(sd::BroadcastOpsTuple::Subtract(), std::forward<T2>(arr2));
     }
-    template ND4J_EXPORT NDArray operator-<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator-<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator-<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator-<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator-<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator-<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
 
 ////////////////////////////////////////////////////////////////////////
 // multiplication operator array*array
@@ -5532,15 +5531,15 @@ namespace sd {
 
         return std::forward<T1>(arr1).applyTrueBroadcast(sd::BroadcastOpsTuple::Multiply(), std::forward<T2>(arr2));
     }
-    template ND4J_EXPORT NDArray operator*<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator*<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator*<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator*<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator*<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator*<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
 
 ////////////////////////////////////////////////////////////////////////
 // multiplication operator array*array
@@ -5582,15 +5581,15 @@ namespace sd {
 
         return std::forward<T1>(arr1).applyTrueBroadcast(sd::BroadcastOpsTuple::Divide(), std::forward<T2>(arr2));
     }
-    template ND4J_EXPORT NDArray operator/<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator/<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
-    template ND4J_EXPORT NDArray operator/<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
-    template ND4J_EXPORT NDArray operator/<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray&, NDArray&, void>(NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray&, NDArray, void>(NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray,  NDArray&, void>(NDArray&& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray&, const NDArray&, void>(NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<const NDArray&, NDArray&, void>(const NDArray& arr1, NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<const NDArray&, NDArray, void>(const NDArray& arr1, NDArray&& arr2);
+    template SD_LIB_EXPORT NDArray operator/<const NDArray&, const NDArray&, void>(const NDArray& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray, const NDArray&, void>(NDArray&& arr1, const NDArray& arr2);
+    template SD_LIB_EXPORT NDArray operator/<NDArray, NDArray, void>(NDArray&& arr1, NDArray&& arr2);
 
 
 /*
@@ -5601,16 +5600,6 @@ namespace sd {
 }
 
 #endif
-
-
-
-
-
-
-
-
-
-
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -5633,7 +5622,7 @@ namespace sd {
 //                 for(int i=0; i<rows(); ++i)
 //                     dot += e<double>(i,j)*e<double>(i,k);
 
-//                 if(sd::math::nd4j_abs(dot) > eps )
+//                 if(sd::math::sd_abs(dot) > eps )
 //                     return false;
 
 //                 dot = 0.f;
@@ -5642,7 +5631,7 @@ namespace sd {
 //             for(int j=0; j<columns(); ++j)  {   // check whether norm of column vector = 1
 //                 for(int i=0; i<rows(); ++i)
 //                     dot += e<double>(i,j)*e<double>(i,j);
-//             if(dot != 0.f && sd::math::nd4j_abs(sd::math::nd4j_sqrt<double, double>(dot) - 1.f) > eps)
+//             if(dot != 0.f && sd::math::sd_abs(sd::math::sd_sqrt<double, double>(dot) - 1.f) > eps)
 //                 return false;
 
 //             dot = 0.f;
@@ -5654,7 +5643,7 @@ namespace sd {
 //                 for(int j=0; j<columns(); ++j)
 //                     dot += e<double>(i,j)*e<double>(k,j);
 
-//                 if(sd::math::nd4j_abs(dot) > eps )
+//                 if(sd::math::sd_abs(dot) > eps )
 //                     return false;
 
 //                 dot = 0.;
@@ -5664,7 +5653,7 @@ namespace sd {
 //                 for(int j=0; j<columns(); ++j)
 //                     dot += e<double>(i,j)*e<double>(i,j);
 
-//                 if(dot!= 0. && sd::math::nd4j_abs(sd::math::nd4j_sqrt<double, double>(dot) - 1.) > eps)
+//                 if(dot!= 0. && sd::math::sd_abs(sd::math::sd_sqrt<double, double>(dot) - 1.) > eps)
 //                     return false;
 //                 dot = 0.;
 //             }

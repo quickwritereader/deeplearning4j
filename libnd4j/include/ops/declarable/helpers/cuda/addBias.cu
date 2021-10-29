@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include<ops/declarable/helpers/addBias.h>
 #include <helpers/PointersManager.h>
 
@@ -30,9 +29,9 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////
 template<typename X, typename Y>
-__global__ static void addBiasCuda( const void* vx, const Nd4jLong* xShapeInfo,
-                                    const void* vy, const Nd4jLong* yShapeInfo,
-                                          void* vz, const Nd4jLong* zShapeInfo,
+SD_KERNEL static void addBiasCuda( const void* vx, const sd::LongType* xShapeInfo,
+                                    const void* vy, const sd::LongType* yShapeInfo,
+                                          void* vz, const sd::LongType* zShapeInfo,
                                     const bool isNCHW) {
 
     // bias [oC]
@@ -47,13 +46,13 @@ __global__ static void addBiasCuda( const void* vx, const Nd4jLong* xShapeInfo,
           X* z = reinterpret_cast<X*>(vz);
 
     __shared__ int rank, channelPosition, posOfNonUnityDim;
-    __shared__ Nd4jLong len, *sharedMem;
+    __shared__ sd::LongType len, *sharedMem;
     __shared__ bool xzSameOffsets, xzAreSame;
 
     if (threadIdx.x == 0) {
 
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+        sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
         rank = shape::rank(xShapeInfo);     // xRank == zRank
         xzSameOffsets = shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);
@@ -67,7 +66,7 @@ __global__ static void addBiasCuda( const void* vx, const Nd4jLong* xShapeInfo,
 
     auto coords = sharedMem + threadIdx.x * rank;
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < len; i += blockDim.x * gridDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < len; i += blockDim.x * gridDim.x) {
 
         shape::index2coords(i, xShapeInfo, coords);
 
@@ -85,16 +84,16 @@ __global__ static void addBiasCuda( const void* vx, const Nd4jLong* xShapeInfo,
 //////////////////////////////////////////////////////////////////////////
 template<typename X, typename Y>
 static void addBiasCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                         const void* vx, const Nd4jLong* xShapeInfo,
-                                         const void* vy, const Nd4jLong* yShapeInfo,
-                                               void* vz, const Nd4jLong* zShapeInfo,
+                                         const void* vx, const sd::LongType* xShapeInfo,
+                                         const void* vy, const sd::LongType* yShapeInfo,
+                                               void* vz, const sd::LongType* zShapeInfo,
                                          const bool isNCHW) {
 
     addBiasCuda<X,Y><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, isNCHW);
 }
 
 template<typename X, typename Y>
-__global__ static void addBias2DCuda( const void* vx,
+SD_KERNEL static void addBias2DCuda( const void* vx,
                                         const void* vy,
                                         void* vz,
                                         uint32_t blocks, uint32_t length) {
@@ -121,7 +120,7 @@ static void addBias2DCudaLauncher(const cudaStream_t *stream, const void* vx,
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void addBias(sd::graph::Context& block, const NDArray& input, const NDArray& bias, NDArray& output, const bool isNCHW) {
+void addBias(sd::graph::Context& block, const NDArray& input, const NDArray& bias, NDArray& output, const bool isNCHW) {
 
     PointersManager manager(block.launchContext(), "addBias");
     NDArray::prepareSpecialUse({&output}, {&input, &bias});
@@ -129,17 +128,17 @@ ND4J_LOCAL void addBias(sd::graph::Context& block, const NDArray& input, const N
     if (input.rankOf() == 2 && bias.rankOf() == 1 && input.ordering() == 'c' && output.ordering() == 'c' && input.ews() == 1 && bias.ews() == 1 && input.sizeAt(1) == bias.sizeAt(0)) {
         BUILD_DOUBLE_SELECTOR(input.dataType(), bias.dataType(), addBias2DCudaLauncher,
                               (block.launchContext()->getCudaStream(), input.specialBuffer(), bias.specialBuffer(), output.specialBuffer(), input.sizeAt(0), bias.sizeAt(0)),
-                              FLOAT_TYPES, FLOAT_TYPES);
+                              SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     } else {
         // default case
-        const int threadsPerBlock = MAX_NUM_THREADS / 4;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
         const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-        const int sharedMem = input.rankOf() * sizeof(Nd4jLong) * threadsPerBlock + 128;
+        const int sharedMem = input.rankOf() * sizeof(sd::LongType) * threadsPerBlock + 128;
 
 
         BUILD_DOUBLE_SELECTOR(input.dataType(), bias.dataType(), addBiasCudaLauncher,
                               (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), bias.specialBuffer(), bias.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), isNCHW),
-                              FLOAT_TYPES, FLOAT_TYPES);
+                              SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     }
     NDArray::registerSpecialUse({&output}, {&input, &bias});
     manager.synchronize();

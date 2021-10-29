@@ -23,9 +23,9 @@
 #ifndef SD_MEMORYCOUNTER_H
 #define SD_MEMORYCOUNTER_H
 
-#include <system/pointercast.h>
-#include <system/dll.h>
+
 #include <map>
+#include <system/common.h>
 #include <memory/MemoryType.h>
 #include <mutex>
 
@@ -34,23 +34,23 @@ namespace sd {
         /**
          * This class provides simple per-device counter
          */
-        class ND4J_EXPORT MemoryCounter {
+        class SD_LIB_EXPORT MemoryCounter {
         private:
             // used for synchronization
             std::mutex _locker;
 
             // per-device counters
-            std::map<int, Nd4jLong> _deviceCounters;
+            std::map<int, sd::LongType> _deviceCounters;
 
             // TODO: change this wrt heterogenous stuff on next iteration
             // per-group counters
-            std::map<sd::memory::MemoryType, Nd4jLong> _groupCounters;
+            std::map<sd::memory::MemoryType, sd::LongType> _groupCounters;
 
             // per-device limits
-            std::map<int, Nd4jLong> _deviceLimits;
+            std::map<int, sd::LongType> _deviceLimits;
 
             // per-group limits
-            std::map<sd::memory::MemoryType, Nd4jLong> _groupLimits;
+            std::map<sd::memory::MemoryType, sd::LongType> _groupLimits;
 
             MemoryCounter();
             ~MemoryCounter() = default;
@@ -63,7 +63,7 @@ namespace sd {
              * @param numBytes
              * @return TRUE if allocated ammount will keep us below limit, FALSE otherwise
              */
-            bool validate(Nd4jLong numBytes);
+            bool validate(sd::LongType numBytes);
 
             /**
              * This method checks if allocation of numBytes won't break through  per-device limit
@@ -71,7 +71,7 @@ namespace sd {
              * @param numBytes
              * @return TRUE if allocated ammount will keep us below limit, FALSE otherwise
              */
-            bool validateDevice(int deviceId, Nd4jLong numBytes);
+            bool validateDevice(int deviceId, sd::LongType numBytes);
 
             /**
              * This method checks if allocation of numBytes won't break through per-group limit
@@ -79,65 +79,65 @@ namespace sd {
              * @param numBytes
              * @return TRUE if allocated ammount will keep us below limit, FALSE otherwise
              */
-            bool validateGroup(sd::memory::MemoryType group, Nd4jLong numBytes);
+            bool validateGroup(sd::memory::MemoryType group, sd::LongType numBytes);
 
             /**
              * This method adds specified number of bytes to specified counter
              * @param deviceId
              * @param numBytes
              */
-            void countIn(int deviceId, Nd4jLong numBytes);
-            void countIn(sd::memory::MemoryType group, Nd4jLong numBytes);
+            void countIn(int deviceId, sd::LongType numBytes);
+            void countIn(sd::memory::MemoryType group, sd::LongType numBytes);
 
             /**
              * This method subtracts specified number of bytes from specified counter
              * @param deviceId
              * @param numBytes
              */
-            void countOut(int deviceId, Nd4jLong numBytes);
-            void countOut(sd::memory::MemoryType group, Nd4jLong numBytes);
+            void countOut(int deviceId, sd::LongType numBytes);
+            void countOut(sd::memory::MemoryType group, sd::LongType numBytes);
 
             /**
              * This method returns amount of memory allocated on specified device
              * @param deviceId
              * @return
              */
-            Nd4jLong allocatedDevice(int deviceId);
+            sd::LongType allocatedDevice(int deviceId);
 
             /**
              * This method returns amount of memory allocated in specified group of devices
              * @param group
              * @return
              */
-            Nd4jLong allocatedGroup(sd::memory::MemoryType group);
+            sd::LongType allocatedGroup(sd::memory::MemoryType group);
 
             /**
              * This method allows to set per-device memory limits
              * @param deviceId
              * @param numBytes
              */
-            void setDeviceLimit(int deviceId, Nd4jLong numBytes);
+            void setDeviceLimit(int deviceId, sd::LongType numBytes);
 
             /**
              * This method returns current device limit in bytes
              * @param deviceId
              * @return
              */
-            Nd4jLong deviceLimit(int deviceId);
+            sd::LongType deviceLimit(int deviceId);
 
             /**
              * This method allows to set per-group memory limits
              * @param group
              * @param numBytes
              */
-            void setGroupLimit(sd::memory::MemoryType group, Nd4jLong numBytes);
+            void setGroupLimit(sd::memory::MemoryType group, sd::LongType numBytes);
 
             /**
              * This method returns current group limit in bytes
              * @param group
              * @return
              */
-            Nd4jLong groupLimit(sd::memory::MemoryType group);
+            sd::LongType groupLimit(sd::memory::MemoryType group);
         };
     }
 }

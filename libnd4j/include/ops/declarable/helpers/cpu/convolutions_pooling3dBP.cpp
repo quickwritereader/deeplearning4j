@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.09.2018
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <execution/Threads.h>
 
@@ -54,36 +53,36 @@ namespace sd {
             const int oH = gradO.sizeAt(3);
             const int oW = gradO.sizeAt(4);
 
-            nd4j_debug("MKL-DNN is not used for pooling3d_bp!\n", 0);
+            sd_debug("MKL-DNN is not used for pooling3d_bp!\n", 0);
 
-            const Nd4jLong iStride0  = input.stridesOf()[0];
-            const Nd4jLong iStride1  = input.stridesOf()[1];
-            const Nd4jLong iStride2  = input.stridesOf()[2];
-            const Nd4jLong iStride3  = input.stridesOf()[3];
-            const Nd4jLong iStride4  = input.stridesOf()[4];
-            const Nd4jLong gIStride0 = gradI.stridesOf()[0];
-            const Nd4jLong gIStride1 = gradI.stridesOf()[1];
-            const Nd4jLong gIStride2 = gradI.stridesOf()[2];
-            const Nd4jLong gIStride3 = gradI.stridesOf()[3];
-            const Nd4jLong gIStride4 = gradI.stridesOf()[4];
-            const Nd4jLong oStride0 = gradO.stridesOf()[0];
-            const Nd4jLong oStride1 = gradO.stridesOf()[1];
-            const Nd4jLong oStride2 = gradO.stridesOf()[2];
-            const Nd4jLong oStride3 = gradO.stridesOf()[3];
-            const Nd4jLong oStride4 = gradO.stridesOf()[4];
-            const Nd4jLong iStep2   = dD*iStride2;
-            const Nd4jLong iStep3   = dH*iStride3;
-            const Nd4jLong iStep4   = dW*iStride4;
-            const Nd4jLong gIStep2  = dD*gIStride2;
-            const Nd4jLong gIStep3  = dH*gIStride3;
-            const Nd4jLong gIStep4  = dW*gIStride4;
+            const sd::LongType iStride0  = input.stridesOf()[0];
+            const sd::LongType iStride1  = input.stridesOf()[1];
+            const sd::LongType iStride2  = input.stridesOf()[2];
+            const sd::LongType iStride3  = input.stridesOf()[3];
+            const sd::LongType iStride4  = input.stridesOf()[4];
+            const sd::LongType gIStride0 = gradI.stridesOf()[0];
+            const sd::LongType gIStride1 = gradI.stridesOf()[1];
+            const sd::LongType gIStride2 = gradI.stridesOf()[2];
+            const sd::LongType gIStride3 = gradI.stridesOf()[3];
+            const sd::LongType gIStride4 = gradI.stridesOf()[4];
+            const sd::LongType oStride0 = gradO.stridesOf()[0];
+            const sd::LongType oStride1 = gradO.stridesOf()[1];
+            const sd::LongType oStride2 = gradO.stridesOf()[2];
+            const sd::LongType oStride3 = gradO.stridesOf()[3];
+            const sd::LongType oStride4 = gradO.stridesOf()[4];
+            const sd::LongType iStep2   = dD*iStride2;
+            const sd::LongType iStep3   = dH*iStride3;
+            const sd::LongType iStep4   = dW*iStride4;
+            const sd::LongType gIStep2  = dD*gIStride2;
+            const sd::LongType gIStep3  = dH*gIStride3;
+            const sd::LongType gIStep4  = dW*gIStride4;
             const int      kProd    = kD*kH*kW;
 
             const bool sameStrides = iStride0 == gIStride0 && iStride1 == gIStride1 && iStride2 == gIStride2 && iStride3 == gIStride3 && iStride4 == gIStride4;
 
             if(poolingMode == 0) {        // max
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
+                    sd::LongType dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
                     T sum, valO, *pIn, *pgI;
 
                     for (int b = start_x; b < stop_x; b++) {
@@ -130,9 +129,9 @@ namespace sd {
                                             maxKH = hstart;
                                             maxKW = wstart;
 
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += iStep2)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += iStep3)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += iStep4) {
+                                            for (sd::LongType kd = dstart; kd < dend; kd += iStep2)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += iStep3)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += iStep4) {
                                                         T valIn = pIn[kd + kh + kw];
                                                         if (valIn > sum) {
                                                             sum = valIn;
@@ -149,9 +148,9 @@ namespace sd {
                                             maxKW = wstart;
                                             maxKD = dstart;
 
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += dD)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += dH)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += dW) {
+                                            for (sd::LongType kd = dstart; kd < dend; kd += dD)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += dH)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += dW) {
                                                         T valIn = pIn[kd * iStride2 + kh * iStride3 + kw * iStride4];
                                                         if (valIn > sum) {
                                                             sum = valIn;
@@ -175,7 +174,7 @@ namespace sd {
 /*************************************************************************/
             else if(poolingMode == 1) {     // avg
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
+                    sd::LongType dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
                     T sum, valO, *pIn, *pgI;
 
                     for (int b = start_x; b < stop_x; b++) {
@@ -216,13 +215,13 @@ namespace sd {
                                         valO = gO[b * oStride0 + c * oStride1 + od * oStride2 + oh * oStride3 + ow * oStride4];
 
                                         if (extraParam0 == 0)         //Exclude padding
-                                            valO /= sd::math::nd4j_ceil<double, T>(static_cast<double>(dend - dstart) / static_cast<double>(gIStep2)) * sd::math::nd4j_ceil<double, T>(static_cast<double>(hend - hstart) / static_cast<double>(gIStep3)) * sd::math::nd4j_ceil<double, T>(static_cast<double>(wend - wstart) / static_cast<double>(gIStep4));   //Accounts for dilation
+                                            valO /= sd::math::sd_ceil<double, T>(static_cast<double>(dend - dstart) / static_cast<double>(gIStep2)) * sd::math::sd_ceil<double, T>(static_cast<double>(hend - hstart) / static_cast<double>(gIStep3)) * sd::math::sd_ceil<double, T>(static_cast<double>(wend - wstart) / static_cast<double>(gIStep4));   //Accounts for dilation
                                         else if (extraParam0 == 1)    //Include padding
                                             valO /= kProd;
 
-                                        for (Nd4jLong kd = dstart; kd < dend; kd += gIStep2)
-                                            for (Nd4jLong kh = hstart; kh < hend; kh += gIStep3)
-                                                for (Nd4jLong kw = wstart; kw < wend; kw += gIStep4)
+                                        for (sd::LongType kd = dstart; kd < dend; kd += gIStep2)
+                                            for (sd::LongType kh = hstart; kh < hend; kh += gIStep3)
+                                                for (sd::LongType kw = wstart; kw < wend; kw += gIStep4)
                                                     pgI[kd + kh + kw] += valO;
                                     }
                                 }
@@ -236,7 +235,7 @@ namespace sd {
 /*************************************************************************/
             else if(poolingMode == 2) {  // pnorm
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
+                    sd::LongType dstart, hstart, wstart, dend, hend, wend, maxKD, maxKH, maxKW;
                     T sum, valO, *pIn, *pgI;
 
                     for (int b = start_x; b < stop_x; b++) {
@@ -280,30 +279,30 @@ namespace sd {
                                             wstart *= iStride4;
                                             wend *= iStride4;
 
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += iStep2)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += iStep3)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += iStep4)
-                                                        sum += sd::math::nd4j_pow<T, T, T>(sd::math::nd4j_abs<T>(pIn[kd + kh + kw]), extraParam0);
+                                            for (sd::LongType kd = dstart; kd < dend; kd += iStep2)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += iStep3)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += iStep4)
+                                                        sum += sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(pIn[kd + kh + kw]), extraParam0);
 
-                                            valO *= sd::math::nd4j_pow<T, T, T>(sum, ((T) 1.f - extraParam0) / extraParam0);
+                                            valO *= sd::math::sd_pow<T, T, T>(sum, ((T) 1.f - extraParam0) / extraParam0);
 
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += iStep2)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += iStep3)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += iStep4)
-                                                        pgI[kd + kh + kw] += valO * sd::math::nd4j_pow<T, T, T>(sd::math::nd4j_abs<T>(pIn[kd + kh + kw]),extraParam0 - (T) 1.f) * sd::math::nd4j_sgn<T, T>(pIn[kd + kh + kw]);
+                                            for (sd::LongType kd = dstart; kd < dend; kd += iStep2)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += iStep3)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += iStep4)
+                                                        pgI[kd + kh + kw] += valO * sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(pIn[kd + kh + kw]),extraParam0 - (T) 1.f) * sd::math::sd_sgn<T, T>(pIn[kd + kh + kw]);
                                         } else {
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += dD)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += dH)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += dW)
-                                                        sum += sd::math::nd4j_pow<T, T, T>(sd::math::nd4j_abs<T>(pIn[kd * iStride2 + kh * iStride3 + kw * iStride4]), extraParam0);
+                                            for (sd::LongType kd = dstart; kd < dend; kd += dD)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += dH)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += dW)
+                                                        sum += sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(pIn[kd * iStride2 + kh * iStride3 + kw * iStride4]), extraParam0);
 
-                                            valO *= sd::math::nd4j_pow<T, T, T>(sum, ((T) 1.f - extraParam0) / extraParam0);
+                                            valO *= sd::math::sd_pow<T, T, T>(sum, ((T) 1.f - extraParam0) / extraParam0);
 
-                                            for (Nd4jLong kd = dstart; kd < dend; kd += dD)
-                                                for (Nd4jLong kh = hstart; kh < hend; kh += dH)
-                                                    for (Nd4jLong kw = wstart; kw < wend; kw += dW) {
+                                            for (sd::LongType kd = dstart; kd < dend; kd += dD)
+                                                for (sd::LongType kh = hstart; kh < hend; kh += dH)
+                                                    for (sd::LongType kw = wstart; kw < wend; kw += dW) {
                                                         const auto inVal = pIn[kD * iStride2 + kh * iStride3 + kw * iStride4];
-                                                        pgI[kd * gIStride2 + kh * gIStride3 + kw * gIStride4] += valO * sd::math::nd4j_pow<T, T, T>(sd::math::nd4j_abs<T>(inVal), extraParam0 - 1.f) * sd::math::nd4j_sgn<T, T>(inVal);
+                                                        pgI[kd * gIStride2 + kh * gIStride3 + kw * gIStride4] += valO * sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(inVal), extraParam0 - 1.f) * sd::math::sd_sgn<T, T>(inVal);
                                                     }
                                         }
                                     }
@@ -316,13 +315,13 @@ namespace sd {
                 samediff::Threads::parallel_for(func, 0, bS, 1, 0, iC, 1);
             }
             else {
-                nd4j_printf("ConvolutionUtils::pooling3dBP: pooling mode argument can take three values only: 0, 1, 2, but got %i instead !\n", poolingMode);
+                sd_printf("ConvolutionUtils::pooling3dBP: pooling mode argument can take three values only: 0, 1, 2, but got %i instead !\n", poolingMode);
                 throw "";
             }
         }
 
-       ND4J_LOCAL void ConvolutionUtils::pooling3dBP(sd::graph::Context& block, const NDArray& input, const NDArray& gradO, NDArray& gradI, const int kD, const int kH, const int kW, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW, const int poolingMode, const int extraParam0) {
-            BUILD_SINGLE_SELECTOR(input.dataType(), pooling3dBP_, (block, input, gradO, gradI, kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW, poolingMode, extraParam0), FLOAT_TYPES);
+       void ConvolutionUtils::pooling3dBP(sd::graph::Context& block, const NDArray& input, const NDArray& gradO, NDArray& gradI, const int kD, const int kH, const int kW, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW, const int poolingMode, const int extraParam0) {
+            BUILD_SINGLE_SELECTOR(input.dataType(), pooling3dBP_, (block, input, gradO, gradI, kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW, poolingMode, extraParam0), SD_FLOAT_TYPES);
         }
     }
 }

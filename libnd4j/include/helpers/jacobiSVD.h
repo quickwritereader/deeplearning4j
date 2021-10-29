@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_JACOBISVD_H
 #define LIBND4J_JACOBISVD_H
-
 #include <helpers/hhSequence.h>
 #include <array/NDArray.h>
 
@@ -64,7 +63,6 @@ class JacobiSVD {
 
         void evalData(const NDArray& matrix);
 };
-
 
 
 }

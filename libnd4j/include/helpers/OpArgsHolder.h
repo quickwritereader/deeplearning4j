@@ -23,19 +23,18 @@
 #ifndef LIBND4J_OPARGSHOLDER_H
 #define LIBND4J_OPARGSHOLDER_H
 
-
 #include <array/NDArray.h>
-#include <system/dll.h>
+
 
 namespace sd {
 
-class ND4J_EXPORT OpArgsHolder {
+class SD_LIB_EXPORT OpArgsHolder {
 
 private:
 
-	std::vector<NDArray*> _inArrs = std::vector<NDArray*>();
+    std::vector<NDArray*> _inArrs = std::vector<NDArray*>();
     std::vector<double>   _tArgs  = std::vector<double>();
-    std::vector<Nd4jLong> _iArgs  = std::vector<Nd4jLong>();
+    std::vector<sd::LongType> _iArgs  = std::vector<sd::LongType>();
     std::vector<bool>     _bArgs  = std::vector<bool>();
 
     std::vector<bool> _isArrAlloc = std::vector<bool>();
@@ -48,13 +47,13 @@ private:
 public:
 
     // default constructor
-	OpArgsHolder();
+    OpArgsHolder();
 
     // copy constructor
     OpArgsHolder(const OpArgsHolder& other);
 
     // constructor
-    OpArgsHolder(const std::vector<NDArray*>& inArrs, const std::vector<double>& tArgs = std::vector<double>(), const std::vector<Nd4jLong>& iArgs = std::vector<Nd4jLong>(), const std::vector<bool>& bArgs = std::vector<bool>());
+    OpArgsHolder(const std::vector<NDArray*>& inArrs, const std::vector<double>& tArgs = std::vector<double>(), const std::vector<sd::LongType>& iArgs = std::vector<sd::LongType>(), const std::vector<bool>& bArgs = std::vector<bool>());
 
     // move constructor
     OpArgsHolder(OpArgsHolder&& other) noexcept;
@@ -71,7 +70,7 @@ public:
     const std::vector<double>& getTArgs() const
     {return _tArgs; }
 
-    const std::vector<Nd4jLong>& getIArgs() const
+    const std::vector<sd::LongType>& getIArgs() const
     {return _iArgs; }
 
     const std::vector<bool>& getBArgs() const
@@ -97,9 +96,6 @@ public:
     ~OpArgsHolder() noexcept;
 
 };
-
-
-
 
 
 }

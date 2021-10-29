@@ -24,7 +24,6 @@
 #define LIBND4J_LOGICRETURN_H
 
 
-#include <system/pointercast.h>
 #include <graph/Node.h>
 #include <graph/Graph.h>
 
@@ -38,11 +37,10 @@ namespace sd {
          */
         class LogicReturn {
         public:
-            static Nd4jStatus processNode(Graph* graph, Node* node);
+            static sd::Status processNode(Graph* graph, Node* node);
         };
     }
 }
-
 
 
 #endif //LIBND4J_LOGICRETURN_H

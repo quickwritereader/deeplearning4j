@@ -19,11 +19,9 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
-
 #include <helpers/MKLDNNStream.h>
 #include "mkldnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
@@ -154,7 +152,7 @@ PLATFORM_IMPL(deconv2d_tf, ENGINE_CPU) {
         indIOioC = 1; indIiH = 2; indOoH = 2;
     }
 
-    std::vector<Nd4jLong> gradIShapeVector = gradIShape->template asVectorT<Nd4jLong>();
+    std::vector<sd::LongType> gradIShapeVector = gradIShape->template asVectorT<sd::LongType>();
 
     const int bS = gradIShapeVector[0];                     // batch size
     const int iH = gradIShapeVector[indIiH];                // input height
@@ -167,8 +165,8 @@ PLATFORM_IMPL(deconv2d_tf, ENGINE_CPU) {
     int trueoH, trueoW;          // true output height, width
     ConvolutionUtils::calcOutSizePool2D(trueoH, trueoW, kH, kW, sH, sW, pH, pW, dH, dW, iH, iW, isSameMode);
 
-    std::vector<Nd4jLong> expectedGradOShape   = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
-    std::vector<Nd4jLong> expectedWeightsShape = {kH, kW, iC, oC};
+    std::vector<sd::LongType> expectedGradOShape   = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
+    std::vector<sd::LongType> expectedWeightsShape = {kH, kW, iC, oC};
     REQUIRE_TRUE(gradO->isSameShape(expectedGradOShape), 0,  "CUSTOM DECONV2D_TF MKLDNN OP: wrong shape of input array, basing on array with output shape expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedGradOShape).c_str(), ShapeUtils::shapeAsString(gradO).c_str());
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CUSTOM DECONV2D_TF MKLDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
 
@@ -195,7 +193,7 @@ PLATFORM_IMPL(deconv2d_tf, ENGINE_CPU) {
 
     // ConvolutionUtils::conv2dBP(block, &input, weights, nullptr, gradO, gradI, nullptr, nullptr, kH,kW,sH,sW,pH,pW,dH,dW,isSameMode,isNCHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 PLATFORM_CHECK(deconv2d_tf, ENGINE_CPU) {

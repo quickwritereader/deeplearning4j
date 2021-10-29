@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/adjust_saturation.h>
 #include <ops/declarable/helpers/adjust_hue.h>
 #include <helpers/ConstantTadHelper.h>
@@ -63,9 +62,9 @@ static void adjustSaturation_(const NDArray *input, const NDArray* factorScalarA
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),  dimC);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-        const Nd4jLong numOfTads   = packX.numberOfTads();
-        const Nd4jLong xDimCstride = input->stridesOf()[dimC];
-        const Nd4jLong zDimCstride = output->stridesOf()[dimC];
+        const sd::LongType numOfTads   = packX.numberOfTads();
+        const sd::LongType xDimCstride = input->stridesOf()[dimC];
+        const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
@@ -93,7 +92,7 @@ static void adjustSaturation_(const NDArray *input, const NDArray* factorScalarA
 
  void adjustSaturation(sd::LaunchContext* context, const NDArray *input, const NDArray* factorScalarArr, NDArray *output, const int dimC) {
 
-    BUILD_SINGLE_SELECTOR(input->dataType(), adjustSaturation_, (input, factorScalarArr, output, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), adjustSaturation_, (input, factorScalarArr, output, dimC), SD_FLOAT_TYPES);
 }
 
 /*
@@ -116,7 +115,7 @@ static void adjust_saturation_single_(sd::LaunchContext * context, NDArray *arra
             T h, s, v;
             // Convert the RGB color to Hue/V-range.
             helpers::rgb_to_hsv(i[0], i[1], i[2], &h, &s, &v);
-            s = sd::math::nd4j_min<T>((T) 1.0f, sd::math::nd4j_max<T>((T) 0.0f, s * delta));
+            s = sd::math::sd_min<T>((T) 1.0f, sd::math::sd_max<T>((T) 0.0f, s * delta));
             // Convert the hue and v-range back into RGB.
             helpers::hsv_to_rgb(h, s, v, o, o + 1, o + 2);
         }
@@ -145,7 +144,7 @@ static void adjust_saturation_single_(sd::LaunchContext * context, NDArray *arra
             T h, s, v;
             // Convert the RGB color to Hue/V-range.
             helpers::rgb_to_hsv(_ri[0], _gi[0], _bi[0], &h, &s, &v);
-            s = sd::math::nd4j_min<T>((T) 1.0f, sd::math::nd4j_max<T>((T) 0.0f, s * delta));
+            s = sd::math::sd_min<T>((T) 1.0f, sd::math::sd_max<T>((T) 0.0f, s * delta));
             // Convert the hue and v-range back into RGB.
             helpers::hsv_to_rgb(h, s, v, _ro, _go, _bo);
         }
@@ -167,7 +166,7 @@ void adjust_saturation(sd::LaunchContext * context, NDArray *array, NDArray *out
         // FIXME: template selector should be moved out of loop
         PRAGMA_OMP_PARALLEL_FOR
         for (int e = 0; e < tSize; e++) {
-            BUILD_SINGLE_SELECTOR(xType, adjust_saturation_single_, (context, tadsIn->at(e), tadsOut->at(e), d, isNHWC);, FLOAT_TYPES);
+            BUILD_SINGLE_SELECTOR(xType, adjust_saturation_single_, (context, tadsIn->at(e), tadsOut->at(e), d, isNHWC);, SD_FLOAT_TYPES);
         }
 
 
@@ -175,11 +174,11 @@ void adjust_saturation(sd::LaunchContext * context, NDArray *array, NDArray *out
         delete tadsOut;
     }
     else {
-        BUILD_SINGLE_SELECTOR(xType, adjust_saturation_single_, (context, array, output, d, isNHWC);, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, adjust_saturation_single_, (context, array, output, d, isNHWC);, SD_FLOAT_TYPES);
     }
 }
 
-BUILD_SINGLE_TEMPLATE(template void adjust_saturation_single_, (sd::LaunchContext * context, NDArray *array, NDArray *output, float delta, bool isNHWC), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void adjust_saturation_single_, (sd::LaunchContext * context, NDArray *array, NDArray *output, float delta, bool isNHWC), SD_FLOAT_TYPES);
 */
 
 }

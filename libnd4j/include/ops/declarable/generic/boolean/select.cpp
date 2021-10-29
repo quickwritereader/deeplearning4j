@@ -44,7 +44,7 @@ namespace sd {
                     auto v = !cond->e<bool>(0)? y->e<double>(0) : x->e<double>(0);
                     z->p(0, v);
                 } else {
-                    auto v = !cond->e<bool>(0)? y->e<Nd4jLong>(0) : x->e<Nd4jLong>(0);
+                    auto v = !cond->e<bool>(0)? y->e<sd::LongType>(0) : x->e<sd::LongType>(0);
                     z->p(0, v);
                 }
             } else {
@@ -58,7 +58,7 @@ namespace sd {
                             auto r = !cond->e<bool>(e) ? y->e<double>(e) : x->e<double>(e);
                             z->p(e, r);
                         } else {
-                            auto r = !cond->e<bool>(e) ? y->e<Nd4jLong>(e) : x->e<Nd4jLong>(e);
+                            auto r = !cond->e<bool>(e) ? y->e<sd::LongType>(e) : x->e<sd::LongType>(e);
                             z->p(e, r);
                         }
                     }
@@ -82,13 +82,13 @@ namespace sd {
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(select) {
             auto inShape = inputShape->at(1);
 
-            Nd4jLong *newshape;
+            sd::LongType *newshape;
             COPY_SHAPE(inShape, newshape);
 
             return SHAPELIST(CONSTANT(newshape));

@@ -85,7 +85,7 @@ CUSTOM_OP_IMPL(matmul, 2, 1, false, 0, -2) {
 
     MmulHelper::matmul(x, y, z, transX, transY, alpha, beta);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SYN(mMul, matmul);
@@ -179,13 +179,13 @@ F   F   T   [a,b]   [b,c]   [c,a]   [c,a]
     op.execute({eps, y}, {dldx}, {alpha, beta}, {transZ, !transY, transX}, {});
     op.execute({x, eps}, {dldy}, {alpha, beta}, {!transX, transZ, transY}, {});
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(matmul_bp) {
-    Nd4jLong *xShapeInfo;
-    Nd4jLong *yShapeInfo;
+    sd::LongType *xShapeInfo;
+    sd::LongType *yShapeInfo;
 
     COPY_SHAPE(inputShape->at(0), xShapeInfo);
     COPY_SHAPE(inputShape->at(1), yShapeInfo);

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/hashcode.h>
 #include <execution/Threads.h>
 
@@ -28,15 +27,15 @@ namespace sd {
         namespace helpers {
             template <typename T>
             static void hashCode_(LaunchContext *context, NDArray &array, NDArray &result) {
-                Nd4jLong blockSize = 32;
+                sd::LongType blockSize = 32;
                 auto length = array.lengthOf();
                 int numBlocks = length / blockSize + ((length % blockSize == 0) ? 0 : 1);
-                auto tempA = NDArrayFactory::create<Nd4jLong>('c', {numBlocks}, context);
-                auto tempB = NDArrayFactory::create<Nd4jLong>('c', { numBlocks / blockSize + 1}, context);
+                auto tempA = NDArrayFactory::create<sd::LongType>('c', {numBlocks}, context);
+                auto tempB = NDArrayFactory::create<sd::LongType>('c', { numBlocks / blockSize + 1}, context);
 
                 auto buffer = array.bufferAsT<T>();
-                auto tempBufferA = tempA.bufferAsT<Nd4jLong>();
-                auto tempBufferB = tempB.bufferAsT<Nd4jLong>();
+                auto tempBufferA = tempA.bufferAsT<sd::LongType>();
+                auto tempBufferB = tempB.bufferAsT<sd::LongType>();
 
                 // default buffer is the first one, because it might be the last one in case of small arrays (< blockSize)
                 auto tempBuffer = tempBufferA;
@@ -47,8 +46,8 @@ namespace sd {
                     for (auto b = start; b < stop; b++) {
                         auto blockBuffer = buffer + b * numBlocks;
 
-                        Nd4jLong r = 1;
-                        for (Nd4jLong e = 0; e < blockSize && e + (b * numBlocks) < length; e++) {
+                        sd::LongType r = 1;
+                        for (sd::LongType e = 0; e < blockSize && e + (b * numBlocks) < length; e++) {
                             auto v = longBytes<T>(blockBuffer[e]);
                             r = 31 * r + v;
                         }
@@ -69,8 +68,8 @@ namespace sd {
                         for (auto b = start; b < stop; b++) {
                             auto blockBuffer = tempBuffer + b * numBlocks;
 
-                            Nd4jLong r = 1;
-                            for (Nd4jLong e = 0; e < blockSize && e + (b * numBlocks) < lastLength; e++) {
+                            sd::LongType r = 1;
+                            for (sd::LongType e = 0; e < blockSize && e + (b * numBlocks) < lastLength; e++) {
                                 auto v = longBytes<T>(blockBuffer[e]);
                                 r = 31 * r + v;
                             }
@@ -99,8 +98,8 @@ namespace sd {
             }
 
 
-            ND4J_LOCAL void hashCode(LaunchContext *context, NDArray &array, NDArray &result) {
-                BUILD_SINGLE_SELECTOR(array.dataType(), hashCode_, (context, array, result), LIBND4J_TYPES);
+            void hashCode(LaunchContext *context, NDArray &array, NDArray &result) {
+                BUILD_SINGLE_SELECTOR(array.dataType(), hashCode_, (context, array, result), SD_COMMON_TYPES);
             }
         }
     }

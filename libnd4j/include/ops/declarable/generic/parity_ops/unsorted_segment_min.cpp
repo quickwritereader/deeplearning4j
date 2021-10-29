@@ -37,16 +37,16 @@ namespace sd {
             }
 
             auto segmentedOutput = OUTPUT_NULLIFIED(0);
-            Nd4jLong numOfClasses = block.width() == 3 ? INPUT_VARIABLE(2)->e<Nd4jLong>(0) : INT_ARG(0);
+            sd::LongType numOfClasses = block.width() == 3 ? INPUT_VARIABLE(2)->e<sd::LongType>(0) : INT_ARG(0);
             REQUIRE_TRUE(reshapedSegments.isVector(), 0, "unsorted_segment_min: segment indexes array should be a vector, but it rank is %i.", idxSegments->rankOf());
             REQUIRE_TRUE(reshapedSegments.lengthOf() == input->sizeAt(0), 0, "unsorted_segment_min: segment indexes array length should be equal to the input first dimension, but %ld != %ld.", reshapedSegments.lengthOf(), input->sizeAt(0));
 
-            Nd4jLong wrong;
+            sd::LongType wrong;
 
             REQUIRE_TRUE(helpers::unsortedSegmentIndicesValidate(block.launchContext(), &reshapedSegments, numOfClasses, wrong), 0, "unsorted_segment_min: segment indices should be in range [0, %ld), but %ld != %ld",
                     numOfClasses, wrong, numOfClasses);
             helpers::unsortedSegmentMinFunctor(block.launchContext(), &reshapedInput, &reshapedSegments, numOfClasses, segmentedOutput);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
 
         }
 
@@ -55,11 +55,11 @@ namespace sd {
 
             auto in = inputShape->at(0);
             int outRank = shape::rank(in);
-            Nd4jLong* outputShape = nullptr;
-            Nd4jLong numOfClasses = block.width() == 3 ? INPUT_VARIABLE(2)->e<Nd4jLong>(0) : INT_ARG(0);
+            sd::LongType* outputShape = nullptr;
+            sd::LongType numOfClasses = block.width() == 3 ? INPUT_VARIABLE(2)->e<sd::LongType>(0) : INT_ARG(0);
 
             if(INPUT_VARIABLE(0)->rankOf() >= 2) {
-                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
                 outputShape[0] = outRank;
                 outputShape[1] = numOfClasses;
                 for(int i = 1; i < outRank; i++)
@@ -68,7 +68,7 @@ namespace sd {
                 ShapeUtils::updateStridesAndType(outputShape, in, shape::order(in));
 
             } else {
-                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(1), Nd4jLong);
+                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(1), sd::LongType);
                 outputShape[0] = 1;
                 outputShape[1] = numOfClasses;
                 shape::printShapeInfo(outputShape);
@@ -105,8 +105,8 @@ namespace sd {
             auto in = inputShape->at(0);
             auto inIdx = inputShape->at(1);
 
-            Nd4jLong* outShape;
-            Nd4jLong* outIndex;
+            sd::LongType* outShape;
+            sd::LongType* outIndex;
             COPY_SHAPE(in, outShape);
             COPY_SHAPE(inIdx, outIndex);
             return SHAPELIST(CONSTANT(outShape), CONSTANT(outIndex));

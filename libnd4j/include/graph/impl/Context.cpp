@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/Context.h>
 #include <helpers/ShapeUtils.h>
 #include <graph/Context.h>
@@ -211,26 +210,26 @@ namespace sd {
                 _variableSpace->flowPath()->markBranch(this->nodeId(), branch);
         }
 
-        Nd4jLong sd::graph::Context::getOuterTime(){
+        sd::LongType sd::graph::Context::getOuterTime(){
             return this->_executionTime.first;
         }
 
-        Nd4jLong sd::graph::Context::getInnerTime(){
+        sd::LongType sd::graph::Context::getInnerTime(){
             return this->_executionTime.second;
         }
 
-        void sd::graph::Context::setOuterTime(Nd4jLong time){
+        void sd::graph::Context::setOuterTime(sd::LongType time){
             this->_executionTime.first = time;
         }
 
-        void sd::graph::Context::setInnerTime(Nd4jLong time){
+        void sd::graph::Context::setInnerTime(sd::LongType time){
             this->_executionTime.second = time;
         }
 
 
         Variable* Context::getVariable(int idx) {
             if (idx >= this->_inputs.size()) {
-                nd4j_printf("Node %i; Variable [%i] requested, but only %i inputs available\n", this->_nodeId, idx, this->_inputs.size());
+                sd_printf("Node %i; Variable [%i] requested, but only %i inputs available\n", this->_nodeId, idx, this->_inputs.size());
                 throw std::runtime_error("Context: bad Variable index");
             }
 
@@ -246,9 +245,9 @@ namespace sd {
                 if (!array->isEmpty()) {
                     auto values = array->asIndexedString(16);
 
-                    nd4j_printf("Debug info for node_%i input[%i]; shape: %s; ews: [%i]; order: [%c]; dtype: [%s]; first values: %s\n", this->_nodeId, idx, shape_.c_str(), (int)array->ews(), array->ordering(), type.c_str(), values.c_str());
+                    sd_printf("Debug info for node_%i input[%i]; shape: %s; ews: [%i]; order: [%c]; dtype: [%s]; first values: %s\n", this->_nodeId, idx, shape_.c_str(), (int)array->ews(), array->ordering(), type.c_str(), values.c_str());
                 } else {
-                    nd4j_printf("Debug info for node_%i input[%i]; shape: %s; ews: [%i]; order: [%c]; dtype: [%s]; mean value: [%f]\n", this->_nodeId, idx, shape_.c_str(), (int)array->ews(), array->ordering(), type.c_str(), m);
+                    sd_printf("Debug info for node_%i input[%i]; shape: %s; ews: [%i]; order: [%c]; dtype: [%s]; mean value: [%f]\n", this->_nodeId, idx, shape_.c_str(), (int)array->ews(), array->ordering(), type.c_str(), m);
                 }
             }
 
@@ -278,7 +277,7 @@ namespace sd {
             try {
                 return _variableSpace->getVariable(p);
             } catch (std::exception &e) {
-                nd4j_printf("Node %i; Non-existent variable requested: [%i:%i]\n", this->_nodeId, p.first, p.second);
+                sd_printf("Node %i; Non-existent variable requested: [%i:%i]\n", this->_nodeId, p.first, p.second);
                 throw std::runtime_error("Bad variable");
             }
         }
@@ -414,7 +413,7 @@ namespace sd {
         }
 
         void Context::setInputArray(int index, void *buffer, void const* shapeInfo, void *specialBuffer, void const* specialShapeInfo) {
-            auto array = new NDArray(buffer, specialBuffer, reinterpret_cast<Nd4jLong const*>(shapeInfo));
+            auto array = new NDArray(buffer, specialBuffer, reinterpret_cast<sd::LongType const*>(shapeInfo));
 
             if (_fastpath_in.size() < index + 1)
                 _fastpath_in.resize(index+1);
@@ -444,7 +443,7 @@ namespace sd {
             if (_fastpath_out.size() < index + 1)
                 _fastpath_out.resize(index+1);
 
-            auto array = new NDArray(buffer, specialBuffer, reinterpret_cast<Nd4jLong const*>(shapeInfo));
+            auto array = new NDArray(buffer, specialBuffer, reinterpret_cast<sd::LongType const*>(shapeInfo));
 
             _fastpath_out[index] = array;
             _handles.emplace_back(array);
@@ -461,9 +460,9 @@ namespace sd {
 
             NDArray *array;
             if (dataBuffer != nullptr)
-                array = new NDArray(dataBuffer->dataBuffer(), reinterpret_cast<Nd4jLong const*>(shapeInfo), sd::LaunchContext::defaultContext(), dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(reinterpret_cast<Nd4jLong const*>(shapeInfo))));
+                array = new NDArray(dataBuffer->dataBuffer(), reinterpret_cast<sd::LongType const*>(shapeInfo), sd::LaunchContext::defaultContext(), dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(reinterpret_cast<sd::LongType const*>(shapeInfo))));
             else
-                array = new NDArray(nullptr, nullptr, reinterpret_cast<Nd4jLong const*>(shapeInfo));
+                array = new NDArray(nullptr, nullptr, reinterpret_cast<sd::LongType const*>(shapeInfo));
 
             _fastpath_in[index] = array;
             _handles.emplace_back(array);
@@ -480,9 +479,9 @@ namespace sd {
 
             NDArray *array;
             if (dataBuffer != nullptr)
-                array = new NDArray(dataBuffer->dataBuffer(), reinterpret_cast<Nd4jLong const*>(shapeInfo), sd::LaunchContext::defaultContext(), dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(reinterpret_cast<Nd4jLong const*>(shapeInfo))));
+                array = new NDArray(dataBuffer->dataBuffer(), reinterpret_cast<sd::LongType const*>(shapeInfo), sd::LaunchContext::defaultContext(), dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(reinterpret_cast<sd::LongType const*>(shapeInfo))));
             else
-                array = new NDArray(nullptr, nullptr, reinterpret_cast<Nd4jLong const*>(shapeInfo));
+                array = new NDArray(nullptr, nullptr, reinterpret_cast<sd::LongType const*>(shapeInfo));
 
             _fastpath_out[index] = array;
             _handles.emplace_back(array);
@@ -498,7 +497,7 @@ namespace sd {
                 _tArgs.push_back(arguments[e]);
         }
 
-        void Context::setIArguments(Nd4jLong *arguments, int numberOfArguments) {
+        void Context::setIArguments(sd::LongType *arguments, int numberOfArguments) {
             _iArgs.clear();
             _iArgs.reserve(numberOfArguments);
             for (int e = 0; e < numberOfArguments; e++)
@@ -512,7 +511,7 @@ namespace sd {
                 _bArgs.push_back(arguments[e]);
         }
 
-        void Context::setCudaContext(Nd4jPointer cudaStream, Nd4jPointer reductionPointer, Nd4jPointer allocationPointer) {
+        void Context::setCudaContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer allocationPointer) {
 #ifdef __CUDABLAS__
             _context = new LaunchContext(cudaStream, reductionPointer, allocationPointer);
 
@@ -540,7 +539,7 @@ namespace sd {
                 _tArgs.emplace_back(t);
         }
 
-        void Context::setIArguments(const std::vector<Nd4jLong> &iArgs) {
+        void Context::setIArguments(const std::vector<sd::LongType> &iArgs) {
             for (auto i:iArgs)
                 _iArgs.emplace_back(i);
         }

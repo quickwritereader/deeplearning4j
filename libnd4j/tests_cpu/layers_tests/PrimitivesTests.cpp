@@ -19,7 +19,6 @@
 //
 // @author raver110@gmail.com
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <chrono>
@@ -36,7 +35,6 @@
 #include <helpers/Loops.h>
 #include <helpers/RandomLauncher.h>
 #include <ops/declarable/helpers/convolutions.h>
-
 #include <helpers/BenchmarkHelper.h>
 #include <ops/declarable/helpers/scatter.h>
 #include <helpers/ConstantShapeHelper.h>
@@ -74,7 +72,7 @@ TEST_F(PrimitivesTests, test_mod_2) {
   float iy = 3.f;
 
 
-  auto e = sd::math::nd4j_fmod<float, float, float>(ix, iy);
+  auto e = sd::math::sd_fmod<float, float, float>(ix, iy);
   auto v = simdOps::Mod<float, float, float>::op(ix, iy);
 
   ASSERT_NEAR(e, v, 1e-5f);
@@ -85,7 +83,7 @@ TEST_F(PrimitivesTests, test_mod_3) {
   float iy = 0.f;
 
 
-  auto e = sd::math::nd4j_fmod<float, float, float>(ix, iy);
+  auto e = sd::math::sd_fmod<float, float, float>(ix, iy);
   auto v = simdOps::Mod<float, float, float>::op(ix, iy);
 
   // absence of SIGFPE will be a good enough

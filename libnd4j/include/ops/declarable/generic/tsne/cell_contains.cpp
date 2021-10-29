@@ -37,7 +37,7 @@ namespace sd {
             auto output = OUTPUT_VARIABLE(0);
             auto dimension = INT_ARG(0);
             output->assign(helpers::cell_contains(corner, width, point, dimension));
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(cell_contains) {

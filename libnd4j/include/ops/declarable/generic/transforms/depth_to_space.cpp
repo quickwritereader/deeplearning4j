@@ -53,7 +53,7 @@ namespace ops {
 
         STORE_RESULT(output);     
 
-        return ND4J_STATUS_OK;
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(depth_to_space) {
@@ -78,7 +78,7 @@ namespace ops {
         int oW = iW * block_size;
 
         
-        std::array<Nd4jLong, 4> shape;
+        std::array<sd::LongType, 4> shape;
         if (isNHWC) 
             shape = {{bS, oH, oW, oD }};
         else 

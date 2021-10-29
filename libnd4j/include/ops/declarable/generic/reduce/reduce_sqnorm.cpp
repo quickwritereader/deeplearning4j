@@ -54,7 +54,7 @@ CUSTOM_OP_IMPL(reduce_sqnorm, -1, 1, false, 0, 0) {
 
     input->reduceAlongDimension(reduce::SquaredNorm, *gradI, dimensions, keepDims);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_sqnorm) {
@@ -130,7 +130,7 @@ CUSTOM_OP_IMPL(reduce_sqnorm_bp, -1, 1, false, 0, 0) {
         } else
             gradI->assign(2. * (*input) * *gradO);
     }
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_sqnorm_bp) {
@@ -149,7 +149,7 @@ DECLARE_SHAPE_FN(reduce_sqnorm_bp) {
             REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_SQNORM_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !" , inputShape->at(0)[0], inputShape->at(0)[0], item);
     }
 
-    Nd4jLong* gradIshapeInfo(nullptr);
+    sd::LongType* gradIshapeInfo(nullptr);
     COPY_SHAPE(inputShape->at(0), gradIshapeInfo);
 
     return SHAPELIST(CONSTANT(gradIshapeInfo));

@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include <iterator>
 #include <array/NDArrayList.h>
 #include <helpers/ShapeUtils.h>
@@ -35,11 +34,11 @@ namespace sd {
         _id.first = 0;
         _id.second = 0;
         _height = height;
-        //nd4j_printf("\nCreating NDArrayList\n","");
+        //sd_printf("\nCreating NDArrayList\n","");
     }
 
     NDArrayList::~NDArrayList() {
-        //nd4j_printf("\nDeleting NDArrayList: [%i]\n", _chunks.size());
+        //sd_printf("\nDeleting NDArrayList: [%i]\n", _chunks.size());
         for (auto const& v : _chunks)
             delete v.second;
 
@@ -56,14 +55,14 @@ namespace sd {
 
     NDArray* NDArrayList::readRaw(int idx) {
         if (_chunks.count(idx) < 1) {
-            nd4j_printf("Non-existent chunk requested: [%i]\n", idx);
+            sd_printf("Non-existent chunk requested: [%i]\n", idx);
             throw std::invalid_argument("Bad index");
         }
 
         return _chunks[idx];
     }
 
-    Nd4jStatus NDArrayList::write(int idx, NDArray* array) {
+    sd::Status NDArrayList::write(int idx, NDArray* array) {
         if (_chunks.count(idx) == 0)
             _elements++;
         else {
@@ -86,20 +85,20 @@ namespace sd {
                     // skipping first dim
                     for (int e = 1; e < _shape.size(); e++) {
                         if (_shape[e] != array->sizeAt(e))
-                            return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                            return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
                     }
                 } else if (array->rankOf() == _shape.size() - 1) {
                     // case like 2d _shape, and 1D rows
                     for (int e = 1; e < _shape.size(); e++)
                         if (_shape[e] != array->sizeAt(e - 1))
-                            return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                            return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
                 } else
-                    return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                    return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
 
             }
         } else {
             if (array->dataType() != _dtype)
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same data type");
+                return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same data type");
 
 
             // if shape is inferred (say, from split_list)
@@ -107,15 +106,15 @@ namespace sd {
                 // skipping first dim
                 for (int e = 1; e < _shape.size(); e++) {
                     if (_shape[e] != array->sizeAt(e))
-                        return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                        return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
                 }
             } else if (array->rankOf() == _shape.size() - 1) {
                 // case like 2d _shape, and 1D rows
                 for (int e = 1; e < _shape.size(); e++)
                     if (_shape[e] != array->sizeAt(e - 1))
-                        return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                        return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
             } else
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
+                return Logger::logStatusMsg(Status::BAD_INPUT, "NDArrayList: all arrays must have same size along inner dimensions");
         }
 
         //_elements++;
@@ -123,10 +122,10 @@ namespace sd {
         // storing reference
         _chunks[idx] = array;
 
-        return Status::OK();
+        return Status::OK;
     }
 
-    std::vector<Nd4jLong>& NDArrayList::shape() {
+    std::vector<sd::LongType>& NDArrayList::shape() {
         return _shape;
     }
 
@@ -157,22 +156,22 @@ namespace sd {
 
         auto inShapeInfo = inputs[0]->shapeInfo();
         int rank = shape::rank(inShapeInfo);
-	    NDArray* array = nullptr;
+        NDArray* array = nullptr;
 
         if (shape::isEmpty(inShapeInfo)) {
-	     switch (rank) {
+         switch (rank) {
              case 0: {
                  if (numElements == 1) {
                      array =  new NDArray(inputs[0]->ordering(), {0}, ArrayOptions::dataType(inShapeInfo), inputs[0]->getContext());
                  } else {
-                     array = new NDArray('c', {(Nd4jLong) numElements, 0}, ArrayOptions::dataType(inShapeInfo), inputs[0]->getContext() ) ;
+                     array = new NDArray('c', {(sd::LongType) numElements, 0}, ArrayOptions::dataType(inShapeInfo), inputs[0]->getContext() ) ;
                  }
               }
-	       }
-	   }
+           }
+       }
        else{        
-          std::vector<Nd4jLong> outShape(inShapeInfo + 1, inShapeInfo + 1 + rank);
-          outShape.insert(outShape.begin(), (Nd4jLong) numElements);
+          std::vector<sd::LongType> outShape(inShapeInfo + 1, inShapeInfo + 1 + rank);
+          outShape.insert(outShape.begin(), (sd::LongType) numElements);
           array = new NDArray( shape::order(inShapeInfo), outShape, ArrayOptions::dataType(inShapeInfo), inputs[0]->getContext());
        }
        
@@ -217,7 +216,7 @@ namespace sd {
     }
 
     NDArray* NDArrayList::pick(std::vector<int> &indices) {
-        std::vector<Nd4jLong> shape(_shape);
+        std::vector<sd::LongType> shape(_shape);
 
         //shape.insert(shape.begin() + _axis, indices.size());
         shape[_axis] = indices.size();

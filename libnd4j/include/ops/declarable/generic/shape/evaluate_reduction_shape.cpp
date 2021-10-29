@@ -34,7 +34,7 @@ namespace sd {
             auto oldFormat = block.numB() > 1 ? B_ARG(1) : false;
             auto output = OUTPUT_VARIABLE(0);
 
-            auto shape = inputShape->asVectorT<Nd4jLong>();
+            auto shape = inputShape->asVectorT<sd::LongType>();
 
             auto tempShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(sd::DataType::INT64, 'c', shape);
             auto tempReductionShapeInfo = ShapeUtils::evalReduceShapeInfo('c', axis, tempShapeInfo, keepDims, oldFormat, block.workspace());
@@ -44,7 +44,7 @@ namespace sd {
             for (int e = 0; e < shape::rank(tempReductionShapeInfo); e++)
                 output->p(e, tempReductionShapeInfo[e+1]);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(evaluate_reduction_shape) {
@@ -61,17 +61,17 @@ namespace sd {
             auto keepDims = block.numB() > 0 ? B_ARG(0) : false;
             auto oldFormat = block.numB() > 1 ? B_ARG(1) : false;
 
-            Nd4jLong length = input->lengthOf();
+            sd::LongType length = input->lengthOf();
 
             if (keepDims) {
                 if (oldFormat) {
                     // for oldFormat we can't go below rank 2
-                    length = sd::math::nd4j_max<int>(2, length);
+                    length = sd::math::sd_max<int>(2, length);
                 }
             } else {
                 length -= axis.size();
                 if (oldFormat) {
-                    length = sd::math::nd4j_max<int>(2, length);
+                    length = sd::math::sd_max<int>(2, length);
                 }
             }
 

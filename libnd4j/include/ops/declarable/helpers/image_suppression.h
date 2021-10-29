@@ -28,11 +28,11 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void nonMaxSuppression(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize,
+SD_LIB_HIDDEN void nonMaxSuppression(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize,
             double overlapThreshold, double scoreThreshold, NDArray* output);
-    Nd4jLong nonMaxSuppressionV3(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize,
+SD_LIB_HIDDEN sd::LongType nonMaxSuppressionV3(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize,
                            double overlapThreshold, double scoreThreshold, NDArray* output);
-    Nd4jLong nonMaxSuppressionGeneric(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
+SD_LIB_HIDDEN sd::LongType nonMaxSuppressionGeneric(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
                              double overlapThreshold, double scoreThreshold, NDArray* output);
 
 }

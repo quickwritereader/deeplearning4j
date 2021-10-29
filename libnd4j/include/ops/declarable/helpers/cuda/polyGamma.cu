@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 26.04.2019
 //
-
 #include<ops/declarable/helpers/gammaMathFunc.h>
 #include<ops/declarable/helpers/zeta.h>
 #include <array/NDArrayFactory.h>
@@ -30,15 +29,15 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ static void polyGammaCuda(const void *vn, const Nd4jLong *nShapeInfo,
-                                	 const void *vx, const Nd4jLong *xShapeInfo,
-                                     	   void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void polyGammaCuda(const void *vn, const sd::LongType *nShapeInfo,
+                                     const void *vx, const sd::LongType *xShapeInfo,
+                                            void *vz, const sd::LongType *zShapeInfo) {
 
     const auto n = reinterpret_cast<const T*>(vn);
     const auto x = reinterpret_cast<const T*>(vx);
           auto z = reinterpret_cast<T*>(vz);
 
-    __shared__ Nd4jLong len;
+    __shared__ sd::LongType len;
     __shared__ bool sameOffsetNX, sameOffsetNZ;
 
     if (threadIdx.x == 0) {
@@ -79,25 +78,25 @@ __global__ static void polyGammaCuda(const void *vn, const Nd4jLong *nShapeInfo,
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static void polyGammaCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vn, const Nd4jLong *nShapeInfo, const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo) {
+static void polyGammaCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vn, const sd::LongType *nShapeInfo, const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo) {
 
     polyGammaCuda<T><<<blocksPerGrid, threadsPerBlock, 1024, *stream>>>(vn, nShapeInfo, vx, xShapeInfo, vz, zShapeInfo);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void polyGamma(sd::LaunchContext * context, const NDArray& n, const NDArray& x, NDArray& z) {
+void polyGamma(sd::LaunchContext * context, const NDArray& n, const NDArray& x, NDArray& z) {
 
     NDArray::prepareSpecialUse({&z}, {&n, &x});
 
-    int threadsPerBlock = MAX_NUM_THREADS / 2;
+    int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     int blocksPerGrid = (z.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
-    BUILD_SINGLE_SELECTOR(n.dataType(), polyGammaCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), n.specialBuffer(), n.specialShapeInfo(), x.specialBuffer(), x.specialShapeInfo(), z.specialBuffer(), z.specialShapeInfo()), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(n.dataType(), polyGammaCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), n.specialBuffer(), n.specialShapeInfo(), x.specialBuffer(), x.specialShapeInfo(), z.specialBuffer(), z.specialShapeInfo()), SD_FLOAT_TYPES);
 
     NDArray::registerSpecialUse({&z}, {&n, &x});
 }
 
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void polyGammaCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vn, const Nd4jLong *nShapeInfo, const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void polyGammaCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vn, const sd::LongType *nShapeInfo, const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo), SD_FLOAT_TYPES);
 
 }
 }

@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_PARAMETERSBATCH_H
 #define DEV_TESTS_PARAMETERSBATCH_H
-
 #include <helpers/benchmark/ParametersSpace.h>
 #include <vector>
 #include <helpers/shape.h>
@@ -48,8 +47,8 @@ namespace sd {
             int totalIterations = 1;
 
             // hehe
-            int xCoords[MAX_RANK];
-            Nd4jLong xShape[MAX_RANK];
+            int xCoords[SD_MAX_RANK];
+            sd::LongType xShape[SD_MAX_RANK];
             int xRank = _spaces.size();
 
             for (int e = 0; e < _spaces.size(); e++) {
@@ -61,7 +60,7 @@ namespace sd {
                 xShape[e] = values.size();
             }
 
-            //nd4j_printf("Total Iterations: %i\n", totalIterations);
+            //sd_printf("Total Iterations: %i\n", totalIterations);
 
             for (int i = 0; i < totalIterations; i++) {
                 if (xRank > 0)

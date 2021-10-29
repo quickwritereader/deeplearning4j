@@ -26,7 +26,6 @@
 #include <array/NDArrayFactory.h>
 #include <execution/Threads.h>
 #include <helpers/MmulHelper.h>
-
 #include "../triangular_solve.h"
 #include "../lup.h"
 #include "../solve.h"
@@ -45,9 +44,9 @@ namespace helpers {
 
         auto batchLoop = PRAGMA_THREADS_FOR {
             for (auto batch = start; batch < stop; batch++) {
-                for (Nd4jLong r = 0; r < rows; r++) {
-                    for (Nd4jLong c = 0; c < r; c++) {
-                        math::nd4j_swap(outputPart[batch]->r<T>(r, c) , outputPart[batch]->r<T>(c, r));
+                for (sd::LongType r = 0; r < rows; r++) {
+                    for (sd::LongType c = 0; c < r; c++) {
+                        math::sd_swap(outputPart[batch]->r<T>(r, c) , outputPart[batch]->r<T>(c, r));
                     }
                 }
             }
@@ -57,7 +56,7 @@ namespace helpers {
 
 // --------------------------------------------------------------------------------------------------------------------------------------- //
     template <typename T>
-    static int solveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool const adjoint, NDArray* output) {
+    static sd::Status solveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool const adjoint, NDArray* output) {
 
         // stage 1: LU decomposition batched
         auto leftOutput = leftInput->ulike();
@@ -70,7 +69,7 @@ namespace helpers {
         auto permutationsPart = permutations.allTensorsAlongDimension({-1});
 
         for (auto batch = 0; batch < permutationsPart.size(); ++batch) {
-            for (Nd4jLong row = 0; row < PPart[batch]->rows(); ++row) {
+            for (sd::LongType row = 0; row < PPart[batch]->rows(); ++row) {
                 PPart[batch]->r<T>(row, permutationsPart[batch]->t<int>(row)) = T(1.f);
             }
         }
@@ -81,7 +80,7 @@ namespace helpers {
         MmulHelper::matmul(&P, rightInput, &rightPermuted, 0, 0);
         ResultSet leftLowerPart = leftLower.allTensorsAlongDimension({-2, -1});
         for (auto i = 0; i < leftLowerPart.size(); i++) {
-            for (Nd4jLong r = 0; r < leftLowerPart[i]->rows(); r++)
+            for (sd::LongType r = 0; r < leftLowerPart[i]->rows(); r++)
                 leftLowerPart[i]->r<T>(r,r) = (T)1.f;
         }
         // stage 2: triangularSolveFunctor for Lower with given b
@@ -89,16 +88,16 @@ namespace helpers {
         // stage 3: triangularSolveFunctor for Upper with output of previous stage
         helpers::triangularSolveFunctor(context, &leftOutput, &rightOutput, false, false, output);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 // --------------------------------------------------------------------------------------------------------------------------------------- //
-    int solveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool const adjoint, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(leftInput->dataType(), return solveFunctor_, (context, leftInput, rightInput, adjoint, output), FLOAT_TYPES);
+    sd::Status solveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool const adjoint, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(leftInput->dataType(), return solveFunctor_, (context, leftInput, rightInput, adjoint, output), SD_FLOAT_TYPES);
     }
 // --------------------------------------------------------------------------------------------------------------------------------------- //
     void adjointMatrix(sd::LaunchContext* context, NDArray const* input, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), adjointMatrix_, (context, input, output), FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), adjointMatrix_, (context, input, output), SD_FLOAT_TYPES);
     }
 // --------------------------------------------------------------------------------------------------------------------------------------- //
 }

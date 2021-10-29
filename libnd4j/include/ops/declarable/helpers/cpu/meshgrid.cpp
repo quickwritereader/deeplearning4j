@@ -20,22 +20,21 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.04.2018
 //
 
-
 #include<ops/declarable/helpers/meshgrid.h>
 #include <array/ResultSet.h>
 #include <numeric>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
 
-ND4J_LOCAL void meshgrid(sd::LaunchContext * context, const std::vector<NDArray*>& inArrs, const std::vector<NDArray*>& outArrs, const bool swapFirst2Dims) {
+void meshgrid(sd::LaunchContext * context, const std::vector<NDArray*>& inArrs, const std::vector<NDArray*>& outArrs, const bool swapFirst2Dims) {
 
     const int rank = inArrs.size();
-    int inIndices[MAX_RANK];
+    int inIndices[SD_MAX_RANK];
     std::iota(inIndices, inIndices + rank, 0);
     if(swapFirst2Dims && rank > 1) {
         inIndices[0] = 1;

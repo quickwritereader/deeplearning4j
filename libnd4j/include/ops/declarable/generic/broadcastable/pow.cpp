@@ -40,12 +40,12 @@ namespace ops {
 
             auto tZ = BroadcastHelper::broadcastApply({scalar::Pow, pairwise::Pow, broadcast::Pow}, x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z) {
                 OVERWRITE_RESULT(tZ);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(Pow) {
@@ -64,7 +64,7 @@ namespace ops {
            auto dLdx = OUTPUT_VARIABLE(0);
            auto dLdy = OUTPUT_VARIABLE(1);
        
-           const Nd4jLong* dLdzShapeInfo = nullptr;
+           const sd::LongType* dLdzShapeInfo = nullptr;
            const bool areShapesBroadcastable = ShapeUtils::evalBroadcastShapeInfo(x->shapeInfo(), y->shapeInfo(), true, dLdzShapeInfo, block.getWorkspace());
            REQUIRE_TRUE(areShapesBroadcastable, 0, "POW_BP OP: the shapes of x %s"
                " and y %s are not suitable for broadcast !", 
@@ -100,7 +100,7 @@ namespace ops {
                dLdx->assign(temp.reduceAlongDimension(reduce::Sum, axesForX)); // dLdx = a*dL/dz
            }
        
-           return Status::OK();
+           return sd::Status::OK;
        }
        
        DECLARE_SHAPE_FN(Pow_bp) {
@@ -108,8 +108,8 @@ namespace ops {
            auto xShapeInfo = inputShape->at(0);
            auto yShapeInfo = inputShape->at(1);
        
-           Nd4jLong* dLdxShapeInfo = nullptr;
-           Nd4jLong* dLdyShapeInfo = nullptr;
+           sd::LongType* dLdxShapeInfo = nullptr;
+           sd::LongType* dLdyShapeInfo = nullptr;
        
            COPY_SHAPE(xShapeInfo, dLdxShapeInfo);
            COPY_SHAPE(yShapeInfo, dLdyShapeInfo);

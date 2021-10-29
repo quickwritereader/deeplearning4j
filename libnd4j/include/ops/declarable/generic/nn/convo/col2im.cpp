@@ -41,13 +41,13 @@ namespace sd {
             int padWidth = INT_ARG(3);
             int imgHeight = INT_ARG(4);
             int imgWidth = INT_ARG(5);
-            int dY = INT_ARG(6);			//Dilation in height/y dimension
-            int dX = INT_ARG(7);			//Dilation in width/x dimension
+            int dY = INT_ARG(6);            //Dilation in height/y dimension
+            int dX = INT_ARG(7);            //Dilation in width/x dimension
 
             LaunchContext* ctx = block.launchContext();
             helpers::col2im(*ctx, *x, *z, strideY, strideX, padHeight, padWidth, imgHeight, imgWidth, dY, dX);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(col2im) {
             auto inShape = inputShape->at(0);
@@ -61,12 +61,12 @@ namespace sd {
             int pX = INT_ARG(3);
             int inY = INT_ARG(4);
             int inX = INT_ARG(5);
-            int dY = INT_ARG(6);			//Dilation, height/y dimension
-            int dX = INT_ARG(7);			//Dilation, width/x dimension
+            int dY = INT_ARG(6);            //Dilation, height/y dimension
+            int dX = INT_ARG(7);            //Dilation, width/x dimension
             bool isSameMode = INT_ARG(8) > 0;
 
-            Nd4jLong* zShape;
-            ALLOCATE(zShape, block.getWorkspace(), shape::shapeInfoLength(4), Nd4jLong);
+            sd::LongType* zShape;
+            ALLOCATE(zShape, block.getWorkspace(), shape::shapeInfoLength(4), sd::LongType);
 
             zShape[0] = 4;
             zShape[1] = bS;

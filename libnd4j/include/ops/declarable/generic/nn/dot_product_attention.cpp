@@ -103,7 +103,7 @@ namespace ops  {
             delete weights;
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -204,7 +204,7 @@ namespace ops  {
 
         mmul_bp.execute({keys, queries, &dLds}, std::vector<NDArray*>{dLdk, dLdq}, {}, {1}, {});
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(dot_product_attention_bp) {
@@ -213,11 +213,11 @@ namespace ops  {
     }
 
     DECLARE_SHAPE_FN(dot_product_attention_bp) {
-        Nd4jLong *dLdq_shape;
+        sd::LongType *dLdq_shape;
         COPY_SHAPE(inputShape->at(0), dLdq_shape);
-        Nd4jLong *dLdk_shape;
+        sd::LongType *dLdk_shape;
         COPY_SHAPE(inputShape->at(1), dLdk_shape);
-        Nd4jLong *dLdv_shape;
+        sd::LongType *dLdv_shape;
         COPY_SHAPE(inputShape->at(2), dLdv_shape);
 
         return SHAPELIST(CONSTANT(dLdq_shape), CONSTANT(dLdk_shape), CONSTANT(dLdv_shape));

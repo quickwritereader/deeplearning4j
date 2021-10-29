@@ -39,7 +39,7 @@ namespace sd {
             int width;
             int height;
             bool alignCorners = false; // - default value
-            if (output->isEmpty()) return Status::OK();
+            if (output->isEmpty()) return sd::Status::OK;
             if (block.width() > 1) {
                 auto newImageSize = INPUT_VARIABLE(1);
                 REQUIRE_TRUE(newImageSize->lengthOf() == 2, 0, "resize_nearest_neighbor: Resize params is a pair of values, not %i.", newImageSize->lengthOf());
@@ -82,7 +82,7 @@ namespace sd {
             auto shapeList = SHAPELIST();
             auto in = inputShape->at(0);
             auto inRank = shape::rank(in);
-            Nd4jLong* outputShape;
+            sd::LongType* outputShape;
 
             REQUIRE_TRUE(inRank == 4 || inRank == 3, 0, "resize_nearest_neighbor: input image should be 4D "
                                                         "tensor, but input has rank %i",
@@ -103,7 +103,7 @@ namespace sd {
                 height = INT_ARG(1);
             }
 
-            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), Nd4jLong);
+            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), sd::LongType);
             outputShape[0] = inRank;
             if (inRank == 4) {
                 outputShape[1] = in[1];

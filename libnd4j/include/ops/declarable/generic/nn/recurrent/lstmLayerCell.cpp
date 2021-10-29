@@ -85,7 +85,7 @@ CUSTOM_OP_IMPL(lstmLayerCell, 5, 2, false, 1, 3) {
     const auto cellActHasBeta  = cellAct == 3 || cellAct == 6;
     const auto outActHasBeta   = outAct  == 3 || outAct  == 6;
 
-    uint count = 1;
+    sd::Unsigned count = 1;
     const auto cellClip = T_ARG(0);                                     // cell clipping value, if it = 0 then do not apply clipping
     const auto gateAlpha = gateActHasAlpha ? T_ARG(count++) : 0;
     const auto gateBeta  = gateActHasBeta  ? T_ARG(count++) : 0;
@@ -109,9 +109,9 @@ CUSTOM_OP_IMPL(lstmLayerCell, 5, 2, false, 1, 3) {
     auto c = OUTPUT_VARIABLE(1);
 
     // evaluate dimensions
-    const Nd4jLong bS   = x->rankOf() == 1 ? 0 : x->sizeAt(0);
-    const Nd4jLong nIn  = x->sizeAt(-1);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType bS   = x->rankOf() == 1 ? 0 : x->sizeAt(0);
+    const sd::LongType nIn  = x->sizeAt(-1);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     // inputs validations
     // Wx validation
@@ -121,7 +121,7 @@ CUSTOM_OP_IMPL(lstmLayerCell, 5, 2, false, 1, 3) {
     if(Wr->rankOf() != 2 || Wr->sizeAt(0) != nOut || Wr->sizeAt(1) != 4*nOut)
         REQUIRE_TRUE(false, 0, "LSTM_LAYER_CELL operation: wrong shape of recurrent weights, expected is %s, but got %s instead !", ShapeUtils::shapeAsString({nOut, 4*nOut}).c_str(), ShapeUtils::shapeAsString(Wr).c_str());
     // initial output/cell validation
-    std::vector<Nd4jLong> exphIcIShape = x->rankOf() == 1 ? std::vector<Nd4jLong>{nOut} : std::vector<Nd4jLong>{bS, nOut};
+    std::vector<sd::LongType> exphIcIShape = x->rankOf() == 1 ? std::vector<sd::LongType>{nOut} : std::vector<sd::LongType>{bS, nOut};
     REQUIRE_TRUE(hI->isSameShape(exphIcIShape), 0, "LSTM_LAYER_CELL operation: wrong shape of initial output, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(exphIcIShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(cI->isSameShape(exphIcIShape), 0, "LSTM_LAYER_CELL operation: wrong shape of initial cell state, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(exphIcIShape).c_str(), ShapeUtils::shapeAsString(cI).c_str());
     // biases validation
@@ -138,7 +138,7 @@ CUSTOM_OP_IMPL(lstmLayerCell, 5, 2, false, 1, 3) {
 
     helpers::lstmLayerCell(x, Wx, Wr, b, hI, cI, Wp, params, h, c);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmLayerCell) {
@@ -152,7 +152,7 @@ DECLARE_SHAPE_FN(lstmLayerCell) {
 
     const auto hasBiases  = B_ARG(0);   // indicates whether biases array is provided
 
-    uint count = hasBiases ? 4 : 3;
+    sd::Unsigned count = hasBiases ? 4 : 3;
     const auto hI = INPUT_VARIABLE(count++);        // initial output
     const auto cI = INPUT_VARIABLE(count);          // initial cell state
 
@@ -222,7 +222,7 @@ CUSTOM_OP_IMPL(lstmLayerCellBp, 7, 5, false, 1, 3) {
     const auto cellActHasBeta  = cellAct == 3 || cellAct == 6;
     const auto outActHasBeta   = outAct  == 3 || outAct  == 6;
 
-    uint count = 1;
+    sd::Unsigned count = 1;
     const auto cellClip = T_ARG(0);                                     // cell clipping value, if it = 0 then do not apply clipping
     const auto gateAlpha = gateActHasAlpha ? T_ARG(count++) : 0;
     const auto gateBeta  = gateActHasBeta  ? T_ARG(count++) : 0;
@@ -253,9 +253,9 @@ CUSTOM_OP_IMPL(lstmLayerCellBp, 7, 5, false, 1, 3) {
     auto dLdWp = hasPH ? OUTPUT_VARIABLE(count) : nullptr;
 
     // evaluate dimensions
-    const Nd4jLong bS   = x->rankOf() == 1 ? 0 : x->sizeAt(0);
-    const Nd4jLong nIn  = x->sizeAt(-1);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType bS   = x->rankOf() == 1 ? 0 : x->sizeAt(0);
+    const sd::LongType nIn  = x->sizeAt(-1);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     // inputs validations
     // Wx validation
@@ -265,7 +265,7 @@ CUSTOM_OP_IMPL(lstmLayerCellBp, 7, 5, false, 1, 3) {
     if(Wr->rankOf() != 2 || Wr->sizeAt(0) != nOut || Wr->sizeAt(1) != 4*nOut)
         REQUIRE_TRUE(false, 0, "LSTM_LAYER_CELL_BP operation: wrong shape of recurrent weights, expected is %s, but got %s instead !", ShapeUtils::shapeAsString({nOut, 4*nOut}).c_str(), ShapeUtils::shapeAsString(Wr).c_str());
     // initial output/cell validation
-    std::vector<Nd4jLong> exphIcIShape = x->rankOf() == 1 ? std::vector<Nd4jLong>{nOut} : std::vector<Nd4jLong>{bS, nOut};
+    std::vector<sd::LongType> exphIcIShape = x->rankOf() == 1 ? std::vector<sd::LongType>{nOut} : std::vector<sd::LongType>{bS, nOut};
     REQUIRE_TRUE(hI->isSameShape(exphIcIShape), 0, "LSTM_LAYER_CELL_BP operation: wrong shape of initial output, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(exphIcIShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(cI->isSameShape(exphIcIShape), 0, "LSTM_LAYER_CELL_BP operation: wrong shape of initial cell state, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(exphIcIShape).c_str(), ShapeUtils::shapeAsString(cI).c_str());
     REQUIRE_TRUE(dLdh->isSameShape(exphIcIShape), 0, "LSTM_LAYER_CELL_BP operation: wrong shape of dLdh gradient, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(exphIcIShape).c_str(), ShapeUtils::shapeAsString(dLdh).c_str());
@@ -286,7 +286,7 @@ CUSTOM_OP_IMPL(lstmLayerCellBp, 7, 5, false, 1, 3) {
                                  static_cast<float>(cellAct), static_cast<float>(cellAlpha), static_cast<float>(cellBeta),
                                  static_cast<float>(outAct), static_cast<float>(outAlpha), static_cast<float>(outBeta)};
 
-    std::vector<Nd4jLong> zShape = x->rankOf() == 1 ? std::vector<Nd4jLong>({4*nOut}) : std::vector<Nd4jLong>({bS, 4*nOut});
+    std::vector<sd::LongType> zShape = x->rankOf() == 1 ? std::vector<sd::LongType>({4*nOut}) : std::vector<sd::LongType>({bS, 4*nOut});
 
     NDArray z(x->ordering(), zShape, x->dataType(), block.launchContext());
     NDArray a = z.ulike();
@@ -297,7 +297,7 @@ CUSTOM_OP_IMPL(lstmLayerCellBp, 7, 5, false, 1, 3) {
 
     helpers::lstmLayerCellBp(x, Wx, Wr, b, hI, cI, Wp, dLdh, nullptr, nullptr, &z, &a, &c, params, dLdx, dLdWx, dLdWr, dLdhI, dLdcI, dLdb, dLdWp);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmLayerCellBp) {
@@ -312,7 +312,7 @@ DECLARE_SHAPE_FN(lstmLayerCellBp) {
     const auto hasBiases  = B_ARG(0);   // indicates whether biases array is provided
     const auto hasPH      = B_ARG(1);   // indicates whether peephole connections are present
 
-    uint count = 3;
+    sd::Unsigned count = 3;
     const auto x  = INPUT_VARIABLE(0);                              // input
     const auto Wx = INPUT_VARIABLE(1);                              // input weights
     const auto Wr = INPUT_VARIABLE(2);                              // recurrent weights

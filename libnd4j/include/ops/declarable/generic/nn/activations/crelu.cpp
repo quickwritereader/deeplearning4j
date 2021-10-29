@@ -47,7 +47,7 @@ namespace sd {
 
             STORE_RESULT(z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(crelu) {
@@ -58,7 +58,7 @@ namespace sd {
 
         DECLARE_SHAPE_FN(crelu) {
             auto inShape = inputShape->at(0);
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             for (int e = 0; e < shape::rank(inShape); e++)
                 shape.emplace_back(shape::shapeOf(inShape)[e]);
 
@@ -76,7 +76,7 @@ namespace sd {
             // at first step we build fwd activation
             sd::ops::crelu op;
             auto tmpResult = op.evaluate({input});
-            if (tmpResult.status() != ND4J_STATUS_OK)
+            if (tmpResult.status() != sd::Status::OK)
                 return tmpResult.status();
 
             auto actv = tmpResult.at(0);
@@ -87,7 +87,7 @@ namespace sd {
             // now we split updated array into 2 chunks along last dimension
             sd::ops::concat_bp opc;
             auto dec = opc.evaluate({input, input, actv}, {-1});
-            if (dec.status() != ND4J_STATUS_OK)
+            if (dec.status() != sd::Status::OK)
                 return dec.status();
 
             // and now we subtract two parts of epsilons and pass result out
@@ -96,7 +96,7 @@ namespace sd {
 
             pos->applyPairwiseTransform(sd::pairwise::Subtract, *neg, *epsilon);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(crelu_bp) {

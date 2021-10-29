@@ -22,7 +22,6 @@
  //  @author Oleg Semeniv <oleg.semeniv@gmail.com>
  //
  //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
@@ -273,7 +272,7 @@ namespace sd {
                 auto z = OUTPUT_VARIABLE(0);
 
                 if (x->isEmpty() || w->isEmpty() || b->isEmpty())
-                    return Status::OK();
+                    return sd::Status::OK;
 
                 const int xRank = x->rankOf();
                 const int wRank = w->rankOf();
@@ -291,7 +290,7 @@ namespace sd {
                 // mkldnnInerPorductss
                 xwPlusBiasMKLDNN(x, w, b, z, bShouldTransp);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(xw_plus_b, ENGINE_CPU) {
@@ -343,7 +342,7 @@ namespace sd {
                 auto dLdb = OUTPUT_VARIABLE(2);
 
                 if (x->isEmpty() || w->isEmpty() || b->isEmpty() || dLdz->isEmpty())
-                    return Status::OK();
+                    return sd::Status::OK;
 
                 const int xRank = x->rankOf();
                 const int wRank = w->rankOf();
@@ -359,7 +358,7 @@ namespace sd {
 
                 xwPlusBiasBp(x, w, b, dLdz, dLdx, dLdw, dLdb, bShouldTransp);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(xw_plus_b_bp, ENGINE_CPU) {

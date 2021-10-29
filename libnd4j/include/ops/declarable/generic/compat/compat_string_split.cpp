@@ -48,7 +48,7 @@ namespace sd {
             auto outputLength = StringUtils::byteLength(*input);
 
             uint64_t ss = 0L;
-            Nd4jLong ic = 0L;
+            sd::LongType ic = 0L;
             // loop through each string within tensor
             for (auto e = 0L; e < input->lengthOf(); e++) {
                 // now we should map substring to indices
@@ -82,7 +82,7 @@ namespace sd {
             }
 
             // now once we have all strings in single vector time to fill
-            auto tmp = NDArrayFactory::string({ (Nd4jLong)strings.size() }, strings, input->dataType(), block.launchContext());
+            auto tmp = NDArrayFactory::string({ (sd::LongType)strings.size() }, strings, input->dataType(), block.launchContext());
             auto blen = StringUtils::byteLength(tmp) + ShapeUtils::stringBufferHeaderRequirements(strings.size());
 
             // for CUDA mostly
@@ -99,7 +99,7 @@ namespace sd {
             values->dataBuffer()->writePrimary();
             values->dataBuffer()->readSpecial();
 
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_SHAPE_FN(compat_string_split) {

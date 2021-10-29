@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SESSIONLOCALSTORAGE_H
 #define LIBND4J_SESSIONLOCALSTORAGE_H
-
 #include <thread>
 #include <unordered_map>
 #include <map>
@@ -33,30 +32,30 @@
 
 namespace sd{
     namespace graph {
-        class ND4J_EXPORT SessionLocalStorage {
+        class SD_LIB_EXPORT SessionLocalStorage {
         protected:
-            std::atomic<Nd4jLong> _sessionCounter;
-            MAP_IMPL<Nd4jLong, Nd4jLong> _threadSession;
-            MAP_IMPL<Nd4jLong, VariableSpace*> _threadVariableSpace;
+            std::atomic<sd::LongType> _sessionCounter;
+            SD_MAP_IMPL<sd::LongType, sd::LongType> _threadSession;
+            SD_MAP_IMPL<sd::LongType, VariableSpace*> _threadVariableSpace;
 
             VariableSpace* _variableSpace;
             Stash* _stash;
 
             std::mutex _mutex;
 
-            Nd4jLong getSessionId();
-            Nd4jLong getThreadId();
+            sd::LongType getSessionId();
+            sd::LongType getThreadId();
         public:
             SessionLocalStorage(VariableSpace* variableSpace = nullptr, Stash* stash = nullptr);
 
             ~SessionLocalStorage();
 
             VariableSpace* localVariableSpace();
-            VariableSpace* localVariableSpace(Nd4jLong sessionId);
+            VariableSpace* localVariableSpace(sd::LongType sessionId);
 
 
-            Nd4jLong startSession();
-            void endSession(Nd4jLong sessionId);
+            sd::LongType startSession();
+            void endSession(sd::LongType sessionId);
             void endSession();
 
             int numberOfSessions();

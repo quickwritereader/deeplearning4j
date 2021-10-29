@@ -22,7 +22,6 @@
 
 #ifndef SD_BROADCASTABLEBOOLOP_H
 #define SD_BROADCASTABLEBOOLOP_H
-
 #include <graph/Context.h>
 #include "OpDescriptor.h"
 #include "DeclarableOp.h"
@@ -30,9 +29,9 @@
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT BroadcastableBoolOp : public DeclarableCustomOp{
+        class SD_LIB_EXPORT BroadcastableBoolOp : public DeclarableCustomOp{
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override = 0;
+            sd::Status validateAndExecute(Context& block) override = 0;
         public:
             BroadcastableBoolOp(const char *name, int numTArgs, int numIArgs);
 

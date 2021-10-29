@@ -57,7 +57,7 @@ namespace sd {
                                                                    "should be the same, but %lld and %lld occured.",
                                                                    images->sizeAt(0), boxes->sizeAt(0));
             helpers::drawBoundingBoxesFunctor(block.launchContext(), images, boxes, colors, output);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(draw_bounding_boxes) {

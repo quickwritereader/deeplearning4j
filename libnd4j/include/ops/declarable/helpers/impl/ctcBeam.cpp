@@ -18,7 +18,6 @@
 //
 // @author AbdelRauf
 //
-
 #include <vector>
 #include <limits>
 #include <algorithm>
@@ -319,13 +318,13 @@ static bool compare_beam_prob(const BeamEntry<T, U>& i1, const BeamEntry<T, U>& 
 
 
 template <typename T, typename U>
-FORCEINLINE T pr(const int c, const BeamProb<T>& beam_prob, const SequenceNode<U>* seq, const T prob)
+SD_INLINE T pr(const int c, const BeamProb<T>& beam_prob, const SequenceNode<U>* seq, const T prob)
 {
     return seq->value == c ? beam_prob.blank + prob : beam_prob.total + prob;
 }
 
 template<bool HasElementStride = false, typename Type, typename IndexType>
- void inner_beam_search(const Type* log_p, const uint64_t inc_p, IndexType* result_sequence, const uint64_t inc_res_seq,
+void inner_beam_search(const Type* log_p, const uint64_t inc_p, IndexType* result_sequence, const uint64_t inc_res_seq, 
                        const uint64_t max_len_t, Type* result_prob, IndexType* result_seq_length, uint64_t len_t,
                        const uint64_t len_c, const int blank_index, int beam_width, int nbest_len, bool normalize_logits, const uint64_t element_stride = 1L)
 {
@@ -616,7 +615,7 @@ template<bool HasElementStride = false, typename Type, typename IndexType>
 }
 
 template<typename Type, typename IndexType = int>
- void
+void
 beamSearch_(const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width, int nbest_len, bool normalize_logits )
 {
 
@@ -710,12 +709,12 @@ beamSearch_(const NDArray& logit, const NDArray& sequence_length, NDArray& resul
     return;
 }
 
- void beamSearch(const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits = true){
+void beamSearch(const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits = true){
 
-    BUILD_DOUBLE_SELECTOR(logit.dataType(), result_sequences.dataType(), beamSearch_, (logit, sequence_length, result_sequences, result_probs, result_sequences_length, blank_index, beam_width , nbest_len, normalize_logits), FLOAT_TYPES, INDEXING_TYPES);
+    BUILD_DOUBLE_SELECTOR(logit.dataType(), result_sequences.dataType(), beamSearch_, (logit, sequence_length, result_sequences, result_probs, result_sequences_length, blank_index, beam_width , nbest_len, normalize_logits), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
 }
 
 
-BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL void beamSearch_, (const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits), FLOAT_TYPES, INDEXING_TYPES);
+BUILD_DOUBLE_TEMPLATE(template void beamSearch_, (const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
 
 }}}

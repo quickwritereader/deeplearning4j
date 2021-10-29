@@ -19,7 +19,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <helpers/PointersManager.h>
@@ -33,15 +32,15 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL __global__ void nesterovsUpdaterCuda(const void* vx, const Nd4jLong* xShapeInfo, const void* vin, const Nd4jLong* inShapeInfo, 
-                                     void* vz, const Nd4jLong* zShapeInfo, void* vst, const Nd4jLong* stShapeInfo, const T lr, const T momentum) {
+SD_KERNEL void nesterovsUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vin, const sd::LongType* inShapeInfo, 
+                                     void* vz, const sd::LongType* zShapeInfo, void* vst, const sd::LongType* stShapeInfo, const T lr, const T momentum) {
 
     const auto grad = reinterpret_cast<const T*>(vx);
     const auto init = reinterpret_cast<const T*>(vin);
     auto up = reinterpret_cast<T*>(vz);
     auto st = reinterpret_cast<T*>(vst);
 
-    __shared__ Nd4jLong xLen;
+    __shared__ sd::LongType xLen;
     __shared__ T momentumT;
     __shared__ bool bEWS, bOrdering, bXZsame, bXInSame, bXStSame;
 
@@ -60,9 +59,9 @@ ND4J_LOCAL __global__ void nesterovsUpdaterCuda(const void* vx, const Nd4jLong* 
     }
     __syncthreads();
 
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
     
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
 
         auto xOffset = i, zOffset = i, initOffset = i, stOffset = i;
 
@@ -83,9 +82,9 @@ ND4J_LOCAL __global__ void nesterovsUpdaterCuda(const void* vx, const Nd4jLong* 
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL linkage void nesterovsUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, 
-                                          const void* vx, const Nd4jLong* xShapeInfo, const void* vin, const Nd4jLong* inShapeInfo, 
-                                          void* vz, const Nd4jLong* zShapeInfo, void* vst, const Nd4jLong* stShapeInfo,
+void nesterovsUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, 
+                                          const void* vx, const sd::LongType* xShapeInfo, const void* vin, const sd::LongType* inShapeInfo, 
+                                          void* vz, const sd::LongType* zShapeInfo, void* vst, const sd::LongType* stShapeInfo,
                                           const double dLr, const double dMomentum) {
     
      const T lr = static_cast<T>(dLr);
@@ -95,12 +94,12 @@ ND4J_LOCAL linkage void nesterovsUpdaterCudaLauncher(const int blocksPerGrid, co
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, 
+void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, 
                       NDArray& update, NDArray& stateV, const double dLr, const double dMomentum) {
 
     PointersManager manager(context, "nesterovsUpdater");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
     NDArray::prepareSpecialUse({ &update, &stateV }, { &gradient, &initState });
@@ -108,7 +107,7 @@ ND4J_LOCAL void updaterNesterovs(sd::LaunchContext* context, const NDArray& grad
         context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
         initState.specialBuffer(), initState.specialShapeInfo(),
         update.specialBuffer(), update.specialShapeInfo(),
-        stateV.specialBuffer(), stateV.specialShapeInfo(), dLr, dMomentum), FLOAT_TYPES);
+        stateV.specialBuffer(), stateV.specialShapeInfo(), dLr, dMomentum), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({ &update, &stateV }, { &gradient, &initState });
 
     manager.synchronize();

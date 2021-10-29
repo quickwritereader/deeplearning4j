@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/max_pooling.h>
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -74,8 +73,8 @@ namespace helpers {
 
     }
 
-    ND4J_LOCAL void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), maxPoolingFunctor_, (block, input, values, params, indices), LIBND4J_TYPES);
+    void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), maxPoolingFunctor_, (block, input, values, params, indices), SD_COMMON_TYPES);
     }
 
 }

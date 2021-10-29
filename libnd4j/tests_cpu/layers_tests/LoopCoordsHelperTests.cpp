@@ -19,7 +19,6 @@
  //
  // @author Abdelrauf
  //
-
 #include "testlayers.h"
 #include <helpers/LoopsCoordsHelper.h>
 #include <type_traits>
@@ -32,35 +31,33 @@ public:
 
 
 template<size_t Rank, size_t rankIndex = 0, bool Last_Index_Faster = true>
-FORCEINLINE
+SD_INLINE
 typename std::enable_if<(Rank - 1 == rankIndex), bool>::type
-eq_strides(CoordsState<Rank - 1>& cbs, const Nd4jLong* strides) {
+eq_strides(CoordsState<Rank - 1>& cbs, const sd::LongType* strides) {
     return STRIDE(cbs, rankIndex) == strides[rankIndex];
 }
 
 template<size_t Rank, size_t rankIndex = 0>
-FORCEINLINE
+SD_INLINE
 typename std::enable_if<(Rank - 1 != rankIndex), bool>::type
-eq_strides(CoordsState<Rank - 1>& cbs, const Nd4jLong* strides) {
+eq_strides(CoordsState<Rank - 1>& cbs, const sd::LongType* strides) {
     return STRIDE(cbs, rankIndex) == strides[rankIndex] && eq_strides<Rank, rankIndex + 1>(cbs, strides);
 }
 
 template<size_t Rank, size_t rankIndex = 0, bool Last_Index_Faster = true>
-FORCEINLINE
+SD_INLINE
 typename std::enable_if<(Rank - 1 == rankIndex), bool>::type
-eq_zip_strides(ZipCoordsState<Rank - 1>& cbs, const Nd4jLong* strides1, const Nd4jLong* strides2) {
+eq_zip_strides(ZipCoordsState<Rank - 1>& cbs, const sd::LongType* strides1, const sd::LongType* strides2) {
     return ZIP_STRIDE1(cbs, rankIndex) == strides1[rankIndex] && ZIP_STRIDE2(cbs, rankIndex) == strides2[rankIndex];
 }
 
 template<size_t Rank, size_t rankIndex = 0>
-FORCEINLINE
+SD_INLINE
 typename std::enable_if<(Rank - 1 != rankIndex), bool>::type
-eq_zip_strides(ZipCoordsState<Rank - 1>& cbs, const Nd4jLong* strides1, const Nd4jLong* strides2) {
+eq_zip_strides(ZipCoordsState<Rank - 1>& cbs, const sd::LongType* strides1, const sd::LongType* strides2) {
     return ZIP_STRIDE1(cbs, rankIndex) == strides1[rankIndex] && ZIP_STRIDE2(cbs, rankIndex) == strides2[rankIndex]
         && eq_zip_strides<Rank, rankIndex + 1>(cbs, strides1, strides2);
 }
-
- 
 
 
 TEST_F(LoopCoordsHelper, Init_Tests) {
@@ -68,13 +65,13 @@ TEST_F(LoopCoordsHelper, Init_Tests) {
     constexpr size_t test_Index = 131;
     constexpr size_t Rank = 5;
 
-    Nd4jLong shape[Rank] = { 3, 5 ,7, 8, 9};
-    Nd4jLong multiply_st[] = { 2,3,3,5,6,7,9,3 };
-    Nd4jLong strides_c[Rank]  ;
-    Nd4jLong strides_f[Rank];
+    sd::LongType shape[Rank] = { 3, 5 ,7, 8, 9};
+    sd::LongType multiply_st[] = { 2,3,3,5,6,7,9,3 };
+    sd::LongType strides_c[Rank]  ;
+    sd::LongType strides_f[Rank];
 
-    Nd4jLong coords[Rank];
-    Nd4jLong coords_f[Rank];
+    sd::LongType coords[Rank];
+    sd::LongType coords_f[Rank];
 
     strides_f[0] = multiply_st[0] * shape[0];
     strides_c[Rank-1] = multiply_st[Rank-1] * shape[Rank-1];
@@ -133,17 +130,17 @@ TEST_F(LoopCoordsHelper, Increment_Use_Tests) {
 
     constexpr size_t Rank = 4;
 
-    Nd4jLong shape[Rank] = { 3, 5 ,7, 8 };
-    Nd4jLong multiply_st[] = { 2,3,3,5,6,7,9,3 };
-    Nd4jLong strides_c[Rank];
-    Nd4jLong strides_f[Rank];
+    sd::LongType shape[Rank] = { 3, 5 ,7, 8 };
+    sd::LongType multiply_st[] = { 2,3,3,5,6,7,9,3 };
+    sd::LongType strides_c[Rank];
+    sd::LongType strides_f[Rank];
 
-    Nd4jLong coords[Rank] = {};
-    Nd4jLong coords_f[Rank] = {};
-    Nd4jLong coords2[Rank] = {};
-    Nd4jLong coords2_f[Rank] = {};
-    Nd4jLong zcoords2[Rank] = {};
-    Nd4jLong zcoords2_f[Rank] = {};
+    sd::LongType coords[Rank] = {};
+    sd::LongType coords_f[Rank] = {};
+    sd::LongType coords2[Rank] = {};
+    sd::LongType coords2_f[Rank] = {};
+    sd::LongType zcoords2[Rank] = {};
+    sd::LongType zcoords2_f[Rank] = {};
 
     strides_f[0] = multiply_st[0] * shape[0];
     strides_c[Rank - 1] = multiply_st[Rank - 1] * shape[Rank - 1];

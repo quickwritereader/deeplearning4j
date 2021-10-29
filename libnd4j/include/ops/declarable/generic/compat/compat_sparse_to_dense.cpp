@@ -41,7 +41,7 @@ namespace sd {
 
             sd::ops::helpers::compat_sparse_to_dense(*values, *indices, def, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_SHAPE_FN(compat_sparse_to_dense) {
@@ -58,7 +58,7 @@ namespace sd {
             auto dtype = values->dataType();
 
             // basically output shape is defined by the type of input, and desired shape input
-            return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', shape->getBufferAsVector<Nd4jLong>()));
+            return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', shape->getBufferAsVector<sd::LongType>()));
         }
 
         DECLARE_TYPES(compat_sparse_to_dense) {

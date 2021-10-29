@@ -36,17 +36,17 @@ namespace ops {
 
         BROADCAST_CHECK_EMPTY(x,y,z);
 
-        const Nd4jLong* zShapeInfo = nullptr;
+        const sd::LongType* zShapeInfo = nullptr;
         const bool areShapesBroadcastable = ShapeUtils::evalBroadcastShapeInfo(x->shapeInfo(), y->shapeInfo(), true, zShapeInfo, block.getWorkspace());
         REQUIRE_TRUE(areShapesBroadcastable, 0, "MULTIPLY OP: the shapes of x %s and y %s are not suitable for broadcast !", ShapeUtils::shapeAsString(x).c_str(), ShapeUtils::shapeAsString(y).c_str());
 
         auto tZ = BroadcastHelper::broadcastApply(sd::BroadcastOpsTuple::Multiply(), x, y, z);
         if (tZ == nullptr)
-            return ND4J_STATUS_KERNEL_FAILURE;
+            return sd::Status::KERNEL_FAILURE;
         else if (tZ != z)
             throw std::runtime_error("multiply: result was replaced");
 
-        return Status::OK();
+        return sd::Status::OK;
     }
     DECLARE_SYN(Mul, multiply);
 
@@ -72,13 +72,13 @@ CUSTOM_OP_IMPL(multiply_bp, 3, 2, false, 0, 0) {
     auto dLdx = OUTPUT_VARIABLE(0);
     auto dLdy = OUTPUT_VARIABLE(1);
 
-    const Nd4jLong* dLdzShapeInfo = nullptr;
+    const sd::LongType* dLdzShapeInfo = nullptr;
     const bool areShapesBroadcastable = ShapeUtils::evalBroadcastShapeInfo(x->shapeInfo(), y->shapeInfo(), true, dLdzShapeInfo, block.getWorkspace());
     REQUIRE_TRUE(areShapesBroadcastable, 0, "MULTIPLY_BP OP: the shapes of x %s and y %s are not suitable for broadcast !", ShapeUtils::shapeAsString(x).c_str(), ShapeUtils::shapeAsString(y).c_str());
     REQUIRE_TRUE(shape::equalsSoft(dLdz->shapeInfo(), dLdzShapeInfo), 0, "MULTIPLY_BP OP: wrong shape of next epsilon array (dLdOut), expected is %s, but got %s instead !", ShapeUtils::shapeAsString(dLdzShapeInfo).c_str(), ShapeUtils::shapeAsString(dLdz).c_str());
 
-    const Nd4jLong xLen = x->lengthOf();
-    const Nd4jLong yLen = y->lengthOf();
+    const sd::LongType xLen = x->lengthOf();
+    const sd::LongType yLen = y->lengthOf();
 
     if(x->isScalar() && y->isScalar()) {    // both are scalars
         y->applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdx);
@@ -131,7 +131,7 @@ CUSTOM_OP_IMPL(multiply_bp, 3, 2, false, 0, 0) {
         dLdy->assign( (*x * *dLdz).reduceAlongDimension(reduce::Sum, axesForY) );
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(multiply_bp) {
@@ -139,8 +139,8 @@ DECLARE_SHAPE_FN(multiply_bp) {
     auto xShapeInfo    = inputShape->at(0);
     auto yShapeInfo    = inputShape->at(1);
 
-    Nd4jLong *dLdxShapeInfo = nullptr;
-    Nd4jLong *dLdyShapeInfo = nullptr;
+    sd::LongType *dLdxShapeInfo = nullptr;
+    sd::LongType *dLdyShapeInfo = nullptr;
 
     COPY_SHAPE(xShapeInfo, dLdxShapeInfo);
     COPY_SHAPE(yShapeInfo, dLdyShapeInfo);
@@ -218,7 +218,7 @@ DECLARE_SHAPE_FN(multiply_bp) {
                 delete preY;
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 */
 

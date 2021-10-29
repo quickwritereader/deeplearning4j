@@ -23,17 +23,6 @@
 #ifndef LIBND4J_FLOAT8_H
 #define LIBND4J_FLOAT8_H
 
-/*
-#ifdef __CUDACC__
-#define local_def __host__ __device__
-#elif _MSC_VER
-#define local_def
-#elif __clang__
-#define local_def
-#elif __GNUC__
-#define local_def
-#endif
-*/
 
 #include <system/op_boilerplate.h>
 
@@ -46,25 +35,25 @@ namespace sd {
 
     typedef __quarter quarter;
 
-    quarter _CUDA_HD FORCEINLINE cpu_float2quarter_rn(float f);
-    float _CUDA_HD FORCEINLINE  cpu_quarter2float(quarter b);
+    quarter SD_INLINE SD_HOST_DEVICE cpu_float2quarter_rn(float f);
+    float SD_INLINE SD_HOST_DEVICE  cpu_quarter2float(quarter b);
 
     struct float8 {
         quarter data;
 
-        _CUDA_HD FORCEINLINE float8();
+        SD_INLINE SD_HOST_DEVICE float8();
 
         template <class T>
-        _CUDA_HD FORCEINLINE float8(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE float8(const T& rhs);
 
         template <class T>
-        _CUDA_HD FORCEINLINE float8& operator=(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE float8& operator=(const T& rhs);
 
-        _CUDA_HD FORCEINLINE operator float() const;
+        SD_INLINE SD_HOST_DEVICE operator float() const;
 
-        _CUDA_HD FORCEINLINE void assign(double rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(double rhs);
 
-        _CUDA_HD FORCEINLINE void assign(float rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(float rhs);
     };
 
 
@@ -95,7 +84,6 @@ namespace sd {
 
         return *((float*)((void*)&temp));
     }
-
 
 
     quarter cpu_float2quarter_rn(float f)

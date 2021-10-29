@@ -19,12 +19,10 @@
  */
 
  // Created by Abdelrauf (rauf@konduit.ai) 2020
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h> 
 #include <ops/declarable/helpers/convolutions.h>
-
 
 #include "armcomputeUtils.h"
 
@@ -76,7 +74,7 @@ PLATFORM_IMPL(avgpool2d, ENGINE_CPU) {
     padBottom = (oH - 1) * sH - iH + kH - pH ; 
 
 #if 0
-    nd4j_printf("avgpool kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d exclude pad %d \n" , kH , kW , sH , sW  , pH 
+    sd_printf("avgpool kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d exclude pad %d \n" , kH , kW , sH , sW  , pH 
      , pW , dH , dW , paddingMode,isNCHW?1:0 ,excludePadding?1:0);
 #endif
     auto poolPad = arm_compute::PadStrideInfo(sW, sH, padLeft, padRight, padTop, padBottom, arm_compute::DimensionRoundingType::FLOOR);
@@ -86,7 +84,7 @@ PLATFORM_IMPL(avgpool2d, ENGINE_CPU) {
      
     pool.run(); // run function
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

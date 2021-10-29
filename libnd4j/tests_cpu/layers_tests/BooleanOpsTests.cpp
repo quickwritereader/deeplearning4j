@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.10.2017.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 
@@ -139,7 +138,7 @@ TEST_F(BooleanOpsTests, test_where_1) {
     sd::ops::choose op;
 
     auto result = op.evaluate({&x, &y}, {3});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 

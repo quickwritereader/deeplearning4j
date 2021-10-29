@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_VARIABLETESTS_H
 #define LIBND4J_VARIABLETESTS_H
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <graph/Variable.h>
@@ -174,7 +173,7 @@ TEST_F(VariableTests, Test_FlatVariableDataType_3) {
 TEST_F(VariableTests, Test_FlatVariableDataType_4) {
     flatbuffers::FlatBufferBuilder builder(1024);
     auto original = NDArrayFactory::create<float>('c', {5, 10});
-    std::vector<Nd4jLong> exp({5, 10});
+    std::vector<sd::LongType> exp({5, 10});
 
     auto vec = original.asByteVector();
 

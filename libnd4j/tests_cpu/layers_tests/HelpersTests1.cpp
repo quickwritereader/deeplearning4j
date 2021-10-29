@@ -17,7 +17,6 @@
  *  * SPDX-License-Identifier: Apache-2.0
  *  *****************************************************************************
  */
-
 #include "testlayers.h"
 #include <helpers/householder.h>
 #include <helpers/biDiagonalUp.h>
@@ -590,7 +589,7 @@ TEST_F(HelpersTests1, JacobiSVD_test2) {
 TEST_F(HelpersTests1, JacobiSVD_test3) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double, double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double, double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18,       1,     19,      -7,       1, -1.14919,-12.1206,3.59677, 4.34919,-4.24758, -1.94919, 11.7427,11.6698,-10.4444,-2.74919, -3,      -8,      8,      -2,       7, 16,      15,     -3,       7,       0});
 
@@ -603,7 +602,7 @@ TEST_F(HelpersTests1, JacobiSVD_test3) {
 TEST_F(HelpersTests1, JacobiSVD_test4) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double, double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double, double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18,       1,      19,     -7,       1, 1.94919, 4.92056,-8.79677,1.25081, 5.04758, 1.14919,-16.1427,-8.46976,11.2444,0.349193, -3,      -8,       8,     -2,       7, 16,      15,      -3,      7,       0});
 
@@ -616,7 +615,7 @@ TEST_F(HelpersTests1, JacobiSVD_test4) {
 TEST_F(HelpersTests1, JacobiSVD_test5) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double, double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double, double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18,      1,      19,      -7,       1, 2,    -18,     -13,      14,       2, 1.14919,6.32056,-4.59677,-1.14919, 3.44758, -3,     -8,       8,      -2,       7, 16,     15,      -3,       7,       0});
 
@@ -629,7 +628,7 @@ TEST_F(HelpersTests1, JacobiSVD_test5) {
 TEST_F(HelpersTests1, JacobiSVD_test6) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double, double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double, double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18,-14.5173,  4.5746,-7, 1, 2, 6.46976,-16.5427,14, 2, -2,-8.39677,-6.92056, 2,-6, -3,-7.79677,-4.59677,-2, 7, 16, 5.32379,  11.019, 7, 0});
 
@@ -642,7 +641,7 @@ TEST_F(HelpersTests1, JacobiSVD_test6) {
 TEST_F(HelpersTests1, JacobiSVD_test7) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double, double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double, double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18, 14.9173, 3.0254,-7, 1, 2,-13.6698,11.3427,14, 2, -2, 3.99677,10.1206, 2,-6, -3, 4.59677,7.79677,-2, 7, 16, 0.67621,-12.219, 7, 0});
 
@@ -655,7 +654,7 @@ TEST_F(HelpersTests1, JacobiSVD_test7) {
 TEST_F(HelpersTests1, JacobiSVD_test8) {
 
     auto matrix = NDArrayFactory::create<double>('c', {5,5}, {-18 ,1 ,19 ,-7 ,1 ,2 ,-18 ,-13 ,14 ,2 ,-2 ,-11 ,8 ,2 ,-6 ,-3 ,-8 ,8 ,-2 ,7 ,16 ,15 ,-3 ,7 ,0});
-    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::nd4j_sqrt<double, double>(0.6), -math::nd4j_sqrt<double,double>(0.6), 0.2});
+    auto rotation = NDArrayFactory::create<double>('c', {2,2}, {0.2, math::sd_sqrt<double, double>(0.6), -math::sd_sqrt<double,double>(0.6), 0.2});
 
     auto expected = NDArrayFactory::create<double>('c', {5,5}, {-18,  1, 18.5173,-7, 1, 2,-18,-12.6698,14, 2, -2,-11, 7.79677, 2,-6, -3, -8, 7.79677,-2, 7, 16, 15,-2.92379, 7, 0});
 
@@ -1021,8 +1020,8 @@ TEST_F(HelpersTests1, SVD_test10) {
     ops::helpers::SVD<double> svd(matrix3, 4, true, true, true, 't');
     svd.perturb(col0, diag, permut, singVals, shifts,  mus, zhat);
 
-    ASSERT_NEAR(expZhat.e<double>(1), zhat.e<double>(1), EPS);
-    ASSERT_NEAR(expZhat.e<double>(2), zhat.e<double>(2), EPS);
+    ASSERT_NEAR(expZhat.e<double>(1), zhat.e<double>(1), SD_EPSILON);
+    ASSERT_NEAR(expZhat.e<double>(2), zhat.e<double>(2), SD_EPSILON);
 }
 
 
@@ -1740,7 +1739,7 @@ TEST_F(HelpersTests1, OpArgsHolder_test3) {
     sd::ops::tile opFF;                                              // the kind of op doesn't matter, we simply check here whether op.execute() works with OpArgsHolder correctly
     auto results = opFF.execute(holderFF);
     auto tiled = results.at(0);
-    ASSERT_EQ(Status::OK(), results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(exp.isSameShape(tiled));
     ASSERT_TRUE(exp.equalsTo(tiled));
 
@@ -1748,7 +1747,7 @@ TEST_F(HelpersTests1, OpArgsHolder_test3) {
     sd::ops::tile_bp opBP;
     results = opBP.execute(holderBP);
     auto gradI = results.at(0);
-    ASSERT_EQ(Status::OK(), results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(gradIExp.isSameShape(gradI));
     ASSERT_TRUE(gradIExp.equalsTo(gradI));
 
@@ -2028,8 +2027,8 @@ TEST_F(HelpersTests1, logSoftMaxForVector_test4) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_1) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('f', {M,N}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     NDArray temp('f', {M,N,5}, {16,2,-6,7,2,-2,4,-7,6,4,4,6,-3,1,3,9,1,4,9,10,-10,-3,-8,7,-7,-7,6,9,7,-6,8,7,-3,-3,4,-2,5,-3,-3,4,6,-5,-1,7,-5,4,-10,-1,8,0,-7,4,-10,-7,-8,-9,2,9,7,9}, sd::DataType::DOUBLE);
@@ -2045,8 +2044,8 @@ TEST_F(HelpersTests1, mmulMxV_1) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_2) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('f', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});
@@ -2063,8 +2062,8 @@ TEST_F(HelpersTests1, mmulMxV_2) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_3) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('f', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});
@@ -2081,8 +2080,8 @@ TEST_F(HelpersTests1, mmulMxV_3) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_4) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('f', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});
@@ -2099,8 +2098,8 @@ TEST_F(HelpersTests1, mmulMxV_4) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_5) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('c', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});
@@ -2117,8 +2116,8 @@ TEST_F(HelpersTests1, mmulMxV_5) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_6) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('c', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});
@@ -2135,8 +2134,8 @@ TEST_F(HelpersTests1, mmulMxV_6) {
 //////////////////////////////////////////////////////////////////////////
 TEST_F(HelpersTests1, mmulMxV_7) {
 
-    const Nd4jLong M = 3;
-    const Nd4jLong N = 4;
+    const sd::LongType M = 3;
+    const sd::LongType N = 4;
 
     NDArray a('c', {N,M}, {1.2,1.1,1.0,0.9,0.8,0.7,0.5,0.4,0.3,0.2,0.1,0}, sd::DataType::DOUBLE);
     a.permutei({1,0});

@@ -41,7 +41,7 @@ namespace sd {
 
             helpers::maxPoolingFunctor(block.launchContext(), block, x, z, argI, indices);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(max_pool_with_argmax) {

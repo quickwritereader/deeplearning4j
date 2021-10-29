@@ -22,7 +22,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include <ops/declarable/helpers/sparse_to_dense.h>
 #include <helpers/StringUtils.h>
 #include <helpers/ShapeUtils.h>
@@ -31,12 +30,12 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename X, typename I>
-            static void fill_(const void *vvalues, const void *vindices, void *voutput, const Nd4jLong *zShapeInfo, uint8_t rank, uint64_t length) {
+            static void fill_(const void *vvalues, const void *vindices, void *voutput, const sd::LongType *zShapeInfo, uint8_t rank, uint64_t length) {
                 auto values = reinterpret_cast<const X*>(vvalues);
                 auto indices = reinterpret_cast<const I*>(vindices);
                 auto output = reinterpret_cast<X*>(voutput);
 
-                int coords[MAX_RANK];
+                int coords[SD_MAX_RANK];
                 uint64_t pos = 0;
                 for (uint64_t e = 0L; e < length; e++) {
                     // indices come in blocks
@@ -50,7 +49,7 @@ namespace sd {
 
             }
 
-             void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArray *def, NDArray &output) {
+            void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArray *def, NDArray &output) {
                 // make sure host buffer is updated
                 values.syncToHost();
                 indices.syncToHost();
@@ -72,20 +71,20 @@ namespace sd {
                     // now we make sure our output buffer can hold results
                     output.dataBuffer()->expand( bufferLength + headerLength);
 
-                    std::vector<Nd4jLong> outputCoords(rank);
-                    std::vector<Nd4jLong> valueCoords(rank);
+                    std::vector<sd::LongType> outputCoords(rank);
+                    std::vector<sd::LongType> valueCoords(rank);
 
-                    auto offsetsBuffer = output.bufferAsT<Nd4jLong>();
+                    auto offsetsBuffer = output.bufferAsT<sd::LongType>();
                     auto dataBuffer = reinterpret_cast<uint8_t*>(offsetsBuffer + output.lengthOf());
 
                     offsetsBuffer[0] = 0;
 
                     // getting initial value coords
                     for (int e = 0; e < rank; e++)
-                        valueCoords[e] = indices.e<Nd4jLong>(e);
+                        valueCoords[e] = indices.e<sd::LongType>(e);
 
                     // write results individually
-                    for (Nd4jLong e = 0; e < numElements; e++) {
+                    for (sd::LongType e = 0; e < numElements; e++) {
                         auto vIndex = shape::coords2index(output.shapeInfo(), valueCoords.data());
                         auto cLength = 0L;
                         std::string str;
@@ -118,7 +117,7 @@ namespace sd {
                     }
 
                     // write out values
-                    BUILD_DOUBLE_SELECTOR(values.dataType(), indices.dataType(), fill_, (values.buffer(), indices.buffer(), output.buffer(), output.shapeInfo(), rank, values.lengthOf()), LIBND4J_TYPES, INDEXING_TYPES);
+                    BUILD_DOUBLE_SELECTOR(values.dataType(), indices.dataType(), fill_, (values.buffer(), indices.buffer(), output.buffer(), output.shapeInfo(), rank, values.lengthOf()), SD_COMMON_TYPES, SD_INDEXING_TYPES);
                 }
                 // copy back to device, if there's any
                 output.syncToDevice();

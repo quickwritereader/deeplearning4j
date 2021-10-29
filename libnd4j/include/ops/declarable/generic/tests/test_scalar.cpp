@@ -34,12 +34,12 @@ namespace sd {
             double val = input->e<double>(0) + 2.0;
             output->p(0, val);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(test_scalar) {
-            Nd4jLong *newShape;
-            ALLOCATE(newShape, block.workspace(), shape::shapeInfoLength(2), Nd4jLong);
+            sd::LongType *newShape;
+            ALLOCATE(newShape, block.workspace(), shape::shapeInfoLength(2), sd::LongType);
 
             newShape[0] = 2;
             newShape[1] = 1;

@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com, created on 15.12.17.
 //  @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <types/types.h>
 #include <system/op_boilerplate.h>
 #include <loops/random.h>
@@ -34,10 +33,10 @@ namespace functions {
 
         template<typename X>
         template<typename OpClass>
-        void RandomFunction<X>::execTransform(Nd4jPointer state,
-                                              const void *vx, const Nd4jLong *xShapeInfo,
-                                              const void *vy, const Nd4jLong *yShapeInfo,
-                                              void *vz, const Nd4jLong *zShapeInfo,
+        void RandomFunction<X>::execTransform(sd::Pointer state,
+                                              const void *vx, const sd::LongType *xShapeInfo,
+                                              const void *vy, const sd::LongType *yShapeInfo,
+                                              void *vz, const sd::LongType *zShapeInfo,
                                               void *vextraArguments) {
 
             auto x = reinterpret_cast<const X *>(vx);
@@ -69,7 +68,7 @@ namespace functions {
                     samediff::Threads::parallel_for(func,  0, length, 1);
                 }
                 else{
-                    uint xShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
                     auto func = PRAGMA_THREADS_FOR {
@@ -85,8 +84,8 @@ namespace functions {
             }
             else if (shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo)) {
 
-                uint xShapeInfoCast[MAX_RANK];
-                uint zShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
 
@@ -103,8 +102,8 @@ namespace functions {
             }
             else if (shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
 
-                uint xShapeInfoCast[MAX_RANK];
-                uint yShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -121,8 +120,8 @@ namespace functions {
             }
             else if (shape::haveSameShapeAndStrides(yShapeInfo, zShapeInfo)) {
 
-                uint xShapeInfoCast[MAX_RANK];
-                uint yShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -139,9 +138,9 @@ namespace functions {
             }
             else {
 
-                uint xShapeInfoCast[MAX_RANK];
-                uint yShapeInfoCast[MAX_RANK];
-                uint zShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
                 const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
@@ -161,12 +160,11 @@ namespace functions {
         };
 
 
-
         template<typename X>
         template<typename OpClass>
-        void RandomFunction<X>::execTransform(Nd4jPointer state,
-                                              const void *vx, const Nd4jLong *xShapeInfo,
-                                              void *vz, const Nd4jLong *zShapeInfo,
+        void RandomFunction<X>::execTransform(sd::Pointer state,
+                                              const void *vx, const sd::LongType *xShapeInfo,
+                                              void *vz, const sd::LongType *zShapeInfo,
                                               void *vextraArguments) {
             auto x = reinterpret_cast<const X *>(vx);
             auto z = reinterpret_cast<X *>(vz);
@@ -174,7 +172,7 @@ namespace functions {
 
             auto length = shape::length(zShapeInfo);
 
-            uint xShapeInfoCast[MAX_RANK];
+            sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
             const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
             sd::graph::RandomGenerator* rng = reinterpret_cast<sd::graph::RandomGenerator*>(state);
@@ -205,7 +203,7 @@ namespace functions {
             }
             else {
 
-                uint zShapeInfoCast[MAX_RANK];
+                sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                 const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
 
                 auto func = PRAGMA_THREADS_FOR {
@@ -224,7 +222,7 @@ namespace functions {
 
         template<typename X>
         template<typename OpClass>
-        void RandomFunction<X>::execTransform(Nd4jPointer state, void *vz, const Nd4jLong  *zShapeInfo, void *vextraArguments) {
+        void RandomFunction<X>::execTransform(sd::Pointer state, void *vz, const sd::LongType  *zShapeInfo, void *vextraArguments) {
 
             auto z = reinterpret_cast<X *>(vz);
             auto extraArguments = reinterpret_cast<X *>(vextraArguments);
@@ -247,7 +245,7 @@ namespace functions {
             else{
                 sd::OmpLaunchHelper info(length);
 
-                uint zShapeInfoCast[MAX_RANK];
+                sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                 const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
 
                 auto func = PRAGMA_THREADS_FOR {
@@ -263,21 +261,21 @@ namespace functions {
         }
 
         template<typename X>
-        void RandomFunction<X>::execTransform(int opNum, Nd4jPointer state, const void *x, const Nd4jLong *xShapeInfo, void *z, const Nd4jLong *zShapeInfo, void *extraArguments) {
+        void RandomFunction<X>::execTransform(int opNum, sd::Pointer state, const void *x, const sd::LongType *xShapeInfo, void *z, const sd::LongType *zShapeInfo, void *extraArguments) {
             DISPATCH_BY_OPNUM_T(execTransform, PARAMS(state, x, xShapeInfo, z, zShapeInfo, extraArguments), RANDOM_OPS)
         }
 
         template<typename X>
-        void RandomFunction<X>::execTransform(int opNum, Nd4jPointer state, const void *x, const Nd4jLong *xShapeInfo, const void *y, const Nd4jLong *yShapeInfo, void *z, const Nd4jLong *zShapeInfo, void *extraArguments) {
+        void RandomFunction<X>::execTransform(int opNum, sd::Pointer state, const void *x, const sd::LongType *xShapeInfo, const void *y, const sd::LongType *yShapeInfo, void *z, const sd::LongType *zShapeInfo, void *extraArguments) {
             DISPATCH_BY_OPNUM_T(execTransform, PARAMS(state, x, xShapeInfo, y, yShapeInfo, z, zShapeInfo, extraArguments), RANDOM_OPS)
         }
 
         template<typename X>
-        void RandomFunction<X>::execTransform(int opNum, Nd4jPointer state, void *z, const Nd4jLong *zShapeInfo, void *extraArguments) {
+        void RandomFunction<X>::execTransform(int opNum, sd::Pointer state, void *z, const sd::LongType *zShapeInfo, void *extraArguments) {
             DISPATCH_BY_OPNUM_T(execTransform, PARAMS(state, z, zShapeInfo, extraArguments), RANDOM_OPS)
         }
 
 
-        //BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL RandomFunction, , FLOAT_TYPES);
+        //BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN RandomFunction, , SD_FLOAT_TYPES);
     }
 }

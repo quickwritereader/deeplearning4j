@@ -58,7 +58,7 @@ namespace ops {
         else
             helpers::_spaceTodepth(block.launchContext(), input->dup(), output, block_size, isNHWC);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
     
 
@@ -76,7 +76,7 @@ namespace ops {
         int oH = iH / block_size;
         int oW = iW / block_size;
         
-        std::array<Nd4jLong, 4> shape;
+        std::array<sd::LongType, 4> shape;
         if (isNHWC) 
             shape = {{bS, oH, oW, oD }};
         else 

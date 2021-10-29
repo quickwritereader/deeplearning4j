@@ -26,20 +26,18 @@
 
 #ifndef LIBND4J_RESULTSET_H
 #define LIBND4J_RESULTSET_H
-
 #include <vector>
 #include <graph/generated/result_generated.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
 
     class NDArray; // forward declaration of template class NDArray
 
-    class ND4J_EXPORT ResultSet {
+    class SD_LIB_EXPORT ResultSet {
     private:
         std::vector<sd::NDArray *> _content;
-        Nd4jStatus _status = ND4J_STATUS_OK;
+        sd::Status _status = sd::Status::OK;
         bool _removable = true;
 
         void delContent();
@@ -68,8 +66,8 @@ namespace sd {
         sd::NDArray* operator[](const unsigned long idx) const;
         void push_back(sd::NDArray* array);
 
-        Nd4jStatus status();
-        void setStatus(Nd4jStatus status);
+        sd::Status status();
+        void setStatus(sd::Status status);
         void purge();
         void setNonRemovable();
     };

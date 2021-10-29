@@ -20,12 +20,10 @@
 
  // Created by Abdelrauf 2020
 
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h> 
 #include <ops/declarable/helpers/convolutions.h>
-
 
 #include "armcomputeUtils.h"
 
@@ -74,7 +72,7 @@ PLATFORM_IMPL(maxpool2d, ENGINE_CPU) {
     padRight  = (oW - 1) * sW - iW + kW - pW ;
     padBottom = (oH - 1) * sH - iH + kH - pH ; 
 #if 0
-    nd4j_printf("avgpool kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d exclude pad %d \n" , kH , kW , sH , sW  , pH 
+    sd_printf("avgpool kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d exclude pad %d \n" , kH , kW , sH , sW  , pH 
      , pW , dH , dW , paddingMode,isNCHW?1:0 ,exclude_padding?1:0);
 #endif
 
@@ -86,7 +84,7 @@ PLATFORM_IMPL(maxpool2d, ENGINE_CPU) {
      
     pool.run(); // run function
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -111,7 +109,6 @@ PLATFORM_CHECK(maxpool2d, ENGINE_CPU) {
     req.logTheSuccess();
     return req;
 }
-
 
 
 }

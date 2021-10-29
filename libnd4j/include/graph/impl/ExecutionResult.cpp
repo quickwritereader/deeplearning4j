@@ -19,10 +19,8 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 #include <graph/ExecutionResult.h>
 
 namespace sd {
@@ -45,7 +43,7 @@ namespace sd {
                     delete v;
         }
 
-        Nd4jLong ExecutionResult::size() {
+        sd::LongType ExecutionResult::size() {
             return _variables.size();
         }
 

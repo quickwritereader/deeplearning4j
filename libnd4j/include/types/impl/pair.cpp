@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 24.01.18.
 //
-
 #include <types/pair.h>
 
 namespace sd {

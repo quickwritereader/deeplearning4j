@@ -32,9 +32,9 @@ namespace sd {
             auto y = INPUT_VARIABLE(1);
 
             if (x->e<float>(0) != y->e<float>(0))
-                return ND4J_STATUS_TRUE;
+                return sd::Status::TRUE;
             else
-                return ND4J_STATUS_FALSE;
+                return sd::Status::FALSE;
         }
         DECLARE_SYN(NotEquals, neq_scalar);
         DECLARE_SYN(notequals, neq_scalar);

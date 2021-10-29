@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_GRAPH_H
 #define LIBND4J_GRAPH_H
-
 #include <list>
 #include <algorithm>
 #include <unordered_map>
@@ -42,7 +41,7 @@
 namespace sd {
     namespace graph {
 
-        class ND4J_EXPORT Graph {
+        class SD_LIB_EXPORT Graph {
         protected:
             ExecutorConfiguration *_configuration;
             VariableSpace *_variableSpace;
@@ -53,10 +52,10 @@ namespace sd {
 
             // vector holds ID's of top nodes only
             std::vector<int > *_nodes;
-            MAP_IMPL<int, sd::graph::Node*> *_mapped;
+            SD_MAP_IMPL<int, sd::graph::Node*> *_mapped;
 
-            MAP_IMPL<int, std::vector<sd::graph::Node*> *> *_onion;
-            MAP_IMPL<int, sd::graph::Node*> _unmapped;
+            SD_MAP_IMPL<int, std::vector<sd::graph::Node*> *> *_onion;
+            SD_MAP_IMPL<int, sd::graph::Node*> _unmapped;
             std::vector<int> _unmappedMap; // macOS?
 
             std::mutex _mutexPreprocessing;
@@ -66,11 +65,11 @@ namespace sd {
             std::vector<int> _autos;
 
 
-            MAP_IMPL<int, Scope*> _mappedScopes;
+            SD_MAP_IMPL<int, Scope*> _mappedScopes;
             std::vector<Scope*> _scopes;
 
 ////////////////////////////////////////
-            Nd4jStatus validateNode(sd::graph::Node *node);
+            sd::Status validateNode(sd::graph::Node *node);
 
             void expandOnion(int newLayer);
 
@@ -91,13 +90,13 @@ namespace sd {
             void toposortNodes();
 
             // method that'll print out graph
-            Nd4jStatus validate();
+            sd::Status validate();
 
             // this method will build structured representation of graph
-            Nd4jStatus buildGraph();
+            sd::Status buildGraph();
 
             // this method will return estimated memory size (in bytes) required for 1 full graph execution round
-            Nd4jLong estimateRequiredMemory();
+            sd::LongType estimateRequiredMemory();
 
             // this method returns number of root nodes in this graph
             int rootNodes();
@@ -127,13 +126,13 @@ namespace sd {
              *
              * @return
              */
-            MAP_IMPL<int, std::vector<sd::graph::Node*> *> *getOnion();
+            SD_MAP_IMPL<int, std::vector<sd::graph::Node*> *> *getOnion();
 
             /**
              * This method returns map of all nodes of the graph
              * @return
              */
-            MAP_IMPL<int, sd::graph::Node*>* getMapped();
+            SD_MAP_IMPL<int, sd::graph::Node*>* getMapped();
 
             /**
              * This method returns outputs of this graph
@@ -215,7 +214,7 @@ namespace sd {
             /**
              * This method returns hash of given Graph instance
              */
-            Nd4jLong hashCode();
+            sd::LongType hashCode();
 
             /**
              * PLEASE NOTE: This method will be moved to private section
@@ -224,27 +223,27 @@ namespace sd {
 
             void replaceState(VariableSpace *state, ExecutorConfiguration *configuration);
 
-            FORCEINLINE std::vector<int>* nodes() {
+            SD_INLINE std::vector<int>* nodes() {
                 return _nodes;
             }
 
-            FORCEINLINE std::vector<int>* autos() {
+            SD_INLINE std::vector<int>* autos() {
                 return &_autos;
             }
 
-            FORCEINLINE std::vector<int>* output() {
+            SD_INLINE std::vector<int>* output() {
                 return &_output;
             }
 
-            FORCEINLINE MAP_IMPL<int, Scope*>* scopes() {
+            SD_INLINE SD_MAP_IMPL<int, Scope*>* scopes() {
                 return &_mappedScopes;
             }
 
-            FORCEINLINE bool built() {
+            SD_INLINE bool built() {
                 return _built.load();
             }
 
-            FORCEINLINE void pullState(Graph *other) {
+            SD_INLINE void pullState(Graph *other) {
                 for (int e = 0; e < other->nodes()->size(); e++)
                     this->_nodes->emplace_back(other->nodes()->at(e));
 

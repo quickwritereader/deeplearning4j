@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "GraphServer.h"
 #include <graph/GraphHolder.h>
 #include <graph/GraphExecutioner.h>
@@ -27,12 +26,10 @@
 #include <helpers/StringUtils.h>
 #include <algorithm>
 #include <stdexcept>
-
 #include <graph/exceptions/unknown_graph_exception.h>
 #include <graph/exceptions/graph_exists_exception.h>
 #include <graph/exceptions/no_results_exception.h>
 #include <graph/exceptions/graph_execution_exception.h>
-
 
 
 namespace sd {

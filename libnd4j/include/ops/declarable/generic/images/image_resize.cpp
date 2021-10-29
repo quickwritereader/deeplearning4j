@@ -94,7 +94,7 @@ namespace sd {
         DECLARE_SHAPE_FN(image_resize) {
             auto in = inputShape->at(0);
 
-            Nd4jLong* outputShape;
+            sd::LongType* outputShape;
             auto method = helpers::ImageResizeMethods::kResizeBilinear;
             if (block.numI() >= 1) {
                 method = (helpers::ImageResizeMethods)INT_ARG(0);
@@ -110,13 +110,13 @@ namespace sd {
             height = newImageSize->e<int>(0);
             if (block.numB() > 0) {
                 if (B_ARG(0)) {
-                    width = math::nd4j_ceil<double, int>(height / ratio);
+                    width = math::sd_ceil<double, int>(height / ratio);
                 }
             }
             auto dtype = DataType::FLOAT32;
             if (method == helpers::ImageResizeMethods::kResizeNearest)
                 dtype = ArrayOptions::dataType(in);
-            auto shape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', shape::rank(in) == 4?std::vector<Nd4jLong>{in[1], height, width, in[4]}:std::vector<Nd4jLong>{ height, width, in[4]});
+            auto shape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', shape::rank(in) == 4?std::vector<sd::LongType>{in[1], height, width, in[4]}:std::vector<sd::LongType>{ height, width, in[4]});
 
             return SHAPELIST(shape);
         }

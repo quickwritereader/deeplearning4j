@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 21.11.17.
 //
-
 #include "testlayers.h"
 #include <memory>
 #include <array/NDArray.h>
@@ -657,8 +656,8 @@ TEST_F(NDArrayTest2, Test_toIndexedString_1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest2, permute_test4) {
 
-    Nd4jLong arr1ShapeInfo[] = {6, 1, 1, 4, 3, 2, 2,    48, 48, 12, 4,  2,  1, 8192, 1,  99};
-    Nd4jLong arr2ShapeInfo[] = {6, 1, 2, 2, 1, 4, 3,    48, 2,  1,  48, 12, 4, 8192, 0, 99};
+    sd::LongType arr1ShapeInfo[] = {6, 1, 1, 4, 3, 2, 2,    48, 48, 12, 4,  2,  1, 8192, 1,  99};
+    sd::LongType arr2ShapeInfo[] = {6, 1, 2, 2, 1, 4, 3,    48, 2,  1,  48, 12, 4, 8192, 0, 99};
 
 
     auto arr1Buffer = new float[786432];
@@ -694,8 +693,8 @@ TEST_F(NDArrayTest2, TestStdDev3) {
     for(int i=0; i < len; ++i)
         diffSquared += (array.e<double>(i) - mean) * (array.e<double>(i) - mean);
 
-    const double trueVariance     = math::nd4j_sqrt<double, double>(diffSquared / len);
-    const double trueVarianceCorr = math::nd4j_sqrt<double, double>(diffSquared / (len - 1));
+    const double trueVariance     = math::sd_sqrt<double, double>(diffSquared / len);
+    const double trueVarianceCorr = math::sd_sqrt<double, double>(diffSquared / (len - 1));
 
     const double variance     = array.varianceNumber(variance::SummaryStatsStandardDeviation, false).e<double>(0);
     const double varianceCorr = array.varianceNumber(variance::SummaryStatsStandardDeviation, true).e<double>(0);
@@ -949,28 +948,28 @@ TEST_F(NDArrayTest2, subarray_1) {
     NDArray x('c', {2,3,4}, {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}, sd::DataType::FLOAT32);
     NDArray y('f', {2,3,4}, {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}, sd::DataType::FLOAT32);
 
-    Nd4jLong shapeExpX0[] = {1, 2, 12, 8192, 12, 99};
+    sd::LongType shapeExpX0[] = {1, 2, 12, 8192, 12, 99};
     float    buffExpX0[]  = {1.000000, 13.000000};
     float    buffExpX1[]  = {2.000000, 14.000000};
-    Nd4jLong shapeExpX2[] = {3, 2, 1, 1, 12, 4, 1, 8192, 12, 99};
+    sd::LongType shapeExpX2[] = {3, 2, 1, 1, 12, 4, 1, 8192, 12, 99};
     float    buffExpX2[]  = {1.000000, 13.000000};
-    Nd4jLong shapeExpX3[] = {2, 2, 4, 12, 1, 8192, 0, 99};
+    sd::LongType shapeExpX3[] = {2, 2, 4, 12, 1, 8192, 0, 99};
     float    buffExpX3[]  = {9.000000, 10.000000, 11.000000, 12.000000, 21.000000, 22.000000, 23.000000, 24.000000};
-    Nd4jLong shapeExpX4[] = {3, 2, 1, 4, 12, 4, 1, 8192, 0, 99};
+    sd::LongType shapeExpX4[] = {3, 2, 1, 4, 12, 4, 1, 8192, 0, 99};
     float    buffExpX4[]  = {9.000000, 10.000000, 11.000000, 12.000000, 21.000000, 22.000000, 23.000000, 24.000000};
-    Nd4jLong shapeExpX5[] = {2, 2, 3, 12, 4, 8192, 4, 99};
+    sd::LongType shapeExpX5[] = {2, 2, 3, 12, 4, 8192, 4, 99};
     float    buffExpX5[]  = {4.000000, 8.000000, 12.000000, 16.000000, 20.000000, 24.000000};
 
-    Nd4jLong shapeExpY0[] = {1, 2, 1, 8192, 1, 102};
+    sd::LongType shapeExpY0[] = {1, 2, 1, 8192, 1, 102};
     float    buffExpY0[]  = {1.000000, 2.000000};
     float    buffExpY1[]  = {7.000000, 8.000000};
-    Nd4jLong shapeExpY2[] = {3, 2, 1, 1, 1, 2, 6, 8192, 1, 102};
+    sd::LongType shapeExpY2[] = {3, 2, 1, 1, 1, 2, 6, 8192, 1, 102};
     float    buffExpY2[]  = {1.000000, 2.000000};
-    Nd4jLong shapeExpY3[] = {2, 2, 4, 1, 6, 8192, 0, 102};
+    sd::LongType shapeExpY3[] = {2, 2, 4, 1, 6, 8192, 0, 102};
     float    buffExpY3[]  = {5.000000, 11.000000, 17.000000, 23.000000, 6.000000, 12.000000, 18.000000, 24.000000};
-    Nd4jLong shapeExpY4[] = {3, 2, 1, 4, 1, 2, 6, 8192, 0, 102};
+    sd::LongType shapeExpY4[] = {3, 2, 1, 4, 1, 2, 6, 8192, 0, 102};
     float    buffExpY4[]  = {5.000000, 11.000000, 17.000000, 23.000000, 6.000000, 12.000000, 18.000000, 24.000000};
-    Nd4jLong shapeExpY5[] = {2, 2, 3, 1, 2, 8192, 1, 102};
+    sd::LongType shapeExpY5[] = {2, 2, 3, 1, 2, 8192, 1, 102};
     float    buffExpY5[]  = {19.000000, 21.000000, 23.000000, 20.000000, 22.000000, 24.000000};
 
 
@@ -1156,7 +1155,7 @@ TEST_F(NDArrayTest2, test_not_tiled_2) {
 }
 
 TEST_F(NDArrayTest2, test_long_sum_1) {
-    auto x = NDArrayFactory::create<Nd4jLong>('c', {2, 2}, {1, 2, 3, 4});
+    auto x = NDArrayFactory::create<sd::LongType>('c', {2, 2}, {1, 2, 3, 4});
 
     auto z = x.reduceAlongDimension(reduce::Sum, {0});
 }
@@ -1164,8 +1163,8 @@ TEST_F(NDArrayTest2, test_long_sum_1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest2, reshapei_1) {
 
-    Nd4jLong shapeInfo1[] = {6,  2,1,2,1,7,1,   7,7,14,28,1,1,   8192, 0, 99};
-    Nd4jLong shapeInfo2[] = {2,   4, 7,   7, 1,    8192, 1, 99};
+    sd::LongType shapeInfo1[] = {6,  2,1,2,1,7,1,   7,7,14,28,1,1,   8192, 0, 99};
+    sd::LongType shapeInfo2[] = {2,   4, 7,   7, 1,    8192, 1, 99};
 
     auto buffer = new float[shape::length(shapeInfo1)];
     NDArray x(buffer, shapeInfo1);
@@ -1181,8 +1180,8 @@ TEST_F(NDArrayTest2, reshapei_1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest2, reshapei_2) {
 
-    Nd4jLong shapeInfo1[] = {6,  1,2,1,2,7,1,   28,7,7,14,1,1,   8192, 0, 99};
-    Nd4jLong shapeInfo2[] = {2,  4, 7,   7, 1,    8192, 1, 99};
+    sd::LongType shapeInfo1[] = {6,  1,2,1,2,7,1,   28,7,7,14,1,1,   8192, 0, 99};
+    sd::LongType shapeInfo2[] = {2,  4, 7,   7, 1,    8192, 1, 99};
 
     auto buffer = new float[shape::length(shapeInfo1)];
     NDArray x(buffer, shapeInfo1);
@@ -1226,8 +1225,8 @@ TEST_F(NDArrayTest2, reduce_1) {
             double sum = 0;
             for (int x = 0; x < 4; x++) {
                 for (int y = 0; y < 4; y++) {
-                    Nd4jLong indices[] = {0, 0, x, y, i, j};
-                    Nd4jLong offset = shape::getOffset(arr6.shapeInfo(), indices);
+                    sd::LongType indices[] = {0, 0, x, y, i, j};
+                    sd::LongType offset = shape::getOffset(arr6.shapeInfo(), indices);
                     sum += ((double*)arr6.buffer())[offset];
                 }
             }

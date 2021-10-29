@@ -40,7 +40,7 @@ namespace sd {
             auto stateG = OUTPUT_VARIABLE(1);
 
             if (gradient->isEmpty() || initState->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initState), 0, "RMS_PROB UPDATER OP: input state must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -72,7 +72,7 @@ namespace sd {
             }
 
             helpers::updaterRmsProp(block.launchContext(), *gradient, *initState, *update, *stateG, dLr, dRmsDecay, dEpsilon);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rms_prop_updater) {

@@ -28,7 +28,7 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    ND4J_EXPORT bool multiUnique(std::vector<NDArray*> const& inputList, sd::memory::Workspace* workspace = nullptr);
+SD_LIB_HIDDEN bool multiUnique(std::vector<NDArray*> const& inputList, sd::memory::Workspace* workspace = nullptr);
 
 }
 }

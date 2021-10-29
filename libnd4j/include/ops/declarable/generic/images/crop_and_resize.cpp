@@ -56,14 +56,14 @@ namespace sd {
             }
 
             helpers::cropAndResizeFunctor(block.launchContext(), image, boxes, boxIndexes, newImageSize, method, extrapolationVal, output);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(crop_and_resize) {
             auto in = inputShape->at(0);
             auto boxShape = inputShape->at(1);
 
-            Nd4jLong outputShape[4];
+            sd::LongType outputShape[4];
 
             int width;
             int height;

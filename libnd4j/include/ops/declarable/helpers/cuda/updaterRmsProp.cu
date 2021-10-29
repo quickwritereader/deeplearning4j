@@ -19,7 +19,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <helpers/PointersManager.h>
@@ -32,8 +31,8 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL __global__ void rmsPropUpdaterCuda(const void *vx, const Nd4jLong *xShapeInfo, const void *vin, const Nd4jLong *inShapeInfo, 
-                                   void *vz, const Nd4jLong *zShapeInfo, void* vst, const Nd4jLong* stShapeInfo,
+SD_KERNEL void rmsPropUpdaterCuda(const void *vx, const sd::LongType *xShapeInfo, const void *vin, const sd::LongType *inShapeInfo, 
+                                   void *vz, const sd::LongType *zShapeInfo, void* vst, const sd::LongType* stShapeInfo,
                                    const T lr, const T rmsDecay, const T epsilon) {
 
     const auto x = reinterpret_cast<const T*>(vx);
@@ -42,7 +41,7 @@ ND4J_LOCAL __global__ void rmsPropUpdaterCuda(const void *vx, const Nd4jLong *xS
           auto up = reinterpret_cast<T*>(vz);
           auto st = reinterpret_cast<T*>(vst);
 
-    __shared__ Nd4jLong xLen;   
+    __shared__ sd::LongType xLen;   
     __shared__ bool bEWS, bOrdering, bXZsame, bXInSame, bXStSame;
 
     if (threadIdx.x == 0) {
@@ -60,9 +59,9 @@ ND4J_LOCAL __global__ void rmsPropUpdaterCuda(const void *vx, const Nd4jLong *xS
     }
     __syncthreads();
     
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i +=  gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i +=  gridDim.x * blockDim.x) {
         
         auto xOffset = i, zOffset = i, initOffset = i, stOffset = i;
 
@@ -76,15 +75,15 @@ ND4J_LOCAL __global__ void rmsPropUpdaterCuda(const void *vx, const Nd4jLong *xS
         }
 
         st[stOffset] = init[initOffset] * rmsDecay + x[xOffset] * x[xOffset] * (1 - rmsDecay) ;
-        up[zOffset] = (lr * x[xOffset]) / (  math::nd4j_sqrt<T, T>(st[stOffset]) + epsilon);
+        up[zOffset] = (lr * x[xOffset]) / (  math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
     }
 }
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL linkage void rmsPropUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, 
-                                        const void *vx, const Nd4jLong *xShapeInfo, const void *vin, const Nd4jLong *inShapeInfo, 
-                                        void *vz, const Nd4jLong *zShapeInfo, void* vst, const Nd4jLong* stShapeInfo,
+void rmsPropUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, 
+                                        const void *vx, const sd::LongType *xShapeInfo, const void *vin, const sd::LongType *inShapeInfo, 
+                                        void *vz, const sd::LongType *zShapeInfo, void* vst, const sd::LongType* stShapeInfo,
                                         const double dLr, const double dRmsDecay, const double dEpsilon) {
     
     const T lr = static_cast<T>(dLr);
@@ -96,12 +95,12 @@ ND4J_LOCAL linkage void rmsPropUpdaterCudaLauncher(const int blocksPerGrid, cons
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateG, 
+void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateG, 
                     const double dLr, const double dRmsDecay, const double dEpsilon) {
 
     PointersManager manager(context, "rmsPropUpdater");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
     NDArray::prepareSpecialUse({&update, &stateG}, {&gradient, &initState });
@@ -111,7 +110,7 @@ ND4J_LOCAL void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradie
                           initState.specialBuffer(), initState.specialShapeInfo(),
                           update.specialBuffer(), update.specialShapeInfo(),
                           stateG.specialBuffer(), stateG.specialShapeInfo(),
-                          dLr, dRmsDecay, dEpsilon ), FLOAT_TYPES);
+                          dLr, dRmsDecay, dEpsilon ), SD_FLOAT_TYPES);
 
     NDArray::registerSpecialUse({&update, &stateG}, {&gradient, &initState});
 

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "loops/scalar.h"
 #include <cuda.h>
 #include <cuda_runtime.h>

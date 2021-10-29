@@ -80,7 +80,7 @@ namespace ops {
 
         helpers::dilation2d(block.launchContext(), input, weights, output, sH, sW, pH, pW, dH, dW);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(dilation2d) {
@@ -128,7 +128,7 @@ namespace ops {
 
         helpers::dilation_hw(block.launchContext(), input, weights, strides, rates, isSameShape, &sH, &sW, &pH, &pW, &dH, &dW, &oH, &oW);
 
-        std::array<Nd4jLong, 4> shape = {{bS, oH, oW, iC}};
+        std::array<sd::LongType, 4> shape = {{bS, oH, oW, iC}};
         auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(weights), 'c', 4, shape.data());
         return SHAPELIST(newShape);
     }

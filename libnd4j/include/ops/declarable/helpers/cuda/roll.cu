@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/roll.h>
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
@@ -29,7 +28,7 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    static void _CUDA_D rollKernelLinearStage1Dev(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong fullLength, int actualShift) {
+    static void SD_DEVICE rollKernelLinearStage1Dev(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, sd::LongType fullLength, int actualShift) {
         auto x = reinterpret_cast<const T*>(vx);
         auto z = reinterpret_cast<T*>(vz);
 
@@ -71,12 +70,12 @@ namespace helpers {
     }
 
     template <typename T>
-    static void _CUDA_G rollKernelLinearStage1(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong fullLength, int actualShift) {
+    static void SD_KERNEL rollKernelLinearStage1(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, sd::LongType fullLength, int actualShift) {
         rollKernelLinearStage1Dev<T>(vx, xShapeInfo, vz, zShapeInfo, fullLength, actualShift);
     }
 
     template <typename T>
-    static void _CUDA_G rollKernelLinearStage2(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong fullLength, int actualShift, int shiftCount) {
+    static void SD_KERNEL rollKernelLinearStage2(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, sd::LongType fullLength, int actualShift, int shiftCount) {
         auto x = reinterpret_cast<const T*>(vx);
         auto z = reinterpret_cast<T*>(vz);
 
@@ -128,7 +127,7 @@ namespace helpers {
     }
 
     template <typename T>
-    static void _CUDA_G rollKernelLinearStage3(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong fullLength, int actualShift, int remainShift) {
+    static void SD_KERNEL rollKernelLinearStage3(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, sd::LongType fullLength, int actualShift, int remainShift) {
         auto x = reinterpret_cast<const T*>(vx);
         auto z = reinterpret_cast<T*>(vz);
 
@@ -172,7 +171,7 @@ namespace helpers {
     }
 
     template <typename T>
-    static void _CUDA_D swapTadsKernel(void *vx, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong tadLength) {
+    static void SD_DEVICE swapTadsKernel(void *vx, void *vz, const sd::LongType *zShapeInfo, sd::LongType tadLength) {
         auto x = reinterpret_cast<T*>(vx);
         auto z = reinterpret_cast<T*>(vz);
 
@@ -204,7 +203,7 @@ namespace helpers {
     }
 
     template <typename T>
-    static void _CUDA_G rollKernelFullAnyDimensionStage1(const void *vx, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets, void *vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffsets, int numTads, Nd4jLong tadLength, int dim, Nd4jLong sizeAt, int theShift) {
+    static void SD_KERNEL rollKernelFullAnyDimensionStage1(const void *vx, const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets, void *vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffsets, int numTads, sd::LongType tadLength, int dim, sd::LongType sizeAt, int theShift) {
         auto x = reinterpret_cast<const T *>(vx);
         auto z = reinterpret_cast<T *>(vz);
 
@@ -217,7 +216,7 @@ namespace helpers {
     }
 
     template <typename T>
-    static void _CUDA_G rollKernelFullAnyDimensionStage2(void *vx, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets, void *vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffsets, int numTads, Nd4jLong tadLength, int dim, Nd4jLong sizeAt, int theShift) {
+    static void SD_KERNEL rollKernelFullAnyDimensionStage2(void *vx, const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets, void *vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffsets, int numTads, sd::LongType tadLength, int dim, sd::LongType sizeAt, int theShift) {
         auto x = reinterpret_cast<const T *>(vx);
         auto z = reinterpret_cast<T *>(vz);
 
@@ -310,24 +309,24 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void rollFunctorFull(sd::LaunchContext * context, NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace){
+    void rollFunctorFull(sd::LaunchContext * context, NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace){
         input->syncToDevice();
 
-        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorFull_, (input, output, shifts, axes, inplace), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorFull_, (input, output, shifts, axes, inplace), SD_COMMON_TYPES);
 
         output->tickWriteDevice();
     }
 
-    ND4J_LOCAL void rollFunctorLinear(sd::LaunchContext * context, NDArray* input, NDArray* output, int shift, bool inplace){
+    void rollFunctorLinear(sd::LaunchContext * context, NDArray* input, NDArray* output, int shift, bool inplace){
         input->syncToDevice();
 
-        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorLinear_, (input, output, shift, inplace), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorLinear_, (input, output, shift, inplace), SD_COMMON_TYPES);
 
         output->tickWriteDevice();
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void rollFunctorLinear_, (NDArray* input, NDArray* output, int shift, bool inplace), LIBND4J_TYPES);
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void rollFunctorFull_, (NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void rollFunctorLinear_, (NDArray* input, NDArray* output, int shift, bool inplace), SD_COMMON_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void rollFunctorFull_, (NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace), SD_COMMON_TYPES);
 }
 }
 }

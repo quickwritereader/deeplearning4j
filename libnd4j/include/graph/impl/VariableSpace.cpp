@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/VariableSpace.h>
 #include <legacy/NativeOps.h>
 
@@ -139,7 +138,7 @@ namespace sd {
             else
                 return _paired.at(pair);
 
-            nd4j_printf("Unknown variable requested: [%i,%i]\n", pair.first, pair.second);
+            sd_printf("Unknown variable requested: [%i,%i]\n", pair.first, pair.second);
             throw std::runtime_error("Unknown variable requested");
         }
 
@@ -168,8 +167,8 @@ namespace sd {
             return externalEntries() + internalEntries();
         }
 
-        Nd4jLong sd::graph::VariableSpace::externalMemory() {
-            Nd4jLong size = 0;
+        sd::LongType sd::graph::VariableSpace::externalMemory() {
+            sd::LongType size = 0;
             for (auto n: _external) {
                 size += n->getNDArray()->memoryFootprint();
             }
@@ -189,8 +188,8 @@ namespace sd {
             return result;
         }
 
-        Nd4jLong sd::graph::VariableSpace::internalMemory() {
-            Nd4jLong size = 0;
+        sd::LongType sd::graph::VariableSpace::internalMemory() {
+            sd::LongType size = 0;
             for (auto n: _internal) {
                 size += n->getNDArray()->memoryFootprint();
             }
@@ -198,7 +197,7 @@ namespace sd {
             return size;
         }
 
-        Nd4jLong sd::graph::VariableSpace::totalMemory() {
+        sd::LongType sd::graph::VariableSpace::totalMemory() {
             return externalMemory() + internalMemory();
         }
 
@@ -358,7 +357,7 @@ namespace sd {
             //_external.clear();
             //_temporary.clear();
 
-            //nd4j_printf("Number of NDArrayLists in this space: [%i]\n", _lists.size())
+            //sd_printf("Number of NDArrayLists in this space: [%i]\n", _lists.size())
             for (auto p: _lists)
                 delete p;
 
@@ -395,9 +394,9 @@ namespace sd {
             bool replaced = false;
             // trying name first
             if (variable->getName() != nullptr && !variable->getName()->empty()) {
-                nd4j_printf("Trying to replace variable by name: [%s]\n", variable->getName()->c_str());
+                sd_printf("Trying to replace variable by name: [%s]\n", variable->getName()->c_str());
                 if (hasVariable(variable->getName())) {
-                    nd4j_printf("Replacing by name: [%s]\n", variable->getName()->c_str());
+                    sd_printf("Replacing by name: [%s]\n", variable->getName()->c_str());
                     auto vs = getVariable(variable->getName());
                     dropVariable(vs->id(), vs->index());
                     putVariable(vs->id(), vs->index(), variable);
@@ -405,9 +404,9 @@ namespace sd {
                     replaced = true;
                 }
             } else {
-                nd4j_printf("Trying to replace variable by id: [%i:%i]\n", variable->id(), variable->index());
+                sd_printf("Trying to replace variable by id: [%i:%i]\n", variable->id(), variable->index());
                 if (hasVariable(variable->id(), variable->index())) {
-                    nd4j_printf("Replacing by id: [%i:%i]\n", variable->id(), variable->index());
+                    sd_printf("Replacing by id: [%i:%i]\n", variable->id(), variable->index());
                     auto vs = getVariable(variable->id(), variable->index());
                     dropVariable(variable->id(), variable->index());
                     putVariable(vs->id(), vs->index(), variable);
@@ -417,7 +416,7 @@ namespace sd {
             }
 
             if (!replaced) {
-                nd4j_printf("wasn't able to replace variable, putting\n", "");
+                sd_printf("wasn't able to replace variable, putting\n", "");
                 putVariable(variable->id(), variable->index(), variable);
             }
         }

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/Graph.h>
 #include <array/DataTypeUtils.h>
 #include <helpers/EnumUtils.h>
@@ -47,13 +46,13 @@ namespace sd {
             return _variableSpace->numberOfPlaceholders();
         };
 
-        Nd4jLong Graph::estimateRequiredMemory() {
+        sd::LongType Graph::estimateRequiredMemory() {
 
-            Nd4jLong result = 0L;
-            Nd4jLong lastStep = 0L;
+            sd::LongType result = 0L;
+            sd::LongType lastStep = 0L;
 
-            std::vector<Nd4jLong const*> shapes;
-            MAP_IMPL<std::pair<int,int>, Nd4jLong const*> shapesMap;
+            std::vector<sd::LongType const*> shapes;
+            SD_MAP_IMPL<std::pair<int,int>, sd::LongType const*> shapesMap;
 
             int cntFD = 0;
 
@@ -79,16 +78,16 @@ namespace sd {
                         //}
 
 
-                        nd4j_debug("Trying estimation [%i] on [%s]\n", node->id(), node->getCustomOp()->getOpName()->c_str());
+                        sd_debug("Trying estimation [%i] on [%s]\n", node->id(), node->getCustomOp()->getOpName()->c_str());
 
                         auto op = node->getCustomOp();
                         auto in = node->input()->at(0);
 
                         auto block = node->getContextPrototype();
-                        std::vector<Nd4jLong const*> inputShapes;
+                        std::vector<sd::LongType const*> inputShapes;
                         int *oldShape;
                         for (auto v: *node->input()) {
-                            nd4j_debug("     inputs for estimation are: %i:%i\n", v.first, v.second);
+                            sd_debug("     inputs for estimation are: %i:%i\n", v.first, v.second);
                             if (v.first < 0) {
                                 inputShapes.push_back(_variableSpace->getVariable(v.first)->getNDArray()->shapeInfo());
                             } else {
@@ -104,7 +103,7 @@ namespace sd {
                         int cnt = 0;
                         for (auto newShape: *outSha->asVector()) {
                             std::pair<int, int> pairAddr(node->id(), cnt++);
-                            std::pair<std::pair<int, int>, Nd4jLong const*> pairShape(pairAddr, newShape);
+                            std::pair<std::pair<int, int>, sd::LongType const*> pairShape(pairAddr, newShape);
 
                             shapesMap.insert(pairShape);
 
@@ -124,11 +123,11 @@ namespace sd {
                             auto x = _variableSpace->getVariable(in);
                             auto z = _variableSpace->getVariable(node->id());
 
-                            auto newShape = new Nd4jLong[shape::shapeInfoLength(x->getNDArray()->shapeInfo())];
+                            auto newShape = new sd::LongType[shape::shapeInfoLength(x->getNDArray()->shapeInfo())];
                             memcpy(newShape, x->getNDArray()->shapeInfo(), shape::shapeInfoByteLength(x->getNDArray()->shapeInfo()));
 
                             std::pair<int, int> pairAddr(node->id(), 0);
-                            std::pair<std::pair<int, int>, Nd4jLong const*> pairShape(pairAddr, newShape);
+                            std::pair<std::pair<int, int>, sd::LongType const*> pairShape(pairAddr, newShape);
 
                             shapesMap.insert(pairShape);
 
@@ -139,11 +138,11 @@ namespace sd {
                         } else {
                             auto prevShape = shapesMap.at(in);
 
-                            auto newShape = new Nd4jLong[shape::shapeInfoLength(prevShape)];
+                            auto newShape = new sd::LongType[shape::shapeInfoLength(prevShape)];
                             memcpy(newShape, prevShape, shape::shapeInfoByteLength(prevShape));
 
                             std::pair<int, int> pairAddr(node->id(), 0);
-                            std::pair<std::pair<int, int>, Nd4jLong const*> pairShape(pairAddr, newShape);
+                            std::pair<std::pair<int, int>, sd::LongType const*> pairShape(pairAddr, newShape);
 
                             shapesMap.insert(pairShape);
 
@@ -154,11 +153,11 @@ namespace sd {
                         }
 
                     } else if (node->getOpClass() == OpClass_REDUCTION) {
-                        Nd4jLong const* newShape = nullptr;
+                        sd::LongType const* newShape = nullptr;
 
                         // if that's scalar output - we don't care about previous node
                         if (node->getDimensions()->size() == 0 || (node->getDimensions()->size() == 1 && node->getDimensions()->at(0) == sd::DataTypeUtils::max<int>())) {
-//                            auto aNewShape = new Nd4jLong[8];
+//                            auto aNewShape = new sd::LongType[8];
 //
 //                            aNewShape[0] = 2;
 //                            aNewShape[1] = 1;
@@ -172,7 +171,7 @@ namespace sd {
                         } else {
                             auto in = node->input()->at(0);
 
-                            Nd4jLong const* oldShape = nullptr;
+                            sd::LongType const* oldShape = nullptr;
                             // calculate tads here
                             if (in.first < 0) {
                                 auto x = _variableSpace->getVariable(in)->getNDArray();
@@ -185,12 +184,12 @@ namespace sd {
 
                             //shape::TAD tad(oldShape, node->getDimensions()->data(), node->getDimensions()->size());
                             auto numTads = shape::tadLength(oldShape, node->getDimensions()->data(), node->getDimensions()->size());
-                            Nd4jLong shape[2] = {1, (int) numTads};
+                            sd::LongType shape[2] = {1, (int) numTads};
                             newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(oldShape), 'c', 2, shape);
                         }
 
                         std::pair<int, int> pairAddr(node->id(), 0);
-                        std::pair<std::pair<int, int>, Nd4jLong const*> pairShape(pairAddr, newShape);
+                        std::pair<std::pair<int, int>, sd::LongType const*> pairShape(pairAddr, newShape);
 
                         shapesMap.insert(pairShape);
 
@@ -231,10 +230,10 @@ namespace sd {
         std::vector<Variable *> * Graph::fetchOutputs() {
             auto res = new std::vector<Variable *>();
 
-            nd4j_debug("Graph output size: %i\n", _output.size());
+            sd_debug("Graph output size: %i\n", _output.size());
             for (int e = 0; e < (int) _output.size(); e++) {
                 auto nodeId = _output.at(e);
-                nd4j_debug("Output node: %i\n", nodeId);
+                sd_debug("Output node: %i\n", nodeId);
 
                 for (int e = 0; e < DataTypeUtils::max<int>(); e++) {
                     if (_variableSpace->hasVariable(nodeId, e)) {
@@ -251,11 +250,11 @@ namespace sd {
             return res;
         }
 
-        MAP_IMPL<int, Node *> * Graph::getMapped() {
+        SD_MAP_IMPL<int, Node *> * Graph::getMapped() {
             return _mapped;
         }
 
-        MAP_IMPL<int, std::vector<Node *> *>* Graph::getOnion() {
+        SD_MAP_IMPL<int, std::vector<Node *> *>* Graph::getOnion() {
             return _onion;
         }
 
@@ -267,7 +266,7 @@ namespace sd {
             if (_mapped->count(pair.first) > 0)
                 return;
 
-            nd4j_debug("Node_%i mapped to layer_%i\n", node->id(), node->getLayer());
+            sd_debug("Node_%i mapped to layer_%i\n", node->id(), node->getLayer());
 
 
             _onion->at(node->getLayer())->push_back(node);
@@ -312,7 +311,7 @@ namespace sd {
             _built.store(false);
 
             if (node->opType() == OpType_LOGIC) {
-                // nd4j_debug("Adding LogicOp [%i]\n", node->opNum());
+                // sd_debug("Adding LogicOp [%i]\n", node->opNum());
                 // SCOPE
                 if (node->opNum() == logic::Scope) {
                     auto scope = new Scope(node->id(), node->getName() != nullptr ? node->getName()->c_str() : "");
@@ -388,7 +387,7 @@ namespace sd {
                     for (int e = 0; e < node->output()->size(); e++) {
                         auto out = node->output()->at(e);
                         if (out.first < 0) {
-                            nd4j_debug("Node [%i] will be propagating its output to Variable [%i]\n", node->id(), out.first);
+                            sd_debug("Node [%i] will be propagating its output to Variable [%i]\n", node->id(), out.first);
                             auto extVar = _variableSpace->getVariable(out);
                             if (extVar->hasNDArray()) {
                                 nodeState->setNDArray(extVar->getNDArray());
@@ -412,7 +411,7 @@ namespace sd {
                 } else {
                     var = _variableSpace->getVariable(node->id());
                 }
-                // nd4j_logger("Adding auto output variable; Output size: %i\n", node->output()->size());
+                // sd_logger("Adding auto output variable; Output size: %i\n", node->output()->size());
 
                 var->setId(node->id());
                 var->setName(node->getName());
@@ -424,7 +423,7 @@ namespace sd {
 //        }
             } else if (node->hasExternalOutputs()) {
                 // TODO: we might want this behavior configurable!
-                nd4j_logger("Adding specific output variable: Outputs: %i; HasInternal: %i;\n", node->output()->size(), node->hasInternalOutputs());
+                sd_logger("Adding specific output variable: Outputs: %i; HasInternal: %i;\n", node->output()->size(), node->hasInternalOutputs());
 
                 // we're pushing this node to output only
                 if ((!node->hasInternalOutputs() && (_configuration->_outputMode == OutputMode_IMPLICIT || _configuration->_outputMode == OutputMode_EXPLICIT_AND_IMPLICIT)) ) {
@@ -433,14 +432,14 @@ namespace sd {
                             pushToOutputOnce(node->output()->at(e).first);
                     }
 
-                    nd4j_logger("Loop finished: %i outputs now\n", this->_output.size());
+                    sd_logger("Loop finished: %i outputs now\n", this->_output.size());
                 }
             }
 
             // ops that are tied to specific scope are never placed into the structure.
             if (node->isScoped()) {
                 if (_mappedScopes.count(node->scopeId()) < 1) {
-                    nd4j_printf("Requested scope [%i/%s] wasn't created yet\n", node->scopeId(), node->scopeName()->c_str());
+                    sd_printf("Requested scope [%i/%s] wasn't created yet\n", node->scopeId(), node->scopeName()->c_str());
                     throw std::invalid_argument("Unknown scope requested");
                 }
 
@@ -451,14 +450,14 @@ namespace sd {
             }
 
             std::pair<int, Node *> pair(node->id(), node);
-            // nd4j_debug("Adding node_%i\n", node->id());
+            // sd_debug("Adding node_%i\n", node->id());
             // if model has only external variables as input - it goes to first layer, no matter what.
             if (node->hasExternalInputs() && !node->hasInternalInputs()) {
                 node->setLayer(0);
 
                 injectNode(node);
 
-                // nd4j_logger("A Node_%i mapped to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
+                // sd_logger("A Node_%i mapped to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
                 
                 return;
             } else {
@@ -486,9 +485,9 @@ namespace sd {
                         injectNode(node);
 
                         if (node->output()->size() > 0) {
-                            nd4j_logger("Node_%i mapped to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
+                            sd_logger("Node_%i mapped to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
                         } else {
-                            nd4j_logger("Node_%i mapped to layer_%i; Output: none;\n", node->id(), node->getLayer());
+                            sd_logger("Node_%i mapped to layer_%i; Output: none;\n", node->id(), node->getLayer());
                         }
 
                         return;
@@ -502,7 +501,7 @@ namespace sd {
                     node->setLayer(nLayer);
                     injectNode(node);
 
-                    nd4j_logger("Node_%i mapped Scope to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
+                    sd_logger("Node_%i mapped Scope to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
 
                     return;
                 }
@@ -510,17 +509,17 @@ namespace sd {
                 // otherwise we're putting it to unmapped space for further sorting
                 _unmapped.insert(pair);
                 _unmappedMap.emplace_back(pair.first);
-                nd4j_debug("adding: %i\n", pair.first);
+                sd_debug("adding: %i\n", pair.first);
             }
         }
 
-        Nd4jStatus Graph::buildGraph() {
+        sd::Status Graph::buildGraph() {
             if (_built.load()) {
                 prepareOutputs();
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            typename MAP_IMPL<int, Node *>::iterator fit;
+            typename SD_MAP_IMPL<int, Node *>::iterator fit;
             int cnts = 0;
             for ( fit = _unmapped.begin(); fit != _unmapped.end(); fit++ ) {
                 int tK = fit->first;
@@ -537,15 +536,15 @@ namespace sd {
                 std::vector<int> queue;
 
                 // first pass for unmapped nodes, we try to build tale here
-                typename MAP_IMPL<int, Node *>::iterator it;
+                typename SD_MAP_IMPL<int, Node *>::iterator it;
                 int cntf = 0;
-                nd4j_debug("-----------\n","");
+                sd_debug("-----------\n","");
                 for ( it = _unmapped.begin(); it != _unmapped.end(); it++ ) {
                     auto node = it->second;
                     int tK = it->first;
                     int tF = _unmappedMap.at(cntf++);
 
-                    //nd4j_printf("tK: %i; tF: %i\n", tK, tF);
+                    //sd_printf("tK: %i; tF: %i\n", tK, tF);
                 //for (int f = 0; f < sz; f++) {
                 //    auto node = _unmapped.at(_unmappedMap.at(f));
                 
@@ -554,9 +553,9 @@ namespace sd {
                     if (node->input()->size() == 1) {
 
                         if (node->getName() == nullptr) {
-                            nd4j_debug("Trying SI Node_%i\n", node->id());
+                            sd_debug("Trying SI Node_%i\n", node->id());
                         } else {
-                            nd4j_debug("Trying SI Node_%i:[%s]\n", node->id(), node->getName()->c_str());
+                            sd_debug("Trying SI Node_%i:[%s]\n", node->id(), node->getName()->c_str());
                         }
 
                         int iNode = node->input()->at(0).first;
@@ -624,10 +623,10 @@ namespace sd {
                     } else {
                         // multi-input node
                         if (node->getName() == nullptr) {
-                            nd4j_debug("Trying MI Node_%i\n", node->id());
+                            sd_debug("Trying MI Node_%i\n", node->id());
                         } else {
                             std::string np = *(node->getName());
-                            nd4j_debug("Trying MI Node_%i:[%s]\n", node->id(), node->getName()->c_str());
+                            sd_debug("Trying MI Node_%i:[%s]\n", node->id(), node->getName()->c_str());
                         }
 
                         int maxLayer = 0;
@@ -689,10 +688,10 @@ namespace sd {
                 // second pass is mover, we'll be moving onion layers around here
                 buildCnt++;
                 if (buildCnt > buildLimit) {
-                    nd4j_printf("Unable to build graph, probably unmapped nodes, or something: %i nodes left\n", _unmapped.size());
+                    sd_printf("Unable to build graph, probably unmapped nodes, or something: %i nodes left\n", _unmapped.size());
                     for (auto v: _unmapped) {
                         Node* node = v.second;
-                        nd4j_printf("Unmapped node: [%i]\n", node->id());
+                        sd_printf("Unmapped node: [%i]\n", node->id());
                     }
 
                     throw std::runtime_error("Unable to build graph");
@@ -704,7 +703,7 @@ namespace sd {
 
             prepareOutputs();
 
-            return sd::Status::OK();
+            return sd::Status::OK;
         }
 
         void Graph::tagInplaceNodes() {
@@ -788,7 +787,7 @@ namespace sd {
             // if we're dumping everything out there - we'll add external variables as well
             if (_configuration->_outputMode == OutputMode_VARIABLE_SPACE) {
                 auto ext = _variableSpace->getExternalVariables();
-                nd4j_verbose("Number of external variables: %i\n", ext->size())
+                sd_verbose("Number of external variables: %i\n", ext->size())
                 for (unsigned int e = 0; e < ext->size(); e++) {
                     pushToOutputOnce(ext->at(e)->id());
                 }
@@ -805,10 +804,10 @@ namespace sd {
 
             } else if (_configuration->_outputMode == OutputMode_IMPLICIT) {
                 // we're adding final nodes of the graph. those, not used as input anywhere
-                nd4j_debug("Paring nodes... \n", "");
+                sd_debug("Paring nodes... \n", "");
 
                 if (Environment::getInstance().isDebugAndVerbose()) {
-                    // nd4j_printv("current _output", _output);
+                    // sd_printv("current _output", _output);
                 }
                 //_output.clear();
 
@@ -819,9 +818,9 @@ namespace sd {
 
                     Node* node = _mapped->at(v);
                     if (node->name() != nullptr) {
-                        nd4j_debug("Node %i; Name: [%s]\n", v, node->name()->c_str());
+                        sd_debug("Node %i; Name: [%s]\n", v, node->name()->c_str());
                     } else {
-                        nd4j_debug("Node %i\n", v);
+                        sd_debug("Node %i\n", v);
                     }
 
                     // updating outputs now
@@ -845,9 +844,9 @@ namespace sd {
 
                     if (!node->hasInternalOutputs()) {
                         if (node->name() != nullptr) {
-                            nd4j_debug("Output node found: [%i:<%s>]\n", v, node->name()->c_str());
+                            sd_debug("Output node found: [%i:<%s>]\n", v, node->name()->c_str());
                         } else {
-                            nd4j_debug("Output node found: [%i]\n", v);
+                            sd_debug("Output node found: [%i]\n", v);
                         }
 
                         // FIXME: we don't really need search here.
@@ -855,7 +854,7 @@ namespace sd {
                         if (std::find(_output.begin(), _output.end(), node->id()) == _output.end())
                             _output.emplace_back(node->id());
                     } else if (Environment::getInstance().isDebugAndVerbose()) {
-                        nd4j_debug("Node [%i:<%s>] has %i outputs announced:\n", v, node->name()->c_str(), node->output()->size());
+                        sd_debug("Node [%i:<%s>] has %i outputs announced:\n", v, node->name()->c_str(), node->output()->size());
                         printf("{");
                         for (auto s : *node->output()) {
                             printf("[%i:%i], ", s.first, s.second);
@@ -868,8 +867,8 @@ namespace sd {
         }
 
         Graph::Graph(const FlatGraph *flatGraph, VariableSpace *variableSpace) {
-            this->_onion = new MAP_IMPL<int, std::vector<Node *> *>();
-            this->_mapped = new MAP_IMPL<int, Node *> ();
+            this->_onion = new SD_MAP_IMPL<int, std::vector<Node *> *>();
+            this->_mapped = new SD_MAP_IMPL<int, Node *> ();
             this->_nodes = new std::vector<int>();
             this->_variableSpace = variableSpace == nullptr ? new VariableSpace() : variableSpace;
             bool trusted = flatGraph != nullptr;
@@ -913,7 +912,7 @@ namespace sd {
                         auto out = flatGraph->outputs()->Get(e);
                         std::pair<int, int> vp(out->first(), out->second());
                         if (!_variableSpace->hasVariable(vp)) {
-                            nd4j_verbose("Non-existent variable requested: %i\n", out);
+                            sd_verbose("Non-existent variable requested: %i\n", out);
                             throw std::runtime_error("Non-existent variable requested");
                         }
 
@@ -929,10 +928,10 @@ namespace sd {
                     auto node = flatGraph->nodes()->Get(e);
 
                     if (node->output() == nullptr || node->output()->size() == 0) {
-                        nd4j_verbose("Orphan node detected: %i; AutoOutput to be considered\n", node->id());
+                        sd_verbose("Orphan node detected: %i; AutoOutput to be considered\n", node->id());
                     }
 
-                    nd4j_debug("Node name: [%s]\n", node->name()->c_str());
+                    sd_debug("Node name: [%s]\n", node->name()->c_str());
                     auto nnode = new Node(node);
                     /*
                     expandOnion(e);
@@ -1050,7 +1049,7 @@ namespace sd {
             return _mapped->size();
         }
 
-        Nd4jStatus Graph::validate() {
+        sd::Status Graph::validate() {
             if (!_built) {
                 _mutexPreprocessing.lock();
                 if (!_built) {
@@ -1060,13 +1059,13 @@ namespace sd {
             }
 
             if (_built.load() != true)
-                return ND4J_STATUS_BAD_GRAPH;
+                return sd::Status::BAD_GRAPH;
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         };
 
         void Graph::printOutNode(Node* node) {
-            nd4j_printf("%i. ", node->id());
+            sd_printf("%i. ", node->id());
             switch(node->opType()) {
                 case OpType_CUSTOM: {
                     printf("%s; ", node->getCustomOp()->getOpName()->c_str());
@@ -1081,14 +1080,14 @@ namespace sd {
                 }
             }
 
-            nd4j_printf("Inputs: [", "");
+            sd_printf("Inputs: [", "");
             //auto block = node->getBlock();
             for (int e = 0; e < node->input()->size(); e++) {
 
                 auto in = node->input()->at(e);
                 printf("{%i:%i}", in.first, in.second);
                 if (e < node->input()->size() - 1)
-                    nd4j_printf(", ", "");
+                    sd_printf(", ", "");
             }
 
             if (node->opType() == OpType_CUSTOM) {
@@ -1099,12 +1098,12 @@ namespace sd {
                     for (int e = 0; e < ctx->getIArguments()->size(); e++) {
                         printf("%i", ctx->getIArguments()->at(e));
                         if (e < ctx->getIArguments()->size() - 1)
-                            nd4j_printf(", ", "");
+                            sd_printf(", ", "");
                     }
                 }
             }
 
-            nd4j_printf("]; \n", "");
+            sd_printf("]; \n", "");
 
 
 //            printf("\n");
@@ -1116,7 +1115,7 @@ namespace sd {
 
             // print variables first
             if (_variableSpace->totalEntries() > 0) {
-                nd4j_printf("\nPrinting out Variables...\n", "");
+                sd_printf("\nPrinting out Variables...\n", "");
                 auto vars = _variableSpace->getVariables();
 
                 for (Variable* v: vars) {
@@ -1126,19 +1125,19 @@ namespace sd {
                         auto dtype = DataTypeUtils::asString(v->getNDArray()->dataType());
 
                         if (v->getName() != nullptr && !v->getName()->empty()) {
-                            nd4j_printf("<%s> <%i:%i> dtype: %s; shape: %s; values: %s;\n", v->getName()->c_str(), v->id(), v->index(), dtype.c_str(), shape.c_str(), values.c_str());
+                            sd_printf("<%s> <%i:%i> dtype: %s; shape: %s; values: %s;\n", v->getName()->c_str(), v->id(), v->index(), dtype.c_str(), shape.c_str(), values.c_str());
                         } else {
-                            nd4j_printf("<%i:%i> dtype: %s; shape: %s; values: %s;\n", v->id(), v->index(), dtype.c_str(), shape.c_str(), values.c_str());
+                            sd_printf("<%i:%i> dtype: %s; shape: %s; values: %s;\n", v->id(), v->index(), dtype.c_str(), shape.c_str(), values.c_str());
                         }
                     } else if (v->hasNDArrayList()) {
                         // TODO: add better NDArrayList printout
-                        nd4j_printf("<%i:%i> holds ArrayList", v->id(), v->index());
+                        sd_printf("<%i:%i> holds ArrayList", v->id(), v->index());
                     }
                 }
             }
 
             if (_onion->size() > 0)
-                nd4j_printf("\nPrinting out Graph...\n", "");
+                sd_printf("\nPrinting out Graph...\n", "");
             
             int opCnt = 0;
             for (int l = 0; l < _onion->size(); l++) {
@@ -1157,11 +1156,11 @@ namespace sd {
 
 
             if (_scopes.size() > 0)
-                nd4j_printf("\nPrinting out Scopes...\n","");
+                sd_printf("\nPrinting out Scopes...\n","");
 
             for (int s = 0; s < _scopes.size(); s++) {
                 Scope* scope = _scopes.at(s);
-                nd4j_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
+                sd_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
 
                 for (int n = 0; n < scope->nodes()->size(); n++) {
                     Node* node = scope->nodes()->at(n);
@@ -1172,14 +1171,14 @@ namespace sd {
             fflush(stdout);
         }
 
-        Nd4jStatus Graph::validateNode(Node *node) {
+        sd::Status Graph::validateNode(Node *node) {
             // TODO: to be implemented
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         std::vector<sd::ops::OpDescriptor> Graph::getOperations() {
             buildGraph();
-            // nd4j_printf("\nRetrieving ops from the Graph and collect them...\n", "");
+            // sd_printf("\nRetrieving ops from the Graph and collect them...\n", "");
             std::vector<sd::ops::OpDescriptor> res;
 
             int opCnt = 0;
@@ -1228,10 +1227,10 @@ namespace sd {
             }
 
 
-            // nd4j_printf("\nCollecting out Scopes...\n","");
+            // sd_printf("\nCollecting out Scopes...\n","");
             for (int s = 0; s < _scopes.size(); s++) {
                 Scope* scope = _scopes.at(s);
-                // nd4j_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
+                // sd_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
 
                 for (int n = 0; n < scope->nodes()->size(); n++) {
                     Node* node = scope->nodes()->at(n);
@@ -1275,7 +1274,7 @@ namespace sd {
 
         Scope *Graph::scopeById(int id) {
             if (_mappedScopes.count(id) == 0) {
-                nd4j_printf("Requested Scope [%i] doesn't exist\n", id);
+                sd_printf("Requested Scope [%i] doesn't exist\n", id);
                 throw std::runtime_error("Non-existent Scope was requested");
             }
 
@@ -1408,11 +1407,11 @@ namespace sd {
             return _mappedScopes.count(id) > 0;
         }
 
-        Nd4jLong Graph::hashCode() {
+        sd::LongType Graph::hashCode() {
             if (!_built.load())
                 this->buildGraph();
 
-            Nd4jLong hash = 0L;
+            sd::LongType hash = 0L;
             std::string localStamp;
             /**
              * Plan is:
@@ -1451,7 +1450,7 @@ namespace sd {
 
             hash = ops::HashHelper::getInstance().getLongHash(localStamp);
 
-            nd4j_debug("Graph hash: %lld\n", hash);
+            sd_debug("Graph hash: %lld\n", hash);
 
             return hash;
         }

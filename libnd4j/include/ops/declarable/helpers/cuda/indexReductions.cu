@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/reductions.h>
 #include <legacy/NativeOpExecutioner.h>
 #include <helpers/ConstantTadHelper.h>
@@ -28,7 +27,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             //////////////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void  argMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+            void  argMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
                 NDArray::prepareSpecialUse({&output}, {&input});
                 if (output.isScalar()) {
                     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexMax, input.buffer(), input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(), output.specialBuffer(), output.specialShapeInfo());
@@ -47,7 +46,7 @@ namespace sd {
                 NDArray::registerSpecialUse({ &output }, { &input });
             }
 
-            ND4J_LOCAL void  argMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+            void  argMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
                 NDArray::prepareSpecialUse({ &output }, { &input });
                 if (output.isScalar()) {
                     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexMin, input.buffer(), input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(), output.specialBuffer(), output.specialShapeInfo());
@@ -66,7 +65,7 @@ namespace sd {
                 NDArray::registerSpecialUse({ &output }, { &input });
             }
 
-            ND4J_LOCAL void  argAbsMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+            void  argAbsMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
                 NDArray::prepareSpecialUse({ &output }, { &input });
                 if (output.isScalar()) {
                     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMax, input.buffer(), input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(), output.specialBuffer(), output.specialShapeInfo());
@@ -85,7 +84,7 @@ namespace sd {
                 NDArray::registerSpecialUse({ &output }, { &input });
             }
 
-            ND4J_LOCAL void  argAbsMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+            void  argAbsMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
                 NDArray::prepareSpecialUse({ &output }, { &input });
                 if (output.isScalar()) {
                     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMin, input.buffer(), input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(), output.specialBuffer(), output.specialShapeInfo());

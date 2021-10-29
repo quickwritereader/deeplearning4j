@@ -29,7 +29,6 @@
 // https://research.google.com/pubs/archive/43905.pdf
 // Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory recurrent neural network architectures for large scale acoustic modeling." INTERSPEECH, 2014.
 
-
 #include<ops/declarable/helpers/lstm.h>
 #include <graph/VariableSpace.h>
 #include <ops/declarable/CustomOperations.h>
@@ -40,13 +39,13 @@
 #include <helpers/MmulHelper.h>
 #include <execution/Threads.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
+void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
               NDArray* ht, NDArray* ct, const std::vector<double>& params) {
 
     // xt   input [bS x nIn]
@@ -75,7 +74,7 @@ ND4J_LOCAL void lstmCell(sd::LaunchContext * context, const NDArray* xt, const N
 
     auto z = mmul(*xt, *Wx) + mmul(*ht_1, *Wh) + *b;      // [bS x 4*nOut] + [bS x 4*nOut] + [1 x 4*nOut] = [bS x 4*nOut]
 
-    auto zit = z({0,0,  0,nOut});      	    // z for input gate,  = mmul(Wxi,xt) + mmul(Whi,ht_1) + bi    = [bS x nOut]
+    auto zit = z({0,0,  0,nOut});              // z for input gate,  = mmul(Wxi,xt) + mmul(Whi,ht_1) + bi    = [bS x nOut]
     auto zft = z({0,0,  nOut,2*nOut});      // z for forget gate, = mmul(Wxf,xt) + mmul(Whf,ht_1) + bf    = [bS x nOut]
     auto zct = z({0,0,  2*nOut,3*nOut});    // z for cell state,  = mmul(Wxc,xt) + mmul(Whc,ht_1) + bc    = [bS x nOut]
     auto zot = z({0,0,  3*nOut,4*nOut});    // z for output gate, = mmul(Wxo,xt) + mmul(Who,ht_1) + bo    = [bS x nOut]
@@ -119,7 +118,7 @@ static void fusedTanh(NDArray *z, NDArray *i, NDArray *c, const NDArray *cLast, 
     c->applyTransform(transform::Tanh, h);  //h = tanh(c)
      */
 
-    auto uLen = static_cast<uint>(z->lengthOf());
+    auto uLen = static_cast<sd::Unsigned>(z->lengthOf());
     auto c_ = c->bufferAsT<T>();
     auto z_ = z->bufferAsT<T>();
     auto i_ = i->bufferAsT<T>();
@@ -130,7 +129,7 @@ static void fusedTanh(NDArray *z, NDArray *i, NDArray *c, const NDArray *cLast, 
     auto func = PRAGMA_THREADS_FOR {
         for (auto e = start; e < stop; e++) {
             c_[e] = z_[e] * i_[e] + (f_[e] * cLast_[e]);
-            h_[e] = sd::math::nd4j_tanh<T, T>(c_[e]);
+            h_[e] = sd::math::sd_tanh<T, T>(c_[e]);
         }
     };
 
@@ -139,7 +138,7 @@ static void fusedTanh(NDArray *z, NDArray *i, NDArray *c, const NDArray *cLast, 
 
 //////////////////////////////////////////////////////////////////////////
 
-ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
+void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
                    const NDArray* W, const NDArray* Wci, const NDArray* Wcf, const NDArray* Wco, const NDArray* b,
                    NDArray* i, NDArray* c, NDArray* f, NDArray* o, NDArray* z, NDArray* h, NDArray* y, const std::vector<double>& params) {
 
@@ -186,9 +185,9 @@ ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDA
 
     //Note: weights are ordered [inputGate, blockInput, forgetGate, outputGate] to match TF (TF code comments state [i,f,z/ci,o] but behaviour is [i,z,f,o])
     auto zi = m({0,0, 0,        nOut});         // z for input modulation gate, [bS, nOut]
-    auto zz = m({0,0, nOut,   2*nOut});      	// z for block input, [bS, nOut]
-    auto zf = m({0,0, 2*nOut, 3*nOut});      	// z for forget gate, [bS, nOut]
-    auto zo = m({0,0, 3*nOut, 4*nOut});      	// z for output gate, [bS, nOut]
+    auto zz = m({0,0, nOut,   2*nOut});          // z for block input, [bS, nOut]
+    auto zf = m({0,0, 2*nOut, 3*nOut});          // z for forget gate, [bS, nOut]
+    auto zo = m({0,0, 3*nOut, 4*nOut});          // z for output gate, [bS, nOut]
 
     if(peephole) {                                              // add peephole connections: z  +  ct_1*Wc
         zi += (*cLast) * (*Wci);       // add peephole connections to input gate
@@ -215,7 +214,7 @@ ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDA
     if (z->ews() == 1 && i->ews() == 1 && c->ews() == 1 && cLast->ews() == 1 && f->ews() == 1 && h->ews() == 1 &&
         z->ordering() == i->ordering() && z->ordering() == c->ordering() && z->ordering() == cLast->ordering() && z->ordering() == f->ordering() && z->ordering() == h->ordering()) {
         //cell state = blockInput .* inputGate + prevCellState .* forgetGate
-        BUILD_SINGLE_SELECTOR(z->dataType(), fusedTanh, (z, i, c, cLast, f, h), FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(z->dataType(), fusedTanh, (z, i, c, cLast, f, h), SD_FLOAT_TYPES);
     } else {
         //cell state = blockInput .* inputGate + prevCellState .* forgetGate
         z->applyPairwiseTransform(pairwise::Multiply, *i, *c);       //c = z * i
@@ -240,8 +239,6 @@ ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDA
     c->applyTransform(transform::Tanh, *h);  //h = tanh(c)
     o->applyPairwiseTransform(pairwise::Multiply, *h, *y);   //y = o * h
 }
-
-
 
 
 }

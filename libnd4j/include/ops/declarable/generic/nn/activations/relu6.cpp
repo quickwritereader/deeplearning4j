@@ -37,7 +37,7 @@ CONFIGURABLE_OP_IMPL(relu6, 1, 1, true, 1, 0) {
 
     input->applyScalar(sd::scalar::RELU6, T_ARG(0), *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(relu6) {
@@ -54,7 +54,7 @@ CONFIGURABLE_OP_IMPL(relu6_bp, 2, 1, true, 0, 0) {
 
     //input->applyPairwiseTransform(pairwise::RELU6DerivativeE, gradO, gradI, nullptr);
     helpers::relu6Derivative(block.launchContext(), input, gradO, gradI);
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(relu6_bp) {

@@ -94,7 +94,6 @@ class InvertedIndex:
         return self.get_all_index('files', predicate)
 
 
-
     def get_msg_postings(self, index ):
         '''
          Gets postings for the given message   
@@ -107,7 +106,6 @@ class InvertedIndex:
         if not key in self.index_obj['msg_entries']:
             return []
         return self.index_obj['msg_entries'][key]
-
 
 
     def intersect_postings(self, posting1, compressed_sorted_functions , sorted_files = None):

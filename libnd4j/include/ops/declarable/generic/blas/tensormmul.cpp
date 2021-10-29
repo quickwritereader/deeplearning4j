@@ -52,10 +52,10 @@ CUSTOM_OP_IMPL(tensormmul, 2, 1, false, 0, -1) {
     for (int e = 0; e < axe1_size; e++)
         axes_1[e] = (int)INT_ARG(e + axe0_size + 2);
 
-    nd4j_verbose("axe0: %i; axe1: %i;\n", axes_0.size(), axes_1.size());
+    sd_verbose("axe0: %i; axe1: %i;\n", axes_0.size(), axes_1.size());
 
     MmulHelper::tensorDot(a, b, c, axes_0, axes_1);
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(tensordot, tensormmul);
 
@@ -79,7 +79,7 @@ DECLARE_SHAPE_FN(tensormmul) {
 
     // evaluate shapes
     std::vector<int> permutAt, permutBt;
-    std::vector<Nd4jLong> shapeAt, shapeBt;
+    std::vector<sd::LongType> shapeAt, shapeBt;
     auto outShape = sd::ShapeUtils::evalShapeForTensorDot(aShapeInfo, bShapeInfo, axes_0, axes_1, permutAt, permutBt, shapeAt, shapeBt);
 
     return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(ArrayOptions::dataType(aShapeInfo), 'c', outShape)));
@@ -119,13 +119,13 @@ CUSTOM_OP_IMPL(tensormmul_bp, 3, 2, false, 0, -1) {
 
     // building axes
     std::vector<int> axes0(axe0Size), axes1(axe1Size);
-    for (uint e = 0; e < axe0Size; e++)
+    for (sd::Unsigned e = 0; e < axe0Size; e++)
         axes0[e] = (int)INT_ARG(e + 1);
-    for (uint e = 0; e < axe1Size; e++)
+    for (sd::Unsigned e = 0; e < axe1Size; e++)
         axes1[e] = (int)INT_ARG(e + axe0Size + 2);
 
     std::vector<int> permutAt, permutBt;
-    std::vector<Nd4jLong> shapeAt, shapeBt;
+    std::vector<sd::LongType> shapeAt, shapeBt;
 
     ShapeUtils::evalShapeForTensorDot(A, B, axes0, axes1, permutAt, permutBt, shapeAt, shapeBt);
 
@@ -135,7 +135,7 @@ CUSTOM_OP_IMPL(tensormmul_bp, 3, 2, false, 0, -1) {
         dLdA->assign((*dLdC) * *B);
         dLdB->assign((*dLdC) * *A);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     std::vector<int> axesA = ShapeUtils::evalDimsToExclude(Arank, axes0);
@@ -159,7 +159,7 @@ CUSTOM_OP_IMPL(tensormmul_bp, 3, 2, false, 0, -1) {
     // calculate dLdB
     MmulHelper::tensorDot(A, dLdC, dLdB, axesA, axesAdLdC, permutBt);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -172,8 +172,8 @@ DECLARE_SHAPE_FN(tensormmul_bp) {
     REQUIRE_TRUE((ArrayOptions::dataType(aShapeInfo) == ArrayOptions::dataType(bShapeInfo) &&
                  (ArrayOptions::dataType(dLShapeInfo) == ArrayOptions::dataType(aShapeInfo))), 0, "tensormmul_bp: A, B and dLdC data types must be the same");
 
-    Nd4jLong* dLdAShapeInfo = nullptr;
-    Nd4jLong* dLdBShapeInfo = nullptr;
+    sd::LongType* dLdAShapeInfo = nullptr;
+    sd::LongType* dLdBShapeInfo = nullptr;
 
     COPY_SHAPE(aShapeInfo, dLdAShapeInfo);
     COPY_SHAPE(bShapeInfo, dLdBShapeInfo);

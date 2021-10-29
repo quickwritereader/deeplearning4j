@@ -35,7 +35,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(sigmoid) {
@@ -52,7 +52,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::SigmoidDerivativeE, epsilon, z, nullptr);
             helpers::sigmoidDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(sigmoid_bp) {

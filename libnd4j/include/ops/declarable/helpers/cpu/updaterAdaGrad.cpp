@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -52,7 +51,7 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
             auto func = PRAGMA_THREADS_FOR{
                  for (auto i = start; i < stop; i++) {
                      st[i] = init[i] + grad[i] * grad[i];
-                     up[i] = (lr * grad[i]) / (math::nd4j_sqrt<T, T>(st[i]) + epsilon);
+                     up[i] = (lr * grad[i]) / (math::sd_sqrt<T, T>(st[i]) + epsilon);
                  }
             };
 
@@ -66,7 +65,7 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
 
@@ -77,7 +76,7 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
             const auto stOffset = bXStSame ? xOffset : shape::getOffset(stateH.shapeInfo(), coords);
             
             st[stOffset] = init[initOffset] + grad[xOffset] * grad[xOffset];
-            up[zOffset] = (lr * grad[xOffset]) / (math::nd4j_sqrt<T, T>(st[stOffset]) + epsilon);
+            up[zOffset] = (lr * grad[xOffset]) / (math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
         }
     };
 
@@ -85,9 +84,9 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
     return;
 }
 
- void updaterAdaGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateH,
+void updaterAdaGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateH,
                        const double dLr, const double dEpsilon) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaGradUpdater_, (gradient, initState, update, stateH, dLr, dEpsilon), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaGradUpdater_, (gradient, initState, update, stateH, dLr, dEpsilon), SD_FLOAT_TYPES);
 }
 
 }

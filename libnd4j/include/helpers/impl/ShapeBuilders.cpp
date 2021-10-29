@@ -19,15 +19,14 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/ShapeBuilders.h>
 
 namespace sd {
 
 
-    Nd4jLong* ShapeBuilders::createScalarShapeInfo(const sd::DataType dataType, sd::memory::Workspace* workspace) {
-        Nd4jLong *newShape;
-        ALLOCATE(newShape, workspace, shape::shapeInfoLength(0), Nd4jLong);
+    sd::LongType* ShapeBuilders::createScalarShapeInfo(const sd::DataType dataType, sd::memory::Workspace* workspace) {
+        sd::LongType *newShape;
+        ALLOCATE(newShape, workspace, shape::shapeInfoLength(0), sd::LongType);
         newShape[0] = 0;
         newShape[1] = 0;
         newShape[2] = 1;
@@ -38,9 +37,9 @@ namespace sd {
         return newShape;
     }
 
-    Nd4jLong* ShapeBuilders::createVectorShapeInfo(const sd::DataType dataType, const Nd4jLong length, sd::memory::Workspace* workspace) {
-        Nd4jLong *newShape;
-        ALLOCATE(newShape, workspace, shape::shapeInfoLength(1), Nd4jLong);
+    sd::LongType* ShapeBuilders::createVectorShapeInfo(const sd::DataType dataType, const sd::LongType length, sd::memory::Workspace* workspace) {
+        sd::LongType *newShape;
+        ALLOCATE(newShape, workspace, shape::shapeInfoLength(1), sd::LongType);
 
         newShape[0] = 1;
         newShape[1] = length;
@@ -55,14 +54,14 @@ namespace sd {
     }
 
     ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, int rank, const Nd4jLong* shapeOnly, memory::Workspace* workspace) {
-        Nd4jLong* shapeInfo = nullptr;
+    sd::LongType* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, int rank, const sd::LongType* shapeOnly, memory::Workspace* workspace) {
+        sd::LongType* shapeInfo = nullptr;
 
         if(rank == 0) {    // scalar case
             shapeInfo = ShapeBuilders::createScalarShapeInfo(dataType, workspace);
         }
         else {
-            ALLOCATE(shapeInfo, workspace, shape::shapeInfoLength(rank), Nd4jLong);
+            ALLOCATE(shapeInfo, workspace, shape::shapeInfoLength(rank), sd::LongType);
             shapeInfo[0] = rank;
             bool isEmpty = false;
             for(int i = 0; i < rank; ++i) {
@@ -77,7 +76,7 @@ namespace sd {
             }
             else {
                 shapeInfo[shape::shapeInfoLength(rank) - 1] = order;
-                memset(shape::stride(shapeInfo), 0, rank * sizeof(Nd4jLong));
+                memset(shape::stride(shapeInfo), 0, rank * sizeof(sd::LongType));
                 ArrayOptions::setPropertyBit(shapeInfo, ARRAY_EMPTY);
             }
 
@@ -87,36 +86,36 @@ namespace sd {
         return shapeInfo;
     }
 
-    Nd4jLong* ShapeBuilders::emptyShapeInfo(const sd::DataType dataType, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::emptyShapeInfo(const sd::DataType dataType, memory::Workspace* workspace) {
         auto shapeInfo = createScalarShapeInfo(dataType, workspace);
         ArrayOptions::setPropertyBit(shapeInfo, ARRAY_EMPTY);
         return shapeInfo;
     }
 
-    Nd4jLong* ShapeBuilders::emptyShapeInfo(const sd::DataType dataType, const char order, const std::vector<Nd4jLong> &shape, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::emptyShapeInfo(const sd::DataType dataType, const char order, const std::vector<sd::LongType> &shape, memory::Workspace* workspace) {
         auto shapeInfo = createShapeInfo(dataType, order, shape, workspace);
-        memset(shape::stride(shapeInfo), 0, shape.size() * sizeof(Nd4jLong));
+        memset(shape::stride(shapeInfo), 0, shape.size() * sizeof(sd::LongType));
         ArrayOptions::setPropertyBit(shapeInfo, ARRAY_EMPTY);
         return shapeInfo;
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, const std::vector<Nd4jLong>& shapeOnly, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, const std::vector<sd::LongType>& shapeOnly, memory::Workspace* workspace) {
 
         return ShapeBuilders::createShapeInfo(dataType, order, shapeOnly.size(), shapeOnly.data(), workspace);
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, const std::initializer_list<Nd4jLong>& shapeOnly, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::createShapeInfo(const sd::DataType dataType, const char order, const std::initializer_list<sd::LongType>& shapeOnly, memory::Workspace* workspace) {
 
-        return ShapeBuilders::createShapeInfo(dataType, order, std::vector<Nd4jLong>(shapeOnly), workspace);
+        return ShapeBuilders::createShapeInfo(dataType, order, std::vector<sd::LongType>(shapeOnly), workspace);
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::copyShapeInfo(const Nd4jLong* inShapeInfo, const bool copyStrides, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::copyShapeInfo(const sd::LongType* inShapeInfo, const bool copyStrides, memory::Workspace* workspace) {
 
-        Nd4jLong *outShapeInfo = nullptr;
-        ALLOCATE(outShapeInfo, workspace, shape::shapeInfoLength(inShapeInfo), Nd4jLong);
+        sd::LongType *outShapeInfo = nullptr;
+        ALLOCATE(outShapeInfo, workspace, shape::shapeInfoLength(inShapeInfo), sd::LongType);
 
         memcpy(outShapeInfo, inShapeInfo, shape::shapeInfoByteLength(inShapeInfo));
 
@@ -127,33 +126,33 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::copyShapeInfoAndType(const Nd4jLong* inShapeInfo, const DataType dtype, const bool copyStrides, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::copyShapeInfoAndType(const sd::LongType* inShapeInfo, const DataType dtype, const bool copyStrides, memory::Workspace* workspace) {
 
-        Nd4jLong* outShapeInfo = ShapeBuilders::copyShapeInfo(inShapeInfo, copyStrides, workspace);
+        sd::LongType* outShapeInfo = ShapeBuilders::copyShapeInfo(inShapeInfo, copyStrides, workspace);
         ArrayOptions::setDataType(outShapeInfo, dtype);
 
         return outShapeInfo;
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    Nd4jLong* ShapeBuilders::copyShapeInfoAndType(const Nd4jLong* inShapeInfo, const Nd4jLong* shapeInfoToGetTypeFrom, const bool copyStrides, memory::Workspace* workspace) {
+    sd::LongType* ShapeBuilders::copyShapeInfoAndType(const sd::LongType* inShapeInfo, const sd::LongType* shapeInfoToGetTypeFrom, const bool copyStrides, memory::Workspace* workspace) {
 
         return ShapeBuilders::copyShapeInfoAndType(inShapeInfo, ArrayOptions::dataType(shapeInfoToGetTypeFrom), copyStrides, workspace);
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-Nd4jLong* ShapeBuilders::createSubArrShapeInfo(const Nd4jLong* inShapeInfo, const int* dims, const int dimsSize, memory::Workspace* workspace) {
+sd::LongType* ShapeBuilders::createSubArrShapeInfo(const sd::LongType* inShapeInfo, const int* dims, const int dimsSize, memory::Workspace* workspace) {
 
-    Nd4jLong *subArrShapeInfo = nullptr;
-    ALLOCATE(subArrShapeInfo, workspace, shape::shapeInfoLength(dimsSize), Nd4jLong);
+    sd::LongType *subArrShapeInfo = nullptr;
+    ALLOCATE(subArrShapeInfo, workspace, shape::shapeInfoLength(dimsSize), sd::LongType);
 
     subArrShapeInfo[0] = dimsSize;                                 // rank
     subArrShapeInfo[2*dimsSize+1] = 0;
     sd::ArrayOptions::copyDataType(subArrShapeInfo, inShapeInfo);  // type
     subArrShapeInfo[2*dimsSize + 3] = shape::order(inShapeInfo);   // order
 
-    Nd4jLong* shape = shape::shapeOf(subArrShapeInfo);
-    Nd4jLong* strides = shape::stride(subArrShapeInfo);
+    sd::LongType* shape = shape::shapeOf(subArrShapeInfo);
+    sd::LongType* strides = shape::stride(subArrShapeInfo);
 
     for(int i = 0; i < dimsSize; ++i) {
         shape[i]   = shape::sizeAt(inShapeInfo, dims[i]);

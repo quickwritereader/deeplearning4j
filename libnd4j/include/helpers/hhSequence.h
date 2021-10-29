@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HHSEQUENCE_H
 #define LIBND4J_HHSEQUENCE_H
-
 #include "array/NDArray.h"
 
 namespace sd {
@@ -81,17 +80,16 @@ class HHsequence {
 
     void applyTo(NDArray& dest);
 
-    FORCEINLINE int rows() const;
+    SD_INLINE int rows() const;
 
 };
 
 
 //////////////////////////////////////////////////////////////////////////
-FORCEINLINE int HHsequence::rows() const {
+SD_INLINE int HHsequence::rows() const {
 
     return _type == 'u' ? _vectors.sizeAt(0) : _vectors.sizeAt(1);
 }
-
 
 
 }

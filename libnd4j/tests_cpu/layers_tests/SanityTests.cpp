@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13/11/17.
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <graph/Node.h>

@@ -85,7 +85,7 @@ namespace sd {
         DECLARE_SHAPE_FN(resize_images) {
             auto in = inputShape->at(0);
 
-            Nd4jLong* outputShape;
+            sd::LongType* outputShape;
 
             int width;
             int height;
@@ -110,11 +110,11 @@ namespace sd {
             double ratio = shape::sizeAt(in, 1) / (0.0 + shape::sizeAt(in, 2));
             if (block.numB() > 1) {
                 if (B_ARG(1)) {
-                    width = math::nd4j_ceil<double, int>(height / ratio);
+                    width = math::sd_ceil<double, int>(height / ratio);
                 }
             }
 
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             if (shape::rank(in) == 4)
                 shape = {in[1], height, width, in[4]};
             else if (shape::rank(in) == 3)

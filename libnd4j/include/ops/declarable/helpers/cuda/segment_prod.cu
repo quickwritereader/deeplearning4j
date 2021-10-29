@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/segment.h>
 #include <ops/declarable/helpers/segment_common.h>
 #include <array/NDArrayFactory.h>
@@ -37,10 +36,10 @@ namespace helpers {
     // -------------------------------------------------------------------------------------------------------------- //
 
     template <typename T, typename I>
-    static __global__ void segmentProdLinearKernel(void* input, Nd4jLong const* inputShape, int* starts, int* lengths,
-            Nd4jLong numOfClasses, void* output, Nd4jLong const* outputShape) {
+    static SD_KERNEL void segmentProdLinearKernel(void* input, sd::LongType const* inputShape, int* starts, int* lengths,
+            sd::LongType numOfClasses, void* output, sd::LongType const* outputShape) {
 
-        __shared__ Nd4jLong xLen, zLen;
+        __shared__ sd::LongType xLen, zLen;
         __shared__ T* x;
         __shared__ T* z;
 
@@ -61,15 +60,15 @@ namespace helpers {
             }
             for (auto e = start + threadIdx.x; e < finish; e += blockDim.x) {
                 auto xIndex = shape::getIndexOffset(e, inputShape);
-                sd::math::atomics::nd4j_atomicMul(&z[segment], x[xIndex]);
+                sd::math::atomics::sd_atomicMul(&z[segment], x[xIndex]);
             }
         }
 
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void unsortedSegmentProdLinearKernel(T* input, Nd4jLong const* inputShape, I* indices, Nd4jLong const* indicesShape, int* starts, int* lengths, Nd4jLong numOfClasses, T* output, Nd4jLong const* outputShape) {
-        __shared__ Nd4jLong xLen, zLen;
+    static SD_KERNEL void unsortedSegmentProdLinearKernel(T* input, sd::LongType const* inputShape, I* indices, sd::LongType const* indicesShape, int* starts, int* lengths, sd::LongType numOfClasses, T* output, sd::LongType const* outputShape) {
+        __shared__ sd::LongType xLen, zLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -86,17 +85,17 @@ namespace helpers {
             if (lengths[segment] == 0) {
                 continue;
             }
-            sd::math::atomics::nd4j_atomicMul(&output[zIndex], input[xIndex]);
+            sd::math::atomics::sd_atomicMul(&output[zIndex], input[xIndex]);
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
     // SegmentProd kernel
     template <typename T, typename I>
-    static __global__ void segmentProdTadKernel(void* inputBuf, Nd4jLong const* inputShape, Nd4jLong const* inputTads,
-            Nd4jLong const* inputTadOffsets, I* indices, int* starts, int* lengths, Nd4jLong numOfClasses, void* outputBuf,
-            Nd4jLong const* outputShape, Nd4jLong const* outputTads, Nd4jLong const* outputTadOffsets) {
+    static SD_KERNEL void segmentProdTadKernel(void* inputBuf, sd::LongType const* inputShape, sd::LongType const* inputTads,
+            sd::LongType const* inputTadOffsets, I* indices, int* starts, int* lengths, sd::LongType numOfClasses, void* outputBuf,
+            sd::LongType const* outputShape, sd::LongType const* outputTads, sd::LongType const* outputTadOffsets) {
 
-        __shared__ Nd4jLong len, total;
+        __shared__ sd::LongType len, total;
 
         if (threadIdx.x == 0) {
             total = shape::sizeAt(inputShape, 0);
@@ -114,7 +113,7 @@ namespace helpers {
             for (auto e = threadIdx.x; e < len; e += blockDim.x) {
                 auto xIndex = shape::getIndexOffset(e, inputTads);
                 auto zIndex = shape::getIndexOffset(e, outputTads);
-                sd::math::atomics::nd4j_atomicMul(&z[zIndex], x[xIndex]);
+                sd::math::atomics::sd_atomicMul(&z[zIndex], x[xIndex]);
             }
         }
     }
@@ -123,7 +122,7 @@ namespace helpers {
     template <typename T, typename I>
     static void segmentProdFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, NDArray* output) {
         auto stream = context->getCudaStream();
-        Nd4jLong numClasses = indices->e<Nd4jLong>(indices->lengthOf() - 1) + 1;
+        sd::LongType numClasses = indices->e<sd::LongType>(indices->lengthOf() - 1) + 1;
         NDArray classesRangesLens = NDArrayFactory::create<int>('c', {numClasses}, context);
         NDArray classesRangesBegs = NDArrayFactory::create<int>('c', {numClasses}, context);
         output->assign(1);
@@ -153,13 +152,13 @@ namespace helpers {
     // -------------------------------------------------------------------------------------------------------------- //
     void segmentProdFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices});
-        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), segmentProdFunctor_, (context, input, indices, output), NUMERIC_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), segmentProdFunctor_, (context, input, indices, output), SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices});
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static void unsortedSegmentProdFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    static void unsortedSegmentProdFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
 //        NDArray classes = NDArrayFactory::create<int>('c', {numOfClasses, 2});
         NDArray classesRangesBegs = NDArrayFactory::create<int>('c', {numOfClasses}, context);
@@ -195,24 +194,24 @@ namespace helpers {
 
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    void unsortedSegmentProdFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    void unsortedSegmentProdFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices});
         BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), unsortedSegmentProdFunctor_, (context, input, indices, numOfClasses, output),
-                              NUMERIC_TYPES, INDEXING_TYPES);
+                              SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices});
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void segmentProdBPLinearKernel(void* inputBuf, Nd4jLong const* inputShape, void* forwardOutput,
-                                                     Nd4jLong const* forwardShape, void* eps, Nd4jLong const* epsShape, void* indicesBuf, Nd4jLong const* indicesShape,
-                                                     void* outputBuf, Nd4jLong const* outputShape) {
+    static SD_KERNEL void segmentProdBPLinearKernel(void* inputBuf, sd::LongType const* inputShape, void* forwardOutput,
+                                                     sd::LongType const* forwardShape, void* eps, sd::LongType const* epsShape, void* indicesBuf, sd::LongType const* indicesShape,
+                                                     void* outputBuf, sd::LongType const* outputShape) {
         __shared__ T* x;
         __shared__ T* gradIn;
         __shared__ T* gradOut;
         __shared__ I* y;
         __shared__ T* z;
-        __shared__ Nd4jLong xLen, gradLen;
+        __shared__ sd::LongType xLen, gradLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -242,18 +241,18 @@ namespace helpers {
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void segmentProdBPTadKernel(void* inputBuf, Nd4jLong const* inputShape, void* forwardOutput,
-                                                  Nd4jLong const* forwardShape, void* eps, Nd4jLong const* epsShape, void* indicesBuf, Nd4jLong const* indicesShape,
-                                                  void* outputBuf, Nd4jLong const* outputShape, Nd4jLong const* inputTad,
-                                                  Nd4jLong const* inputOffsets, Nd4jLong const* gradInTad, Nd4jLong const* gradInOffsets,
-                                                  Nd4jLong const* gradOutTad, Nd4jLong const* gradOutOffsets, Nd4jLong const* outTad,
-                                                  Nd4jLong const* outOffsets) {
+    static SD_KERNEL void segmentProdBPTadKernel(void* inputBuf, sd::LongType const* inputShape, void* forwardOutput,
+                                                  sd::LongType const* forwardShape, void* eps, sd::LongType const* epsShape, void* indicesBuf, sd::LongType const* indicesShape,
+                                                  void* outputBuf, sd::LongType const* outputShape, sd::LongType const* inputTad,
+                                                  sd::LongType const* inputOffsets, sd::LongType const* gradInTad, sd::LongType const* gradInOffsets,
+                                                  sd::LongType const* gradOutTad, sd::LongType const* gradOutOffsets, sd::LongType const* outTad,
+                                                  sd::LongType const* outOffsets) {
         __shared__ T* x;
         __shared__ T* gradIn;
         __shared__ T* gradOut;
         __shared__ I* y;
         __shared__ T* z;
-        __shared__ Nd4jLong xLen, yLen, gradLen, currentLen;
+        __shared__ sd::LongType xLen, yLen, gradLen, currentLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -284,14 +283,14 @@ namespace helpers {
 
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    ND4J_LOCAL int segmentProdFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+    sd::Status segmentProdFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
         auto stream = context->getCudaStream();
         NDArray tempRes(gradOut->ordering(), gradOut->getShapeAsVector(), DataTypeUtils::fromT<T>(), context);//->shapeInfo(), context);
         segmentProdFunctor_<T, I>(context, input, indices, &tempRes);
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         if (input->isVector()) {
-            Nd4jLong loopSize = input->lengthOf();
-            auto numOfClasses = gradOut->lengthOf(); //indices->e<Nd4jLong>(loop_size - 1);
+            sd::LongType loopSize = input->lengthOf();
+            auto numOfClasses = gradOut->lengthOf(); //indices->e<sd::LongType>(loop_size - 1);
             segmentProdBPLinearKernel<T,I><<<gradOut->lengthOf(), loopSize, 256, *stream>>>(input->specialBuffer(), input->specialShapeInfo(),
                     tempRes.specialBuffer(), tempRes.specialShapeInfo(), gradOut->specialBuffer(), gradOut->specialShapeInfo(),
                     indices->specialBuffer(), indices->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo());
@@ -318,30 +317,30 @@ namespace helpers {
                     outputTads, outputTadOffsets);
         }
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
 
-    ND4J_LOCAL int segmentProdFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+    sd::Status segmentProdFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return segmentProdFunctorBP_, (context, input,
-                indices, gradOut, output), FLOAT_TYPES, INDEXING_TYPES);
+                indices, gradOut, output), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
 
     template <typename T, typename I>
-    static int unsortedSegmentProdFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    static sd::Status unsortedSegmentProdFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
 
         NDArray tempRes(gradOut->ordering(), gradOut->getShapeAsVector(), DataTypeUtils::fromT<T>(), context);//->shapeInfo(), context);
         unsortedSegmentProdFunctor_<T, I>(context, input, indices, numOfClasses, &tempRes);
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         if (input->isVector()) {
-            Nd4jLong loopSize = input->lengthOf();
-            auto numOfClasses = gradOut->lengthOf(); //indices->e<Nd4jLong>(loop_size - 1);
+            sd::LongType loopSize = input->lengthOf();
+            auto numOfClasses = gradOut->lengthOf(); //indices->e<sd::LongType>(loop_size - 1);
             segmentProdBPLinearKernel<T,I><<<gradOut->lengthOf(), loopSize, 256, *stream>>>(input->specialBuffer(), input->specialShapeInfo(),
                     tempRes.specialBuffer(), tempRes.specialShapeInfo(), gradOut->specialBuffer(), gradOut->specialShapeInfo(),
                     indices->specialBuffer(), indices->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo());
@@ -368,13 +367,13 @@ namespace helpers {
                     outputTads, outputTadOffsets);
         }
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL int unsortedSegmentProdFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    sd::Status unsortedSegmentProdFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
-        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentProdFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), FLOAT_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentProdFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
     }
 

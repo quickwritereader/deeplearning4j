@@ -23,22 +23,21 @@
 #ifndef LIBND4J_DATATYPECONVERSIONS_H
 #define LIBND4J_DATATYPECONVERSIONS_H
 
-#include <system/pointercast.h>
+#include <system/common.h>
 #include <helpers/logger.h>
 #include <system/op_boilerplate.h>
 #include <array/DataType.h>
 #include <types/float16.h>
 #include <helpers/BitwiseUtils.h>
 #include <loops/type_conversions.h>
-#include <system/dll.h>
 #include <execution/Threads.h>
 
 namespace sd {
     template <typename T>
-    class ND4J_EXPORT DataTypeConversions {
+    class SD_LIB_EXPORT DataTypeConversions {
     private:
         template <typename T2>
-        static FORCEINLINE void rconv(bool isBe, bool canKeep, T *buffer, Nd4jLong length, void *src) {
+        static SD_INLINE void rconv(bool isBe, bool canKeep, T *buffer, sd::LongType length, void *src) {
             if (std::is_same<T, T2>::value && canKeep) {
                 memcpy(buffer, src, length * sizeof(T));
             } else {
@@ -48,7 +47,7 @@ namespace sd {
 
 #if __GNUC__ <= 4
                 if (!canKeep)
-                                for (Nd4jLong e = 0; e < length; e++)
+                                for (sd::LongType e = 0; e < length; e++)
                                     buffer[e] = BitwiseUtils::swap_bytes<T>(static_cast<T>(tmp[e]));
                             else
                                 TypeCast::convertGeneric<T2, T>(nullptr, tmp, length, buffer);
@@ -66,7 +65,7 @@ namespace sd {
         }
 
     public:
-        static FORCEINLINE void convertType(void* vbuffer, void* src, DataType dataType, ByteOrder order, Nd4jLong length) {
+        static SD_INLINE void convertType(void* vbuffer, void* src, DataType dataType, ByteOrder order, sd::LongType length) {
             auto buffer = reinterpret_cast<T *>(vbuffer);
             bool isBe = BitwiseUtils::isBE();
             bool canKeep = (isBe && order == ByteOrder::BE) || (!isBe && order == ByteOrder::LE);
@@ -93,7 +92,7 @@ namespace sd {
                     }
                     break;
                 case INT64: {
-                    DataTypeConversions<T>::template rconv<Nd4jLong>(isBe, canKeep, buffer, length, src);
+                    DataTypeConversions<T>::template rconv<sd::LongType>(isBe, canKeep, buffer, length, src);
                 }
                     break;
                 case FLOAT32: {
@@ -106,7 +105,7 @@ namespace sd {
 
 #if __GNUC__ <= 4
                             if (!canKeep)
-                                for (Nd4jLong e = 0; e < length; e++)
+                                for (sd::LongType e = 0; e < length; e++)
                                     buffer[e] = BitwiseUtils::swap_bytes<T>(static_cast<T>(tmp[e]));
                             else
                                 TypeCast::convertGeneric<float, T>(nullptr, tmp, length, buffer);
@@ -132,7 +131,7 @@ namespace sd {
 
 #if __GNUC__ <= 4
                             if (!canKeep)
-                                for (Nd4jLong e = 0; e < length; e++)
+                                for (sd::LongType e = 0; e < length; e++)
                                     buffer[e] = BitwiseUtils::swap_bytes<T>(static_cast<T>(tmp[e]));
                             else
                                 TypeCast::convertGeneric<double, T>(nullptr, tmp, length, buffer);
@@ -160,7 +159,7 @@ namespace sd {
 
 #if __GNUC__ <= 4
                             if (!canKeep)
-                                for (Nd4jLong e = 0; e < length; e++)
+                                for (sd::LongType e = 0; e < length; e++)
                                     buffer[e] = BitwiseUtils::swap_bytes<T>(static_cast<T>(tmp[e]));
                             else
                                 TypeCast::convertGeneric<float16, T>(nullptr, tmp, length, buffer);
@@ -177,14 +176,13 @@ namespace sd {
                     }
                     break;
                 default: {
-                    nd4j_printf("Unsupported DataType requested: [%i]\n", static_cast<int>(dataType));
+                    sd_printf("Unsupported DataType requested: [%i]\n", static_cast<int>(dataType));
                     throw std::runtime_error("Unsupported DataType");
                 }
             }
         }
     };
 }
-
 
 
 #endif //LIBND4J_DATATYPECONVERSIONS_H

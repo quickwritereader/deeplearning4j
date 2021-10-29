@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYREDUCE3OP_H
 #define LIBND4J_LEGACYREDUCE3OP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -30,9 +29,9 @@ namespace sd {
         /**
         *   This class provides wrapper for Reduce3 operations (i.e. dot, cosineDistance etc)
         */
-        class ND4J_EXPORT LegacyReduce3Op : public LegacyOp {
+        class SD_LIB_EXPORT LegacyReduce3Op : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override;
+            sd::Status validateAndExecute(Context& block) override;
         public:
             LegacyReduce3Op();
             LegacyReduce3Op(int opNum);

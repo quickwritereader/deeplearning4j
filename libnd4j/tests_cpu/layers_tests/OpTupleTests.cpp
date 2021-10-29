@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 11.10.2017.
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <ops/declarable/OpTuple.h>

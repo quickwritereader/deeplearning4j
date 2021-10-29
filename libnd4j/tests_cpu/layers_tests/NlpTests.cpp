@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -63,12 +62,12 @@ TEST_F(NlpTests, basic_sg_hs_test_1) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.001);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(1L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(1L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {}, {false}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row0 = syn0({0,1, 0,0}, true);
     auto row1 = syn1({1,2, 0,0}, true);
@@ -104,12 +103,12 @@ TEST_F(NlpTests, basic_sg_hs_test_2) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.001);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(1L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(1L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {}, {false}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row0 = syn0({0,1, 0,0}, true);
     auto row1 = syn1({1,2, 0,0}, true);
@@ -155,13 +154,13 @@ TEST_F(NlpTests, basic_sg_hs_test_3) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.001);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(1L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(1L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::skipgram op;
     auto result0 = op.evaluate({&target, &ngStarter, &indices0, &codes00, &syn00, &syn10, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {}, {false}, {}, true);
     auto result1 = op.evaluate({&target, &ngStarter, &indices1, &codes01, &syn01, &syn11, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {}, {false}, {}, true);
-    ASSERT_EQ(Status::OK(), result0.status());
+    ASSERT_EQ(sd::Status::OK, result0.status());
 
     auto row00 = syn00({0,1, 0,0}, true);
     auto row01 = syn01({0,1, 0,0}, true);
@@ -186,12 +185,12 @@ TEST_F(NlpTests, basic_sg_hs_ns_test_1) {
     negTable.linspace(1.0);
 
     auto alpha = NDArrayFactory::create<double>(1.25);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(119L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(119L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {3}, {false}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     
 }
@@ -221,12 +220,12 @@ TEST_F(NlpTests, basic_sg_ns_test_1) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.001);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(2L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(2L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {1, 1}, {false}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row0 = syn0({1,2, 0,0}, true);
 
@@ -263,12 +262,12 @@ TEST_F(NlpTests, basic_cb_hs_test_1) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.025);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(2L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(2L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::cbow op;
     auto result = op.evaluate({&target, &ngStarter, &context, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &numWords, &locked, &inferenceVector}, {}, {}, {true}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row_s0_0 = syn0({0,1, 0,0}, true);
     auto row_s0_1 = syn0({1,2, 0,0}, true);
@@ -317,12 +316,12 @@ TEST_F(NlpTests, basic_cb_ns_test_1) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>(0.025);
-    auto randomValue = NDArrayFactory::create<Nd4jLong>(2L);
+    auto randomValue = NDArrayFactory::create<sd::LongType>(2L);
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::cbow op;
     auto result = op.evaluate({&target, &ngStarter, &context, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &numWords, &locked, &inferenceVector}, {}, {1, 2, 0}, {true}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row_s0_0 = syn0({0,1, 0,0}, true);
     auto row_s0_1 = syn0({1,2, 0,0}, true);
@@ -361,7 +360,7 @@ TEST_F(NlpTests, test_sg_hs_batch_1) {
     auto negTable = NDArrayFactory::empty<float>();
 
     auto alpha = NDArrayFactory::create<double>('c', {2}, {0.001, 0.024});
-    auto randomValue = NDArrayFactory::create<Nd4jLong>('c', {2}, {1L, 3L});
+    auto randomValue = NDArrayFactory::create<sd::LongType>('c', {2}, {1L, 3L});
     auto inferenceVector = NDArrayFactory::empty<float>();
     auto neu1e = NDArrayFactory::create<float>('c', {2, 10});
 
@@ -371,7 +370,7 @@ TEST_F(NlpTests, test_sg_hs_batch_1) {
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {}, {false, true}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto row0 = syn0({0,1, 0,0}, true);
     auto row1 = syn1({1,2, 0,0}, true);
@@ -404,7 +403,7 @@ TEST_F(NlpTests, test_sg_ns_batch_1) {
     auto negTable = NDArrayFactory::create<float>('c', {100000});
 
     auto alpha = NDArrayFactory::create<double>('c', {2}, {0.001, 0.024});
-    auto randomValue = NDArrayFactory::create<Nd4jLong>('c', {2}, {1L, 3L});
+    auto randomValue = NDArrayFactory::create<sd::LongType>('c', {2}, {1L, 3L});
     auto inferenceVector = NDArrayFactory::empty<float>();
     auto neu1e = NDArrayFactory::create<float>('c', {2, 10});
 
@@ -415,7 +414,7 @@ TEST_F(NlpTests, test_sg_ns_batch_1) {
 
     sd::ops::skipgram op;
     auto result = op.evaluate({&target, &ngStarter, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &inferenceVector, &neu1e}, {}, {4, 5}, {false, true}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     
 }
@@ -443,12 +442,12 @@ TEST_F(NlpTests, test_cbow_hs_batch_1) {
     expTable.assign(0.5);
 
     auto alpha = NDArrayFactory::create<double>('c', {2}, {0.025, 0.025});
-    auto randomValue = NDArrayFactory::create<Nd4jLong>('c', {2}, {2L, 2L});
+    auto randomValue = NDArrayFactory::create<sd::LongType>('c', {2}, {2L, 2L});
     auto inferenceVector = NDArrayFactory::empty<float>();
 
     sd::ops::cbow op;
     auto result = op.evaluate({&target, &ngStarter, &context, &indices, &codes, &syn0, &syn1, &syn1Neg, &expTable, &negTable, &alpha, &randomValue, &numWords, &locked, &inferenceVector}, {}, {}, {true}, {}, true);
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto exp0 = NDArrayFactory::create<float>('c', {1, 10});
     auto exp1 = NDArrayFactory::create<float>('c', {1, 10});

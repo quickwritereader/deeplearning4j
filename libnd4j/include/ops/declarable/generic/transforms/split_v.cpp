@@ -46,9 +46,9 @@ namespace ops {
         std::vector<int> dims = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
 
         int pos = 0;
-        std::vector<Nd4jLong> indices(2 * input->rankOf());
+        std::vector<sd::LongType> indices(2 * input->rankOf());
         
-        for (Nd4jLong e = 0; e < sizes->lengthOf(); e++) {
+        for (sd::LongType e = 0; e < sizes->lengthOf(); e++) {
             int c_size = sizes->e<int>(e);
             
             for (int d = 0; d < input->rankOf(); d++) {
@@ -69,7 +69,7 @@ namespace ops {
         }
 
         //delete tads;
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(split_v) {
@@ -105,11 +105,11 @@ namespace ops {
         
         auto length = sizes->lengthOf();
         int pos = 0;
-        for (Nd4jLong e = 0; e < length; e++) {
+        for (sd::LongType e = 0; e < length; e++) {
             int c_size = sizes->e<int>(e);
             
 
-            std::vector<Nd4jLong> shape(rank);
+            std::vector<sd::LongType> shape(rank);
 
             for (int d = 0; d < rank; d++) {
                 if (d != axis)

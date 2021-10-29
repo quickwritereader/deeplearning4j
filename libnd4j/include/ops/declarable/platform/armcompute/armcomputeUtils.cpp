@@ -20,21 +20,18 @@
 
  // Created by Abdelrauf 2020
 
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h> 
 #include <ops/declarable/helpers/convolutions.h>
 #include <cstdint>
 #include <helpers/LoopsCoordsHelper.h>
-
 #include "armcomputeUtils.h"
 
 
 namespace sd      {
 namespace ops       {
 namespace platforms {
-
 
 
 Arm_DataType getArmType ( const DataType &dType){
@@ -94,7 +91,7 @@ bool isArmcomputeFriendly(const NDArray& arr) {
          arrStrides[ind] == 1 ;
 }
 
-Arm_TensorInfo getArmTensorInfo(int rank, Nd4jLong* bases,sd::DataType ndArrayType, arm_compute::DataLayout layout) {
+Arm_TensorInfo getArmTensorInfo(int rank, sd::LongType* bases,sd::DataType ndArrayType, arm_compute::DataLayout layout) {
     constexpr int numChannels = 1; 
     auto dType = getArmType(ndArrayType);
 
@@ -125,7 +122,7 @@ Arm_TensorInfo getArmTensorInfo(const NDArray& arr,
   auto arrStrides = arr.stridesOf();
 
   // https://arm-software.github.io/ComputeLibrary/v20.05/_dimensions_8h_source.xhtml
-  // note: underhood it is stored as std::array<T, num_max_dimensions> _id;
+  // note: underhood it is stored as std::array<T, num_SD_MAX_DIMENSIONs> _id;
   // TensorShape is derived from Dimensions<uint32_t>
   // as well as Strides : public Dimensions<uint32_t>
   Arm_TensorShape shape;
@@ -180,10 +177,10 @@ Arm_Tensor getArmTensor(const NDArray& arr, arm_compute::DataLayout layout) {
 void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
     //only for C order
     if (output.ordering() != 'c') return;
-    const Nd4jLong* shapeInfo = output.shapeInfo();
-    const Nd4jLong* bases = &(shapeInfo[1]);
-    const Nd4jLong rank = shapeInfo[0];
-    const Nd4jLong* strides = output.stridesOf();
+    const sd::LongType* shapeInfo = output.shapeInfo();
+    const sd::LongType* bases = &(shapeInfo[1]);
+    const sd::LongType rank = shapeInfo[0];
+    const sd::LongType* strides = output.stridesOf();
     int width = bases[rank - 1];
     uint8_t* outputBuffer = (uint8_t*)output.buffer(); 
     size_t offset = 0;
@@ -205,7 +202,7 @@ void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
             tensor_it);
     }
     else {
-        Nd4jLong coords[MAX_RANK] = {};
+        sd::LongType coords[SD_MAX_RANK] = {};
         auto copySize = width * element_size;
         arm_compute::execute_window_loop(window, [&](const arm_compute::Coordinates& id)
             {
@@ -221,10 +218,10 @@ void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
 void copyToTensor(const sd::NDArray& input, Arm_Tensor& outTensor) {
     //only for C order
     if (input.ordering() != 'c') return;
-    const Nd4jLong* shapeInfo = input.shapeInfo();
-    const Nd4jLong* bases = &(shapeInfo[1]);
-    const Nd4jLong rank = shapeInfo[0];
-    const Nd4jLong* strides = input.stridesOf();
+    const sd::LongType* shapeInfo = input.shapeInfo();
+    const sd::LongType* bases = &(shapeInfo[1]);
+    const sd::LongType rank = shapeInfo[0];
+    const sd::LongType* strides = input.stridesOf();
     uint8_t *inputBuffer = (uint8_t*)input.buffer(); 
     int width = bases[rank - 1];
     size_t offset = 0; 
@@ -247,7 +244,7 @@ void copyToTensor(const sd::NDArray& input, Arm_Tensor& outTensor) {
          tensor_it);
     }
     else {
-        Nd4jLong coords[MAX_RANK] = {};
+        sd::LongType coords[SD_MAX_RANK] = {};
         auto copySize = width * element_size;
         arm_compute::execute_window_loop(window, [&](const arm_compute::Coordinates& id)
          {

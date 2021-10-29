@@ -22,12 +22,12 @@
 
 #ifndef SAMEDIFF_THREADPOOL_H
 #define SAMEDIFF_THREADPOOL_H
-
 #include <list>
 #include <vector>
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <system/common.h>
 #include <execution/BlockingQueue.h>
 #include <execution/CallableWithArguments.h>
 #include <execution/CallableInterface.h>
@@ -35,7 +35,7 @@
 #include <queue>
 
 namespace samediff {
-    class ND4J_EXPORT ThreadPool {
+    class SD_LIB_EXPORT ThreadPool {
     private:
         std::vector<std::thread> _threads;
         std::vector<BlockingQueue<CallableWithArguments*>*> _queues;

@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/confusion.h>
 #include <execution/Threads.h>
 
@@ -35,8 +34,8 @@ namespace helpers {
 
         auto func = PRAGMA_THREADS_FOR {
             for (int j = start; j < stop; j++) {
-                auto label = labels->e<Nd4jLong>(j);
-                auto pred = predictions->e<Nd4jLong>(j);
+                auto label = labels->e<sd::LongType>(j);
+                auto pred = predictions->e<sd::LongType>(j);
                 T value = (weights == nullptr ? (T) 1.0f : weights->e<T>(j));
                 arrs.at(label)->p<T>(pred, value);
             }
@@ -48,10 +47,10 @@ namespace helpers {
      void confusionFunctor(sd::LaunchContext * context, NDArray* labels, NDArray* predictions, NDArray* weights, NDArray* output) {
         auto xType = output->dataType(); // weights can be null
 
-        BUILD_SINGLE_SELECTOR(xType, _confusionFunctor, (labels, predictions, weights, output), NUMERIC_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _confusionFunctor, (labels, predictions, weights, output), SD_NUMERIC_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _confusionFunctor, (NDArray* labels, NDArray* predictions, NDArray* weights, NDArray* output);, NUMERIC_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void _confusionFunctor, (NDArray* labels, NDArray* predictions, NDArray* weights, NDArray* output);, SD_NUMERIC_TYPES);
 
 }
 }

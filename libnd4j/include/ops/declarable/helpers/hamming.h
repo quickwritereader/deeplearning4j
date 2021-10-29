@@ -26,7 +26,7 @@
 namespace sd {
     namespace ops {
         namespace helpers {
-            void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output);
+        SD_LIB_HIDDEN void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output);
         }
     }
 }

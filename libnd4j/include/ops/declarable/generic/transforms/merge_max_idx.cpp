@@ -41,7 +41,7 @@ CUSTOM_OP_IMPL(mergemaxindex, -1, 1, false, 0, 0) {
 
     helpers::mergeMaxIndex(block.launchContext(), inArrs, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SYN(MergeMaxIndex, mergemaxindex);

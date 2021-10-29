@@ -40,7 +40,7 @@ namespace sd {
 
             helpers::knn_mindistance(*input, *lowest, *highest, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(knn_mindistance) {

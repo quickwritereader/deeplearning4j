@@ -20,12 +20,10 @@
 
  // Created by Abdelrauf (rauf@konduit.ai) 2020
 
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h> 
 #include <ops/declarable/helpers/convolutions.h>
-
 
 #include "armcomputeUtils.h"
 
@@ -34,8 +32,6 @@ namespace sd      {
 namespace ops       {
 namespace platforms {
 
-
- 
 
 //////////////////////////////////////////////////////////////////////
 PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
@@ -68,7 +64,7 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
     int indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;       // corresponding indexes
     ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, wFormat, *input, *output, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH);
 
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, oC, iC);
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, oC, iC);
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CUSTOM DECONV2D ARMCOMPUTE OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if (bias)
         REQUIRE_TRUE(bias->rankOf() <= 2 && oC == bias->lengthOf(), 0, "CUSTOM DECONV2D ARMCOMPUTE OP: wrong shape of array with biases, expected rank, length: <=2, %i, but got %i, %i instead !", oC, bias->rankOf(), bias->lengthOf());
@@ -83,10 +79,10 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
     padBottom = (iH - 1) * sH - oH + kH - pH;
     //deconv2dMKLDNN(input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat);
 #if 0
-    nd4j_printf("deconv2d  bS = %d,  iH =%d, iW = %d,  oH=%d, oW=%d  kH=%d, kW=%d wformat=%d, iC =%d, , oC=%d\n",
+    sd_printf("deconv2d  bS = %d,  iH =%d, iW = %d,  oH=%d, oW=%d  kH=%d, kW=%d wformat=%d, iC =%d, , oC=%d\n",
        bS, iH, iW, oH, oW, kH, kW, wFormat, iC, oC
      );
-    nd4j_printf("deconv2d kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d \n" , kH , kW , sH , sW  , pH 
+    sd_printf("deconv2d kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d \n" , kH , kW , sH , sW  , pH 
      , pW , dH , dW , paddingMode,isNCHW?1:0 );
 #endif
 
@@ -101,14 +97,14 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
         if (wFormat == 0) {
             if (isNCHW) {
 #if 0
-                nd4j_printf("perm choise %d\n", 0);
+                sd_printf("perm choise %d\n", 0);
 #endif                    
                 //reshape
                 permuteVector = arm_compute::PermutationVector(2U, 3U, 0U, 1U);
             }
             else {
 #if 0
-                nd4j_printf("perm choise %d\n", 1);
+                sd_printf("perm choise %d\n", 1);
 #endif                         
                 //reshape
                 permuteVector = arm_compute::PermutationVector(0U, 2U, 3U, 1U);
@@ -116,13 +112,13 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
         }
         else if (wFormat == 1) {
 #if 0
-            nd4j_printf("perm choise %d\n", 2);
+            sd_printf("perm choise %d\n", 2);
 #endif                     
             permuteVector = arm_compute::PermutationVector(3U, 0U, 1U, 2U);
         }
         else {
 #if 0
-            nd4j_printf("perm choise %d\n", 3);
+            sd_printf("perm choise %d\n", 3);
 #endif                     
             permuteVector = arm_compute::PermutationVector(1U, 2U, 3U, 0U);
         }
@@ -131,12 +127,12 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
 //fix weight
         if(isNCHW){
 #if 0
-        nd4j_printf("perm choise %d\n", 4);
+        sd_printf("perm choise %d\n", 4);
 #endif
            permuteVector = arm_compute::PermutationVector(0U, 1U, 3U, 2U);
         }else{
 #if 0
-        nd4j_printf("perm choise %d\n", 5);
+        sd_printf("perm choise %d\n", 5);
 #endif           
            permuteVector = arm_compute::PermutationVector(3U, 1U, 2U, 0U);
         } 
@@ -147,7 +143,7 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
     ArmFunctionWeighted<arm_compute::NEDeconvolutionLayer> deconv;
     deconv.configure( input, weights, bias, output, dataLayout, permuteVector, pad);     
     deconv.run(); // run function
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 
@@ -177,7 +173,6 @@ PLATFORM_CHECK(deconv2d, ENGINE_CPU) {
     req.logTheSuccess();
     return req;
 }
-
 
 
 }

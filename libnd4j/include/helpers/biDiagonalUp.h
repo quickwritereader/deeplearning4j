@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_BIDIAGONALUP_H
 #define LIBND4J_BIDIAGONALUP_H
-
 #include <helpers/hhSequence.h>
 #include <array/NDArray.h>
 
@@ -71,7 +70,6 @@ class BiDiagonalUp {
         HHsequence makeHHsequence(const char type);
 
 };
-
 
 
 }

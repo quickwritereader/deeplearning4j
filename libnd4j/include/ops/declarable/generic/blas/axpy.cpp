@@ -48,7 +48,7 @@ namespace sd {
 
             y->applyPairwiseTransform(pairwise::Axpy, *x, *z, &arguments);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(axpy) {

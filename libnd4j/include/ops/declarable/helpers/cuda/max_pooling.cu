@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/max_pooling.h>
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -29,11 +28,11 @@ namespace ops {
 namespace helpers {
 
     template <typename Z>
-    static _CUDA_G void indicesFiller(void *vz, Nd4jLong const* zShapeInfo, Nd4jLong part, Nd4jLong bSize) {
+    static SD_KERNEL void indicesFiller(void *vz, sd::LongType const* zShapeInfo, sd::LongType part, sd::LongType bSize) {
         auto z = reinterpret_cast<Z*>(vz);
 
         for (int b = blockIdx.x; b < bSize; b += gridDim.x) {
-            for (Nd4jLong e = threadIdx.x; e < part; e += blockDim.x) {
+            for (sd::LongType e = threadIdx.x; e < part; e += blockDim.x) {
                 z[shape::getIndexOffset(e + b * part, zShapeInfo)] = static_cast<Z>(e);
             }
         }
@@ -87,10 +86,10 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices) {
+    void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices) {
         NDArray::prepareSpecialUse({values, indices}, {input});
         auto yType = indices == nullptr ? sd::DataType::INT64 : indices->dataType();
-        BUILD_DOUBLE_SELECTOR(input->dataType(), yType,  maxPoolingFunctor_, (block, input, values, params, indices), LIBND4J_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(input->dataType(), yType,  maxPoolingFunctor_, (block, input, values, params, indices), SD_COMMON_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({values, indices}, {input});
     }
 

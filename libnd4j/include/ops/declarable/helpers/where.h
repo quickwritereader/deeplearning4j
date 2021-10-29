@@ -22,13 +22,12 @@
 
 #ifndef DEV_TESTS_WHERE_H
 #define DEV_TESTS_WHERE_H
-
 #include <ops/declarable/helpers/helpers.h>
 
 namespace sd {
     namespace ops {
         namespace helpers {
-            void _where(sd::LaunchContext * context, NDArray &condition, NDArray& output, memory::Workspace *workspace);
+        SD_LIB_HIDDEN void _where(sd::LaunchContext * context, NDArray &condition, NDArray& output, memory::Workspace *workspace);
         }
     }
 }

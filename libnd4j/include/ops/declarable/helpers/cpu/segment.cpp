@@ -21,7 +21,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/segment.h>
 #include <helpers/ShapeUtils.h>
 #include <execution/Threads.h>
@@ -36,17 +35,17 @@ namespace sd {
             static void segmentMaxFunctor_(NDArray* input, NDArray* indices, NDArray* output) {
                 //int numClasses = output->sizeAt(0);
                 // if input is a vector: (as if in doc sample)
-                Nd4jLong idx = indices->e<Nd4jLong>(0);
+                sd::LongType idx = indices->e<sd::LongType>(0);
                 if (input->isVector() || input->isScalar()) {
                     T val = input->e<T>(0);
 
-                    for (Nd4jLong e = 1; e < indices->lengthOf(); e++) {
-                        if (idx == indices->e<Nd4jLong>(e)) {
+                    for (sd::LongType e = 1; e < indices->lengthOf(); e++) {
+                        if (idx == indices->e<sd::LongType>(e)) {
                             // max
-                            val = sd::math::nd4j_max<T>(val, input->t<T>(e));
+                            val = sd::math::sd_max<T>(val, input->t<T>(e));
                         }
                         else {
-                            idx = indices->e<Nd4jLong>(e);
+                            idx = indices->e<sd::LongType>(e);
                             val = input->t<T>(e);
                         }
                         output->r<T>(idx) = val;
@@ -64,15 +63,15 @@ namespace sd {
                     //int pos = 0;
                     maxT->assign(listOfTensors.at(0));
 
-                    for (Nd4jLong i = 1; i < indices->lengthOf(); i++) {
+                    for (sd::LongType i = 1; i < indices->lengthOf(); i++) {
                         if (indices->e<int>(i) == idx) {
 
-                            for (Nd4jLong e = 0; e < maxT->lengthOf(); e++) {
-                                maxT->r<T>(e) = sd::math::nd4j_max(maxT->t<T>(e), listOfTensors.at(i)->t<T>(e));
+                            for (sd::LongType e = 0; e < maxT->lengthOf(); e++) {
+                                maxT->r<T>(e) = sd::math::sd_max(maxT->t<T>(e), listOfTensors.at(i)->t<T>(e));
                             }
                         }
                         else {
-                            idx = indices->e<Nd4jLong>(i);
+                            idx = indices->e<sd::LongType>(i);
                             maxT = listOfOutTensors.at(idx);
                             maxT->assign(listOfTensors.at(i));
                         }
@@ -86,17 +85,17 @@ namespace sd {
             static void segmentMinFunctor_(NDArray* input, NDArray* indices, NDArray* output) {
                 //int numClasses = output->sizeAt(0);
                 // if input is a vector: (as if in doc sample)
-                Nd4jLong idx = indices->e<Nd4jLong>(0);
+                sd::LongType idx = indices->e<sd::LongType>(0);
                 if (input->isVector() || input->isScalar()) {
                     T val = input->e<T>(0);
 
-                    for (Nd4jLong e = 1; e < indices->lengthOf(); e++) {
-                        if (idx == indices->e<Nd4jLong>(e)) {
+                    for (sd::LongType e = 1; e < indices->lengthOf(); e++) {
+                        if (idx == indices->e<sd::LongType>(e)) {
                             // min
-                            val = sd::math::nd4j_min<T>(val, input->t<T>(e));
+                            val = sd::math::sd_min<T>(val, input->t<T>(e));
                         }
                         else {
-                            idx = indices->e<Nd4jLong>(e);
+                            idx = indices->e<sd::LongType>(e);
                             val = input->t<T>(e);
                         }
                         output->r<T>(idx) = val;
@@ -115,15 +114,15 @@ namespace sd {
                     int pos = 0;
                     minT->assign(listOfTensors.at(0));
 
-                    for (Nd4jLong i = 1; i < indices->lengthOf(); i++) {
-                        if (indices->e<Nd4jLong>(i) == idx) {
+                    for (sd::LongType i = 1; i < indices->lengthOf(); i++) {
+                        if (indices->e<sd::LongType>(i) == idx) {
 
-                            for (Nd4jLong e = 0; e < minT->lengthOf(); e++) {
-                                minT->p(e, sd::math::nd4j_min(minT->e<T>(e), listOfTensors.at(i)->e<T>(e)));
+                            for (sd::LongType e = 0; e < minT->lengthOf(); e++) {
+                                minT->p(e, sd::math::sd_min(minT->e<T>(e), listOfTensors.at(i)->e<T>(e)));
                             }
                         }
                         else {
-                            idx = indices->e<Nd4jLong>(i);
+                            idx = indices->e<sd::LongType>(i);
                             minT = listOfOutTensors.at(idx);
                             minT->assign(listOfTensors.at(i));
                         }
@@ -141,7 +140,7 @@ namespace sd {
                     T val = T(0.f);
                     int count = 0;
 
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); e++) {
+                    for (sd::LongType e = 0; e < indices->lengthOf(); e++) {
                         if (idx == indices->e<int>(e)) {
                             // mean
                             val += input->e<T>(e);
@@ -169,7 +168,7 @@ namespace sd {
                     auto meanV = meanT->dup();
                     meanV.assign(listOfTensors.at(0));
 
-                    for (Nd4jLong i = 1; i < indices->lengthOf(); i++) {
+                    for (sd::LongType i = 1; i < indices->lengthOf(); i++) {
                         if (indices->e<int>(i) == idx) {
                             auto func = PRAGMA_THREADS_FOR {
                                 for (auto e = start; e < stop; e++) {
@@ -201,7 +200,7 @@ namespace sd {
                 if (input->isVector() || input->isScalar()) {
                     T val = T(0.f);
                     int count = 0;
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); e++) {
+                    for (sd::LongType e = 0; e < indices->lengthOf(); e++) {
                         if (idx == indices->e<int>(e)) {
                             // sum
                             val += input->t<T>(e);
@@ -223,7 +222,7 @@ namespace sd {
                     std::vector<std::pair<NDArray*, int>> outputs(numOfClasses);
                     auto sumT = listOfOutTensors.at(idx);
 
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
                         if (indices->e<int>(i) == idx) {
                             auto func = PRAGMA_THREADS_FOR {
                                 for (auto e = start; e < stop; e++) {
@@ -251,7 +250,7 @@ namespace sd {
                     T val = input->e<T>(0);
                     int count = 0;
 
-                    for (Nd4jLong e = 1; e < indices->lengthOf(); e++) {
+                    for (sd::LongType e = 1; e < indices->lengthOf(); e++) {
                         if (idx == indices->e<int>(e)) {
                             // sum
                             val *= input->e<T>(e);
@@ -272,7 +271,7 @@ namespace sd {
                     int numOfClasses = output->sizeAt(0); // number of classes
                     auto sumT = listOfOutTensors.at(idx);
                     sumT->assign(listOfTensors.at(0));
-                    for (Nd4jLong i = 1; i < indices->lengthOf(); i++) {
+                    for (sd::LongType i = 1; i < indices->lengthOf(); i++) {
                         if (indices->e<int>(i)  == idx) {
                             auto func = PRAGMA_THREADS_FOR {
                                 for (auto e = start; e < stop; e++) {
@@ -294,31 +293,31 @@ namespace sd {
 //    static bool segmentIndicesValidate_(NDArray* indices, NDArray& aexpected, NDArray& anOutput) {
 //      }
 
-            ND4J_LOCAL void segmentMaxFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMaxFunctor_, (input, indices, output), LIBND4J_TYPES);
+            void segmentMaxFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMaxFunctor_, (input, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void segmentMinFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMinFunctor_, (input, indices, output), LIBND4J_TYPES);
+            void segmentMinFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMinFunctor_, (input, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void segmentMeanFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMeanFunctor_, (input, indices, output), LIBND4J_TYPES);
+            void segmentMeanFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), segmentMeanFunctor_, (input, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void segmentSumFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), segmentSumFunctor_, (input, indices, output), LIBND4J_TYPES);
+            void segmentSumFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), segmentSumFunctor_, (input, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void segmentProdFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), segmentProdFunctor_, (input, indices, output), LIBND4J_TYPES);
+            void segmentProdFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), segmentProdFunctor_, (input, indices, output), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL bool segmentIndicesValidate(sd::LaunchContext * context, NDArray* indices, NDArray& expected, NDArray& output) {
+            bool segmentIndicesValidate(sd::LaunchContext * context, NDArray* indices, NDArray& expected, NDArray& output) {
                 auto val = indices->e(0);
-                for (Nd4jLong e = 1; e < indices->lengthOf(); e++) {
+                for (sd::LongType e = 1; e < indices->lengthOf(); e++) {
                     output = indices->e(e);
-                    if (val.e<Nd4jLong>(0) > output.e<Nd4jLong>(0))
+                    if (val.e<sd::LongType>(0) > output.e<sd::LongType>(0))
                         return false;
                     val = indices->e(e);
                 }
@@ -326,21 +325,21 @@ namespace sd {
                 return true;
             }
 
-            //BUILD_SINGLE_TEMPLATE(template bool segmentIndicesValidate_, (NDArray*, NDArray&, NDArray&), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void segmentProdFunctor_, (NDArray* input, NDArray* indices, NDArray* output), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void segmentSumFunctor_, (NDArray* input, NDArray* indices, NDArray* output), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void segmentMeanFunctor_, (NDArray* input, NDArray* indices, NDArray* output), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void segmentMinFunctor_, (NDArray* input, NDArray* indices, NDArray* output), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void segmentMaxFunctor_, (NDArray* input, NDArray* indices, NDArray* output), LIBND4J_TYPES);
+            //BUILD_SINGLE_TEMPLATE(template bool segmentIndicesValidate_, (NDArray*, NDArray&, NDArray&), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void segmentProdFunctor_, (NDArray* input, NDArray* indices, NDArray* output), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void segmentSumFunctor_, (NDArray* input, NDArray* indices, NDArray* output), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void segmentMeanFunctor_, (NDArray* input, NDArray* indices, NDArray* output), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void segmentMinFunctor_, (NDArray* input, NDArray* indices, NDArray* output), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void segmentMaxFunctor_, (NDArray* input, NDArray* indices, NDArray* output), SD_COMMON_TYPES);
             // -------------------------------------------------------------------------------------------------------------- //
             // Unsorted segment ops
             // -------------------------------------------------------------------------------------------------------------- //
 
-            ND4J_LOCAL bool unsortedSegmentIndicesValidate(sd::LaunchContext * context, NDArray* indices, Nd4jLong expected, Nd4jLong& output) {
-                Nd4jLong val = indices->e<Nd4jLong>(0);
+            bool unsortedSegmentIndicesValidate(sd::LaunchContext * context, NDArray* indices, sd::LongType expected, sd::LongType& output) {
+                sd::LongType val = indices->e<sd::LongType>(0);
 
-                Nd4jLong maxInd = indices->argMax();
-                if (indices->e<Nd4jLong>(maxInd) >= expected) {
+                sd::LongType maxInd = indices->argMax();
+                if (indices->e<sd::LongType>(maxInd) >= expected) {
                     output = val;
                     return false;
                 }
@@ -349,13 +348,13 @@ namespace sd {
             }
 
             template <typename T>
-            static void unsortedSegmentMaxFunctor_(NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+            static void unsortedSegmentMaxFunctor_(NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
 
                 // if input is a vector: (as if in doc sample)
                 //int idx = static_cast<int>((*indices)(0.));
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
 
                 //std::sort(idxs.begin(), idxs.end());
@@ -366,8 +365,8 @@ namespace sd {
 
                     for (auto fi = idxs.begin(); fi != idxs.end(); ++fi) {
                         T val = input->e<T>(fi->second.at(0));
-                        for (Nd4jLong idx = 1; idx < static_cast<Nd4jLong>(fi->second.size()); ++idx) {
-                            val = sd::math::nd4j_max(val, input->e<T>(fi->second.at(idx)));
+                        for (sd::LongType idx = 1; idx < static_cast<sd::LongType>(fi->second.size()); ++idx) {
+                            val = sd::math::sd_max(val, input->e<T>(fi->second.at(idx)));
                         }
                         output->p(fi->first, val);
                     }
@@ -384,14 +383,14 @@ namespace sd {
                     for (auto fi = idxs.begin(); fi != idxs.end(); ++fi) {
                         auto outputT = listOfOutTensors.at(fi->first);
                         outputT->assign(listOfTensors.at(fi->second.at(0)));
-                        for (Nd4jLong idx = 0; idx < listOfTensors.size(); ++idx) {
+                        for (sd::LongType idx = 0; idx < listOfTensors.size(); ++idx) {
                                if(idx >= fi->second.size() ||  fi->second.size() < 2 ||  fi->second.at(idx) >= listOfTensors.size()) {
                                    continue;
                             }
 
                             auto maxT = listOfTensors.at(fi->second.at(idx));
-                            for (Nd4jLong e = 0; e < outputT->lengthOf(); ++e) {
-                                T val = sd::math::nd4j_max(maxT->e<T>(e), outputT->e<T>(e));
+                            for (sd::LongType e = 0; e < outputT->lengthOf(); ++e) {
+                                T val = sd::math::sd_max(maxT->e<T>(e), outputT->e<T>(e));
 
                                 outputT->p(e, val);
                             }
@@ -403,19 +402,19 @@ namespace sd {
 
                 }
             }
-            ND4J_LOCAL void unsortedSegmentMaxFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), unsortedSegmentMaxFunctor_, (input, indices, numOfClasses, output), NUMERIC_TYPES);
+            void unsortedSegmentMaxFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), unsortedSegmentMaxFunctor_, (input, indices, numOfClasses, output), SD_NUMERIC_TYPES);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void unsortedSegmentMaxFunctor_, (NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void unsortedSegmentMaxFunctor_, (NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output), SD_NUMERIC_TYPES);
 
             template <typename T>
-            static void unsortedSegmentMinFunctor_(NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+            static void unsortedSegmentMinFunctor_(NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
                 // if input is a vector: (as if in doc sample)
                 //int idx = static_cast<int>((*indices)(0.));
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
 
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
                 //std::sort(idxs.begin(), idxs.end());
 
@@ -427,7 +426,7 @@ namespace sd {
                         T val = input->t<T>(fi->second.at(0));
 
                         for (size_t idx = 1; idx < fi->second.size(); ++idx) {
-                            val = sd::math::nd4j_min(val, input->t<T>(fi->second.at(idx)));
+                            val = sd::math::sd_min(val, input->t<T>(fi->second.at(idx)));
                         }
                         output->r<T>(fi->first) = val;
                     }
@@ -447,8 +446,8 @@ namespace sd {
                         for (size_t idx = 1; idx < fi->second.size(); ++idx) {
                             auto minT = listOfTensors.at(fi->second.at(idx));
 
-                            for (Nd4jLong e = 0; e < outputT->lengthOf(); ++e) {
-                                outputT->r<T>(e) = sd::math::nd4j_min(minT->t<T>(e), outputT->t<T>(e));
+                            for (sd::LongType e = 0; e < outputT->lengthOf(); ++e) {
+                                outputT->r<T>(e) = sd::math::sd_min(minT->t<T>(e), outputT->t<T>(e));
                             }
                         }
                         //outputT->assign(maxT);
@@ -456,17 +455,17 @@ namespace sd {
                 }
 
             }
-            ND4J_LOCAL void unsortedSegmentMinFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+            void unsortedSegmentMinFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
                 BUILD_SINGLE_SELECTOR(input->dataType(), unsortedSegmentMinFunctor_, (input, indices, numOfClasses, output),
-                                      NUMERIC_TYPES);
+                                      SD_NUMERIC_TYPES);
             }
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void unsortedSegmentMinFunctor_, (NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void unsortedSegmentMinFunctor_, (NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output), SD_NUMERIC_TYPES);
 
-            ND4J_LOCAL void unsortedSegmentMeanFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+            void unsortedSegmentMeanFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
                 //std::sort(idxs.begin(), idxs.end());
 
@@ -494,9 +493,9 @@ namespace sd {
                     for (auto fi = idxs.begin(); fi != idxs.end(); ++fi) {
                         auto outputT = listOfOutTensors.at(fi->first);
                         outputT->assign(listOfTensors.at(fi->second.at(0)));
-                        Nd4jLong loopSize = fi->second.size();
+                        sd::LongType loopSize = fi->second.size();
 
-                        for (Nd4jLong idx = 1; idx < loopSize; ++idx) {
+                        for (sd::LongType idx = 1; idx < loopSize; ++idx) {
                             auto current = listOfTensors.at(fi->second.at(idx));
                             *outputT += *current;
                         }
@@ -505,19 +504,19 @@ namespace sd {
                 }
             }
 
-            ND4J_LOCAL void unsortedSegmentSumFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+            void unsortedSegmentSumFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
                 if (input->isVector() || input->isScalar()) { // 1D case
 
                     for (auto fi = idxs.begin(); fi != idxs.end(); ++fi) {
                         double sumValue = input->e<double>(fi->second.at(0));
-                        Nd4jLong loop_size = fi->second.size();
+                        sd::LongType loop_size = fi->second.size();
 
                         // FIXME: parallelism here?
-                        for (Nd4jLong idx = 1; idx < loop_size; ++idx) {
+                        for (sd::LongType idx = 1; idx < loop_size; ++idx) {
                             sumValue += input->e<double>(fi->second.at(idx));
                         }
                         output->p(fi->first, sumValue);
@@ -532,10 +531,10 @@ namespace sd {
                     for (auto fi = idxs.begin(); fi != idxs.end(); ++fi) {
                         auto outputT = listOfOutTensors.at(fi->first);
                         outputT->assign(listOfTensors.at(fi->second.at(0)));
-                        Nd4jLong loop_size = fi->second.size();
+                        sd::LongType loop_size = fi->second.size();
 
                         // FIXME: parallelism here?
-                        for (Nd4jLong idx = 1; idx < loop_size; ++idx) {
+                        for (sd::LongType idx = 1; idx < loop_size; ++idx) {
                             auto current = listOfTensors.at(fi->second.at(idx));
                             *(outputT) += *current;
                         }
@@ -545,10 +544,10 @@ namespace sd {
             }
 
             template <typename T>
-            ND4J_LOCAL void unsortedSegmentProdFunctor_(NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+            void unsortedSegmentProdFunctor_(NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
                 //std::sort(idxs.begin(), idxs.end());
 
@@ -581,15 +580,15 @@ namespace sd {
                 }
             }
 
-            ND4J_LOCAL void unsortedSegmentProdFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), unsortedSegmentProdFunctor_, (input, indices, numOfClasses, output), NUMERIC_TYPES);
+            void unsortedSegmentProdFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), unsortedSegmentProdFunctor_, (input, indices, numOfClasses, output), SD_NUMERIC_TYPES);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void unsortedSegmentProdFunctor_, (NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void unsortedSegmentProdFunctor_, (NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output), SD_NUMERIC_TYPES);
 
-            ND4J_LOCAL void unsortedSegmentSqrtNFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
-                MAP_IMPL<Nd4jLong, std::vector<Nd4jLong>> idxs;//(indices->lengthOf());
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e)
-                    idxs[indices->e<Nd4jLong>(e)].push_back(e);
+            void unsortedSegmentSqrtNFunctor(sd::LaunchContext * context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
+                SD_MAP_IMPL<sd::LongType, std::vector<sd::LongType>> idxs;//(indices->lengthOf());
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e)
+                    idxs[indices->e<sd::LongType>(e)].push_back(e);
 
                 //std::sort(idxs.begin(), idxs.end());
 
@@ -599,7 +598,7 @@ namespace sd {
                         for (size_t idx = 1; idx < fi->second.size(); ++idx) {
                             sumValue += input->e<double>(fi->second.at(idx));
                         }
-                        output->p(fi->first, sumValue / sd::math::nd4j_sqrt<Nd4jLong, double>(fi->second.size()));
+                        output->p(fi->first, sumValue / sd::math::sd_sqrt<sd::LongType, double>(fi->second.size()));
                     }
                 }
                 else {
@@ -616,7 +615,7 @@ namespace sd {
                             *outputT += *current;
                         }
                         //outputT->assign(maxT);
-                        (*outputT) /= sd::math::nd4j_sqrt<size_t, double>(fi->second.size());
+                        (*outputT) /= sd::math::sd_sqrt<size_t, double>(fi->second.size());
                     }
                 }
             }
@@ -628,18 +627,18 @@ namespace sd {
             //
             // segment max
             template <typename T>
-            ND4J_LOCAL int segmentMaxFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+            sd::Status segmentMaxFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
                 //int numOfClasses = gradOut->sizeAt(0);
                 // if input is a vector: (as if in doc sample)
                 auto tempRes = gradOut->dup();
                 segmentMaxFunctor_<T>(input, indices, &tempRes);
                 if (input->isVector() || input->isScalar()) {
-                    Nd4jLong loop_size = input->lengthOf();
+                    sd::LongType loop_size = input->lengthOf();
 
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
-                            auto classNum = indices->e<Nd4jLong>(e);
-                            if (sd::math::nd4j_abs(tempRes.e<T>(classNum) - input->e<T>(e)) <= T(1.e-6))
+                            auto classNum = indices->e<sd::LongType>(e);
+                            if (sd::math::sd_abs(tempRes.e<T>(classNum) - input->e<T>(e)) <= T(1.e-6))
                                 output->p(e, gradOut->e<T>(classNum));
                         }
                     };
@@ -658,13 +657,13 @@ namespace sd {
 
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto i = start; i < stop; i++) {
-                            auto classNum = indices->e<Nd4jLong>(i);
+                            auto classNum = indices->e<sd::LongType>(i);
                             auto current = listOfTensors.at(i);
                             auto currentOut = listOfOutTensors.at(i);
                             auto currentGradOut = listOfGradOuts.at(classNum);
 
-                            for (Nd4jLong e = 0; e < current->lengthOf(); e++) {
-                                if (sd::math::nd4j_abs(listOfBPTensors.at(classNum)->e<T>(e) - current->e<T>(e)) <= T(1.e-6))
+                            for (sd::LongType e = 0; e < current->lengthOf(); e++) {
+                                if (sd::math::sd_abs(listOfBPTensors.at(classNum)->e<T>(e) - current->e<T>(e)) <= T(1.e-6))
                                     currentOut->p(e, currentGradOut->e<T>(e));
                             }
                         }
@@ -673,23 +672,23 @@ namespace sd {
                     samediff::Threads::parallel_tad(func, 0, indices->lengthOf());
                 }
 
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int segmentMaxFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(output->dataType(), return segmentMaxFunctorBP_, (context, input, indices, gradOut, output), NUMERIC_TYPES);
+            sd::Status segmentMaxFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(output->dataType(), return segmentMaxFunctorBP_, (context, input, indices, gradOut, output), SD_NUMERIC_TYPES);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int segmentMaxFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template sd::Status segmentMaxFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output), SD_NUMERIC_TYPES);
 
             // segmen min
-            ND4J_LOCAL int segmentMinFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+            sd::Status segmentMinFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
                 NDArray tempRes = gradOut->dup();
                 segmentMinFunctor(context, input, indices, &tempRes);
                 if (input->isVector() || input->isScalar()) {
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
-                            auto classNum = indices->e<Nd4jLong>(e);
-                            if (sd::math::nd4j_abs(tempRes.e<double>(classNum) - input->e<double>(e)) < 1.e-5)
+                            auto classNum = indices->e<sd::LongType>(e);
+                            if (sd::math::sd_abs(tempRes.e<double>(classNum) - input->e<double>(e)) < 1.e-5)
                                 output->p(e, gradOut->e<double>(classNum));
                         }
                     };
@@ -710,13 +709,13 @@ namespace sd {
 
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto i = start; i < stop; i++) {
-                            auto classNum = indices->e<Nd4jLong>(i);
+                            auto classNum = indices->e<sd::LongType>(i);
                             auto current = listOfTensors.at(i);
                             auto currentOut = listOfOutTensors.at(i);
                             auto currentGradOut = listOfGradOuts.at(classNum);
 
-                            for (Nd4jLong e = 0; e < current->lengthOf(); e++) {
-                                if (sd::math::nd4j_abs(listOfBPTensors.at(classNum)->e<double>(e) - current->e<double>(e)) <
+                            for (sd::LongType e = 0; e < current->lengthOf(); e++) {
+                                if (sd::math::sd_abs(listOfBPTensors.at(classNum)->e<double>(e) - current->e<double>(e)) <
                                     1.e-5)
                                     currentOut->p(e, currentGradOut->e<double>(e));
                             }
@@ -725,26 +724,26 @@ namespace sd {
 
                     samediff::Threads::parallel_tad(func, 0, indices->lengthOf());
                 }
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
             // segmen mean
-            ND4J_LOCAL int segmentMeanFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+            sd::Status segmentMeanFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
                 int numClasses = output->sizeAt(0);
-                MAP_IMPL<Nd4jLong, Nd4jLong> classCount;//(numClasses);
+                SD_MAP_IMPL<sd::LongType, sd::LongType> classCount;//(numClasses);
 
-                for (Nd4jLong count = 0; count < numClasses; ++count) {
+                for (sd::LongType count = 0; count < numClasses; ++count) {
                     classCount[count] = 0;
                 }
 
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                    classCount[indices->e<Nd4jLong>(e)] ++;
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                    classCount[indices->e<sd::LongType>(e)] ++;
                 }
 
                 // if input is a vector: (as if in doc sample)
                 if (input->isVector() || input->isScalar()) {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
+                    for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
                         output->p(e, gradOut->e<double>(classNum) / classCount[classNum]);
                     }
                 }
@@ -758,13 +757,13 @@ namespace sd {
 
                     int pos = 0;
                     //auto func = [&](uint64_t thread_id, uint64_t start, uint64_t stop, uint64_t increment) -> void {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
 
-                        for (Nd4jLong e = 0; e < current->lengthOf(); e++) {
+                        for (sd::LongType e = 0; e < current->lengthOf(); e++) {
                             currentOut->p(e, currentGradOut->e<double>(e) / classCount.at(classNum));
                         }
                     }
@@ -772,16 +771,16 @@ namespace sd {
 
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int segmentSumFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+            sd::Status segmentSumFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
 //        int numClasses = output->sizeAt(0);
                 // if input is a vector: (as if in doc sample)
-                Nd4jLong idx = indices->e<Nd4jLong>(0);
+                sd::LongType idx = indices->e<sd::LongType>(0);
                 if (input->isVector() || input->isScalar()) {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
+                    for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
                         output->p(e, gradOut->e<double>(classNum));
                     }
                 }
@@ -793,8 +792,8 @@ namespace sd {
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
@@ -805,15 +804,15 @@ namespace sd {
 
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int segmentProdFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+            sd::Status segmentProdFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
                 auto tempRes = gradOut->dup();
                 segmentProdFunctor(context, input, indices, &tempRes);
                 if (input->isVector() || input->isScalar()) {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
+                    for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
                         output->p(e, gradOut->e<double>(classNum) * tempRes.e<double>(classNum)/ input->e<double>(e));
                     }
                 }
@@ -829,8 +828,8 @@ namespace sd {
                     //std::vector<std::pair<NDArray*, int>> outputs(numOfClasses);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
@@ -843,7 +842,7 @@ namespace sd {
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
 
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
             // -------------------------------------------------------------------------------------------------------------- //
@@ -851,16 +850,16 @@ namespace sd {
             // -------------------------------------------------------------------------------------------------------------- //
 
             template <typename T>
-            static int unsortedSegmentMaxFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+            static sd::Status unsortedSegmentMaxFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
 //        int numOfClasses = gradOut->sizeAt(0);
                 // if input is a vector: (as if in doc sample)
                 auto tempRes = gradOut->dup();
                 unsortedSegmentMaxFunctor(context, input, indices, numOfClasses, &tempRes);
                 if (input->isVector() || input->isScalar()) {
 
-                    for (Nd4jLong e = 0; e < input->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
-                        if (sd::math::nd4j_abs(tempRes.e<double>(classNum) - input->e<double>(e)) < 1.e-5)
+                    for (sd::LongType e = 0; e < input->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
+                        if (sd::math::sd_abs(tempRes.e<double>(classNum) - input->e<double>(e)) < 1.e-5)
                             output->p(e, gradOut->e<T>(classNum));
                     }
                 }
@@ -872,36 +871,36 @@ namespace sd {
                     ResultSet listOfTensors = input->allTensorsAlongDimension(restDims);
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        sd::LongType classNum = indices->e<sd::LongType>(i);
                         NDArray* current = listOfTensors.at(i);
                         NDArray* currentOut = listOfOutTensors.at(i);
                         NDArray* currentGradOut = listOfGradOuts.at(classNum);
                         for (int e = 0; e < current->lengthOf(); e++) {
-                            if (sd::math::nd4j_abs(listOfBPTensors.at(classNum)->e<double>(e) - current->e<double>(e)) < 1.e-5)
+                            if (sd::math::sd_abs(listOfBPTensors.at(classNum)->e<double>(e) - current->e<double>(e)) < 1.e-5)
                                 currentOut->p(e, currentGradOut->e<T>(e));
                         }
                     }
                 }
 
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int unsortedSegmentMaxFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(output->dataType(), return unsortedSegmentMaxFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), NUMERIC_TYPES);
+            sd::Status unsortedSegmentMaxFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(output->dataType(), return unsortedSegmentMaxFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), SD_NUMERIC_TYPES);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int unsortedSegmentMaxFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template sd::Status unsortedSegmentMaxFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output), SD_NUMERIC_TYPES);
 
             template <typename T>
-            static int unsortedSegmentMinFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+            static sd::Status unsortedSegmentMinFunctorBP_(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
                 auto tempRes = gradOut->dup();
                 unsortedSegmentMinFunctor(context, input, indices, numOfClasses, &tempRes);
                 if (input->isVector() || input->isScalar()) {
 
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
-                            auto classNum = indices->e<Nd4jLong>(e);
-                            if (sd::math::nd4j_abs(tempRes.t<T>(classNum) - input->t<T>(e)) < 1.e-6)
+                            auto classNum = indices->e<sd::LongType>(e);
+                            if (sd::math::sd_abs(tempRes.t<T>(classNum) - input->t<T>(e)) < 1.e-6)
                                 output->r<T>(e) = gradOut->t<T>(classNum);
                         }
                     };
@@ -917,14 +916,14 @@ namespace sd {
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
 
-                        for (Nd4jLong e = 0; e < current->lengthOf(); e++) {
-                            if (sd::math::nd4j_abs(listOfBPTensors.at(classNum)->t<T>(e) - current->t<T>(e)) < 1.e-6)
+                        for (sd::LongType e = 0; e < current->lengthOf(); e++) {
+                            if (sd::math::sd_abs(listOfBPTensors.at(classNum)->t<T>(e) - current->t<T>(e)) < 1.e-6)
                                 currentOut->r<T>(e) = currentGradOut->t<T>(e);
                         }
                     }
@@ -933,30 +932,30 @@ namespace sd {
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
 
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int unsortedSegmentMinFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(output->dataType(), return unsortedSegmentMinFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), NUMERIC_TYPES);
+            sd::Status unsortedSegmentMinFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(output->dataType(), return unsortedSegmentMinFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), SD_NUMERIC_TYPES);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int unsortedSegmentMinFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output), NUMERIC_TYPES);
+            BUILD_SINGLE_TEMPLATE(template sd::Status unsortedSegmentMinFunctorBP_, (sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output), SD_NUMERIC_TYPES);
 
-            ND4J_LOCAL int unsortedSegmentMeanFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+            sd::Status unsortedSegmentMeanFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
 
-                MAP_IMPL<Nd4jLong, Nd4jLong> classCount;//(numClasses);
+                SD_MAP_IMPL<sd::LongType, sd::LongType> classCount;//(numClasses);
 
-                for (Nd4jLong count = 0; count < numOfClasses; ++count) {
+                for (sd::LongType count = 0; count < numOfClasses; ++count) {
                     classCount[count] = 0;
                 }
 
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                    classCount[indices->e<Nd4jLong>(e)]++;
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                    classCount[indices->e<sd::LongType>(e)]++;
                 }
 
                 // if input is a vector: (as if in doc sample)
                 if (input->isVector() || input->isScalar()) {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
+                    for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
                         output->p(e, gradOut->e<double>(classNum) / classCount[classNum]);
                     }
                 }
@@ -967,24 +966,24 @@ namespace sd {
                     ResultSet listOfTensors = input->allTensorsAlongDimension(restDims);
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        sd::LongType classNum = indices->e<sd::LongType>(i);
                         NDArray* current = listOfTensors.at(i);
                         NDArray* currentOut = listOfOutTensors.at(i);
                         NDArray* currentGradOut = listOfGradOuts.at(classNum);
                         currentOut->assign(*currentGradOut / double(classCount[classNum]));
                     }
                 }
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int unsortedSegmentSumFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+            sd::Status unsortedSegmentSumFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
 
                 // if input is a vector: (as if in doc sample)
-                Nd4jLong idx = indices->e<Nd4jLong>(0);
+                sd::LongType idx = indices->e<sd::LongType>(0);
                 if (input->isVector() || input->isScalar()) {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                        Nd4jLong classNum = indices->e<Nd4jLong>(e);
+                    for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                        sd::LongType classNum = indices->e<sd::LongType>(e);
                         output->p(e, gradOut->e<double>(classNum));
                     }
                 }
@@ -996,8 +995,8 @@ namespace sd {
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
 
@@ -1007,17 +1006,17 @@ namespace sd {
 
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int unsortedSegmentProdFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+            sd::Status unsortedSegmentProdFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
 
                 auto tempRes = gradOut->dup();
                 unsortedSegmentProdFunctor(context, input, indices, numOfClasses, &tempRes);
                 if (input->isVector() || input->isScalar()) {
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
-                            auto classNum = indices->e<Nd4jLong>(e);
+                            auto classNum = indices->e<sd::LongType>(e);
                             output->p<double>(e, gradOut->e<double>(classNum) * tempRes.e<double>(classNum) / input->e<double>(e));
                         }
                     };
@@ -1033,8 +1032,8 @@ namespace sd {
                     ResultSet listOfOutTensors = output->allTensorsAlongDimension(restDims);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
@@ -1047,27 +1046,27 @@ namespace sd {
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
 //    template <typename T>
-            ND4J_LOCAL int unsortedSegmentSqrtNFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
-                MAP_IMPL<Nd4jLong, Nd4jLong> classCount;//(numClasses);
+            sd::Status unsortedSegmentSqrtNFunctorBP(sd::LaunchContext * context, NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
+                SD_MAP_IMPL<sd::LongType, sd::LongType> classCount;//(numClasses);
 
-                for (Nd4jLong count = 0; count < numOfClasses; ++count) {
+                for (sd::LongType count = 0; count < numOfClasses; ++count) {
                     classCount[count] = 0;
                 }
 
-                for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-                    classCount[indices->e<Nd4jLong>(e)]++;
+                for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+                    classCount[indices->e<sd::LongType>(e)]++;
                 }
 
                 // if input is a vector: (as if in doc sample)
                 if (input->isVector() || input->isScalar()) {
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong e = 0; e < indices->lengthOf(); e++) {
-                        auto classNum = indices->e<Nd4jLong>(e);
-                        output->p(e, gradOut->e<double>(classNum) / sd::math::nd4j_sqrt<double, double>(classCount[classNum]));
+                    for (sd::LongType e = 0; e < indices->lengthOf(); e++) {
+                        auto classNum = indices->e<sd::LongType>(e);
+                        output->p(e, gradOut->e<double>(classNum) / sd::math::sd_sqrt<double, double>(classCount[classNum]));
                     }
                     //};
 
@@ -1081,21 +1080,21 @@ namespace sd {
                     ResultSet listOfOutTensors  =output->allTensorsAlongDimension(restDims);
 
                     //auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < indices->lengthOf(); i++) {
-                        auto classNum = indices->e<Nd4jLong>(i);
+                    for (sd::LongType i = 0; i < indices->lengthOf(); i++) {
+                        auto classNum = indices->e<sd::LongType>(i);
                         auto current = listOfTensors.at(i);
                         auto currentOut = listOfOutTensors.at(i);
                         auto currentGradOut = listOfGradOuts.at(classNum);
 
                         for (int e = 0; e < current->lengthOf(); e++) {
-                            currentOut->p<double>(e, currentGradOut->e<double>(e) / sd::math::nd4j_sqrt<double, double>(classCount[classNum]));
+                            currentOut->p<double>(e, currentGradOut->e<double>(e) / sd::math::sd_sqrt<double, double>(classCount[classNum]));
                         }
                     }
                     //};
 
                     //samediff::Threads::parallel_for(func, 0, indices->lengthOf());
                 }
-                return Status::OK();
+                return sd::Status::OK;
             }
 
         }

@@ -34,7 +34,7 @@ namespace sd {
             int extras = 2;
             input->applyScalar(scalar::Pow, extras, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(square) {

@@ -19,13 +19,11 @@
 //
 // Created by raver119 on 08.10.2017.
 //
-
 #include "../scalar_bool.h"
 #include <system/op_boilerplate.h>
 #include <types/types.h>
 #include <helpers/LoopKind.h>
 #include <execution/Threads.h>
-
 #include "../legacy_ops.h"
 
 using namespace simdOps;
@@ -36,13 +34,13 @@ namespace functions {
 
         template<typename X, typename Z>
         template<typename OpType>
-        void ScalarBoolTransform<X, Z>::transform(const void *vx, const Nd4jLong *xShapeInfo,
+        void ScalarBoolTransform<X, Z>::transform(const void *vx, const sd::LongType *xShapeInfo,
                                                   void *vextraParams,
-                                                  void *vz,  const Nd4jLong *zShapeInfo,
+                                                  void *vz,  const sd::LongType *zShapeInfo,
                                                   const void *vscalars,
                                                   int *dimension, int dimensionLength,
-                                                  const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets,
-                                                  const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffsets,
+                                                  const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets,
+                                                  const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffsets,
                                                   const uint64_t start, const uint64_t stop) {
 
             auto x = reinterpret_cast<const X *>(vx);
@@ -68,7 +66,7 @@ namespace functions {
                 return;
             }
 
-            int num_threads = sd::math::nd4j_min<int>(numTads, sd::Environment::getInstance().maxThreads());
+            int num_threads = sd::math::sd_min<int>(numTads, sd::Environment::getInstance().maxThreads());
 
             if (kindOfLoop == sd::LoopKind::EWS1) {
                 for (auto r = start; r < stop; r++) {
@@ -94,13 +92,13 @@ namespace functions {
 
         template<typename X, typename Y>
         void ScalarBoolTransform<X,Y>::transform(int opNum,
-                                                 const void *x, const Nd4jLong *xShapeInfo,
+                                                 const void *x, const sd::LongType *xShapeInfo,
                                                  void *extraParams,
-                                                 void *z, const Nd4jLong *zShapeInfo,
+                                                 void *z, const sd::LongType *zShapeInfo,
                                                  const void *scalars,
                                                  int *dimension, int dimensionLength,
-                                                 const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets,
-                                                 const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffsets,
+                                                 const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets,
+                                                 const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffsets,
                                                  const uint64_t start, const uint64_t stop) {
             DISPATCH_BY_OPNUM_TT(transform, PARAMS(x, xShapeInfo, extraParams, z, zShapeInfo, scalars, dimension, dimensionLength, xTadShapeInfo, xTadOffsets, zTadShapeInfo, zTadOffsets, start, stop), SCALAR_BOOL_OPS);
         }
@@ -108,8 +106,8 @@ namespace functions {
 
         template<typename X, typename Y>
         void ScalarBoolTransform<X, Y>::transform(const int opNum,
-                                                  const void *x, Nd4jLong xEws,
-                                                  void *z, Nd4jLong zEws,
+                                                  const void *x, sd::LongType xEws,
+                                                  void *z, sd::LongType zEws,
                                                   const void *scalar,
                                                   void *extraParams,
                                                   const uint64_t n,
@@ -119,8 +117,8 @@ namespace functions {
 
         template<typename X, typename Y>
         void ScalarBoolTransform<X, Y>::transform(const int opNum,
-                                                  const void *x, const Nd4jLong *xShapeInfo,
-                                                  void *z, const Nd4jLong *zShapeInfo,
+                                                  const void *x, const sd::LongType *xShapeInfo,
+                                                  void *z, const sd::LongType *zShapeInfo,
                                                   const void *scalar,
                                                   void *extraParams,
                                                   const uint64_t start, const uint64_t stop) {
@@ -129,8 +127,8 @@ namespace functions {
 
         template<typename X, typename Z>
         template<typename OpType>
-        void ScalarBoolTransform<X, Z>::transform(const void *vx, const Nd4jLong *xShapeInfo,
-                                                  void *vz, const Nd4jLong *zShapeInfo,
+        void ScalarBoolTransform<X, Z>::transform(const void *vx, const sd::LongType *xShapeInfo,
+                                                  void *vz, const sd::LongType *zShapeInfo,
                                                   const void *vscalar,
                                                   void *vextraParams,
                                                   const uint64_t start, const uint64_t stop) {
@@ -151,8 +149,8 @@ namespace functions {
                 return;
             }
 
-            uint xShapeInfoCast[MAX_RANK];
-            const bool canCastX = sd::DataTypeUtils::castShapeInfo<uint>(xShapeInfo, xShapeInfoCast);
+            sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+            const bool canCastX = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(xShapeInfo, xShapeInfoCast);
 
             if(shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
                 PRAGMA_OMP_SIMD
@@ -162,8 +160,8 @@ namespace functions {
                 };
             }
             else {
-                uint zShapeInfoCast[MAX_RANK];
-                const bool canCastZ = sd::DataTypeUtils::castShapeInfo<uint>(zShapeInfo, zShapeInfoCast);
+                sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
+                const bool canCastZ = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(zShapeInfo, zShapeInfoCast);
 
                 PRAGMA_OMP_SIMD
                 for (auto i = start; i < stop; i++) {
@@ -177,8 +175,8 @@ namespace functions {
 
             template<typename X, typename Z>
             template<typename OpType>
-            void ScalarBoolTransform<X, Z>::transform(const void *vx, Nd4jLong xEws,
-                                                      void *vz, Nd4jLong zEws,
+            void ScalarBoolTransform<X, Z>::transform(const void *vx, sd::LongType xEws,
+                                                      void *vz, sd::LongType zEws,
                                                       const void *vscalar,
                                                       void *vextraParams,
                                                       const uint64_t len,
@@ -201,7 +199,7 @@ namespace functions {
                 }
             }
 
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL ScalarBoolTransform, , LIBND4J_TYPES, BOOL_TYPES);
+        BUILD_DOUBLE_TEMPLATE(template class SD_LIB_HIDDEN ScalarBoolTransform, , SD_COMMON_TYPES, SD_BOOL_TYPES);
 
 }
 }

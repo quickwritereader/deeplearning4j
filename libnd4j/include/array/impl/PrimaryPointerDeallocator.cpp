@@ -21,7 +21,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <array/PrimaryPointerDeallocator.h>
 
 namespace sd {

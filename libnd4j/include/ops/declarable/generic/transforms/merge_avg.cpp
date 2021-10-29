@@ -42,7 +42,7 @@ OP_IMPL(mergeavg, -1, 1, false) {
 
     helpers::mergeAvg(block.launchContext(), inArrs, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(mergeavg) {
@@ -66,7 +66,7 @@ OP_IMPL(mergeavg, -1, 1, false) {
             outArrs[i] = OUTPUT_VARIABLE(i);
         }
         helpers::mergeAvgBp(block.launchContext(), *gradient, outArrs);
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(mergeavg_bp) {

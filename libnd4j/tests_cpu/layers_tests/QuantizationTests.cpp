@@ -20,7 +20,6 @@
 // @author raver119@protonmail.com
 //
 
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <loops/type_conversions.h>

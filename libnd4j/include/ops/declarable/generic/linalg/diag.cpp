@@ -42,7 +42,7 @@ CUSTOM_OP_IMPL(diag, 1, 1, false, 0, 0) {
 
     helpers::diagFunctor(block.launchContext(), input, output);
     
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SYN(MatrixDiag, diag);
@@ -56,7 +56,7 @@ DECLARE_SYN(MatrixDiag, diag);
 
 ////////////////////////////////////////////////////////////////////////// 
 DECLARE_SHAPE_FN(diag) {
-    const Nd4jLong* inputShapeInfo = inputShape->at(0);
+    const sd::LongType* inputShapeInfo = inputShape->at(0);
 
     return SHAPELIST(ShapeUtils::evalDiagShapeInfo(inputShapeInfo, block.workspace()));
 }

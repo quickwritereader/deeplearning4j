@@ -38,12 +38,12 @@ namespace sd {
             REQUIRE_TRUE(!y->isB(), 0, "DIVIDE OP: you can't divide by bool array!");
             auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::Divide(), x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z) {
                 OVERWRITE_RESULT(tZ);
             }
 
-			return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(Div, divide);
 
@@ -122,7 +122,7 @@ namespace sd {
                     gradY->assign(preY);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(divide_bp) {
@@ -133,8 +133,8 @@ namespace sd {
             // eps always has shape of x
             // grad always has shape of y
 
-            Nd4jLong *shapeE;
-            Nd4jLong *shapeG;
+            sd::LongType *shapeE;
+            sd::LongType *shapeG;
 
             COPY_SHAPE(x, shapeE);
             COPY_SHAPE(y, shapeG);

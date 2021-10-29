@@ -35,7 +35,6 @@ limitations under the License.
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/image_resize.h>
 #include <execution/Threads.h>
 #include <ops/declarable/headers/parity_ops.h>
@@ -48,25 +47,25 @@ namespace helpers {
 
 
     template <class Scaler>
-    static inline void computeInterpolationWeights(const Scaler scaler, Nd4jLong outSize,
-                                            Nd4jLong inSize,
+    static inline void computeInterpolationWeights(const Scaler scaler, sd::LongType outSize,
+                                            sd::LongType inSize,
                                             double scale,
                                             BilinearInterpolationData *interpolationData) {
         interpolationData[outSize].bottomIndex = 0;
         interpolationData[outSize].topIndex = 0;
 
         auto func = PRAGMA_THREADS_FOR {
-       	    for (auto k = start; k < stop; k++) {
+               for (auto k = start; k < stop; k++) {
                 auto i = (outSize - k - 1);
                 double  const in =  scaler(i, scale);
-                double const in_f = sd::math::nd4j_floor<double, double>(in);
-                double const in_c = sd::math::nd4j_ceil<double, double>(in);
-                interpolationData[i].bottomIndex = sd::math::nd4j_max(static_cast<Nd4jLong>(in_f), (Nd4jLong)0LL);//static_cast<Nd4jLong>(in);
-                interpolationData[i].topIndex = sd::math::nd4j_min(static_cast<Nd4jLong>(in_c), inSize - 1);
+                double const in_f = sd::math::sd_floor<double, double>(in);
+                double const in_c = sd::math::sd_ceil<double, double>(in);
+                interpolationData[i].bottomIndex = sd::math::sd_max(static_cast<sd::LongType>(in_f), (sd::LongType)0LL);//static_cast<sd::LongType>(in);
+                interpolationData[i].topIndex = sd::math::sd_min(static_cast<sd::LongType>(in_c), inSize - 1);
                 interpolationData[i].interpolarValue = in - in_f;
-     	    }
-	    };
-	    samediff::Threads::parallel_for(func, 0, outSize);
+             }
+        };
+        samediff::Threads::parallel_for(func, 0, outSize);
     }
 
 /**
@@ -74,23 +73,23 @@ namespace helpers {
  * and the linear interpolation weights.
  */
 //    static void
-//    resizeImage(NDArray const *images, Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight,
-//                Nd4jLong outWidth, Nd4jLong channels,
+//    resizeImage(NDArray const *images, sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight,
+//                sd::LongType outWidth, sd::LongType channels,
 //                std::vector<BilinearInterpolationData> const& xs,
 //                std::vector<BilinearInterpolationData> const& ys,
 //                NDArray *output);
 
     template<typename T, typename Z>
     static void
-    resizeImage_(T const* pInputBuf, Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight,
-                 Nd4jLong outWidth, Nd4jLong channels,
+    resizeImage_(T const* pInputBuf, sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight,
+                 sd::LongType outWidth, sd::LongType channels,
                  std::vector<BilinearInterpolationData> const &xs,
                  std::vector<BilinearInterpolationData> const &ys,
                  Z* pOutputBuf) {
 
-        Nd4jLong inRowSize = inWidth * channels;
-        Nd4jLong inBatchNumValues = inHeight * inRowSize;
-        Nd4jLong outRowSize = outWidth * channels;
+        sd::LongType inRowSize = inWidth * channels;
+        sd::LongType inBatchNumValues = inHeight * inRowSize;
+        sd::LongType outRowSize = outWidth * channels;
 
 //        T const *pInputBuf = images->getDataBuffer()->primaryAsT<T>(); // this works only with 'c' direction
         BilinearInterpolationData const* xsPtr = xs.data();
@@ -107,16 +106,16 @@ namespace helpers {
         auto func = PRAGMA_THREADS_FOR {
             for (auto batch = start; batch < stop; ++batch) {
                 auto pInput = pInputBuf + batch * inBatchNumValues;
-                for (Nd4jLong y = 0; y < outHeight; ++y) {
+                for (sd::LongType y = 0; y < outHeight; ++y) {
                     auto pOutput = pOutputBuf + (batch * outHeight + y) * outRowSize;
                     const T* ysInputLowerPtr = pInput + ys[y].bottomIndex * inRowSize;
                     const T* ysInputUpperPtr = pInput + ys[y].topIndex * inRowSize;
                     double yVal = ys[y].interpolarValue;
-                    for (Nd4jLong x = 0; x < outWidth; ++x) {
+                    for (sd::LongType x = 0; x < outWidth; ++x) {
                         auto xsBottom = xsPtr[x].bottomIndex;
                         auto xsTop = xsPtr[x].topIndex;
                         auto xVal = xsPtr[x].interpolarValue;
-                        for (Nd4jLong c = 0; c < channels; ++c) {
+                        for (sd::LongType c = 0; c < channels; ++c) {
                             double topLeft(ysInputLowerPtr[xsBottom + c]);
                             double topRight(ysInputLowerPtr[xsTop + c]);
                             double bottomLeft(ysInputUpperPtr[xsBottom + c]);
@@ -132,23 +131,23 @@ namespace helpers {
     }
 
     template<typename X, typename Z>
-    static int resizeBilinearFunctor_(NDArray const *images, int const width, int const height, bool const alignCorners,
+    static sd::Status resizeBilinearFunctor_(NDArray const *images, int const width, int const height, bool const alignCorners,
             bool const halfPixelCenter, NDArray *output) {
         ImageResizerState st(alignCorners, halfPixelCenter);
         st.validateAndCalculateOutputSize(images, width, height);
 
-        const Nd4jLong batchSize = images->sizeAt(0);
-        const Nd4jLong inHeight = images->sizeAt(1);
-        const Nd4jLong inWidth = images->sizeAt(2);
-        const Nd4jLong channels = images->sizeAt(3);
+        const sd::LongType batchSize = images->sizeAt(0);
+        const sd::LongType inHeight = images->sizeAt(1);
+        const sd::LongType inWidth = images->sizeAt(2);
+        const sd::LongType channels = images->sizeAt(3);
 
-        const Nd4jLong outHeight = output->sizeAt(1);
-        const Nd4jLong outWidth = output->sizeAt(2);
+        const sd::LongType outHeight = output->sizeAt(1);
+        const sd::LongType outWidth = output->sizeAt(2);
 
         // Handle no-op resizes efficiently.
         if (outHeight == inHeight && outWidth == inWidth) {
             output->assign(images);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         std::vector<BilinearInterpolationData> ys(outHeight + 1);
@@ -176,18 +175,18 @@ namespace helpers {
         samediff::Threads::parallel_for(func, 0, xsSize);
 
         resizeImage_<X,Z>(images->getDataBuffer()->primaryAsT<X>(), batchSize, inHeight, inWidth, outHeight, outWidth, channels, xs, ys, output->dataBuffer()->primaryAsT<Z>());
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     template <class Scaler, typename T>
-    ND4J_LOCAL void resizeNeighborImpl(ImageResizerState const& st, NDArray const *images, NearestMode nearestMode, NDArray *output) {
-        const Nd4jLong batchSize = st.batchSize;
-        const Nd4jLong inHeight = st.inHeight;
-        const Nd4jLong inWidth = st.inWidth;
-        const Nd4jLong channels = st.channels;
+    void resizeNeighborImpl(ImageResizerState const& st, NDArray const *images, NearestMode nearestMode, NDArray *output) {
+        const sd::LongType batchSize = st.batchSize;
+        const sd::LongType inHeight = st.inHeight;
+        const sd::LongType inWidth = st.inWidth;
+        const sd::LongType channels = st.channels;
 
-        const Nd4jLong outHeight = st.outHeight;
-        const Nd4jLong outWidth = st.outWidth;
+        const sd::LongType outHeight = st.outHeight;
+        const sd::LongType outWidth = st.outWidth;
         Scaler scaler;
         constexpr bool halfPixelCenter = std::is_same<Scaler, HalfPixelScaler>::value || std::is_same<Scaler, HalfPixelScalerNN>::value;
         float (*modeFunc)(float);
@@ -212,19 +211,19 @@ namespace helpers {
         auto func = PRAGMA_THREADS_FOR_2D {
             for (auto b = start_x; b < stop_x; b += inc_x) {
                 for (auto y = start_y; y < stop_y; y += inc_y) {
-                    auto posY = static_cast<Nd4jLong>(modeFunc(scaler(y, st.heightScale))) ;
-                    Nd4jLong inY = sd::math::nd4j_min(posY, inHeight - 1);
+                    auto posY = static_cast<sd::LongType>(modeFunc(scaler(y, st.heightScale))) ;
+                    sd::LongType inY = sd::math::sd_min(posY, inHeight - 1);
                     if (halfPixelCenter) {
-                        inY = sd::math::nd4j_max(0LL, inY);
+                        inY = sd::math::sd_max(0LL, inY);
                     }
-                    for (Nd4jLong x = 0; x < outWidth; ++x) {
-                        auto posX = static_cast<Nd4jLong>(modeFunc(scaler(x, st.widthScale)));
-                        Nd4jLong inX = sd::math::nd4j_min(posX,inWidth - 1);
+                    for (sd::LongType x = 0; x < outWidth; ++x) {
+                        auto posX = static_cast<sd::LongType>(modeFunc(scaler(x, st.widthScale)));
+                        sd::LongType inX = sd::math::sd_min(posX,inWidth - 1);
                         if (halfPixelCenter) {
-                            inX = sd::math::nd4j_max(0LL, inX);
+                            inX = sd::math::sd_max(0LL, inX);
                         }
                         // copy pixel over all channels
-                        for (Nd4jLong e = 0; e < channels; e++)
+                        for (sd::LongType e = 0; e < channels; e++)
                             output->r<T>(b, y, x, e) = images->t<T>(b, inY, inX, e);
                     }
                 }
@@ -234,14 +233,14 @@ namespace helpers {
     }
 
     template<typename T>
-    ND4J_LOCAL int resizeNeighborFunctor_(NDArray const *images, int const width, int const height, CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
+    sd::Status resizeNeighborFunctor_(NDArray const *images, int const width, int const height, CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
         ImageResizerState st(alignCorner, (coorMode == HALF_PIXEL_NN));
         st.validateAndCalculateOutputSize(images, width, height);
 
         // Handle no-op resizes efficiently.
         if (output->sizeAt(1) == images->sizeAt(1) && output->sizeAt(2) == images->sizeAt(2)) {
             output->assign(images);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         switch (coorMode)
@@ -259,28 +258,28 @@ namespace helpers {
             resizeNeighborImpl<HalfPixelScaler, T>(st, images, nearestMode, output);
             break;
         };
-        return Status::OK();
+        return sd::Status::OK;
     }
 
-//    void resizeImage(NDArray const *images, Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight,
-//                     Nd4jLong outWidth, Nd4jLong channels,
+//    void resizeImage(NDArray const *images, sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight,
+//                     sd::LongType outWidth, sd::LongType channels,
 //                     std::vector<BilinearInterpolationData> const &xs,
 //                     std::vector<BilinearInterpolationData> const &ys,
 //                     NDArray *output) {
 //        BUILD_DOUBLE_SELECTOR(images->dataType(), output->dataType(), resizeImage_,
 //                              (images, batchSize, inHeight, inWidth, outHeight, outWidth, channels, xs, ys, output),
-//                              NUMERIC_TYPES, FLOAT_TYPES);
+//                              SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
 //    }
 
-    ND4J_LOCAL int resizeBilinearFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
+    sd::Status resizeBilinearFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
             bool const alignCorners, bool const halfPixelCenter, NDArray *output) {
-        BUILD_DOUBLE_SELECTOR(images->dataType(), output->dataType(), return resizeBilinearFunctor_, (images, width, height, alignCorners, halfPixelCenter, output), NUMERIC_TYPES, FLOAT_TYPES);
-        return Status::OK();
+        BUILD_DOUBLE_SELECTOR(images->dataType(), output->dataType(), return resizeBilinearFunctor_, (images, width, height, alignCorners, halfPixelCenter, output), SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+        return sd::Status::OK;
     }
 
-    ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
+    sd::Status resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
             CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
-        BUILD_SINGLE_SELECTOR(images->dataType(), return resizeNeighborFunctor_, (images, width, height, coorMode, nearestMode, alignCorner, output), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(images->dataType(), return resizeNeighborFunctor_, (images, width, height, coorMode, nearestMode, alignCorner, output), SD_COMMON_TYPES);
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -289,7 +288,7 @@ namespace helpers {
 // ------------------------------------------------------------------------------------------------------------------ //
 
     template<typename T>
-    ND4J_LOCAL std::unique_ptr<T[]> initCoeffsTable(const double a) {
+    std::unique_ptr<T[]> initCoeffsTable(const double a) {
         // Allocate and initialize coefficients table using Bicubic
         // convolution algorithm.
         // https://en.wikipedia.org/wiki/Bicubic_interpolation
@@ -309,15 +308,15 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL int resizeBicubicFunctor_(sd::LaunchContext * context, NDArray const* image, int width, int height,
+    sd::Status resizeBicubicFunctor_(sd::LaunchContext * context, NDArray const* image, int width, int height,
                              bool preserveAspectRatio, bool antialias, NDArray* output) {
-        return ND4J_STATUS_OK;
+        return sd::Status::OK;
     }
 
-    ND4J_LOCAL int resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int width, int height,
+    sd::Status resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int width, int height,
                              bool preserveAspectRatio, bool antialias, NDArray* output) {
         BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctor_, (context, image,
-                width, height, preserveAspectRatio, antialias, output), NUMERIC_TYPES);
+                width, height, preserveAspectRatio, antialias, output), SD_NUMERIC_TYPES);
     }
 // ------------------------------------------------------------------------------------------------------------------ //
 
@@ -363,7 +362,7 @@ namespace helpers {
             std::vector<float> cachedValue(numChannels == 3 ? 0 : 4 * numChannels, 0);
             for (auto b = start; b < stop; ++b) {
                 auto pInput = inputPtr + b * batchStride;
-                for (Nd4jLong y = 0; y < outHeight; ++y) {
+                for (sd::LongType y = 0; y < outHeight; ++y) {
                     auto pOutput = &pOutputY[(b * outHeight + y) * outWidth * numChannels];
 
                     WeightsAndIndices yWai;
@@ -379,7 +378,7 @@ namespace helpers {
                         F cached_value_0[4] = {0};
                         F cached_value_1[4] = {0};
                         F cached_value_2[4] = {0};
-                        for (Nd4jLong x = 0; x < resizerState.outWidth; ++x) {
+                        for (sd::LongType x = 0; x < resizerState.outWidth; ++x) {
                             const WeightsAndIndices &xWai = xWais[x];
                             // Shift values in cached_value_* to fill first '_advance' values.
                             switch (xWai._advance) {
@@ -456,7 +455,7 @@ namespace helpers {
                                             xWai._weight2, xWai._weight3);
                         }
                     } else {
-                        for (Nd4jLong x = 0; x < resizerState.outWidth; ++x) {
+                        for (sd::LongType x = 0; x < resizerState.outWidth; ++x) {
                             const WeightsAndIndices &xWai = xWais[x];
                             // Shift values in cachedValue to fill first '_advance' values.
                             switch (xWai._advance) {
@@ -521,11 +520,11 @@ namespace helpers {
 // simplified bicubic resize without antialiasing
 //
     template <typename T>
-    ND4J_LOCAL int resizeBicubicFunctorA_(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeBicubicFunctorA_(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                               bool const alignCorners, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
         ImageResizerState st(alignCorners, coorMode == HALF_PIXEL); // align_corners, half_pixel_align
-        int res = st.validateAndCreateOutput(image, width, height);
-        if (res == Status::OK()){
+        auto res = st.validateAndCreateOutput(image, width, height);
+        if (res == sd::Status::OK){
              switch (coorMode)
              {
              case ASYMMETRIC:
@@ -544,9 +543,9 @@ namespace helpers {
 
         return res;
     }
-    ND4J_LOCAL int resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                               bool const alignCorners, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctorA_, (context, image, width, height, alignCorners, coorMode, exclude_outside, coefficient, output), NUMERIC_TYPES);
+        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctorA_, (context, image, width, height, alignCorners, coorMode, exclude_outside, coefficient, output), SD_NUMERIC_TYPES);
     }
 // ------------------------------------------------------------------------------------------------------------------ //
 
@@ -563,8 +562,8 @@ namespace helpers {
                     const float inY1 = (y + 1) * st.heightScale;
                     // The start and end height indices of all the cells that could
                     // contribute to the target cell.
-                    const Nd4jLong yStart = math::nd4j_floor<float, Nd4jLong>(inY);
-                    const Nd4jLong yEnd = math::nd4j_ceil<float, Nd4jLong>(inY1);
+                    const sd::LongType yStart = math::sd_floor<float, sd::LongType>(inY);
+                    const sd::LongType yEnd = math::sd_ceil<float, sd::LongType>(inY1);
 
                     std::vector<ScaleCache<T>> yCaches;
                     auto cacheLen = yEnd - yStart;
@@ -572,7 +571,7 @@ namespace helpers {
                         yCaches.resize(cacheLen);
                     };
                     ScaleCache<T> *yCachesPtr = yCaches.data();
-                    Nd4jLong yCachesSize = yCaches.size();
+                    sd::LongType yCachesSize = yCaches.size();
                     for (auto i = yStart, k = 0LL; i < yEnd; ++i, ++k) {
                         ScaleCache<T> scaleCache;
                         if (i < inY) {
@@ -586,13 +585,13 @@ namespace helpers {
                     float* output = outputPtr + (batch * st.outHeight  +  y)  * st.channels * st.outWidth;
 
                     if (st.channels == 3) {
-                        for (Nd4jLong x = 0; x < st.outWidth; ++x) {
+                        for (sd::LongType x = 0; x < st.outWidth; ++x) {
                             const CachedInterpolation &xCache = caches[x];
                             computePatchSumOf3Channels<T>(scale, st, yCachesPtr, yCachesSize, xCache, output);
                             output += st.channels;
                         }
                     } else {
-                        for (Nd4jLong x = 0; x < st.outWidth; ++x) {
+                        for (sd::LongType x = 0; x < st.outWidth; ++x) {
                             const CachedInterpolation &xCache = caches[x];
                             computePatchSum<T>(scale, st, yCachesPtr, yCachesSize, xCache, output);
                             output += st.channels;
@@ -605,11 +604,11 @@ namespace helpers {
     }
 
     template <typename X>
-    ND4J_LOCAL int resizeAreaFunctor_(sd::LaunchContext* context, NDArray const* image, int const width, int const height,
+    sd::Status resizeAreaFunctor_(sd::LaunchContext* context, NDArray const* image, int const width, int const height,
                               bool const alignCorners, NDArray* output) {
             ImageResizerState st(alignCorners, false); // Create resize info
             auto res = st.validateAndCalculateOutputSize(image, width, height);
-            if (Status::OK() == res) {
+            if (Status::OK == res) {
                 std::vector<CachedInterpolation> xCached(st.outWidth);
                 auto cachingProcedure = PRAGMA_THREADS_FOR {
                     for (auto x = start; x < stop; x++) {
@@ -617,12 +616,12 @@ namespace helpers {
                         const float inX = x * st.widthScale;
                         const float inX1 = (x + 1) * st.widthScale;
 
-                        Nd4jLong v = math::nd4j_floor<float, Nd4jLong>(inX);
+                        sd::LongType v = math::sd_floor<float, sd::LongType>(inX);
                         xCache.start = v;
                         xCache.startScale =
                                 v < inX ? (v + 1 > inX1 ? st.widthScale : v + 1 - inX) : (v + 1 > inX1 ? inX1 - v
                                                                                                        : 1.f);
-                        v = math::nd4j_ceil<float, Nd4jLong>(inX1);
+                        v = math::sd_ceil<float, sd::LongType>(inX1);
                         xCache.end = v--;
                         xCache.endMinusOneScale =
                                 v < inX ? (v + 1 > inX1 ? st.widthScale : v + 1 - inX) : (v + 1 > inX1 ? inX1 - v
@@ -639,14 +638,13 @@ namespace helpers {
             return res;
     }
 
-    ND4J_LOCAL int resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const alignCorners, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeAreaFunctor_, (context, image, width, height, alignCorners, output), NUMERIC_TYPES);
+    sd::Status resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const alignCorners, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeAreaFunctor_, (context, image, width, height, alignCorners, output), SD_NUMERIC_TYPES);
     }
 
 
-
-    static int
-    computeSpans(IKernelFunc<float>* kernel, Nd4jLong const outSize, Nd4jLong const inSize, float const scale, float const translate, bool const antialias, Spans& spans) {
+    static sd::Status
+    computeSpans(IKernelFunc<float>* kernel, sd::LongType const outSize, sd::LongType const inSize, float const scale, float const translate, bool const antialias, Spans& spans) {
         // When sampling, we need the inverse scale and translation, to map from an
         // output to an input pixel.
         float const invScale = 1.f / scale;
@@ -654,8 +652,8 @@ namespace helpers {
         // When downsampling the kernel should be scaled since we want to low pass
         // filter and interpolate, but when upsampling it should not be since we only
         // want to interpolate.
-        float  const kernelScale = antialias ? math::nd4j_max(invScale, 1.f) : 1.f;
-        spans._spanSize = math::nd4j_min(2 * static_cast<int>(std::ceil(kernel->radius() * kernelScale)) + 1, static_cast<int>(inSize));
+        float  const kernelScale = antialias ? math::sd_max(invScale, 1.f) : 1.f;
+        spans._spanSize = math::sd_min(2 * static_cast<int>(std::ceil(kernel->radius() * kernelScale)) + 1, static_cast<int>(inSize));
         spans._starts = NDArrayFactory::create<int>('c', {outSize});
         spans._weights = NDArrayFactory::create<float>('c', {outSize, spans._spanSize});
 
@@ -668,7 +666,7 @@ namespace helpers {
         std::vector<float> tempWeights;
 
         // return value if within bounds or bounds otherwise
-        auto boundsAmp = [](Nd4jLong  const low, Nd4jLong const high, Nd4jLong const value) {
+        auto boundsAmp = [](sd::LongType  const low, sd::LongType const high, sd::LongType const value) {
             if (high < value) return high;
             if (value < low) return low;
             return value;
@@ -684,13 +682,13 @@ namespace helpers {
                 startsVec[x] = 0;
                 continue;
             }
-            Nd4jLong spanStart = math::nd4j_ceil<float,float>(sampleFloat - kernel->radius() * kernelScale - 0.5f);
-            Nd4jLong spanEnd = math::nd4j_floor<float, float>(sampleFloat + kernel->radius() * kernelScale - 0.5f);
+            sd::LongType spanStart = math::sd_ceil<float,float>(sampleFloat - kernel->radius() * kernelScale - 0.5f);
+            sd::LongType spanEnd = math::sd_floor<float, float>(sampleFloat + kernel->radius() * kernelScale - 0.5f);
             spanStart = boundsAmp(0LL, inSize - 1, spanStart);
             spanEnd = boundsAmp(0LL, inSize - 1, spanEnd) + 1;
             int const spanSize = spanEnd - spanStart;
             if (spanSize > spans._spanSize) {
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "Span is too large: "); // + spanSize + " vs " + spans._spanSize);//, spanSize, spans._spanSize));
+                return Logger::logStatusMsg(Status::BAD_INPUT, "Span is too large: "); // + spanSize + " vs " + spans._spanSize);//, spanSize, spans._spanSize));
             }
             float totalWeightSum = 0.f;
             tempWeights.clear();
@@ -701,7 +699,7 @@ namespace helpers {
                 tempWeights.push_back(weight);
             }
             maxSpanSize = std::max(maxSpanSize, spanSize);
-            if (math::nd4j_abs(totalWeightSum) >= 1000.f * DataTypeUtils::min_positive<float>()) { //
+            if (math::sd_abs(totalWeightSum) >= 1000.f * DataTypeUtils::min_positive<float>()) { //
                 auto totalWeightSumInverted = 1.0f / totalWeightSum;
                 auto outIndex = spans._spanSize * x;
                 for (auto weight : tempWeights) {
@@ -711,7 +709,7 @@ namespace helpers {
             }
             startsVec[x] = spanStart;
         }
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -747,22 +745,22 @@ namespace helpers {
     }
 
     template <typename X, typename Z>
-    static int resizeKernel(IKernelFunc<float>* transformationKernel, NDArray const* input, Nd4jLong outWidth, Nd4jLong outHeight, bool antialias, NDArray* output) {
-        Nd4jLong const batchSize = input->sizeAt(0);
-        Nd4jLong const inputHeight = input->sizeAt(1);
-        Nd4jLong const inputWidth = input->sizeAt(2);
-        Nd4jLong const channels = input->sizeAt(3);
+    static sd::Status resizeKernel(IKernelFunc<float>* transformationKernel, NDArray const* input, sd::LongType outWidth, sd::LongType outHeight, bool antialias, NDArray* output) {
+        sd::LongType const batchSize = input->sizeAt(0);
+        sd::LongType const inputHeight = input->sizeAt(1);
+        sd::LongType const inputWidth = input->sizeAt(2);
+        sd::LongType const channels = input->sizeAt(3);
 
         Z rowScale = Z(outHeight) / Z(inputHeight);
         Z columnScale = Z(outWidth) / Z(inputWidth);
 
         // Return if the output is empty.
-        if (output->lengthOf() == 0) return Status::OK();
+        if (output->lengthOf() == 0) return sd::Status::OK;
 
         Spans colSpans;
 
         auto res = computeSpans(transformationKernel, outWidth, inputWidth, columnScale, 0.f, antialias, colSpans);
-        if (res != Status::OK()) return res;
+        if (res != sd::Status::OK) return res;
         Spans rowSpans;
         res = computeSpans(transformationKernel, outHeight, inputHeight, rowScale, 0.f, antialias, rowSpans);
 
@@ -780,58 +778,58 @@ namespace helpers {
         return res;
     }
 #if defined(HAS_FLOAT32)
-    static int resizeBilinear(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeBilinear(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new TriangleKernelFunc());
         BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel,
-                              (kernel.get(), image, (Nd4jLong) width, (Nd4jLong) height, antialias, output),
-                              NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
-        return Status::CODE(ND4J_STATUS_VALIDATION, "helpers::resizeBilinear: Unknown error occured.");
+                              (kernel.get(), image, (sd::LongType) width, (sd::LongType) height, antialias, output),
+                              SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
+        return Logger::logStatusMsg(Status::VALIDATION, "helpers::resizeBilinear: Unknown error occured.");
     }
 
-    static int resizeBicubicA(sd::LaunchContext * context, NDArray const* image, int const width, int const height, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
+    static sd::Status resizeBicubicA(sd::LaunchContext * context, NDArray const* image, int const width, int const height, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
         constexpr bool alignCorners = false;
         return resizeBicubicFunctorA(context,  image, width, height, alignCorners, coorMode, exclude_outside, coefficient,  output);
     }
 
-    static int resizeBicubicAntialias(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, double coefficient, NDArray* output) {
+    static sd::Status resizeBicubicAntialias(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, double coefficient, NDArray* output) {
         //coorMode is HALF_PIXEL exlude_outside is True
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new KeysCubicKernelFunc<float>(coefficient));
         BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel,
-                                  (kernel.get(), image, (Nd4jLong) width, (Nd4jLong) height, antialias, output),
-                                  NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32)); 
+                                  (kernel.get(), image, (sd::LongType) width, (sd::LongType) height, antialias, output),
+                                  SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32)); 
     }
 #endif
 
-    static int resizeArea(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeArea(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         return resizeAreaFunctor(context, image, width, height, false, output);
     }
 #if defined(HAS_FLOAT32)
-    static int resizeLanczos3(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeLanczos3(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new LanczosKernelFunc(3.f));
-        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (Nd4jLong)width, (Nd4jLong)height, antialias, output), NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
-        return Status::CODE(ND4J_STATUS_VALIDATION, "helpers::resizeLanczos3: Unknown error occured.");
+        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (sd::LongType)width, (sd::LongType)height, antialias, output), SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
+        return Logger::logStatusMsg(Status::VALIDATION, "helpers::resizeLanczos3: Unknown error occured.");
     }
 
-    static int resizeLanczos5(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeLanczos5(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new LanczosKernelFunc(5.f));
-        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (Nd4jLong)width, (Nd4jLong)height, antialias, output), NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
-        return Status::CODE(ND4J_STATUS_VALIDATION, "helpers::resizeLanczos5: Unknown error occured.");
+        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (sd::LongType)width, (sd::LongType)height, antialias, output), SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
+        return Logger::logStatusMsg(Status::VALIDATION, "helpers::resizeLanczos5: Unknown error occured.");
     }
 
-    static int resizeGaussian(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeGaussian(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new GaussianKernelFunc());
-        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (Nd4jLong)width, (Nd4jLong)height, antialias, output), NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
-        return Status::CODE(ND4J_STATUS_VALIDATION, "helpers::resizeGaussian: Unknown error occured.");
+        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (sd::LongType)width, (sd::LongType)height, antialias, output), SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
+        return Logger::logStatusMsg(Status::VALIDATION, "helpers::resizeGaussian: Unknown error occured.");
     }
 
-    static int resizeMitchellcubic(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
+    static sd::Status resizeMitchellcubic(sd::LaunchContext * context, NDArray const* image, int const width, int const height, bool const antialias, NDArray* output) {
         auto kernel = std::unique_ptr<IKernelFunc<float>>(new MitchellCubicKernelFunc());
-        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (Nd4jLong)width, (Nd4jLong)height, antialias, output), NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
-        return Status::CODE(ND4J_STATUS_VALIDATION, "helpers::resizeMitchelcubic: Unknown error occured.");
+        BUILD_DOUBLE_SELECTOR(image->dataType(), output->dataType(), return resizeKernel, (kernel.get(), image, (sd::LongType)width, (sd::LongType)height, antialias, output), SD_NUMERIC_TYPES, SKIP_FIRST_COMMA(TTYPE_FLOAT32));
+        return Logger::logStatusMsg(Status::VALIDATION, "helpers::resizeMitchelcubic: Unknown error occured.");
     }
 #endif
 // ------------------------------------------------------------------------------------------------------------------ //
-    ND4J_LOCAL int resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                       ImageResizeMethods method, bool alignCorners, NDArray* output) {
         switch (method) {
             case kResizeBilinear:
@@ -844,11 +842,11 @@ namespace helpers {
             case kResizeArea:
                 return resizeAreaFunctor(context, image, width, height, alignCorners, output);
         }
-        nd4j_printf("helper::resizeImagesFunctor: Wrong resize method %i\n", (int)method);
-        return Status::CODE(ND4J_STATUS_BAD_INPUT, "helper::resizeImagesFunctor: Wrong resize method");
+        sd_printf("helper::resizeImagesFunctor: Wrong resize method %i\n", (int)method);
+        return Logger::logStatusMsg(Status::BAD_INPUT, "helper::resizeImagesFunctor: Wrong resize method");
     }
 // ------------------------------------------------------------------------------------------------------------------ //
-    ND4J_LOCAL  int resizeFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                     ImageResizeMethods method, CoordinateTransformationMode coorMode,  bool exclude_outside,
                     NearestMode nearestMode, double coefficient, bool antialias, NDArray* output) {
         switch (method) {
@@ -877,16 +875,15 @@ namespace helpers {
             case kResizeLanczos5:
             case kResizeGaussian:
             case kResizeMitchellcubic:{
-                nd4j_printf("helper::resizeFunctor: only float type is supported by this resize method %i\n", (int)method);
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "helper::resizeFunctor: only float type supported");
+                sd_printf("helper::resizeFunctor: only float type is supported by this resize method %i\n", (int)method);
+                return Logger::logStatusMsg(Status::BAD_INPUT, "helper::resizeFunctor: only float type supported");
             }
 
 #endif
         }
-        nd4j_printf("helper::resizeFunctor: Wrong resize method %i\n", (int)method);
-        return Status::CODE(ND4J_STATUS_BAD_INPUT, "helper::resizeFunctor: Wrong resize method");
+        sd_printf("helper::resizeFunctor: Wrong resize method %i\n", (int)method);
+        return Logger::logStatusMsg(Status::BAD_INPUT, "helper::resizeFunctor: Wrong resize method");
     }
-
 
 }
 }

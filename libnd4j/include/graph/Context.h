@@ -24,8 +24,8 @@
 
 #ifndef LIBND4J_CONTEXT_H
 #define LIBND4J_CONTEXT_H
-
 #include <vector>
+#include <system/common.h>
 #include <array/NDArray.h>
 #include <graph/Variable.h>
 #include <graph/VariableSpace.h>
@@ -33,25 +33,16 @@
 #include <memory/Workspace.h>
 #include <execution/Engine.h>
 
-// CUDA-specific includes
-#ifdef __CUDACC__
-
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#include <cuda_runtime.h>
-#include <cuda_device_runtime_api.h>
-#endif
-
 namespace sd {
     namespace graph {
         /**
          * This class defines input desired for any given node/operation within graph
          */
-        class ND4J_EXPORT Context : public sd::graph::ContextPrototype {
+        class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
         protected:
             sd::memory::Workspace* _workspace = nullptr;
             sd::graph::VariableSpace* _variableSpace = nullptr;
-            std::pair<Nd4jLong, Nd4jLong> _executionTime;
+            std::pair<sd::LongType, sd::LongType> _executionTime;
             sd::random::RandomBuffer* _rng = nullptr;
 
             sd::DataType _dataType = sd::DataType::FLOAT32;
@@ -85,10 +76,10 @@ namespace sd {
             ~Context();
 
             // these methods are for execution timing
-            void setOuterTime(Nd4jLong time);
-            void setInnerTime(Nd4jLong time);
-            Nd4jLong getOuterTime();
-            Nd4jLong getInnerTime();
+            void setOuterTime(sd::LongType time);
+            void setInnerTime(sd::LongType time);
+            sd::LongType getOuterTime();
+            sd::LongType getInnerTime();
 
             sd::DataType dataType() override;
 
@@ -209,12 +200,12 @@ namespace sd {
             void setOutputArray(int index, void *databuffer, void const* shapeInfo, void const* specialShapeInfo);
 
             void setTArguments(double *arguments, int numberOfArguments);
-            void setIArguments(Nd4jLong *arguments, int numberOfArguments);
+            void setIArguments(sd::LongType *arguments, int numberOfArguments);
             void setBArguments(bool *arguments, int numberOfArguments);
             void setDArguments(sd::DataType *arguments, int numberOfArguments);
 
             void setTArguments(const std::vector<double> &tArgs);
-            void setIArguments(const std::vector<Nd4jLong> &tArgs);
+            void setIArguments(const std::vector<sd::LongType> &tArgs);
             void setBArguments(const std::vector<bool> &tArgs);
             void setDArguments(const std::vector<sd::DataType> &dArgs);
 
@@ -225,7 +216,7 @@ namespace sd {
              */
             void clearFastPath();
 
-            void setCudaContext(Nd4jPointer cudaStream, Nd4jPointer reductionPointer, Nd4jPointer allocationPointer);
+            void setCudaContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer allocationPointer);
 
             void allowHelpers(bool reallyAllow);
             bool helpersAllowed();

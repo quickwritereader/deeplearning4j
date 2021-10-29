@@ -19,9 +19,7 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyTransformStrictOp.h>
-
 #include <legacy/NativeOpExecutioner.h>
 
 
@@ -39,7 +37,7 @@ namespace sd {
             return new LegacyTransformStrictOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyTransformStrictOp::validateAndExecute(Context &block) {
+        sd::Status LegacyTransformStrictOp::validateAndExecute(Context &block) {
             auto input = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
 
@@ -55,7 +53,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         /**
@@ -66,7 +64,7 @@ namespace sd {
         ShapeList *LegacyTransformStrictOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));

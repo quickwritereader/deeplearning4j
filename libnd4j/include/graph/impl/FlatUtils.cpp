@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 22.11.2017.
 //
-
 #include <graph/FlatUtils.h>
 #include <array/ByteOrder.h>
 #include <array/DataTypeConversions.h>
@@ -34,13 +33,13 @@ namespace sd {
             return std::pair<int, int>(pair->first(), pair->second());
         }
 
-        std::pair<Nd4jLong, Nd4jLong> FlatUtils::fromLongPair(LongPair *pair) {
-            return std::pair<Nd4jLong, Nd4jLong>(pair->first(), pair->second());
+        std::pair<sd::LongType, sd::LongType> FlatUtils::fromLongPair(LongPair *pair) {
+            return std::pair<sd::LongType, sd::LongType>(pair->first(), pair->second());
         }
 
         NDArray* FlatUtils::fromFlatArray(const sd::graph::FlatArray *flatArray) {
             auto rank = static_cast<int>(flatArray->shape()->Get(0));
-            auto newShape = new Nd4jLong[shape::shapeInfoLength(rank)];
+            auto newShape = new sd::LongType[shape::shapeInfoLength(rank)];
             memcpy(newShape, flatArray->shape()->data(), shape::shapeInfoByteLength(rank));
 
             auto length = shape::length(newShape);
@@ -57,22 +56,22 @@ namespace sd {
                 bool canKeep = (isBe && flatArray->byteOrder() == sd::graph::ByteOrder_BE) || (!isBe && flatArray->byteOrder() == sd::graph::ByteOrder_LE);
                 
                 std::vector<std::string> substrings(length);
-                std::vector<Nd4jLong> shapeVector(rank);
+                std::vector<sd::LongType> shapeVector(rank);
                 for (int e = 0; e < rank; e++)
                     shapeVector[e] = newShape[e+1];
 
                 auto rawPtr = (void *)flatArray->buffer()->data();
-                auto longPtr = reinterpret_cast<Nd4jLong *>(rawPtr);
+                auto longPtr = reinterpret_cast<sd::LongType *>(rawPtr);
                 auto charPtr = reinterpret_cast<char *>(longPtr + length + 1);
-                auto offsets = new Nd4jLong[length+1];
-                for (Nd4jLong e = 0; e <= length; e++) {
+                auto offsets = new sd::LongType[length+1];
+                for (sd::LongType e = 0; e <= length; e++) {
                     auto o = longPtr[e];
                     // FIXME: BE vs LE on partials
-                    //auto v = canKeep ?  o : BitwiseUtils::swap_bytes<Nd4jLong>(o);
+                    //auto v = canKeep ?  o : BitwiseUtils::swap_bytes<sd::LongType>(o);
                     offsets[e] = o;
                 }
 
-                for (Nd4jLong e = 0; e < length; e++) {
+                for (sd::LongType e = 0; e < length; e++) {
                     auto start = offsets[e];
                     auto end = offsets[e+1];
                     auto len = end - start;
@@ -96,7 +95,7 @@ namespace sd {
 
             auto newBuffer = new int8_t[length * DataTypeUtils::sizeOf(dtype)];
 
-            BUILD_SINGLE_SELECTOR(dtype, DataTypeConversions, ::convertType(newBuffer, (void *)flatArray->buffer()->data(), dtype, ByteOrderUtils::fromFlatByteOrder(flatArray->byteOrder()),  length), LIBND4J_TYPES);
+            BUILD_SINGLE_SELECTOR(dtype, DataTypeConversions, ::convertType(newBuffer, (void *)flatArray->buffer()->data(), dtype, ByteOrderUtils::fromFlatByteOrder(flatArray->byteOrder()),  length), SD_COMMON_TYPES);
 
             auto array = new NDArray(newBuffer, newShape, sd::LaunchContext::defaultContext(), true);
 

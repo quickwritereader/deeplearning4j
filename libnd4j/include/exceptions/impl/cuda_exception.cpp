@@ -19,7 +19,6 @@
 //
 // Created by raver on 11/26/2018.
 //
-
 #include <exceptions/cuda_exception.h>
 #include <helpers/StringUtils.h>
 

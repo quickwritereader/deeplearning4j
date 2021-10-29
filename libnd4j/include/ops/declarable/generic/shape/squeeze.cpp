@@ -43,7 +43,7 @@ namespace sd {
                 }
             else if (block.width() > 1) {
                 auto a = INPUT_VARIABLE(1);
-                for (Nd4jLong e = 0; e < a->lengthOf(); e++) {
+                for (sd::LongType e = 0; e < a->lengthOf(); e++) {
                     int _a = a->e<int>(e);
 
                     if (_a < 0)
@@ -55,10 +55,10 @@ namespace sd {
 
             if (input->rankOf() == 0 || (input->rankOf() == 1 && input->lengthOf() == 1)) {
                 output->assign(input);
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             if (axis.size() == 0) {
                 for (int d = 0; d < input->rankOf(); d++)
                     if (input->sizeAt(d) > 1)
@@ -83,7 +83,7 @@ namespace sd {
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(squeeze) {
@@ -95,7 +95,7 @@ namespace sd {
         DECLARE_SHAPE_FN(squeeze) {
             auto shapeList = SHAPELIST();
 
-//            Nd4jLong* newShape;
+//            sd::LongType* newShape;
             auto in = inputShape->at(0);
             auto rank = shape::rank(in);
             auto length = shape::length(in);
@@ -131,7 +131,7 @@ namespace sd {
             auto order = shape::order(in);
             auto oldShape = shape::shapeOf(in);
 
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             if (axis.size() == 0) {
                 for (int d = 0; d < rank; d++)
                     if (oldShape[d] > 1)

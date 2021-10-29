@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 21.11.17.
 //
-
 #include <array/ByteOrderUtils.h>
 
 

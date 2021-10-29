@@ -56,14 +56,14 @@ namespace sd {
                 resMeans->applyScalarArr(scalar::Add, shift, *resMeans);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(normalize_moments) {
             auto in = inputShape->at(1);
 
-            Nd4jLong* meanShape = nullptr;
-            Nd4jLong* varianceShape = nullptr;
+            sd::LongType* meanShape = nullptr;
+            sd::LongType* varianceShape = nullptr;
 
             COPY_SHAPE_EX(in, meanShape, block.getWorkspace());
             COPY_SHAPE_EX(in, varianceShape, block.getWorkspace());

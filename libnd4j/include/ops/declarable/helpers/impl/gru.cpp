@@ -27,18 +27,17 @@
 // Kyunghyun Cho, Bart van Merrienboer, Caglar Gulcehre, Dzmitry Bahdanau, Fethi Bougares, Holger Schwenk, Yoshua Bengio
 // "Learning Phrase Representations using RNN Encoder-Decoder for StatnIntical Machine Translation"
 
-
 #include <ops/declarable/helpers/gru.h>
 #include <ops/declarable/CustomOperations.h>
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/MmulHelper.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
- void gruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* W, const NDArray* Wc,
+void gruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* W, const NDArray* Wc,
              const NDArray* b, const NDArray* bc,
              NDArray* r, NDArray* u, NDArray* c, NDArray* h) {
 
@@ -95,7 +94,7 @@ namespace helpers {
 }
 
 //////////////////////////////////////////////////////////////////////////
- void gruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b,
+void gruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b,
              NDArray* gates, NDArray* h) {
 
     //Inputs:
@@ -149,7 +148,7 @@ namespace helpers {
 }
 
 //////////////////////////////////////////////////////////////////////////
- void gruTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b, NDArray* h) {
+void gruTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b, NDArray* h) {
 
     // sL means time steps
 
@@ -176,7 +175,7 @@ namespace helpers {
 }
 
 //////////////////////////////////////////////////////////////////////////
- void gruCellBp(sd::LaunchContext* context,
+void gruCellBp(sd::LaunchContext* context,
               const NDArray* x,    const NDArray* hLast,
               const NDArray* W,    const NDArray* Wc,        const NDArray* b,    const NDArray* bc,
               const NDArray* dLdr, const NDArray* dLdu,      const NDArray* dLdc, const NDArray* dLdh,
@@ -382,7 +381,7 @@ namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
- void gruCellBp(sd::LaunchContext* context,
+void gruCellBp(sd::LaunchContext* context,
               const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* dLdh, const NDArray* gates,
               NDArray* dLdx, NDArray* dLdhI, NDArray* dLdWx, NDArray* dLdWh, NDArray* dLdb) {
 
@@ -500,7 +499,7 @@ namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
- void gruTimeLoopBp(sd::LaunchContext * context,
+void gruTimeLoopBp(sd::LaunchContext * context,
                     const NDArray* x, const NDArray* hI, const NDArray* Wx, const NDArray* Wh, const NDArray* b, const NDArray* dLdh,
                     NDArray* dLdx, NDArray* dLdhI, NDArray* dLdWx, NDArray* dLdWh, NDArray* dLdb) {
     // sL means time steps

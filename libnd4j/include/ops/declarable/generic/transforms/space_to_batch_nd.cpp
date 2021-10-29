@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(space_to_batch_nd, 3, 1, false, 0, 0) {
 
     REQUIRE_TRUE(blockShape->rankOf() == 1, 0, "SpaceToBatchND: rank of blockShape array must be equal to one, but got %i instead !", blockShape->rankOf());
 
-    const uint numOfSpatialDims = blockShape->sizeAt(0);
+    const sd::Unsigned numOfSpatialDims = blockShape->sizeAt(0);
 
     REQUIRE_TRUE(input->rankOf() == output->rankOf(), 0, "SpaceToBatchND: rank of input and output array must be the same, but got %i and %i correspondingly !", input->rankOf(), output->rankOf());
 
@@ -55,10 +55,10 @@ CUSTOM_OP_IMPL(space_to_batch_nd, 3, 1, false, 0, 0) {
     }
 
     // FIXME - should we use this time-consuming validation ?
-    for (uint i = 0; i < numOfSpatialDims; ++i) {
-        const uint padLeft       = padding->e<uint>(i,0);
-        const uint padRight      = padding->e<uint>(i,1);
-        const Nd4jLong blockSize = blockShape->e<Nd4jLong>(i);
+    for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i) {
+        const sd::Unsigned padLeft       = padding->e<sd::Unsigned>(i,0);
+        const sd::Unsigned padRight      = padding->e<sd::Unsigned>(i,1);
+        const sd::LongType blockSize = blockShape->e<sd::LongType>(i);
         REQUIRE_TRUE((input->sizeAt(i + 1) + padLeft + padRight) % blockSize == 0, 0, "SpaceToBatchND: after padding, spatial dimensions of input array must be divisible by blockSize !");
     }
 
@@ -67,7 +67,7 @@ CUSTOM_OP_IMPL(space_to_batch_nd, 3, 1, false, 0, 0) {
     else
         helpers::spaceToBatchND(block.launchContext(), input->dup(), *blockShape, *padding, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -88,19 +88,19 @@ DECLARE_SHAPE_FN(space_to_batch_nd) {
 
     REQUIRE_TRUE(blockShapeInfo[0] == 1, 0, "SpaceToBatchND: rank of blockShape array must be equal to one, but got %i instead !", blockShapeInfo[0]);
 
-    const uint numOfSpatialDims = blockShapeInfo[1];
+    const sd::Unsigned numOfSpatialDims = blockShapeInfo[1];
 
     if(paddingShapeInfo[1] != numOfSpatialDims || paddingShapeInfo[2] != 2) {
         const std::string expectedpaddingShape = "[" + std::to_string(numOfSpatialDims) + ", 2]";   // [numOfSpatialDims, 2]
         REQUIRE_TRUE(false, 0, "SpaceToBatchND: operation expects padding shape to be %s, but got %s instead", expectedpaddingShape.c_str(), ShapeUtils::shapeAsString(paddingShapeInfo).c_str());
     }
 
-    std::vector<Nd4jLong> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
+    std::vector<sd::LongType> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
 
-    outShape[0] *= INPUT_VARIABLE(1)->reduceNumber(sd::reduce::Prod).e<Nd4jLong>(0);
+    outShape[0] *= INPUT_VARIABLE(1)->reduceNumber(sd::reduce::Prod).e<sd::LongType>(0);
 
-    for (uint i = 0; i < numOfSpatialDims; ++i)
-        outShape[i + 1] = (outShape[i + 1] + INPUT_VARIABLE(2)->e<uint>(i,0) + INPUT_VARIABLE(2)->e<uint>(i,1)) / INPUT_VARIABLE(1)->e<Nd4jLong>(i);
+    for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i)
+        outShape[i + 1] = (outShape[i + 1] + INPUT_VARIABLE(2)->e<sd::Unsigned>(i,0) + INPUT_VARIABLE(2)->e<sd::Unsigned>(i,1)) / INPUT_VARIABLE(1)->e<sd::LongType>(i);
 
     return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inputShapeInfo), 'c', outShape));
 }

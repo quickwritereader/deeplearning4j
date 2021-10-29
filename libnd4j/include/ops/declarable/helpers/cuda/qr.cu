@@ -28,12 +28,12 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    static __global__ void matrixMinorKernel(T* outBuffer, Nd4jLong* outShape, T* inBuffer, Nd4jLong* inShape, Nd4jLong column, Nd4jLong rows, Nd4jLong columns) {
+    static SD_KERNEL void matrixMinorKernel(T* outBuffer, sd::LongType* outShape, T* inBuffer, sd::LongType* inShape, sd::LongType column, sd::LongType rows, sd::LongType columns) {
 //        auto tid = threadIdx.x + blockDim.x * blockIdx.x;
 //        auto step = blockDim.x * gridDim.x;
 //        if (threadIdx.x == 0) {
 //            for (auto i = tid; i < column; i += step) {
-//                Nd4jLong diagPos[] = {i, i};
+//                sd::LongType diagPos[] = {i, i};
 //                auto zIndex = shape::getOffset(outShape, diagPos);
 //                outBuffer[zIndex] = T(1.f);
 //            }
@@ -42,7 +42,7 @@ namespace helpers {
 
         for (auto i = blockIdx.x; i < rows; i += gridDim.x)
             for (auto j = threadIdx.x; j < columns; j += blockDim.x) {
-                Nd4jLong pos[] = {i,j};
+                sd::LongType pos[] = {i,j};
                 auto zIndex = shape::getOffset(outShape, pos);
                 auto xIndex = shape::getOffset(inShape, pos);
                 if (i < column || j < column) {
@@ -56,7 +56,7 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL NDArray matrixMinor(LaunchContext* context, NDArray& in, Nd4jLong col) {
+    NDArray matrixMinor(LaunchContext* context, NDArray& in, sd::LongType col) {
         NDArray m = in.ulike();
         m.setIdentity();
         m({col, m.rows(), col, m.columns()}).assign(in({col, m.rows(), col, m.columns()}));
@@ -72,10 +72,10 @@ namespace helpers {
 
 /* m = I - v v^T */
     template <typename T>
-    static __global__ void vmulKernel(T* resBuf, const Nd4jLong* resShape, T const* vBuff, Nd4jLong const* vShape, Nd4jLong n) {
+    static SD_KERNEL void vmulKernel(T* resBuf, const sd::LongType* resShape, T const* vBuff, sd::LongType const* vShape, sd::LongType n) {
         for (auto i = blockIdx.x; i < n; i += gridDim.x)
             for (auto j = threadIdx.x; j < n; j += blockDim.x) {
-                Nd4jLong posR[] = {i, j};
+                sd::LongType posR[] = {i, j};
                 auto indexR = shape::getOffset(resShape, posR);
                 auto indexX = shape::getIndexOffset(i, vShape);
                 auto indexY = shape::getIndexOffset(j, vShape);
@@ -85,7 +85,7 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL NDArray vmul(LaunchContext* context, NDArray const& v, int n)
+    NDArray vmul(LaunchContext* context, NDArray const& v, int n)
     {
         NDArray res('c', {n,n}, v.dataType(), context); // x = matrix_new(n, n);
 
@@ -96,18 +96,18 @@ namespace helpers {
     }
 
     template <typename T>
-    static bool diagonalIsPositive(NDArray* matrix, Nd4jLong k) {
+    static bool diagonalIsPositive(NDArray* matrix, sd::LongType k) {
         T hVal;
-        Nd4jLong pos[] = {k, k};
+        sd::LongType pos[] = {k, k};
         auto shift = shape::getOffset(matrix->shapeInfo(), pos);
         cudaMemcpy(&hVal, matrix->specialBuffer(), sizeof(T), cudaMemcpyDeviceToHost);
         return hVal > T(0.f);
     }
 
     template <typename T>
-    ND4J_LOCAL void qrSingle(LaunchContext* context, NDArray* matrix, NDArray* Q, NDArray* R, bool const fullMatricies) {
-        Nd4jLong M = matrix->sizeAt(0);
-        Nd4jLong N = matrix->sizeAt(1);
+    void qrSingle(LaunchContext* context, NDArray* matrix, NDArray* Q, NDArray* R, bool const fullMatricies) {
+        sd::LongType M = matrix->sizeAt(0);
+        sd::LongType N = matrix->sizeAt(1);
         auto resQ = fullMatricies?Q->ulike():NDArrayFactory::create<T>(matrix->ordering(), {M,M}, Q->getContext());
         auto resR = fullMatricies?R->ulike():matrix->ulike();
         std::vector<NDArray> q(M);
@@ -153,9 +153,9 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL void qr_(LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
-        Nd4jLong lastDim = input->rankOf() - 1;
-        Nd4jLong preLastDim = input->rankOf() - 2;
+    void qr_(LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
+        sd::LongType lastDim = input->rankOf() - 1;
+        sd::LongType preLastDim = input->rankOf() - 2;
 
         NDArray::prepareSpecialUse({outputQ, outputR}, {input});
         ResultSet listOutQ(outputQ->allTensorsAlongDimension({(int)preLastDim, (int)lastDim}));
@@ -172,8 +172,8 @@ namespace helpers {
         NDArray::registerSpecialUse({outputQ, outputR}, {input});
     }
 
-    ND4J_LOCAL void qr(sd::LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), qr_, (context, input, outputQ, outputR, fullMatricies), FLOAT_TYPES);
+    void qr(sd::LaunchContext* context, NDArray const* input, NDArray* outputQ, NDArray* outputR, bool const fullMatricies) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), qr_, (context, input, outputQ, outputR, fullMatricies), SD_FLOAT_TYPES);
     }
 
 }

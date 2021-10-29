@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
@@ -30,7 +29,6 @@
 #include <execution/LaunchContext.h>
 #include <ops/specials_cuda.h>
 #include <helpers/TAD.h>
-
 #include <cuda.h>
 
 using namespace sd;

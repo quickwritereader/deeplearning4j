@@ -19,27 +19,26 @@
 //
 // Created by raver119 on 20.10.2017.
 //
-
 #include <graph/execution/LogicWhile.h>
 #include <graph/execution/LogicReturn.h>
 #include <graph/GraphExecutioner.h>
 #include <graph/execution/LogicExecutor.h>
-#include <graph/Status.h>
+
 
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicWhile::processNode(Graph *graph, Node *node) {
+        sd::Status LogicWhile::processNode(Graph *graph, Node *node) {
             auto __variableSpace = graph->getVariableSpace();
 
-            nd4j_debug("Starting on WHILE loop: [%i]\n", node->id());
+            sd_debug("Starting on WHILE loop: [%i]\n", node->id());
 
             // total number of inputs. 2 last inputs are scopes
             int inputs = node->input()->size();
 
             if (inputs < 3) {
-                nd4j_printf("While [%i]: loop should have at least 1 external variable announced\n", node->id());
-                return ND4J_STATUS_BAD_INPUT;
+                sd_printf("While [%i]: loop should have at least 1 external variable announced\n", node->id());
+                return sd::Status::BAD_INPUT;
             }
 
             for (int e = 0; e < inputs - 2; e++) {
@@ -65,7 +64,7 @@ namespace sd {
             int scopeConditionIndex = node->input()->at(inputs - 2).first;
             int scopeBodyIndex = node->input()->at(inputs - 1).first;
 
-            nd4j_debug("While [%i]: got [%i] inputs\n", node->id(), node->input()->size());
+            sd_debug("While [%i]: got [%i] inputs\n", node->id(), node->input()->size());
 
             // we're running condition nodes now
             auto scope = graph->scopeById(scopeConditionIndex);
@@ -73,17 +72,17 @@ namespace sd {
             while (true && breaker < 10000000) {
                 int lastNode = 0;
                 // we're running condition scope first
-                nd4j_debug("While [%i]: got [%i] ops in condition scope [%i]\n", node->id(), scope->nodes()->size(), scopeConditionIndex);
+                sd_debug("While [%i]: got [%i] ops in condition scope [%i]\n", node->id(), scope->nodes()->size(), scopeConditionIndex);
 
                 for (Node* v: *scope->nodes()) {
                     //v->getBlock()->updateVariables();
                     if (v->opType() == OpType_LOGIC) {
-                        nd4j_debug("Falling back to logic\n","");
+                        sd_debug("Falling back to logic\n","");
                         LogicExecutor::processNode(graph, v);
                     } else {
-                        nd4j_debug("Op [<%s>]\n", v->getName()->c_str());
-                        Nd4jStatus status = GraphExecutioner::executeFlatNode(graph, v, __variableSpace);
-                        if (status != ND4J_STATUS_OK)
+                        sd_debug("Op [<%s>]\n", v->getName()->c_str());
+                        sd::Status status = GraphExecutioner::executeFlatNode(graph, v, __variableSpace);
+                        if (status != sd::Status::OK)
                             return status;
                     }
 
@@ -91,8 +90,8 @@ namespace sd {
                 }
 
                 if (!__variableSpace->hasVariable(lastNode)) {
-                    nd4j_printf("While [%i]: got no results out of conditional loop\n", node->id());
-                    return ND4J_STATUS_KERNEL_FAILURE;
+                    sd_printf("While [%i]: got no results out of conditional loop\n", node->id());
+                    return sd::Status::KERNEL_FAILURE;
                 }
 
                 // now we should take result of the Scope run, and evaluate it
@@ -108,18 +107,18 @@ namespace sd {
                     auto scopeBody = graph->scopeById(scopeBodyIndex);
                     int lastNode = 0;
                     int e = 0;
-                    nd4j_debug("While [%i] got [%i] ops in body scope [%i]\n", node->id(), scopeBody->nodes()->size(), scopeBodyIndex);
+                    sd_debug("While [%i] got [%i] ops in body scope [%i]\n", node->id(), scopeBody->nodes()->size(), scopeBodyIndex);
                     for (; e < scopeBody->nodes()->size() - 1; e++) {
                         Node* v = scopeBody->nodes()->at(e);
 
                         if (v->opType() == OpType_LOGIC) {
-                            nd4j_debug("Falling back to logic\n","");
+                            sd_debug("Falling back to logic\n","");
                             LogicExecutor::processNode(graph, v);
                         } else {
-                            nd4j_debug("Op [<%s>]\n", v->getName()->c_str());
+                            sd_debug("Op [<%s>]\n", v->getName()->c_str());
                             //v->getBlock()->updateVariables();
-                            Nd4jStatus status = GraphExecutioner::executeFlatNode(graph, v, __variableSpace);
-                            if (status != ND4J_STATUS_OK)
+                            sd::Status status = GraphExecutioner::executeFlatNode(graph, v, __variableSpace);
+                            if (status != sd::Status::OK)
                                 return status;
                         }
 
@@ -136,11 +135,11 @@ namespace sd {
 
             // if we've hit breaker limit - we should notify about that
             if (breaker >= 10000000) {
-                nd4j_printf("While condition seems to be never ending, aborting...\n",  breaker);
-                return ND4J_STATUS_KERNEL_FAILURE;
+                sd_printf("While condition seems to be never ending, aborting...\n",  breaker);
+                return sd::Status::KERNEL_FAILURE;
             }
 
-            return sd::Status::OK();
+            return sd::Status::OK;
         }
     }
 }

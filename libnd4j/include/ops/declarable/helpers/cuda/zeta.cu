@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 26.04.2019
 //
-
 #include<ops/declarable/helpers/zeta.h>
 
 namespace sd {
@@ -29,15 +28,15 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL __global__ static void zetaCuda(const void *vx, const Nd4jLong *xShapeInfo,
-                                const void *vq, const Nd4jLong *qShapeInfo,
-                                      void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void zetaCuda(const void *vx, const sd::LongType *xShapeInfo,
+                                const void *vq, const sd::LongType *qShapeInfo,
+                                      void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const T*>(vx);
     const auto q = reinterpret_cast<const T*>(vq);
           auto z = reinterpret_cast<T*>(vz);
 
-    __shared__ Nd4jLong len;
+    __shared__ sd::LongType len;
 
     if (threadIdx.x == 0)
         len = shape::length(xShapeInfo);
@@ -58,27 +57,27 @@ ND4J_LOCAL __global__ static void zetaCuda(const void *vx, const Nd4jLong *xShap
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static void zetaCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vx, const Nd4jLong *xShapeInfo, const void *vq, const Nd4jLong *qShapeInfo, void *vz, const Nd4jLong *zShapeInfo) {
+static void zetaCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vx, const sd::LongType *xShapeInfo, const void *vq, const sd::LongType *qShapeInfo, void *vz, const sd::LongType *zShapeInfo) {
 
     zetaCuda<T><<<blocksPerGrid, threadsPerBlock, 1024, *stream>>>(vx, xShapeInfo, vq, qShapeInfo, vz, zShapeInfo);
 }
 
-ND4J_LOCAL void zeta(sd::LaunchContext * context, const NDArray& x, const NDArray& q, NDArray& z) {
+void zeta(sd::LaunchContext * context, const NDArray& x, const NDArray& q, NDArray& z) {
 
     if(!x.isActualOnDeviceSide()) x.syncToDevice();
     if(!q.isActualOnDeviceSide()) q.syncToDevice();
 
-    int threadsPerBlock = MAX_NUM_THREADS / 2;
+    int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     int blocksPerGrid = (z.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
-    BUILD_SINGLE_SELECTOR(x.dataType(), zetaCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), x.specialBuffer(), x.specialShapeInfo(), q.specialBuffer(), q.specialShapeInfo(), z.specialBuffer(), z.specialShapeInfo()), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(x.dataType(), zetaCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), x.specialBuffer(), x.specialShapeInfo(), q.specialBuffer(), q.specialShapeInfo(), z.specialBuffer(), z.specialShapeInfo()), SD_FLOAT_TYPES);
 
     x.tickReadHost();
     q.tickReadHost();
     z.tickWriteDevice();
 }
 
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void zetaCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vx, const Nd4jLong *xShapeInfo, const void *vq, const Nd4jLong *qShapeInfo, void *vz, const Nd4jLong *zShapeInfo), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void zetaCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void *vx, const sd::LongType *xShapeInfo, const void *vq, const sd::LongType *qShapeInfo, void *vz, const sd::LongType *zShapeInfo), SD_FLOAT_TYPES);
 
 
 }

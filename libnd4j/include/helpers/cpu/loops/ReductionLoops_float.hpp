@@ -19,9 +19,7 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "ReductionLoops.hpp"
-#include <system/pointercast.h>
 #include <types/types.h>
 
 using namespace simdOps;
@@ -30,18 +28,18 @@ namespace sd {
 
     template<typename X, typename Z>
     template <typename OpType>
-    ND4J_LOCAL void ReductionFloatLoops<X, Z>::innerloopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong* xShapeInfo, Z* z, const Nd4jLong* zShapeInfo, const int* dims, Z* extraParams) {
-#ifndef INLINE_LOOPS
+    SD_LIB_HIDDEN void ReductionFloatLoops<X, Z>::innerloopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType* xShapeInfo, Z* z, const sd::LongType* zShapeInfo, const int* dims, Z* extraParams) {
+#ifndef SD_LOOPS_INLINED
         ReductionLoops<X,Z,Z>::template loopReduce<OpType>(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams);
 #endif
     }
 
     template<typename X, typename Y>
-    ND4J_LOCAL void ReductionFloatLoops<X, Y>::wrapper(const int opNum, sd::memory::Workspace* workspace,
-                                            const X *x, const Nd4jLong *xShapeInfo,
-                                            Y *z, const Nd4jLong *zShapeInfo,
+    SD_LIB_HIDDEN void ReductionFloatLoops<X, Y>::wrapper(const int opNum, sd::memory::Workspace* workspace,
+                                            const X *x, const sd::LongType *xShapeInfo,
+                                            Y *z, const sd::LongType *zShapeInfo,
                                             const int *dims, Y *extraParams) {
-#ifndef INLINE_LOOPS
+#ifndef SD_LOOPS_INLINED
         DISPATCH_BY_OPNUM_TT(innerloopReduce, PARAMS(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams), REDUCE_FLOAT_OPS);
 #endif
     }

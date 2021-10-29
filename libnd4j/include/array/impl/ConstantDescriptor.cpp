@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/ConstantDescriptor.h>
 #include <array/DataTypeUtils.h>
 #include <stdexcept>
@@ -30,7 +29,7 @@ namespace sd {
             _floatValues.emplace_back(values[e]);
     }
 
-    ConstantDescriptor::ConstantDescriptor(Nd4jLong const* values, int length) {
+    ConstantDescriptor::ConstantDescriptor(sd::LongType const* values, int length) {
         for (int e = 0; e < length; e++)
             _integerValues.emplace_back(values[e]);
     }
@@ -39,7 +38,7 @@ namespace sd {
         _floatValues = values;
     }
 
-    ConstantDescriptor::ConstantDescriptor(std::vector<Nd4jLong> &values) {
+    ConstantDescriptor::ConstantDescriptor(std::vector<sd::LongType> &values) {
         _integerValues = values;
     }
 
@@ -65,7 +64,7 @@ namespace sd {
         return !_floatValues.empty();
     }
 
-    const std::vector<Nd4jLong>& ConstantDescriptor::integerValues() const {
+    const std::vector<sd::LongType>& ConstantDescriptor::integerValues() const {
         return _integerValues;
     }
 
@@ -73,7 +72,7 @@ namespace sd {
         return _floatValues;
     }
 
-    Nd4jLong ConstantDescriptor::length() const {
+    sd::LongType ConstantDescriptor::length() const {
         return isInteger() ? _integerValues.size() : isFloat() ? _floatValues.size() : 0L;
     }
 }
@@ -88,7 +87,7 @@ namespace std {
         size_t i = 0;
         if (k.isInteger()) {
             for (auto v: k.integerValues()) {
-                hashVal ^= std::hash<Nd4jLong>()(v) + 0x9e3779b9 + (hashVal << 6) + (hashVal >> 2);
+                hashVal ^= std::hash<sd::LongType>()(v) + 0x9e3779b9 + (hashVal << 6) + (hashVal >> 2);
             }
         }
         else {

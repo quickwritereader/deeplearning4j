@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.01.2018.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 
@@ -41,7 +40,7 @@ TEST_F(BackpropTests, Test_Add_1) {
     sd::ops::add_bp op;
     auto result = op.evaluate({&x, &y, &e});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto eps = result.at(0);
     auto grad = result.at(1);

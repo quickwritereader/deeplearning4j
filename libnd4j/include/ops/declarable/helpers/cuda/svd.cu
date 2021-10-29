@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/svd.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
@@ -36,19 +35,19 @@ namespace helpers {
 // FIXME -> we should optimize these helpers for the case when input matrices have c order (perform transpositions appropriately)
 
 template <typename T>
-__global__ static void inverseColumnSignCuda(void* vu, const Nd4jLong* uShapeInfo, void* vv, const Nd4jLong* vShapeInfo) {
+SD_KERNEL static void inverseColumnSignCuda(void* vu, const sd::LongType* uShapeInfo, void* vv, const sd::LongType* vShapeInfo) {
 
     T* u = reinterpret_cast<T*>(vu);
     T* v = reinterpret_cast<T*>(vv);
 
     __shared__ int rank, uLastButOneColumn, vLastButOneColumn;    // uRank = vRank
-    __shared__ Nd4jLong uLen, vLen;
-    __shared__ Nd4jLong *sharedMem;
+    __shared__ sd::LongType uLen, vLen;
+    __shared__ sd::LongType *sharedMem;
 
     if (threadIdx.x == 0) {
 
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+        sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
         rank = shape::rank(uShapeInfo);
         uLen = shape::length(uShapeInfo);
@@ -65,7 +64,7 @@ __global__ static void inverseColumnSignCuda(void* vu, const Nd4jLong* uShapeInf
     auto coords = sharedMem + threadIdx.x * rank;
 
     // u
-    for (Nd4jLong i = ind; i < uLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = ind; i < uLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, uShapeInfo, coords);
 
@@ -78,7 +77,7 @@ __global__ static void inverseColumnSignCuda(void* vu, const Nd4jLong* uShapeInf
     }
 
     // v
-    for (Nd4jLong i = ind; i < vLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = ind; i < vLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, vShapeInfo, coords);
 
@@ -94,12 +93,12 @@ __global__ static void inverseColumnSignCuda(void* vu, const Nd4jLong* uShapeInf
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void inverseColumnSignCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                         void* vu, const Nd4jLong* uShapeInfo,
-                                         void* vv, const Nd4jLong* vShapeInfo) {
+                                         void* vu, const sd::LongType* uShapeInfo,
+                                         void* vv, const sd::LongType* vShapeInfo) {
 
     inverseColumnSignCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vu, uShapeInfo, vv, vShapeInfo);
 }
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void inverseColumnSignCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t* stream, void* vu, const Nd4jLong* uShapeInfo, void* vv, const Nd4jLong* vShapeInfo), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void inverseColumnSignCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t* stream, void* vu, const sd::LongType* uShapeInfo, void* vv, const sd::LongType* vShapeInfo), SD_FLOAT_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
 static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDArray* U, NDArray* VT, const bool fullUV, const bool calcUV) {
@@ -126,19 +125,19 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
     if(m < n)
         throw std::runtime_error("svdQR: due to cuda api input constrains given shape of A array are not valid !");
 
-    if(std::vector<Nd4jLong>({minDim}) != S->getShapeAsVector())
+    if(std::vector<sd::LongType>({minDim}) != S->getShapeAsVector())
         throw std::runtime_error("svdQR: wrong shape of S array !");
 
     if(calcUV) {
 
-        if(fullUV && std::vector<Nd4jLong>({m,m}) != U->getShapeAsVector())
+        if(fullUV && std::vector<sd::LongType>({m,m}) != U->getShapeAsVector())
             throw std::runtime_error("svdQR: wrong shape of U array !");
-        else if(!fullUV && std::vector<Nd4jLong>({m,minDim}) != U->getShapeAsVector())
+        else if(!fullUV && std::vector<sd::LongType>({m,minDim}) != U->getShapeAsVector())
             throw std::runtime_error("svdQR: wrong shape of U array !");
 
-        if(fullUV && std::vector<Nd4jLong>({n,n}) != VT->getShapeAsVector())
+        if(fullUV && std::vector<sd::LongType>({n,n}) != VT->getShapeAsVector())
             throw std::runtime_error("svdQR: wrong shape of VT array !");
-        else if(!fullUV && std::vector<Nd4jLong>({minDim,n}) != VT->getShapeAsVector())
+        else if(!fullUV && std::vector<sd::LongType>({minDim,n}) != VT->getShapeAsVector())
             throw std::runtime_error("svdQR: wrong shape of VT array !");
     }
 
@@ -284,19 +283,19 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
     int n = A->sizeAt(1);
     const int minDim = m < n ? m : n;
 
-    if(std::vector<Nd4jLong>({minDim}) != S->getShapeAsVector())
+    if(std::vector<sd::LongType>({minDim}) != S->getShapeAsVector())
         throw std::runtime_error("svdJcb: wrong shape of S array !");
 
     if(calcUV) {
 
-        if(fullUV && std::vector<Nd4jLong>({m,m}) != U->getShapeAsVector())
+        if(fullUV && std::vector<sd::LongType>({m,m}) != U->getShapeAsVector())
             throw std::runtime_error("svdJcb: wrong shape of U array !");
-        else if(!fullUV && std::vector<Nd4jLong>({m,minDim}) != U->getShapeAsVector())
+        else if(!fullUV && std::vector<sd::LongType>({m,minDim}) != U->getShapeAsVector())
             throw std::runtime_error("svdJcb: wrong shape of U array !");
 
-        if(fullUV && std::vector<Nd4jLong>({n,n}) != V->getShapeAsVector())
+        if(fullUV && std::vector<sd::LongType>({n,n}) != V->getShapeAsVector())
             throw std::runtime_error("svdJcb: wrong shape of V array !");
-        else if(!fullUV && std::vector<Nd4jLong>({n,minDim}) != V->getShapeAsVector())
+        else if(!fullUV && std::vector<sd::LongType>({n,minDim}) != V->getShapeAsVector())
             throw std::runtime_error("svdJcb: wrong shape of V array !");
     }
 
@@ -380,7 +379,7 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
     const int econ = !fullUV;
 
     if(transA)
-        math::nd4j_swap<int>(m, n);
+        math::sd_swap<int>(m, n);
 
     // *** avoid bug in cuda API ***
     void* nullPtr = nullptr;
@@ -471,7 +470,7 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
     auto m = A->sizeAt(-2);
     auto n = A->sizeAt(-1);
     const int minDim = m < n ? m : n;
-    const Nd4jLong bS = A->lengthOf() / (m * n);
+    const sd::LongType bS = A->lengthOf() / (m * n);
 
     if(m > 32 || n > 32)
         throw std::runtime_error("svdBatched: numbers of rows and columns should be <= 32 !");
@@ -634,7 +633,7 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
 }
 
 ////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void svd(sd::LaunchContext* context, const NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV, const bool calcUV, const int switchNum) {
+void svd(sd::LaunchContext* context, const NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV, const bool calcUV, const int switchNum) {
 
     NDArray* S = outArrs[0];
     NDArray* U = outArrs[1];

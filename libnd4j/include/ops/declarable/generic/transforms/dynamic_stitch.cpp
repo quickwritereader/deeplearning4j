@@ -61,7 +61,7 @@ namespace ops {
     }
 
     DECLARE_SHAPE_FN(dynamic_stitch) {
-        Nd4jLong maxValue = 0;
+        sd::LongType maxValue = 0;
         auto numOfData = block.width();
         numOfData /= 2; // only index part it's needed to review
         auto restShape = inputShape->at(numOfData);
@@ -71,11 +71,11 @@ namespace ops {
             auto input = INPUT_VARIABLE(i);
             REQUIRE_TRUE(input->isZ(), 0, "dynamic_stitch: Indices should be integer, but %d type given.", (int)input->dataType() );
             auto maxV = input->reduceNumber(reduce::Max);
-            if (maxV.e<Nd4jLong>(0) > maxValue) maxValue = maxV.e<Nd4jLong>(0);
+            if (maxV.e<sd::LongType>(0) > maxValue) maxValue = maxV.e<sd::LongType>(0);
         }
         // calculate output rank - difference between indices shape and data shape
         int outRank = shape::rank(restShape) - shape::rank(firstShape) + 1; // at least 1D tensor
-        std::vector<Nd4jLong> outShape(outRank);
+        std::vector<sd::LongType> outShape(outRank);
         // fill up output shape template: the first to max index, and rests - to vals from the first data input
         outShape[0] = maxValue + 1;
         for(int i = 1; i < outRank; ++i)

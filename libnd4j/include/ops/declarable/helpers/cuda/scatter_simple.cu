@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <helpers/ShapeUtils.h>
@@ -35,7 +34,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename X, typename Y>
-            static _CUDA_G void scatterSimpleKernel(void *vx, const Nd4jLong *xTadShape, const Nd4jLong *xTadOffsets, Nd4jLong xLength, Nd4jLong numTads, const void *vi, const Nd4jLong *iShapeInfo, Nd4jLong iLength, const void *vu, const Nd4jLong *uShapeInfo, Nd4jLong uLength) {
+            static SD_KERNEL void scatterSimpleKernel(void *vx, const sd::LongType *xTadShape, const sd::LongType *xTadOffsets, sd::LongType xLength, sd::LongType numTads, const void *vi, const sd::LongType *iShapeInfo, sd::LongType iLength, const void *vu, const sd::LongType *uShapeInfo, sd::LongType uLength) {
                 auto u = reinterpret_cast<const X*>(vu);
                 auto indices = reinterpret_cast<const Y*>(vi);
 
@@ -63,7 +62,7 @@ namespace sd {
             }
 
 
-            ND4J_LOCAL void scatterSimple(sd::LaunchContext * context, const int opId, NDArray& input, const NDArray& updates, const NDArray& indices, const std::vector<int>& dimensions) {
+            void scatterSimple(sd::LaunchContext * context, const int opId, NDArray& input, const NDArray& updates, const NDArray& indices, const std::vector<int>& dimensions) {
                 auto xType = input.dataType();
                 auto yType = indices.dataType();
 
@@ -72,7 +71,7 @@ namespace sd {
 
                 NDArray::prepareSpecialUse({&input}, {&updates, &indices});
 
-                BUILD_DOUBLE_SELECTOR(xType, yType, scatterSimple_, (context, opId, input, updates, indices, dimensions), LIBND4J_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(xType, yType, scatterSimple_, (context, opId, input, updates, indices, dimensions), SD_COMMON_TYPES, SD_INDEXING_TYPES);
 
                 NDArray::registerSpecialUse({&input}, {&updates, &indices});
             }

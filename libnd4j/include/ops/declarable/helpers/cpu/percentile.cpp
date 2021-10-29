@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 17.05.2018
 //
-
 #include <ops/declarable/helpers/percentile.h>
 #include <array/NDArrayFactory.h>
 #include <array/ResultSet.h>
@@ -44,7 +43,7 @@ static void _percentile(const NDArray& input, NDArray& output, std::vector<int>&
 
     auto listOfSubArrs = input.allTensorsAlongDimension(axises);
 
-    std::vector<Nd4jLong> shapeOfSubArr(listOfSubArrs.at(0)->rankOf());
+    std::vector<sd::LongType> shapeOfSubArr(listOfSubArrs.at(0)->rankOf());
     for(int i=0; i<shapeOfSubArr.size(); ++i)
         shapeOfSubArr[i] = listOfSubArrs.at(0)->shapeOf()[i];
 
@@ -52,17 +51,17 @@ static void _percentile(const NDArray& input, NDArray& output, std::vector<int>&
     const int len = flattenedArr.lengthOf();
 
     const float fraction = 1.f - q / 100.;
-    Nd4jLong position = 0;
+    sd::LongType position = 0;
 
     switch(interpolation) {
         case 0: // lower
-            position = static_cast<Nd4jLong>(math::nd4j_ceil<float,T>((len - 1) * fraction));
+            position = static_cast<sd::LongType>(math::sd_ceil<float,T>((len - 1) * fraction));
             break;
         case 1: // higher
-            position = static_cast<Nd4jLong>(math::nd4j_floor<float,T>((len - 1) * fraction));
+            position = static_cast<sd::LongType>(math::sd_floor<float,T>((len - 1) * fraction));
             break;
         case 2: // nearest
-            position = static_cast<Nd4jLong>(math::nd4j_round<float,T>((len - 1) * fraction));
+            position = static_cast<sd::LongType>(math::sd_round<float,T>((len - 1) * fraction));
             break;
     }
     position = len - position - 1;
@@ -78,11 +77,11 @@ static void _percentile(const NDArray& input, NDArray& output, std::vector<int>&
     }
 }
 
-    ND4J_LOCAL void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation) {
-        BUILD_SINGLE_SELECTOR(input.dataType(), _percentile, (input, output, axises, q, interpolation), LIBND4J_TYPES);
+    void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation) {
+        BUILD_SINGLE_SELECTOR(input.dataType(), _percentile, (input, output, axises, q, interpolation), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _percentile, (const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void _percentile, (const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation), SD_COMMON_TYPES);
 
 }
 }

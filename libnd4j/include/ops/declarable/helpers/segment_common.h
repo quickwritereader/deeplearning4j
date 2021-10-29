@@ -29,8 +29,8 @@
 namespace sd {
 namespace ops {
 namespace helpers {
-    void fillUpSegments(NDArray* indices, Nd4jLong numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens);
 
+SD_LIB_HIDDEN void fillUpSegments(NDArray* indices, sd::LongType numClasses, NDArray& classesRangesBegs, NDArray& classesRangesLens);
 
 }
 }

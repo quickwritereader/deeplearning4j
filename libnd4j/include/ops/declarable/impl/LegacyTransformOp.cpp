@@ -19,9 +19,7 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyTransformOp.h>
-
 #include <legacy/NativeOpExecutioner.h>
 
 #ifdef ONLY_SAME_TRANSFORM
@@ -39,7 +37,7 @@ namespace sd {
             return new LegacyTransformOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyTransformOp::validateAndExecute(Context &block) {
+        sd::Status LegacyTransformOp::validateAndExecute(Context &block) {
             auto input = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
 
@@ -49,7 +47,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         /**
@@ -60,7 +58,7 @@ namespace sd {
         ShapeList *LegacyTransformOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));

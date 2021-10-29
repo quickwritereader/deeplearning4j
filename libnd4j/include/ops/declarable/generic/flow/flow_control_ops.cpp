@@ -63,7 +63,7 @@ namespace sd {
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(switch, Switch);
         DECLARE_SYN(if, Switch);

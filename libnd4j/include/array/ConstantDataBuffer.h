@@ -22,15 +22,15 @@
 #ifndef LIBND4J_CONSTANTDATABUFFER_H
 #define LIBND4J_CONSTANTDATABUFFER_H
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+
 #include <memory>
+#include <system/common.h>
 #include <array/PointerWrapper.h>
 #include <array/DataType.h>
 
 
 namespace sd {
-    class ND4J_EXPORT ConstantDataBuffer {
+    class SD_LIB_EXPORT ConstantDataBuffer {
     private:
       std::shared_ptr<PointerWrapper> _primaryBuffer;
       std::shared_ptr<PointerWrapper> _specialBuffer = nullptr;

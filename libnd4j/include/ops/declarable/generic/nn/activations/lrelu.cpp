@@ -36,7 +36,7 @@ namespace sd {
             input->applyScalar(sd::scalar::LeakyRELU, alpha, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(lrelu) {
@@ -55,7 +55,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::LRELUDerivativeE, epsilon, z, nullptr);
             helpers::leakyReluDerivative(block.launchContext(), input, epsilon, z, alpha);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(lrelu_bp) {

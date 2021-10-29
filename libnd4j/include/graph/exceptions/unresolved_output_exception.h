@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_UNRESOLVED_OUTPUT_H
 #define DEV_TESTS_UNRESOLVED_OUTPUT_H
-
 #include <utility>
 #include <string>
 #include <stdexcept>

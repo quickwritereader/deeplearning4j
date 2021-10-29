@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //  @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <types/types.h>
 #include <system/op_boilerplate.h>
 #include <loops/reduce_float.h>
@@ -37,15 +36,15 @@ namespace reduce    {
 
         template <typename X, typename Z>
         template <typename OpType>
-        void _CUDA_H ReduceFloatFunction<X,Z>::execScalar(const void *vx, const Nd4jLong *xShapeInfo,
+        void SD_HOST ReduceFloatFunction<X,Z>::execScalar(const void *vx, const sd::LongType *xShapeInfo,
                                                           void *vextraParams,
-                                                          void *vz, const Nd4jLong *zShapeInfo) {
+                                                          void *vz, const sd::LongType *zShapeInfo) {
             auto x = reinterpret_cast<const X *>(vx);
             auto z = reinterpret_cast<Z *>(vz);
             auto extraParams = reinterpret_cast<Z *>(vextraParams);
             using Y = typename OpType::InterType;
 
-            const Nd4jLong length = shape::length(xShapeInfo);
+            const sd::LongType length = shape::length(xShapeInfo);
             auto xEws = shape::elementWiseStride(xShapeInfo);
 
             if (shape::isEmpty(xShapeInfo)) {
@@ -62,7 +61,7 @@ namespace reduce    {
                     return;
                 const auto startingVal = OpType::startingValue(x);
 
-                for (Nd4jLong i = 0; i < length; i++)
+                for (sd::LongType i = 0; i < length; i++)
                     z[i] = startingVal;
 
                 return;
@@ -73,9 +72,9 @@ namespace reduce    {
             }
             else {
                 auto startingValue = OpType::startingValue(x);
-                uint xShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-                int maxThreads = sd::math::nd4j_min<int>(64, sd::Environment::getInstance().maxThreads());
+                int maxThreads = sd::math::sd_min<int>(64, sd::Environment::getInstance().maxThreads());
                 Y intermediate[64];
 
                 PRAGMA_OMP_SIMD
@@ -101,11 +100,11 @@ namespace reduce    {
 
         template <typename X, typename Z>
         template <typename OpType>
-            Z _CUDA_H ReduceFloatFunction<X, Z>::execScalar(const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams) {
+            Z SD_HOST ReduceFloatFunction<X, Z>::execScalar(const void *vx, const sd::LongType *xShapeInfo, void *vextraParams) {
                 auto x = reinterpret_cast<const X *>(vx);
                 auto extraParams = reinterpret_cast<Z *>(vextraParams);
 
-                const Nd4jLong length = shape::length(xShapeInfo);
+                const sd::LongType length = shape::length(xShapeInfo);
                 int xEws = shape::elementWiseStride(xShapeInfo);
 
                 if (xEws > 0) {
@@ -113,10 +112,10 @@ namespace reduce    {
                 }
                 else {
                     auto startingValue = OpType::startingValue(x);
-                    uint xShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
-                    for (Nd4jLong i = 0; i < length; i++)
+                    for (sd::LongType i = 0; i < length; i++)
                         startingValue = OpType::update(startingValue, OpType::op(x[shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX)], extraParams), extraParams);
 
                     return OpType::postProcess(startingValue, length, extraParams);
@@ -125,24 +124,24 @@ namespace reduce    {
 
         template <typename X, typename Y>
         Y ReduceFloatFunction<X, Y>::execScalar(const int opNum,
-                                                const void *x, const Nd4jLong *xShapeInfo,
+                                                const void *x, const sd::LongType *xShapeInfo,
                                                 void *extraParams) {
                 RETURNING_DISPATCH_BY_OPNUM_TT(execScalar, PARAMS(x, xShapeInfo, extraParams), REDUCE_FLOAT_OPS);
         }
 
         template <typename X, typename Y>
         void ReduceFloatFunction<X, Y>::execScalar(const int opNum,
-                                                   const void *x, const Nd4jLong *xShapeInfo,
+                                                   const void *x, const sd::LongType *xShapeInfo,
                                                    void *extraParams,
-                                                   void *z, const Nd4jLong *zShapeInfo) {
+                                                   void *z, const sd::LongType *zShapeInfo) {
             DISPATCH_BY_OPNUM_TT(execScalar, PARAMS(x, xShapeInfo, extraParams, z, zShapeInfo), REDUCE_FLOAT_OPS);
         }
 
         template <typename X, typename Z>
         template<typename OpType>
-        void _CUDA_H ReduceFloatFunction<X,Z>::exec(const void *x, const Nd4jLong *xShapeInfo,
+        void SD_HOST ReduceFloatFunction<X,Z>::exec(const void *x, const sd::LongType *xShapeInfo,
                                                     void *extraParams,
-                                                    void *vresult, const Nd4jLong *resultShapeInfo) {
+                                                    void *vresult, const sd::LongType *resultShapeInfo) {
                 // FIXME: wtf???
                 auto z = reinterpret_cast<Z*>(vresult);
                 z[0] = execScalar<OpType>(x, xShapeInfo, extraParams);
@@ -150,11 +149,11 @@ namespace reduce    {
 
         template <typename X, typename Z>
         template <typename OpType>
-        Z _CUDA_H ReduceFloatFunction<X, Z>::execScalar(const void *vx, Nd4jLong xEws, Nd4jLong length, void *vextraParams) {
+        Z SD_HOST ReduceFloatFunction<X, Z>::execScalar(const void *vx, sd::LongType xEws, sd::LongType length, void *vextraParams) {
 
             auto x = reinterpret_cast<const X *>(vx);
             auto extraParams = reinterpret_cast<Z *>(vextraParams);
-            int maxThreads = sd::math::nd4j_min<int>(64, sd::Environment::getInstance().maxThreads());
+            int maxThreads = sd::math::sd_min<int>(64, sd::Environment::getInstance().maxThreads());
             using Y = typename OpType::InterType;
             Y intermediate[64];
 
@@ -185,7 +184,7 @@ namespace reduce    {
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
 template<typename OpType>
-void _CUDA_H ReduceFloatFunction<X, Z>::exec(sd::memory::Workspace* workspace, const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams, void *vz, const Nd4jLong *zShapeInfo, const int* dims) {
+void SD_HOST ReduceFloatFunction<X, Z>::exec(sd::memory::Workspace* workspace, const void *vx, const sd::LongType *xShapeInfo, void *vextraParams, void *vz, const sd::LongType *zShapeInfo, const int* dims) {
 
     const X* x = reinterpret_cast<const X*>(vx);
           Z* z = reinterpret_cast<Z*>(vz);
@@ -199,7 +198,7 @@ void _CUDA_H ReduceFloatFunction<X, Z>::exec(sd::memory::Workspace* workspace, c
         const auto startingVal = std::is_same<OpType, simdOps::Mean<X,Z>>::value ? sd::DataTypeUtils::nanOrZero<Z>() : static_cast<Z>(OpType::startingValue(x));
         const auto zLen = shape::length(zShapeInfo);
 
-        for (Nd4jLong i = 0; i < zLen; i++)
+        for (sd::LongType i = 0; i < zLen; i++)
             z[i] = startingVal;
         return;
     }
@@ -214,7 +213,7 @@ void _CUDA_H ReduceFloatFunction<X, Z>::exec(sd::memory::Workspace* workspace, c
         return;
     }
 
-#ifdef INLINE_LOOPS
+#ifdef SD_LOOPS_INLINED
     sd::ReductionLoops<X,Z,Z>::template loopReduce<OpType>(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams);
 #else
     sd::ReductionFloatLoops<X,Z>::template innerloopReduce<OpType>(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams);
@@ -224,7 +223,7 @@ void _CUDA_H ReduceFloatFunction<X, Z>::exec(sd::memory::Workspace* workspace, c
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
-void ReduceFloatFunction<X, Y>::exec(const int opNum, sd::memory::Workspace* workspace, const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams, void *vz, const Nd4jLong *zShapeInfo, const int *dims) {
+void ReduceFloatFunction<X, Y>::exec(const int opNum, sd::memory::Workspace* workspace, const void *vx, const sd::LongType *xShapeInfo, void *vextraParams, void *vz, const sd::LongType *zShapeInfo, const int *dims) {
 
     DISPATCH_BY_OPNUM_TT(exec, PARAMS(workspace, vx, xShapeInfo, vextraParams, vz, zShapeInfo, dims), REDUCE_FLOAT_OPS);
 }

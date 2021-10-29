@@ -47,7 +47,7 @@ namespace sd {
 
             helpers::scatterUpdate(block.launchContext(), *operand, *updates, block.getIArguments());
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(scatterupdate, scatter_update);
 

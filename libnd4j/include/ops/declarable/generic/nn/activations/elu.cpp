@@ -36,7 +36,7 @@ namespace sd {
 
             input->applyScalar(sd::scalar::ELU, alpha, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(elu) {
@@ -57,7 +57,7 @@ namespace sd {
             // input->applyPairwiseTransform(pairwise::ELUDerivativeE, epsilon, output);
             helpers::eluDerivative(block.launchContext(), input, epsilon, output, alpha);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(elu_bp) {

@@ -54,7 +54,7 @@ namespace sd {
             // TODO: refactor helpers to multithreaded facility
             helpers::nonMaxSuppressionGeneric(block.launchContext(), boxes, scales, maxOutputSize, overlapThreshold,
                     scoreThreshold, output);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(non_max_suppression_overlaps) {
@@ -72,7 +72,7 @@ namespace sd {
             double overlapThreshold = 0.5;
             double scoreThreshold = 0.;
 
-            Nd4jLong boxSize = helpers::nonMaxSuppressionGeneric(block.launchContext(), INPUT_VARIABLE(0),
+            sd::LongType boxSize = helpers::nonMaxSuppressionGeneric(block.launchContext(), INPUT_VARIABLE(0),
                     INPUT_VARIABLE(1), maxOutputSize, overlapThreshold, scoreThreshold, nullptr); //shape::sizeAt(in, 0);
             if (boxSize < maxOutputSize) 
                 maxOutputSize = boxSize;

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 21.02.18.
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <graph/Variable.h>

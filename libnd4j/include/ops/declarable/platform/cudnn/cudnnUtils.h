@@ -22,14 +22,12 @@
 
 #ifndef SD_CUDNNUTILS_H
 #define SD_CUDNNUTILS_H
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
 #include <helpers/PointersManager.h>
 #include <exceptions/cuda_exception.h>
 #include <exceptions/datatype_exception.h>
-#include <system/dll.h>
 #include <vector>
 #include <memory>
 #include <tuple>
@@ -90,7 +88,7 @@ inline void throwIfCudnnFailed(cudnnStatus_t result_status, const char* message 
 #define CHECK_CUDNN_FAILURE_MSG(custom_message, result_status)  throwIfCudnnFailed(result_status, custom_message , __func__)
 
 template <typename T>
-FORCEINLINE const T* bufferInHost( const NDArray &array)  {
+SD_INLINE const T* bufferInHost( const NDArray &array)  {
     array.syncToHost();
     return reinterpret_cast<const T*>(array.buffer());
 }
@@ -121,7 +119,6 @@ FORCEINLINE const T* bufferInHost( const NDArray &array)  {
     operator cudnn##DESC_NAME##_t() const { return desc; }                        \
     ~DESC_CLASS(){  destroy(); }                                                  \
     cudnn##DESC_NAME##_t desc;
-
 
 
 struct CudnnTensor{
@@ -230,7 +227,7 @@ struct RnnDataDesc{
 };
 #endif
 
-FORCEINLINE void setRnnDescriptorOldApi(cudnnRNNDescriptor_t rnnDesc, 
+SD_INLINE void setRnnDescriptorOldApi(cudnnRNNDescriptor_t rnnDesc, 
                             cudnnHandle_t handle,
                             cudnnRNNInputMode_t inputMode,
                             cudnnDirectionMode_t dirMode,
@@ -318,7 +315,7 @@ struct ConvolutionDesc{
 };
 
 //////////////////////////////////////////////////////////////////////////
-FORCEINLINE cudnnDataType_t cudnnDataType(sd::DataType dataType) {
+SD_INLINE cudnnDataType_t cudnnDataType(sd::DataType dataType) {
     switch (dataType) {
         case sd::DataType::FLOAT32:
             return CUDNN_DATA_FLOAT;

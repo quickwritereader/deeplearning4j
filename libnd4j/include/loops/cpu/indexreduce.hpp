@@ -19,7 +19,6 @@
 //
 // Created by raver on 4/9/2018.
 //
-
 #include <loops/indexreduce.h>
 #include <system/op_boilerplate.h>
 #include <helpers/Loops.h>
@@ -35,25 +34,25 @@ namespace indexreduce {
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
-Nd4jLong IndexReduce<X,Y>::execScalar( const int opNum, const void *x, const Nd4jLong *xShapeInfo, void *extraParams) {
+sd::LongType IndexReduce<X,Y>::execScalar( const int opNum, const void *x, const sd::LongType *xShapeInfo, void *extraParams) {
     RETURNING_DISPATCH_BY_OPNUM_TT(execScalar, PARAMS(x, xShapeInfo, extraParams), INDEX_REDUCE_OPS);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
 void IndexReduce<X,Y>::exec(const int opNum,
-                            const void *x, const Nd4jLong *xShapeInfo,
+                            const void *x, const sd::LongType *xShapeInfo,
                             void *extraParams,
-                            void *z, const Nd4jLong *zShapeInfo,
+                            void *z, const sd::LongType *zShapeInfo,
                             int *dimension, int dimensionLength,
-                            const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffset) {
+                            const sd::LongType *tadShapeInfo, const sd::LongType *tadOffset) {
     DISPATCH_BY_OPNUM_TT(exec, PARAMS(x, xShapeInfo, extraParams, z, zShapeInfo, dimension, dimensionLength, tadShapeInfo, tadOffset), INDEX_REDUCE_OPS);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
 template<typename OpType>
-Nd4jLong IndexReduce<X, Y>::execScalar(const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams) {
+sd::LongType IndexReduce<X, Y>::execScalar(const void *vx, const sd::LongType *xShapeInfo, void *vextraParams) {
 
     auto x = reinterpret_cast<const X *>(vx);
     auto extraParams = reinterpret_cast<X *>(vextraParams);
@@ -64,9 +63,9 @@ Nd4jLong IndexReduce<X, Y>::execScalar(const void *vx, const Nd4jLong *xShapeInf
     auto xEws = shape::elementWiseStride(xShapeInfo);
     sd::OmpLaunchHelper info(len);
 
-    uint xShapeInfoCast[MAX_RANK];
+    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
     bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-    int maxThreads = sd::math::nd4j_min<int>(64, sd::Environment::getInstance().maxThreads());
+    int maxThreads = sd::math::sd_min<int>(64, sd::Environment::getInstance().maxThreads());
     IndexValue<X> intermediatery[64];
     for (int e = 0; e < maxThreads; e++)
         intermediatery[e].index = -1;
@@ -109,24 +108,24 @@ Nd4jLong IndexReduce<X, Y>::execScalar(const void *vx, const Nd4jLong *xShapeInf
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
 template<typename OpType>
-void IndexReduce<X, Z>::exec(const void *vx, const Nd4jLong *xShapeInfo,
+void IndexReduce<X, Z>::exec(const void *vx, const sd::LongType *xShapeInfo,
                              void *vextraParams,
-                             void *vz, const Nd4jLong *zShapeInfo,
+                             void *vz, const sd::LongType *zShapeInfo,
                              int *dimension, int dimensionLength,
-                             const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffset) {
+                             const sd::LongType *tadShapeInfo, const sd::LongType *tadOffset) {
 
     auto x = reinterpret_cast<const X *>(vx);
     auto z = reinterpret_cast<Z *>(vz);
     auto extraParams = reinterpret_cast<X *>(vextraParams);
 
-    const Nd4jLong zLen = shape::length(zShapeInfo);
+    const sd::LongType zLen = shape::length(zShapeInfo);
 
     if(sd::ArrayOptions::arrayType(xShapeInfo) == sd::ArrayType::EMPTY) {
         if(sd::ArrayOptions::arrayType(zShapeInfo) == sd::ArrayType::EMPTY)
             return;
         const auto indexValue = OpType::startingIndexValue(x);
 
-        for (Nd4jLong i = 0; i < zLen; i++)
+        for (sd::LongType i = 0; i < zLen; i++)
             z[i] = (Z) indexValue.index;
 
         return;

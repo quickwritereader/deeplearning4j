@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(upsampling3d, 1, 1, false, 0, 3) {
 
     ConvolutionUtils::upsampling3d(block, *input, *output, factorD, factorH, factorW, (bool)isNCDHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(upsampling3d) {
@@ -65,8 +65,8 @@ DECLARE_SHAPE_FN(upsampling3d) {
     const int factorW = INT_ARG(2);
     const int isNCDHW = block.getIArguments()->size() > 3 ? INT_ARG(3) : 0;       // INT_ARG(3): 0-NCHW,  1-NHWC
 
-    Nd4jLong *outputShapeInfo = nullptr;
-    ALLOCATE(outputShapeInfo, block.getWorkspace(), shape::shapeInfoLength(inputShapeInfo[0]), Nd4jLong);
+    sd::LongType *outputShapeInfo = nullptr;
+    ALLOCATE(outputShapeInfo, block.getWorkspace(), shape::shapeInfoLength(inputShapeInfo[0]), sd::LongType);
 
     outputShapeInfo[0] = inputShapeInfo[0];
     outputShapeInfo[1] = inputShapeInfo[1];
@@ -109,7 +109,7 @@ CUSTOM_OP_IMPL(upsampling3d_bp, 2, 1, false, 0, 0) {
 
     ConvolutionUtils::upsampling3dBP(block, *gradO, *gradI, (bool)isNCDHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         

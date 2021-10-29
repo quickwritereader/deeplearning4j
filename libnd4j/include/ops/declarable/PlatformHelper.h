@@ -22,13 +22,11 @@
 
 #ifndef SD_PLATFORMHELPER_H
 #define SD_PLATFORMHELPER_H
-
 #include <helpers/ShapeUtils.h>
 #include <execution/Engine.h>
 #include <graph/Context.h>
 #include <string>
-#include <system/pointercast.h>
-#include <system/dll.h>
+
 #include <system/RequirementsHelper.h>
 
 namespace sd {
@@ -37,7 +35,7 @@ namespace sd {
             /**
              * This abstract class defines methods used by platform-specific helpers implementations
              */
-            class ND4J_EXPORT PlatformHelper {
+            class SD_LIB_EXPORT PlatformHelper {
             protected:
                 // target engine for this impl
                 samediff::Engine _engine;
@@ -46,7 +44,7 @@ namespace sd {
                 std::string _name;
 
                 // hash of the operation this helper is built for
-                Nd4jLong _hash;
+                sd::LongType _hash;
             public:
                 PlatformHelper(const char *name, samediff::Engine engine);
 
@@ -56,7 +54,7 @@ namespace sd {
 
                 samediff::Engine engine();
 
-                Nd4jLong hash();
+                sd::LongType hash();
 
                 /**
                  * This method checks, if given helper can be used with given input/output/configuration options
@@ -72,7 +70,7 @@ namespace sd {
                  * @param context
                  * @return
                  */
-                virtual Nd4jStatus invokeHelper(graph::Context &context) = 0;
+                virtual sd::Status invokeHelper(graph::Context &context) = 0;
 
                 /**
                  * Helper method, needed for compatibility with DeclarableOp macros

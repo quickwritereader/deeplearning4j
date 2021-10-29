@@ -23,13 +23,13 @@
 #ifndef LIBND4J_AFFINITYMANAGER_H
 #define LIBND4J_AFFINITYMANAGER_H
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+
 #include <atomic>
 #include <mutex>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT AffinityManager {
+    class SD_LIB_EXPORT AffinityManager {
     private:
         static std::atomic<int> _lastDevice;
         static int _numberOfDevices;

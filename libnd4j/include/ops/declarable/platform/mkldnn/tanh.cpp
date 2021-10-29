@@ -22,7 +22,6 @@
  //  @author Oleg Semeniv <oleg.semeniv@gmail.com>
  //
  //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
@@ -92,7 +91,7 @@ namespace sd {
                 // mkldnnTanh
                 tanhMKLDNN(input, output);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(tanh, ENGINE_CPU) {
@@ -183,7 +182,7 @@ namespace sd {
                 // mkldnnSoftMax
                 tanhBpMKLDNN(input, dLdz, dLdx);
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             PLATFORM_CHECK(tanh_bp, ENGINE_CPU) {

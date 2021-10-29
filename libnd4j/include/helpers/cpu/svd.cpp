@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 03.01.2018
 //
-
 #include <helpers/svd.h>
 #include <helpers/jacobiSVD.h>
 #include <helpers/biDiagonalUp.h>
@@ -58,7 +57,7 @@ SVD<T>::SVD(const NDArray& matrix, const int switchSize, const bool calcU, const
     _fullUV = fullUV;
 
     if (_transp)
-        math::nd4j_swap<bool>(_calcU, _calcV);
+        math::sd_swap<bool>(_calcU, _calcV);
 
     _s = NDArray(matrix.ordering(), {_diagSize, 1}, matrix.dataType(), matrix.getContext());
     _m = NDArray(matrix.ordering(), {_diagSize + 1, _diagSize}, matrix.dataType(), matrix.getContext());
@@ -105,7 +104,7 @@ SVD<T>::SVD(const NDArray& matrix, const int switchSize, const bool calcU, const
     _fullUV = fullUV;
 
     if (_transp)
-        math::nd4j_swap<bool>(_calcU, _calcV);
+        math::sd_swap<bool>(_calcU, _calcV);
 
     _s = NDArray(matrix.ordering(), {_diagSize, 1}, matrix.dataType(), matrix.getContext());
     _m = NDArray(matrix.ordering(), {_diagSize + 1, _diagSize}, matrix.dataType(), matrix.getContext());
@@ -134,7 +133,7 @@ void SVD<T>::deflation1(int col1, int shift, int ind, int size) {
     int first = col1 + shift;
     T cos = _m.t<T>(first, first);
     T sin = _m.t<T>(first+ind, first);
-    T denom = math::nd4j_sqrt<T, T>(cos*cos + sin*sin);
+    T denom = math::sd_sqrt<T, T>(cos*cos + sin*sin);
 
     if (denom == (T)0.) {
         _m.r<T>(first+ind, first+ind) = (T)0;
@@ -174,7 +173,7 @@ void SVD<T>::deflation2(int col1U , int col1M, int row1W, int col1W, int ind1, i
 
     T cos = _m.t<T>(col1M+ind1, col1M);
     T sin = _m.t<T>(col1M+ind2, col1M);
-    T denom = math::nd4j_sqrt<T,T>(cos*cos + sin*sin);
+    T denom = math::sd_sqrt<T,T>(cos*cos + sin*sin);
 
     if (denom == (T)0.)  {
       _m.r<T>(col1M+ind1, col1M+ind1) = _m.t<T>(col1M+ind2, col1M+ind2);
@@ -221,19 +220,19 @@ void SVD<T>::deflation(int col1, int col2, int ind, int row1W, int col1W, int sh
     const T almostZero = DataTypeUtils::min_positive<T>();
     T maxElem;
     if(len == 1)
-        maxElem = math::nd4j_abs<T>(diagInterval.template t<T>(0));
+        maxElem = math::sd_abs<T>(diagInterval.template t<T>(0));
     else
         maxElem = diagInterval({1,-1, 0,0}, true).reduceNumber(reduce::AMax).template t<T>(0);
     T maxElem0 = colVec0.reduceNumber(reduce::AMax).template t<T>(0);
 
-    T eps = math::nd4j_max<T>(almostZero, DataTypeUtils::eps<T>() * maxElem);
-    T epsBig = (T)8. * DataTypeUtils::eps<T>() * math::nd4j_max<T>(maxElem0, maxElem);
+    T eps = math::sd_max<T>(almostZero, DataTypeUtils::eps<T>() * maxElem);
+    T epsBig = (T)8. * DataTypeUtils::eps<T>() * math::sd_max<T>(maxElem0, maxElem);
 
     if(diagInterval.template t<T>(0) < epsBig)
         diagInterval.r<T>(0) = epsBig;
 
     for(int i=1; i < len; ++i)
-        if(math::nd4j_abs<T>(colVec0.template t<T>(i)) < eps)
+        if(math::sd_abs<T>(colVec0.template t<T>(i)) < eps)
             colVec0.r<T>(i) = (T)0;
 
     for(int i=1; i < len; i++)
@@ -259,7 +258,7 @@ void SVD<T>::deflation(int col1, int col2, int ind, int row1W, int col1W, int sh
             int p = 1;
 
             for(int i=1; i<len; ++i)
-                if(math::nd4j_abs<T>(diagInterval.template t<T>(i)) < almostZero)
+                if(math::sd_abs<T>(diagInterval.template t<T>(i)) < almostZero)
                     permut[p++] = i;
 
             int k = 1, m = ind+1;
@@ -279,7 +278,7 @@ void SVD<T>::deflation(int col1, int col2, int ind, int row1W, int col1W, int sh
         if(totDefl) {
             for(int i=1; i<len; ++i) {
                 int ki = permut[i];
-                if(math::nd4j_abs<T>(diagInterval.template t<T>(ki)) < almostZero || diagInterval.template t<T>(0) < diagInterval.template t<T>(ki))
+                if(math::sd_abs<T>(diagInterval.template t<T>(ki)) < almostZero || diagInterval.template t<T>(0) < diagInterval.template t<T>(ki))
                     permut[i-1] = permut[i];
                 else {
                     permut[i-1] = 0;
@@ -301,10 +300,10 @@ void SVD<T>::deflation(int col1, int col2, int ind, int row1W, int col1W, int sh
             const int ki = permut[len - (totDefl ? i+1 : i)];
             const int jac = tCol[ki];
 
-            math::nd4j_swap<T>(diagInterval.r<T>(i), diagInterval.r<T>(jac));
+            math::sd_swap<T>(diagInterval.r<T>(i), diagInterval.r<T>(jac));
 
             if(i!=0 && jac!=0)
-                math::nd4j_swap<T>(colVec0.r<T>(i), colVec0.r<T>(jac));
+                math::sd_swap<T>(colVec0.r<T>(i), colVec0.r<T>(jac));
 
             if (_calcU) {
                 auto temp1 = _u({col1,col1+len+1, col1+i,  col1+i+1});
@@ -336,12 +335,12 @@ void SVD<T>::deflation(int col1, int col2, int ind, int row1W, int col1W, int sh
     {
         int i = len-1;
 
-        while(i > 0 && (math::nd4j_abs<T>(diagInterval.template t<T>(i)) < almostZero || math::nd4j_abs<T>(colVec0.template t<T>(i)) < almostZero))
+        while(i > 0 && (math::sd_abs<T>(diagInterval.template t<T>(i)) < almostZero || math::sd_abs<T>(colVec0.template t<T>(i)) < almostZero))
             --i;
 
         for(; i > 1; --i) {
             if( (diagInterval.template t<T>(i) - diagInterval.template t<T>(i-1)) < DataTypeUtils::eps<T>()*maxElem ) {
-                if (math::nd4j_abs<T>(diagInterval.template t<T>(i) - diagInterval.template t<T>(i-1)) >= epsBig)
+                if (math::sd_abs<T>(diagInterval.template t<T>(i) - diagInterval.template t<T>(i-1)) >= epsBig)
                     throw std::runtime_error("ops::helpers::SVD::deflation: diagonal elements are not properly sorted !");
                 deflation2(col1, col1 + shift, row1W, col1W, i-1, i, len);
             }
@@ -376,7 +375,7 @@ void SVD<T>::calcSingVals(const NDArray& col0, const NDArray& diag, const NDArra
     while(curLen > 1 && col0.t<T>(curLen-1) == (T)0.f)
         --curLen;
 
-    for (Nd4jLong k = 0; k < len; ++k)  {
+    for (sd::LongType k = 0; k < len; ++k)  {
 
         if (col0.t<T>(k) == (T)0.f || curLen==1) {
 
@@ -425,15 +424,15 @@ void SVD<T>::calcSingVals(const NDArray& col0, const NDArray& diag, const NDArra
         T fPrev = secularEq(muPrev, col0, diag, permut, diagShifted, shift);
         T fCur  = secularEq(muCur, col0, diag, permut, diagShifted, shift);
 
-        if (math::nd4j_abs<T>(fPrev) < math::nd4j_abs<T>(fCur)) {
-            math::nd4j_swap<T>(fPrev, fCur);
-            math::nd4j_swap<T>(muPrev, muCur);
+        if (math::sd_abs<T>(fPrev) < math::sd_abs<T>(fCur)) {
+            math::sd_swap<T>(fPrev, fCur);
+            math::sd_swap<T>(muPrev, muCur);
         }
 
         bool useBisection = fPrev * fCur > (T)0.;
         while (fCur != (T).0 &&
-               math::nd4j_abs<T>(muCur - muPrev) > (T)8. * DataTypeUtils::eps<T>() * math::nd4j_max<T>(math::nd4j_abs<T>(muCur), math::nd4j_abs<T>(muPrev))
-               && math::nd4j_abs<T>(fCur - fPrev) > DataTypeUtils::eps<T>() && !useBisection) {
+               math::sd_abs<T>(muCur - muPrev) > (T)8. * DataTypeUtils::eps<T>() * math::sd_max<T>(math::sd_abs<T>(muCur), math::sd_abs<T>(muPrev))
+               && math::sd_abs<T>(fCur - fPrev) > DataTypeUtils::eps<T>() && !useBisection) {
 
             T a = (fCur - fPrev) / ((T)1./muCur - (T)1./muPrev);
             T jac = fCur - a / muCur;
@@ -449,7 +448,7 @@ void SVD<T>::calcSingVals(const NDArray& col0, const NDArray& diag, const NDArra
                 useBisection = true;
             else if (shift == right && (muCur < -(right - left) || muCur > (T)0.))
                 useBisection = true;
-            else if (math::nd4j_abs<T>(fCur) > math::nd4j_abs<T>(fPrev) &&  math::nd4j_abs<T>(fCur - fPrev) > (T)16. * DataTypeUtils::eps<T>())
+            else if (math::sd_abs<T>(fCur) > math::sd_abs<T>(fPrev) &&  math::sd_abs<T>(fCur - fPrev) > (T)16. * DataTypeUtils::eps<T>())
                 useBisection = true;
         }
 
@@ -470,7 +469,7 @@ void SVD<T>::calcSingVals(const NDArray& col0, const NDArray& diag, const NDArra
             // if(fLeft * fRight >= (T)0.)
                 // throw "ops::helpers::SVD::calcSingVals method: fLeft * fRight >= (T)0. !";
 
-            while (rightShifted - leftShifted > (T)2.f * DataTypeUtils::eps<T>() * math::nd4j_max<T>(math::nd4j_abs<T>(leftShifted), math::nd4j_abs<T>(rightShifted))) {
+            while (rightShifted - leftShifted > (T)2.f * DataTypeUtils::eps<T>() * math::sd_max<T>(math::sd_abs<T>(leftShifted), math::sd_abs<T>(rightShifted))) {
 
                 T midShifted = (leftShifted + rightShifted) / (T)2.;
                 fMid = secularEq(midShifted, col0, diag, permut, diagShifted, shift);
@@ -517,7 +516,7 @@ void SVD<T>::perturb(const NDArray& col0, const NDArray& diag, const NDArray& pe
                     prod *= ((singVals.t<T>(j)+dk) / ((diag.t<T>(i)+dk))) * ((mus.t<T>(j)+(shifts.t<T>(j)-dk)) / ((diag.t<T>(i)-dk)));
                 }
             }
-            T tmp = math::nd4j_sqrt<T,T>(prod);
+            T tmp = math::sd_sqrt<T,T>(prod);
             zhat.r<T>(k) = col0.t<T>(k) > (T)0 ? tmp : -tmp;
         }
     }
@@ -598,7 +597,7 @@ void SVD<T>::calcBlockSVD(int col1, int size, NDArray& U, NDArray& singVals, NDA
     int m = 0;
     std::vector<int> indices;
     for(int k = 0; k < curSize; ++k)
-        if(math::nd4j_abs<T>(col0.template t<T>(k)) > almostZero)
+        if(math::sd_abs<T>(col0.template t<T>(k)) > almostZero)
             indices.push_back(k);
 
     NDArray permut(_m.ordering(), {(int)indices.size()}, _m.dataType(), _m.getContext());
@@ -617,7 +616,7 @@ void SVD<T>::calcBlockSVD(int col1, int size, NDArray& U, NDArray& singVals, NDA
 
         if(singVals.t<T>(i) > singVals.t<T>(i+1)) {
 
-            math::nd4j_swap<T>(singVals.r<T>(i), singVals.r<T>(i+1));
+            math::sd_swap<T>(singVals.r<T>(i), singVals.r<T>(i+1));
 
             auto temp1 = U({0,0, i,i+1});
             auto temp2 = U({0,0, i+1,i+2});
@@ -633,7 +632,7 @@ void SVD<T>::calcBlockSVD(int col1, int size, NDArray& U, NDArray& singVals, NDA
 
     auto temp1 = singVals({0,curSize, 0,0});
     for (int e = 0; e < curSize / 2; ++e)
-        math::nd4j_swap<T>(temp1.r<T>(e), temp1.r<T>(curSize-1-e));
+        math::sd_swap<T>(temp1.r<T>(e), temp1.r<T>(curSize-1-e));
 
     auto temp2 = U({0,0, 0,curSize}, true);
     for(int i = 0; i < curSize/2; ++i) {
@@ -702,7 +701,7 @@ void SVD<T>::DivideAndConquer(int col1, int col2, int row1W, int col1W, int shif
         phi    = _u.t<T>(0, col2 + 1);
     }
 
-    r0 = math::nd4j_sqrt<T, T>((math::nd4j_abs<T>(alphaK * lambda) * math::nd4j_abs<T>(alphaK * lambda)) + math::nd4j_abs<T>(betaK * phi) * math::nd4j_abs<T>(betaK * phi));
+    r0 = math::sd_sqrt<T, T>((math::sd_abs<T>(alphaK * lambda) * math::sd_abs<T>(alphaK * lambda)) + math::sd_abs<T>(betaK * phi) * math::sd_abs<T>(betaK * phi));
 
     if(_calcU) {
         l.assign(_u({col1+k,  col1+k+1,  col1,col1+k}, true));
@@ -847,7 +846,7 @@ void SVD<T>::evalData(const NDArray& matrix) {
     DivideAndConquer(0, _diagSize - 1, 0, 0, 0);
 
     for (int i = 0; i < _diagSize; ++i) {
-        T a = math::nd4j_abs<T>(_m.t<T>(i, i));
+        T a = math::sd_abs<T>(_m.t<T>(i, i));
         _s.r<T>(i) = a * scale;
         if (a < almostZero) {
             _s({i+1,_diagSize, 0,0}).nullify();
@@ -867,8 +866,7 @@ void SVD<T>::evalData(const NDArray& matrix) {
 }
 
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL SVD,,FLOAT_TYPES);
-
+BUILD_SINGLE_TEMPLATE(template class  SVD,,SD_FLOAT_TYPES);
 
 
 }

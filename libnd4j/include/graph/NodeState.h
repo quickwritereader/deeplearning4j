@@ -23,18 +23,17 @@
 #ifndef LIBND4J_NODESTATE_H
 #define LIBND4J_NODESTATE_H
 
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT NodeState {
+        class SD_LIB_EXPORT NodeState {
         private:
             // inner time spent on specific node
-            Nd4jLong _inner = 0;
+            sd::LongType _inner = 0;
 
             // outer time spent on specific node
-            Nd4jLong _outer = 0;
+            sd::LongType _outer = 0;
             
             // flag that shows if node is active or disabled (i.e. after Switch op)
             bool _active = true;
@@ -49,11 +48,11 @@ namespace sd {
             NodeState(int id = 0);
             ~NodeState() = default;
 
-            void setInnerTime(Nd4jLong time);
-            void setOuterTime(Nd4jLong time);
+            void setInnerTime(sd::LongType time);
+            void setOuterTime(sd::LongType time);
 
-            Nd4jLong innerTime();
-            Nd4jLong outerTime();
+            sd::LongType innerTime();
+            sd::LongType outerTime();
 
             void markActive(bool isActive);
             bool isActive();

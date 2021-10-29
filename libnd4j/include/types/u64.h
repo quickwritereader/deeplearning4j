@@ -21,9 +21,7 @@
 //
 #ifndef LIBND4J_U64_H
 #define LIBND4J_U64_H
-
 #include <cstdint>
-#include <system/pointercast.h>
 #include <types/float16.h>
 
 
@@ -53,7 +51,7 @@ namespace sd {
         //float16 _half = 0.0f;
         float _float;
         double _double;
-        Nd4jLong _long;
+        sd::LongType _long;
         uint64_t _ulong;
         di32 _di32;
         du32 _du32;

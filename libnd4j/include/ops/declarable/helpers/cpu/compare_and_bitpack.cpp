@@ -21,7 +21,6 @@
  //
  // @author AbdelRauf 
  //
-
 #include <type_traits>
 #include <cmath>
 #include <stdexcept>
@@ -38,7 +37,7 @@ namespace sd {
 
 
             template<typename X>
-            ND4J_LOCAL uint8_t pack(const X* buff, const X& threshold){
+            uint8_t pack(const X* buff, const X& threshold){
                 uint8_t res;
                 res = (buff[0] > threshold) << 7;
                 res = res | ((buff[1] > threshold) << 6); 
@@ -52,7 +51,7 @@ namespace sd {
             }
 
             template<>
-            ND4J_LOCAL uint8_t pack<bool>(const bool* buff, const bool &threshold){
+            uint8_t pack<bool>(const bool* buff, const bool &threshold){
                 //ignore threshold
                 uint8_t res;
                 res = buff[0] << 7;
@@ -67,7 +66,7 @@ namespace sd {
             }
 
             template<typename X>
-            ND4J_LOCAL uint8_t pack(const X* buff, int stride, const X& threshold){
+            uint8_t pack(const X* buff, int stride, const X& threshold){
                 uint8_t res;
                 res = (buff[0] > threshold) << 7;
                 res = res | ((buff[1*stride] > threshold) << 6); 
@@ -81,7 +80,7 @@ namespace sd {
             }
 
             template<>
-            ND4J_LOCAL uint8_t pack<bool>(const bool* buff, int stride, const bool &threshold){
+            uint8_t pack<bool>(const bool* buff, int stride, const bool &threshold){
                 //ignore threshold
                 uint8_t res;
                 res = buff[0] << 7;
@@ -97,7 +96,7 @@ namespace sd {
 
 
             template <typename X>
-            ND4J_LOCAL void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, NDArray& output) {
+            void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, NDArray& output) {
 
                     auto rank =input.rankOf();
                     X threshold = thresholdScalar.e<X>(0);
@@ -105,7 +104,7 @@ namespace sd {
                     uint8_t *outBuff = output.bufferAsT<uint8_t>();
                     if(input.ordering()=='c' && output.ordering()=='c' && input.ews()==1 && output.ews()==1){
                         FUNC_1D func = [buff, outBuff, threshold](uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
-                                //nd4j_printf("s: %i e: %i \n", (int)start,(int)stop);
+                                //sd_printf("s: %i e: %i \n", (int)start,(int)stop);
                                 auto outBuffPart = outBuff + start;
                                 auto buffPart = buff + start*8;
                                 auto len = stop-start; 
@@ -128,7 +127,7 @@ namespace sd {
                             auto inLastStride = inStrides[rank-1];
                             auto outLastStride = outStrides[rank-1];
                             FUNC_1D func = [buff, outBuff, inLastStride, outLastStride,  threshold](uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
-                                    //nd4j_printf("rankkk s: %i e: %i \n", (int)start,(int)stop);
+                                    //sd_printf("rankkk s: %i e: %i \n", (int)start,(int)stop);
                                     auto buffPart = buff + start*8*inLastStride;
                                     auto outBuffPart = outBuff + start* outLastStride;
                                     auto len = stop-start; 
@@ -145,7 +144,7 @@ namespace sd {
                             //if output shape is {n1, n2, n3} then input shape is { n1. n2, n3 * 8}
                             //therefore we can split input shape  {n1, n2, n3 , 8} and correct its stride
                             //as we do not need last shape info. lets just extend and correct its stride
-                            Nd4jLong extendedStrides[MAX_RANK];
+                            sd::LongType extendedStrides[SD_MAX_RANK];
                             for(int i=0;i<rank; i++){
                                 extendedStrides[i] = inStrides[i];
                             }
@@ -156,9 +155,9 @@ namespace sd {
                             //generic case that could be further imrpoved. for now its slow
                             FUNC_1D func = [rank, buff, outBuff, outShapes, extendedStrides, outStrides, threshold]
                             (uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
-                                    Nd4jLong coords[MAX_RANK] = {};
-                                    Nd4jLong* ptr_coords = (Nd4jLong*)&coords;
-                                    //nd4j_printf("generic s: %i e: %i \n", (int)start,(int)stop);
+                                    sd::LongType coords[SD_MAX_RANK] = {};
+                                    sd::LongType* ptr_coords = (sd::LongType*)&coords;
+                                    //sd_printf("generic s: %i e: %i \n", (int)start,(int)stop);
                                     auto len = (stop-start);
                                     // its extended as {rank+1} so extendedStrides[rank] is valid 
                                     auto innermostStride = extendedStrides[rank];
@@ -179,12 +178,12 @@ namespace sd {
             }
 
             /////////////////////////////////////////////////////////////
-            ND4J_LOCAL void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output) {
+            void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output) {
  
-                BUILD_SINGLE_SELECTOR(input.dataType(), compareAndBitpack_, (input, threshold, output), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(input.dataType(), compareAndBitpack_, (input, threshold, output), SD_COMMON_TYPES);
             }
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void compareAndBitpack_, (const NDArray& input, const NDArray& threshold, NDArray& output), LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void compareAndBitpack_, (const NDArray& input, const NDArray& threshold, NDArray& output), SD_COMMON_TYPES);
 
         }
     }

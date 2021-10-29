@@ -21,7 +21,6 @@
 // implemented algorithm is GPU adaptation of algorithm described in following article:
 // "MergeShuffle: A Very Fast, Parallel Random Permutation Algorithm", https://arxiv.org/abs/1508.03167
 //
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <numeric>
@@ -35,12 +34,12 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static __global__ void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx, const Nd4jLong ews, const Nd4jLong len, const int power) {
+static SD_KERNEL void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx, const sd::LongType ews, const sd::LongType len, const int power) {
 
     T* x = reinterpret_cast<T*>(vx);
 
     __shared__ T* shmem, temp;
-    __shared__ Nd4jLong ind, blockOffset, lenPerBlock;
+    __shared__ sd::LongType ind, blockOffset, lenPerBlock;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char sharedMemory[];
@@ -59,8 +58,8 @@ static __global__ void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx
 
     // *** apply Fisher-Yates shuffle to lenPerBlock number of elements
     if (threadIdx.x == 0) {
-        for(Nd4jLong i = lenPerBlock - 1; i > 0; --i) {
-           const Nd4jLong j = rng->relativeLong(ind++) % (i + 1);
+        for(sd::LongType i = lenPerBlock - 1; i > 0; --i) {
+           const sd::LongType j = rng->relativeLong(ind++) % (i + 1);
             if(i != j) {
                 temp = shmem[i];
                 shmem[i] = shmem[j];
@@ -76,12 +75,12 @@ static __global__ void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx
 }
 
 template <typename T>
-static __global__ void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx, const Nd4jLong ews, const Nd4jLong len, const int power, const Nd4jLong iterNum) {
+static SD_KERNEL void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx, const sd::LongType ews, const sd::LongType len, const int power, const sd::LongType iterNum) {
 
 
     T* x = reinterpret_cast<T*>(vx);
 
-    __shared__ Nd4jLong ind, blockOffset, factor, beg, mid, totLen, iterExp;
+    __shared__ sd::LongType ind, blockOffset, factor, beg, mid, totLen, iterExp;
 
     // *** apply mergeShuffle algorithm
     if(threadIdx.x == 0) {
@@ -100,7 +99,7 @@ static __global__ void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* v
             if(rng->relativeLong(ind++) % 2) {
                 if(mid == totLen)
                     break;
-                math::nd4j_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + mid++) * ews]);
+                math::sd_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + mid++) * ews]);
             } else {
                 if(beg == mid)
                     break;
@@ -110,9 +109,9 @@ static __global__ void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* v
 
         // Fisher-Yates
         while (beg < totLen) {
-            const Nd4jLong e = rng->relativeLong(ind++) % (beg + 1);
+            const sd::LongType e = rng->relativeLong(ind++) % (beg + 1);
             if(beg != e)
-                math::nd4j_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + e) * ews]);
+                math::sd_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + e) * ews]);
             ++beg;
         }
     }
@@ -122,12 +121,12 @@ static __global__ void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* v
 //////////////////////////////////////////////////////////////////////////
 // Fisher-Yates shuffle
 template <typename T>
-static void fisherYates(sd::graph::RandomGenerator& rng, T* buff, const Nd4jLong& len, const Nd4jLong& ews, Nd4jLong ind) {
+static void fisherYates(sd::graph::RandomGenerator& rng, T* buff, const sd::LongType& len, const sd::LongType& ews, sd::LongType ind) {
 
-    for(Nd4jLong i = len-1; i > 0; --i) {
-        const Nd4jLong j = rng.relativeLong(ind++) % (i + 1);
+    for(sd::LongType i = len-1; i > 0; --i) {
+        const sd::LongType j = rng.relativeLong(ind++) % (i + 1);
         if(i != j)
-            math::nd4j_swap<T>(buff[i*ews], buff[j*ews]);
+            math::sd_swap<T>(buff[i*ews], buff[j*ews]);
     }
 }
 
@@ -152,9 +151,9 @@ static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& 
             arr = &output;
         }
 
-        const Nd4jLong len = arr->lengthOf();
+        const sd::LongType len = arr->lengthOf();
 
-        const int threadsPerBlock = MAX_NUM_THREADS;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS;
 
         int power = 0;
         while ((len >> power) > threadsPerBlock)
@@ -169,7 +168,7 @@ static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& 
 
         NDArray::prepareSpecialUse({arr}, {arr});
         fisherYatesCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *context->getCudaStream()>>>(pRng, arr->specialBuffer(), arr->ews(), len, power);
-        for (Nd4jLong j = 1, i = 1; j < blocksPerGrid; j += j, ++i)
+        for (sd::LongType j = 1, i = 1; j < blocksPerGrid; j += j, ++i)
             mergeShuffleCuda<T><<<blocksPerGrid/(2*j), threadsPerBlock, 256, *context->getCudaStream()>>>(pRng, arr->specialBuffer(), arr->ews(), len, power, i);
         NDArray::registerSpecialUse({arr}, {arr});
 
@@ -217,12 +216,11 @@ static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& 
 }
 
 /////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void randomShuffle(sd::LaunchContext * context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng, const bool isInplace) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), randomShuffle_, (context, input, output, rng, isInplace), LIBND4J_TYPES);
+void randomShuffle(sd::LaunchContext * context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng, const bool isInplace) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), randomShuffle_, (context, input, output, rng, isInplace), SD_COMMON_TYPES);
 }
 
-// BUILD_SINGLE_TEMPLATE(template void randomShuffle_, (sd::LaunchContext* context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng, const bool isInplace), LIBND4J_TYPES);
-
+// BUILD_SINGLE_TEMPLATE(template void randomShuffle_, (sd::LaunchContext* context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng, const bool isInplace), SD_COMMON_TYPES);
 
 
 }

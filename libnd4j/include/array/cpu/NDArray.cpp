@@ -18,7 +18,6 @@
 
 #ifndef NDARRAY_CPP
 #define NDARRAY_CPP
-
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
 #include <legacy/NativeOpExecutioner.h>
@@ -27,7 +26,6 @@
 #include <memory/MemoryRegistrator.h>
 #include <ops/ops.h>
 #include <ops/gemm.h>
-#include <system/pointercast.h>
 #include <stdexcept>
 #include <memory>
 #include <helpers/logger.h>
@@ -45,7 +43,6 @@
 #include <exceptions/datatype_exception.h>
 #include <exceptions/allocation_exception.h>
 #include <helpers/ConstantTadHelper.h>
-
 #include <array/NDArray.hXX>
 
 
@@ -56,7 +53,7 @@ namespace sd {
 void* NDArray::platformBuffer()             { return buffer();    }
 void const* NDArray::platformBuffer() const    { return buffer(); }
 
-Nd4jLong const* NDArray::platformShapeInfo() const { return shapeInfo(); }
+sd::LongType const* NDArray::platformShapeInfo() const { return shapeInfo(); }
 
 void NDArray::syncToDevice() const          { }
 void NDArray::syncToHost() const            { }
@@ -98,7 +95,7 @@ void NDArray::fillAsTriangular(const float val, int lower, int upper, NDArray& t
 
     auto func = PRAGMA_THREADS_FOR {
 
-        int coords[MAX_RANK], temp;
+        int coords[SD_MAX_RANK], temp;
 
         for (auto i = start; i < stop; i++) {
 
@@ -125,7 +122,7 @@ void NDArray::fillAsTriangular(const float val, int lower, int upper, NDArray& t
 
     samediff::Threads::parallel_for(func, 0, zLen);
 }
-BUILD_SINGLE_TEMPLATE(template void NDArray::fillAsTriangular, (const float val, int lower, int upper, NDArray& target, const char direction), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void NDArray::fillAsTriangular, (const float val, int lower, int upper, NDArray& target, const char direction), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
 void NDArray::setIdentity() {
@@ -137,11 +134,11 @@ void NDArray::setIdentity() {
     int  rank    = rankOf();
     auto shape   = shapeOf();
     int  minDim  = MAX_INT;
-    Nd4jLong indices[MAX_RANK];
+    sd::LongType indices[SD_MAX_RANK];
     for(int j = 0; j < rank; ++j)
         indices[j] = 1;
 
-    Nd4jLong offset = shape::getOffset(shapeInfo(), indices);
+    sd::LongType offset = shape::getOffset(shapeInfo(), indices);
 
     for(int i = 0; i < rank; ++i)
         if(minDim > shape[i])
@@ -155,7 +152,7 @@ void NDArray::setIdentity() {
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void templatedSwap(void *xBuffer, void *yBuffer, const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, Nd4jLong length) {
+static void templatedSwap(void *xBuffer, void *yBuffer, const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, sd::LongType length) {
     auto x = reinterpret_cast<T *>(xBuffer);
     auto y = reinterpret_cast<T *>(yBuffer);
 
@@ -167,26 +164,26 @@ static void templatedSwap(void *xBuffer, void *yBuffer, const Nd4jLong* xShapeIn
     auto func = PRAGMA_THREADS_FOR {
         if(isSameOrders && xEws > 0 && yEws > 0) {
             for(auto i = start; i < stop; i++)
-                sd::math::nd4j_swap(x[i*xEws], y[i*yEws]);
+                sd::math::sd_swap(x[i*xEws], y[i*yEws]);
         }
         else if(shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo)) {
             for(auto i = start; i < stop; i++) {
                 const auto ind = shape::getIndexOffset(i, xShapeInfo);
-                sd::math::nd4j_swap(x[ind], y[ind]);
+                sd::math::sd_swap(x[ind], y[ind]);
             }
         }
         else {
             for(auto i = start; i < stop; i++) {
                 const auto xInd = shape::getIndexOffset(i, xShapeInfo);
                 const auto yInd = shape::getIndexOffset(i, yShapeInfo);
-                sd::math::nd4j_swap(x[xInd], y[yInd]);
+                sd::math::sd_swap(x[xInd], y[yInd]);
             }
         }
     };
 
     samediff::Threads::parallel_for(func, 0, length);
 }
-BUILD_SINGLE_TEMPLATE(template void templatedSwap, (void *xBuffer, void *yBuffer, const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, Nd4jLong length), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void templatedSwap, (void *xBuffer, void *yBuffer, const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, sd::LongType length), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
 void NDArray::swapUnsafe(NDArray& other) {
@@ -201,7 +198,7 @@ void NDArray::swapUnsafe(NDArray& other) {
     if(lengthOf() != other.lengthOf())
         throw std::runtime_error("NDArray::swapUnsafe method: input arrays should have the same length!");
 
-    BUILD_SINGLE_SELECTOR(xType, templatedSwap, (buffer(), other.buffer(), shapeInfo(), other.shapeInfo(), this->lengthOf()), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(xType, templatedSwap, (buffer(), other.buffer(), shapeInfo(), other.shapeInfo(), this->lengthOf()), SD_COMMON_TYPES);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -233,12 +230,12 @@ void NDArray::printCurrentBuffer(const bool host, const char* msg, const int pre
 }
 
     ////////////////////////////////////////////////////////////////////////
-    void* NDArray::specialBufferWithOffset(Nd4jLong offset) {
+    void* NDArray::specialBufferWithOffset(sd::LongType offset) {
         return nullptr;
     }
 
 ////////////////////////////////////////////////////////////////////////
-const void* NDArray::specialBufferWithOffset(Nd4jLong offset) const {
+const void* NDArray::specialBufferWithOffset(sd::LongType offset) const {
     return nullptr;
 }
 
@@ -261,10 +258,10 @@ void const* NDArray::specialBuffer() const {
 
 //////////////////////////////////////////////////////////////////////////
 // change an array by repeating it the number of times given by reps.
-NDArray NDArray::tile(const std::vector<Nd4jLong>& reps) const {
+NDArray NDArray::tile(const std::vector<sd::LongType>& reps) const {
     const int repsSize = reps.size();
 
-    Nd4jLong product = 1;
+    sd::LongType product = 1;
     for(const auto& item : reps)
         product *= item;
     if(product == 0)
@@ -275,8 +272,8 @@ NDArray NDArray::tile(const std::vector<Nd4jLong>& reps) const {
     if(product==1) {        // in this case 2 possibilities are present: just reshape or nothing to do
         NDArray result(*this);
         if(diff < 0) {      // reshape to higher dimension
-            std::vector<Nd4jLong> shapeNew = reps;               // there is requirement to have unities at first "diff" positions of new shape
-            memcpy(&shapeNew[-diff], result.shapeInfo()+1, rankOld * sizeof(Nd4jLong));   // put old shape numbers at rest of positions
+            std::vector<sd::LongType> shapeNew = reps;               // there is requirement to have unities at first "diff" positions of new shape
+            memcpy(&shapeNew[-diff], result.shapeInfo()+1, rankOld * sizeof(sd::LongType));   // put old shape numbers at rest of positions
             result.reshapei(ordering(), shapeNew);
         }
         return result;             // nothing to do, if diff >= 0 -> identity tile
@@ -298,7 +295,7 @@ NDArray NDArray::tile(const std::vector<Nd4jLong>& reps) const {
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
                 auto yOffset = shape::subArrayOffset(i, newShapeInfo, shapeInfo());
-                BUILD_SINGLE_SELECTOR(xType, this->template templatedAssign,(result.buffer(), i, this->buffer(), yOffset), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, this->template templatedAssign,(result.buffer(), i, this->buffer(), yOffset), SD_COMMON_TYPES);
             }
         };
 
@@ -310,7 +307,7 @@ NDArray NDArray::tile(const std::vector<Nd4jLong>& reps) const {
             for (auto i = start; i < stop; i++) {
                 auto xOffset = result.getOffset(i);
                 auto yOffset = shape::subArrayOffset(i, newShapeInfo, shapeInfo());
-                BUILD_SINGLE_SELECTOR(xType, this->template templatedAssign,(result.buffer(), xOffset, this->buffer(), yOffset), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, this->template templatedAssign,(result.buffer(), xOffset, this->buffer(), yOffset), SD_COMMON_TYPES);
             }
         };
 
@@ -322,7 +319,7 @@ NDArray NDArray::tile(const std::vector<Nd4jLong>& reps) const {
 
 //////////////////////////////////////////////////////////////////////////
 // change an array by repeating it the number of times given by reps.
-void NDArray::tile(const std::vector<Nd4jLong>& reps, NDArray& target) const {
+void NDArray::tile(const std::vector<sd::LongType>& reps, NDArray& target) const {
 
     auto repProd = shape::prodLong(reps.data(), reps.size());
     if (repProd < 1)
@@ -341,24 +338,24 @@ void NDArray::tile(const std::vector<Nd4jLong>& reps, NDArray& target) const {
     const auto targetLen = target.lengthOf();
     if(target.ordering() == 'c' && ews == 1) {           //  ews == 1 always here
 //#pragma omp parallel for simd if(targetLen > Environment::getInstance().elementwiseThreshold()) schedule(guided)
-        for(Nd4jLong i=0;  i<targetLen; ++i) {
+        for(sd::LongType i=0;  i<targetLen; ++i) {
             auto yOffset = shape::subArrayOffset(i, target.shapeInfo(), shapeInfo());
-            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i, buffer(), yOffset), LIBND4J_TYPES, LIBND4J_TYPES);
+            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i, buffer(), yOffset), SD_COMMON_TYPES, SD_COMMON_TYPES);
         }
     }
     else if(target.ordering() == 'c' && ews > 1) {
-        for(Nd4jLong i=0;  i<targetLen; ++i) {
+        for(sd::LongType i=0;  i<targetLen; ++i) {
             auto yOffset = shape::subArrayOffset(i, target.shapeInfo(), shapeInfo());
-            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i*ews, buffer(), yOffset), LIBND4J_TYPES, LIBND4J_TYPES);
+            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i*ews, buffer(), yOffset), SD_COMMON_TYPES, SD_COMMON_TYPES);
         }
     }
     else {
 
-        for(Nd4jLong i=0;  i<targetLen; ++i) {
+        for(sd::LongType i=0;  i<targetLen; ++i) {
 
             auto xOffset = target.getOffset(i);
             auto yOffset = shape::subArrayOffset(i, target.shapeInfo(), shapeInfo());
-            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), xOffset, buffer(), yOffset), LIBND4J_TYPES, LIBND4J_TYPES);
+            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), xOffset, buffer(), yOffset), SD_COMMON_TYPES, SD_COMMON_TYPES);
         }
     }
 }
@@ -377,18 +374,18 @@ void NDArray::tile(NDArray& target) const {
     const auto targetLen = target.lengthOf();
     if(target.ordering() == 'c' && ews >= 1) {
 
-        for(Nd4jLong i=0;  i<targetLen; ++i) {
+        for(sd::LongType i=0;  i<targetLen; ++i) {
             auto yOffset = shape::subArrayOffset(i, target.shapeInfo(), shapeInfo());
-            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i*ews, buffer(), yOffset), LIBND4J_TYPES, LIBND4J_TYPES);
+            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), i*ews, buffer(), yOffset), SD_COMMON_TYPES, SD_COMMON_TYPES);
         }
     }
     else {
 
-        for(Nd4jLong i=0;  i<targetLen; ++i) {
+        for(sd::LongType i=0;  i<targetLen; ++i) {
 
             auto xOffset = target.getOffset(i);
             auto yOffset = shape::subArrayOffset(i, target.shapeInfo(), shapeInfo());
-            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), xOffset, buffer(), yOffset), LIBND4J_TYPES, LIBND4J_TYPES);
+            BUILD_DOUBLE_SELECTOR(target.dataType(), dataType(), templatedDoubleAssign, (target.buffer(), xOffset, buffer(), yOffset), SD_COMMON_TYPES, SD_COMMON_TYPES);
         }
     }
 }
@@ -402,12 +399,12 @@ static void repeat_(const NDArray& input, NDArray& output, const std::vector<int
 
     const int rank    = input.rankOf();    // xRank = zRank
     const int zLen    = output.lengthOf(); // xLen <= zLen
-    const uint repSize = repeats.size();
+    const sd::Unsigned repSize = repeats.size();
 
     // loop through input array
     auto func = PRAGMA_THREADS_FOR {
 
-        int coords[MAX_RANK], temp;
+        int coords[SD_MAX_RANK], temp;
 
         for (auto i = start; i < stop; i++) {
 
@@ -417,7 +414,7 @@ static void repeat_(const NDArray& input, NDArray& output, const std::vector<int
             temp = coords[axis];
 
             if (repSize > 1) {
-                for (uint j = 0; j < repSize; ++j) {
+                for (sd::Unsigned j = 0; j < repSize; ++j) {
                     coords[axis] -= repeats[j];
                     if (coords[axis] < 0) {
                         coords[axis] = j;
@@ -442,7 +439,7 @@ NDArray NDArray::repeat(const int axis, const std::vector<int>& repeats) const {
 
     NDArray output('c', ShapeUtils::evalRepeatShape(axis, repeats, *this), dataType(),  getContext());
 
-    BUILD_SINGLE_SELECTOR_TWICE(dataType(), repeat_, (*this, output, repeats, axis), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR_TWICE(dataType(), repeat_, (*this, output, repeats, axis), SD_COMMON_TYPES);
 
     return output;
 }
@@ -454,12 +451,11 @@ void NDArray::repeat(const int axis, const std::vector<int>& repeats, NDArray& t
     if(!target.isSameShape(ShapeUtils::evalRepeatShape(axis, repeats, *this)))
         throw std::invalid_argument("NDArray::repeat(const int axis, const std::vector<int>& repeats, NDArray& target) method: wrong shape of target array!");
 
-    BUILD_DOUBLE_SELECTOR(dataType(), target.dataType(), repeat_, (*this, target, repeats, axis), LIBND4J_TYPES, LIBND4J_TYPES);
+    BUILD_DOUBLE_SELECTOR(dataType(), target.dataType(), repeat_, (*this, target, repeats, axis), SD_COMMON_TYPES, SD_COMMON_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 #ifndef __JAVACPP_HACK__
-
 #include "NDArrayLambda.hpp"
 
 #endif
@@ -470,7 +466,6 @@ void NDArray::repeat(const int axis, const std::vector<int>& repeats, NDArray& t
 #endif
  */
 }
-
 
 
 #endif

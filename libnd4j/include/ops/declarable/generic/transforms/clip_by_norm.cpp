@@ -42,7 +42,7 @@ namespace ops  {
             helpers::clipByNorm(block.launchContext(), *input, *output, *block.getIArguments(), *clipNorm, isInplace, false);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -60,13 +60,13 @@ namespace ops  {
         }
 
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_SHAPE_FN(clipbynorm_bp) {
         auto inShapeInfo = inputShape->at(1);
 
-        Nd4jLong *newShape = nullptr;
+        sd::LongType *newShape = nullptr;
         COPY_SHAPE(inShapeInfo, newShape);
 
         return SHAPELIST(CONSTANT(newShape));

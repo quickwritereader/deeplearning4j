@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/TAD.h>
 #include <helpers/ConstantTadHelper.h>
 #include <execution/Threads.h>
@@ -29,7 +28,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename Z, typename I>
-            static void onehot_(void *voutput, Nd4jLong const* zShapeInfo, void const* vindices, Nd4jLong const* iShapeInfo, int axis, double on, double off) {
+            static void onehot_(void *voutput, sd::LongType const* zShapeInfo, void const* vindices, sd::LongType const* iShapeInfo, int axis, double on, double off) {
                 auto output = reinterpret_cast<Z*>(voutput);
                 auto indices = reinterpret_cast<I const*>(vindices);
 
@@ -94,11 +93,11 @@ namespace sd {
                 }
             }
 
-            ND4J_LOCAL void onehot(const sd::LaunchContext* context, const NDArray *indices, NDArray *output, const uint axis, const uint depth, const double on, const double off) {
+            void onehot(const sd::LaunchContext* context, const NDArray *indices, NDArray *output, const sd::Unsigned axis, const sd::Unsigned depth, const double on, const double off) {
                 auto zType = output->dataType();
                 auto iType = indices->dataType();
 
-                BUILD_DOUBLE_SELECTOR(zType, iType, onehot_, (output->buffer(), output->shapeInfo(), indices->buffer(), indices->shapeInfo(), axis, on, off), LIBND4J_TYPES, LIBND4J_TYPES);
+                BUILD_DOUBLE_SELECTOR(zType, iType, onehot_, (output->buffer(), output->shapeInfo(), indices->buffer(), indices->shapeInfo(), axis, on, off), SD_COMMON_TYPES, SD_COMMON_TYPES);
             }
         }
     }

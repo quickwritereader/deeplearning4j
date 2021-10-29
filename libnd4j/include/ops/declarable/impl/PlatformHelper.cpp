@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "../PlatformHelper.h"
 #include <graph/Variable.h>
 
@@ -74,10 +73,10 @@ namespace sd {
                         if (var->getNDArray() != nullptr && var->getNDArray()->nonNull()) {
                             z = var->getNDArray();
                         } else {
-                            nd4j_printf("Can't get Z variable for node_%i!\n", ctx.nodeId());
+                            sd_printf("Can't get Z variable for node_%i!\n", ctx.nodeId());
                         }
                     } else {
-                        nd4j_printf("BOOM!\n", "");
+                        sd_printf("BOOM!\n", "");
                         throw std::runtime_error("Boom!");
                     }
                 }
@@ -93,7 +92,7 @@ namespace sd {
                 return _name;
             }
 
-            Nd4jLong PlatformHelper::hash() {
+            sd::LongType PlatformHelper::hash() {
                 return _hash;
             }
         }

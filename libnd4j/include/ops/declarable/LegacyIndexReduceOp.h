@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYINDEXREDUCEOP_H
 #define LIBND4J_LEGACYINDEXREDUCEOP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -32,9 +31,9 @@ namespace sd {
         *
         *   TODO: eventually we want this op class to return long long instead of T
         */
-        class ND4J_EXPORT LegacyIndexReduceOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyIndexReduceOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override;
+            sd::Status validateAndExecute(Context& block) override;
         public:
             LegacyIndexReduceOp();
             LegacyIndexReduceOp(int opNum);

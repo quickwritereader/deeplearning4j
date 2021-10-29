@@ -19,7 +19,6 @@
 //
 // Created by raver on 11/26/2018.
 //
-
 #include <array/DataTypeUtils.h>
 #include <exceptions/datatype_exception.h>
 

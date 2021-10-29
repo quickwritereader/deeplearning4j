@@ -30,11 +30,11 @@
 #include <string>
 #include <atomic>
 #include <functional>
-#include <system/pointercast.h>
+
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT KeyPair {
+        class SD_LIB_EXPORT KeyPair {
             int _node;
             std::string _name;
         public:
@@ -56,7 +56,7 @@ namespace sd {
 
 namespace std {
     template <>
-    class ND4J_EXPORT hash<sd::graph::KeyPair> {
+    class SD_LIB_EXPORT hash<sd::graph::KeyPair> {
     public:
         size_t operator()(const sd::graph::KeyPair& k) const;
     };
@@ -66,7 +66,7 @@ namespace std {
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT Stash {
+        class SD_LIB_EXPORT Stash {
         protected:
             std::map<sd::graph::KeyPair, sd::NDArray*> _stash;
             std::vector<sd::NDArray*> _handles;
@@ -89,8 +89,6 @@ namespace sd {
     }
 
 }
-
-
 
 
 #endif //LIBND4J_STASH_H

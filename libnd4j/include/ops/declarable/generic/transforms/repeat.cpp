@@ -32,7 +32,7 @@ namespace ops  {
 // here iArgs is int vector of repeats at the beginning and last element in iArgs is dimension
 CUSTOM_OP_IMPL(repeat, 1, 1, true, 0, -1) {
 
-	auto input  = INPUT_VARIABLE(0);
+    auto input  = INPUT_VARIABLE(0);
     auto output = OUTPUT_VARIABLE(0);
 
     std::vector<int> repeats = *block.getIArguments();
@@ -47,7 +47,7 @@ CUSTOM_OP_IMPL(repeat, 1, 1, true, 0, -1) {
 
     input->repeat(axis, repeats, *output);
 
-	return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(repeat) {

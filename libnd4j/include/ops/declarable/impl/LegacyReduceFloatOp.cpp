@@ -19,11 +19,10 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyReduceFloatOp.h>
 #include <helpers/TAD.h>
 #include <helpers/ShapeUtils.h>
-#include <graph/Status.h>
+
 #include <helpers/ConstantTadHelper.h>
 #include <array/DataTypeUtils.h>
 
@@ -41,7 +40,7 @@ namespace sd {
             return new LegacyReduceFloatOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyReduceFloatOp::validateAndExecute(Context &block) {
+        sd::Status LegacyReduceFloatOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
 
             auto z = OUTPUT_VARIABLE(0);
@@ -49,7 +48,7 @@ namespace sd {
             NDArray::prepareSpecialUse({z}, {x});
 
             int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
-            nd4j_debug("Executing LegacyReduceFloatOp: [%i]\n", opNum);
+            sd_debug("Executing LegacyReduceFloatOp: [%i]\n", opNum);
 
             bool allAxes = false;
             auto axis = *block.getAxis();
@@ -81,15 +80,15 @@ namespace sd {
                     // auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
 
                     // auto pTadShape = Environment::getInstance().isCPU() ? packX.primaryShapeInfo() : packX.specialShapeInfo(); //manager.replicatePointer(tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
-                    // auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(Nd4jLong));
+                    // auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(sd::LongType));
 
-                    const Nd4jLong* zShapeInfoH = z->shapeInfo();
-                    const Nd4jLong* zShapeInfoD = z->specialShapeInfo();
+                    const sd::LongType* zShapeInfoH = z->shapeInfo();
+                    const sd::LongType* zShapeInfoD = z->specialShapeInfo();
 
                     if(x->rankOf() == z->rankOf()) {
                         auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(z->shapeInfo(), dims, z->getContext()->getWorkspace());
-                        zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                        zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                        zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                        zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
                     }
 
                     std::vector<int> dims2 = ShapeUtils::evalDimsForReduceOp(x->rankOf(), dims);
@@ -124,16 +123,16 @@ namespace sd {
 
                     // auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
 
-                    // auto pTadShape = Environment::getInstance().isCPU() ? packX.primaryShapeInfo() : packX.specialShapeInfo(); //(Nd4jLong *) manager.replicatePointer(tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
-                    // auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //(Nd4jLong *) manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(Nd4jLong));
+                    // auto pTadShape = Environment::getInstance().isCPU() ? packX.primaryShapeInfo() : packX.specialShapeInfo(); //(sd::LongType *) manager.replicatePointer(tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
+                    // auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //(sd::LongType *) manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(sd::LongType));
 
-                    const Nd4jLong* zShapeInfoH = z->shapeInfo();
-                    const Nd4jLong* zShapeInfoD = z->specialShapeInfo();
+                    const sd::LongType* zShapeInfoH = z->shapeInfo();
+                    const sd::LongType* zShapeInfoD = z->specialShapeInfo();
 
                     if(x->rankOf() == z->rankOf()) {
                         auto zPack = ConstantShapeHelper::getInstance().createShapeInfoWithNoUnitiesForReduce(z->shapeInfo(), dims, z->getContext()->getWorkspace());
-                        zShapeInfoH = reinterpret_cast<Nd4jLong const*>(zPack.primary());
-                        zShapeInfoD = reinterpret_cast<Nd4jLong const*>(zPack.special());
+                        zShapeInfoH = reinterpret_cast<sd::LongType const*>(zPack.primary());
+                        zShapeInfoD = reinterpret_cast<sd::LongType const*>(zPack.special());
                     }
 
                     std::vector<int> dims2 = ShapeUtils::evalDimsForReduceOp(x->rankOf(), dims);
@@ -145,7 +144,7 @@ namespace sd {
             }
 
             manager.synchronize();
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         /**

@@ -36,7 +36,7 @@ CUSTOM_OP_IMPL(tile, 1, 1, false, 0, -2) {
     auto output = OUTPUT_VARIABLE(0);
     
     const int inRank = input->rankOf();
-    std::vector<Nd4jLong> reps;
+    std::vector<sd::LongType> reps;
 
     if (block.getIArguments()->size() == inRank) {
 
@@ -47,7 +47,7 @@ CUSTOM_OP_IMPL(tile, 1, 1, false, 0, -2) {
         auto reps_vector = INPUT_VARIABLE(1);
         REQUIRE_TRUE(reps_vector->lengthOf() == inRank, 0, "TILE op: repeats vector length should be equal to input rank, but got %i and %i correspondingly !", reps_vector->lengthOf(), inRank);
 
-        reps = reps_vector->template asVectorT<Nd4jLong>();
+        reps = reps_vector->template asVectorT<sd::LongType>();
     }
     else {
         REQUIRE_TRUE(false, 0, "TILE op: this op requires repeats vector, either as IArgs or second array with length equal to rank of input array to be tiled !");
@@ -58,7 +58,7 @@ CUSTOM_OP_IMPL(tile, 1, 1, false, 0, -2) {
             
     input->tile(reps, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(tile) {
@@ -72,7 +72,7 @@ DECLARE_SHAPE_FN(tile) {
     
     auto inShape = inputShape->at(0);
     const int inRank = inShape[0];
-    std::vector<Nd4jLong> reps;
+    std::vector<sd::LongType> reps;
 
     if (block.getIArguments()->size() == inRank) {
 
@@ -82,7 +82,7 @@ DECLARE_SHAPE_FN(tile) {
         
         auto reps_vector = INPUT_VARIABLE(1);
         REQUIRE_TRUE(reps_vector->lengthOf() == inRank, 0, "TILE op: repeats vector length should be equal to input rank, but got %i and %i correspondingly !", reps_vector->lengthOf(), inRank);
-        reps = reps_vector->template asVectorT<Nd4jLong>();
+        reps = reps_vector->template asVectorT<sd::LongType>();
     }
     else {
         REQUIRE_TRUE(false, 0, "TILE op: this op requires repeats vector, either as IArgs or second array with length equal to rank of input array to be tiled !");
@@ -91,7 +91,7 @@ DECLARE_SHAPE_FN(tile) {
     auto repProd = shape::prodLong(reps.data(), reps.size());
     REQUIRE_TRUE(repProd > 0, 0, "TILE op: reps can't contain 0s");
     
-    std::vector<Nd4jLong> shape(inRank);
+    std::vector<sd::LongType> shape(inRank);
     for (int e = 0; e < shape::rank(inShape); e++)
         shape[e] = shape::sizeAt(inShape, e) * reps[e];
 
@@ -109,7 +109,7 @@ CUSTOM_OP_IMPL(tile_bp, 2, 1, false, 0, -2) {
     
     const int inRank = input->rankOf();
 
-    std::vector<Nd4jLong> reps;
+    std::vector<sd::LongType> reps;
 
     if (block.getIArguments()->size() == inRank) {
 
@@ -120,7 +120,7 @@ CUSTOM_OP_IMPL(tile_bp, 2, 1, false, 0, -2) {
         auto reps_vector = INPUT_VARIABLE(1);
         REQUIRE_TRUE(reps_vector->lengthOf() == inRank, 0, "TILE_BP op: repeats vector length should be equal to input rank, but got %i and %i correspondingly !", reps_vector->lengthOf(), inRank);
 
-        reps = reps_vector->template asVectorT<Nd4jLong>();
+        reps = reps_vector->template asVectorT<sd::LongType>();
         gradO = INPUT_VARIABLE(2);
     }
     else {
@@ -134,7 +134,7 @@ CUSTOM_OP_IMPL(tile_bp, 2, 1, false, 0, -2) {
             
     helpers::tileBP(block.launchContext(), *gradO, *gradI, reps);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(tile_bp) {
@@ -151,7 +151,7 @@ DECLARE_SHAPE_FN(tile_bp) {
     auto gradOShape = inputShape->at(1);
     const int inRank = inShape[0];
 
-    std::vector<Nd4jLong> reps;
+    std::vector<sd::LongType> reps;
 
     if (block.getIArguments()->size() == inRank) {
 
@@ -160,7 +160,7 @@ DECLARE_SHAPE_FN(tile_bp) {
     else if (block.width() > 2)  {
         auto reps_vector = INPUT_VARIABLE(1);
         REQUIRE_TRUE(reps_vector->lengthOf() == inRank, 0, "TILE_BP op: repeats vector length should be equal to input rank, but got %i and %i correspondingly !", reps_vector->lengthOf(), inRank);
-        reps = reps_vector->template asVectorT<Nd4jLong>();
+        reps = reps_vector->template asVectorT<sd::LongType>();
         gradOShape = inputShape->at(2);
     }
     else {
@@ -172,7 +172,7 @@ DECLARE_SHAPE_FN(tile_bp) {
     for (int i = 0; i < inRank; ++i)
         REQUIRE_TRUE(shape::sizeAt(gradOShape, i) == shape::sizeAt(inShape, i) * reps[i], 0, "TILE_BP op: shapes of input array and output's gradients array (next epsilon) are inconsistent !");
 
-    Nd4jLong *gradIShape;
+    sd::LongType *gradIShape;
     COPY_SHAPE(inShape, gradIShape);
 
     return SHAPELIST(CONSTANT(gradIShape));

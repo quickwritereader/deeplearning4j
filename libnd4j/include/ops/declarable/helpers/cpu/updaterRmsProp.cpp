@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -53,7 +52,7 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
             auto func = PRAGMA_THREADS_FOR{
                  for (auto i = start; i < stop; i++) {
                      st[i] =  init[i] * rmsDecay + grad[i] * grad[i] * (1 - rmsDecay) ;
-                     up[i] = (lr * grad[i]) / ( math::nd4j_sqrt<T, T>(st[i]) + epsilon);
+                     up[i] = (lr * grad[i]) / ( math::sd_sqrt<T, T>(st[i]) + epsilon);
                  }
             };
 
@@ -67,7 +66,7 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -76,7 +75,7 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
             const auto stOffset = bXStSame ? xOffset : shape::getOffset(stateG.shapeInfo(), coords);
             
             st[stOffset] =  init[initOffset] * rmsDecay + grad[xOffset] * grad[xOffset] * (1 - rmsDecay) ;
-            up[zOffset] = (lr * grad[xOffset]) / ( math::nd4j_sqrt<T, T>(st[stOffset]) + epsilon);
+            up[zOffset] = (lr * grad[xOffset]) / ( math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
         }
     };
 
@@ -84,9 +83,9 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
     return;
 }
 
-ND4J_LOCAL void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateG,
+void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateG,
                     const double dLr, const double dRmsDecay, const double dEpsilon) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), rmsPropUpdater_, (gradient, initState, update, stateG, dLr, dRmsDecay, dEpsilon), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), rmsPropUpdater_, (gradient, initState, update, stateG, dLr, dRmsDecay, dEpsilon), SD_FLOAT_TYPES);
 }
 
 

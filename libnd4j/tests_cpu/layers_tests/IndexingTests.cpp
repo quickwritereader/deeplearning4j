@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 31.10.2017.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -49,7 +48,7 @@ TEST_F(IndexingTests, StridedSlice_1) {
     sd::ops::strided_slice op;
 
     auto result = op.evaluate({&x, &begin, &end, &strides}, {}, {0,0,0,0,0}); //, 2,2,0,  3,3,3,  1,1,1});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_TRUE(exp.isSameShape(z));
@@ -68,7 +67,7 @@ TEST_F(IndexingTests, StridedSlice_2) {
     sd::ops::strided_slice op;
 
     auto result = op.evaluate({&x}, {}, {0,0,0,0,0, 3,2,0,  5,5,3,  1,1,1});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -88,7 +87,7 @@ TEST_F(IndexingTests, StridedSlice_3) {
     sd::ops::strided_slice op;
 
     auto result = op.evaluate({&x}, {}, {0,0,0,0,0, 3,2,0,  5,5,3,  1,1,2});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -111,7 +110,7 @@ TEST_F(IndexingTests, SimpleSlice_1) {
     sd::ops::slice op;
 
     auto result = op.evaluate({&input}, {}, {1,0,0, 1,1,3});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -137,7 +136,7 @@ TEST_F(IndexingTests, SimpleSlice_2) {
     sd::ops::slice op;
 
     auto result = op.evaluate({&input}, {}, {1,0,0, 1,2,3});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -162,7 +161,7 @@ TEST_F(IndexingTests, SimpleSlice_3) {
     sd::ops::slice op;
 
     auto result = op.evaluate({&input}, {}, {1,0,0, 2,1,3});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -182,7 +181,7 @@ TEST_F(IndexingTests, SimpleSlice_4) {
     sd::ops::slice op;
 
     auto result = op.evaluate({&input, &start, &stop});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -206,7 +205,7 @@ TEST_F(IndexingTests, MaskedSlice_0) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0,0,   1, 2, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -232,7 +231,7 @@ TEST_F(IndexingTests, MaskedSlice_00) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0,0,   1, 1, 2, 3, 1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -256,7 +255,7 @@ TEST_F(IndexingTests, MaskedSlice_1) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0,1,   1, 2, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -277,7 +276,7 @@ TEST_F(IndexingTests, MaskedSlice_2) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0,1,   1, 0, 0,  3, 3, 3,  1, 1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -297,7 +296,7 @@ TEST_F(IndexingTests, MaskedSlice_3) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0,2,   1, 0, 0,  3, 3, 3,  1, 1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -317,7 +316,7 @@ TEST_F(IndexingTests, MaskedSlice_4) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix}, {}, {0,0,0,0, 3,   1, 0, 0,  3, 3, 3,  1, 1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -340,7 +339,7 @@ TEST_F(IndexingTests, Live_Slice_1) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &begin, &end, &stride}, {}, {0,0,0,0,3});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -363,7 +362,7 @@ TEST_F(IndexingTests, Test_StridedSlice_1) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&x, &a, &b, &c}, {}, {0, 0, 0, 0, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -383,7 +382,7 @@ TEST_F(IndexingTests, Test_StridedSlice_2) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&x, &a, &b, &c}, {}, {0, 0, 0, 0, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -406,7 +405,7 @@ TEST_F(IndexingTests, Test_StridedSlice_3) {
     sd::ops::strided_slice op;
     auto result = op.evaluate({&x, &a, &b, &c}, {}, {0, 0, 0, 0, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -428,7 +427,7 @@ TEST_F(IndexingTests, Test_StridedSlice_4) {
     auto result = op.evaluate({&x, &a, &b, &c}, {}, {0, 0, 0, 0, 1});
 //    auto result = op.execute({&x, &a, &b, &c}, {}, {0, 0, 0, 0, 1, 0, 1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -460,7 +459,7 @@ TEST_F(IndexingTests, MaskedSlice_5) {
     sd::ops::strided_slice<float> op;
     auto result = op.execute({&matrix}, {}, {0,0,0,0,2,   1, 0, 0,  3, 3, 3});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 

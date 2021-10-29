@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/adjust_saturation.h>
 #include <ops/declarable/helpers/adjust_hue.h>
 #include <helpers/ConstantTadHelper.h>
@@ -34,15 +33,15 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void _CUDA_G adjustSaturationCuda(const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                               void* vz, const Nd4jLong *zShapeInfo, const Nd4jLong* zTadOffsets,
-                                        const Nd4jLong numOfTads, const T factor, const int dimC) {
+static void SD_KERNEL adjustSaturationCuda(const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                               void* vz, const sd::LongType *zShapeInfo, const sd::LongType* zTadOffsets,
+                                        const sd::LongType numOfTads, const T factor, const int dimC) {
 
     const T* x = reinterpret_cast<const T*>(vx);
           T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank;
-    __shared__ Nd4jLong xDimCstride, zDimCstride;
+    __shared__ sd::LongType xDimCstride, zDimCstride;
 
     if (threadIdx.x == 0) {
         rank = shape::rank(xShapeInfo);
@@ -53,7 +52,7 @@ static void _CUDA_G adjustSaturationCuda(const void* vx, const Nd4jLong* xShapeI
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
 
         const T* xTad = x + xTadOffsets[i];
               T* zTad = z + zTadOffsets[i];
@@ -74,29 +73,29 @@ static void _CUDA_G adjustSaturationCuda(const void* vx, const Nd4jLong* xShapeI
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static _CUDA_H void adjustSaturationCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
-                                          const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                                void* vz, const Nd4jLong* zShapeInfo, const Nd4jLong* zTadOffsets,
-                                          const Nd4jLong numOfTads, const NDArray* factorScalarArr, const int dimC) {
+static SD_HOST void adjustSaturationCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
+                                          const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                                void* vz, const sd::LongType* zShapeInfo, const sd::LongType* zTadOffsets,
+                                          const sd::LongType numOfTads, const NDArray* factorScalarArr, const int dimC) {
 
     adjustSaturationCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, xTadOffsets, vz, zShapeInfo, zTadOffsets, numOfTads, factorScalarArr->e<T>(0), dimC);
 }
 
 ////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void adjustSaturation(sd::LaunchContext* context, const NDArray *input, const NDArray* factorScalarArr, NDArray *output, const int dimC) {
+void adjustSaturation(sd::LaunchContext* context, const NDArray *input, const NDArray* factorScalarArr, NDArray *output, const int dimC) {
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),  {dimC});
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), {dimC});
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX.numberOfTads();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (numOfTads + threadsPerBlock - 1) / threadsPerBlock;
 
     PointersManager manager(context, "adjustSaturation");
 
     NDArray::prepareSpecialUse({output}, {input, factorScalarArr});
-    BUILD_SINGLE_SELECTOR(input->dataType(), adjustSaturationCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, factorScalarArr, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), adjustSaturationCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, factorScalarArr, dimC), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({output}, {input, factorScalarArr});
 
     manager.synchronize();
@@ -104,7 +103,7 @@ ND4J_LOCAL void adjustSaturation(sd::LaunchContext* context, const NDArray *inpu
 
 /*
 template <typename T>
-static void _CUDA_G adjustSaturationSingleNHWCKernel(void *xBuffer, Nd4jLong *xShapeInfo,  void *zBuffer, Nd4jLong *zShapeInfo, Nd4jLong tuples, float delta) {
+static void SD_KERNEL adjustSaturationSingleNHWCKernel(void *xBuffer, sd::LongType *xShapeInfo,  void *zBuffer, sd::LongType *zShapeInfo, sd::LongType tuples, float delta) {
     int numChannels = 3;
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -112,14 +111,14 @@ static void _CUDA_G adjustSaturationSingleNHWCKernel(void *xBuffer, Nd4jLong *xS
     auto bOut = reinterpret_cast<T*>(zBuffer);
     static const int kChannelRange = 6;
 
-    for (Nd4jLong e = tid; e < tuples; e += blockDim.x * gridDim.x) {
+    for (sd::LongType e = tid; e < tuples; e += blockDim.x * gridDim.x) {
         auto i = bIn + e * numChannels;
         auto o = bOut + e * numChannels;
 
         T h, s, v;
         // Convert the RGB color to Hue/V-range.
         helpers::rgb_to_hsv(i[0], i[1], i[2], &h, &s, &v);
-        s = sd::math::nd4j_min<T>((T) 1.0f, sd::math::nd4j_max<T>((T) 0.0f, s * delta));
+        s = sd::math::sd_min<T>((T) 1.0f, sd::math::sd_max<T>((T) 0.0f, s * delta));
 
         // Convert the hue and v-range back into RGB.
         helpers::hsv_to_rgb(h, s, v, o, o + 1, o + 2);
@@ -127,7 +126,7 @@ static void _CUDA_G adjustSaturationSingleNHWCKernel(void *xBuffer, Nd4jLong *xS
 }
 
 template <typename T>
-static void _CUDA_G adjustSaturationSingleNCHWKernel(void *xBuffer, Nd4jLong *xTadShapeInfo, Nd4jLong *xOffsets, void *zBuffer, Nd4jLong *zTadShapeInfo, Nd4jLong *zOffsets, Nd4jLong tadLength, Nd4jLong tuples, float delta) {
+static void SD_KERNEL adjustSaturationSingleNCHWKernel(void *xBuffer, sd::LongType *xTadShapeInfo, sd::LongType *xOffsets, void *zBuffer, sd::LongType *zTadShapeInfo, sd::LongType *zOffsets, sd::LongType tadLength, sd::LongType tuples, float delta) {
     int numChannels = 3;
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
     static const int kChannelRange = 6;
@@ -140,7 +139,7 @@ static void _CUDA_G adjustSaturationSingleNCHWKernel(void *xBuffer, Nd4jLong *xT
     auto outputG = reinterpret_cast<T *>(zBuffer) + zOffsets[1];
     auto outputB = reinterpret_cast<T *>(zBuffer) + zOffsets[2];
 
-    for (Nd4jLong e = tid; e < tuples; e += blockDim.x * gridDim.x) {
+    for (sd::LongType e = tid; e < tuples; e += blockDim.x * gridDim.x) {
         auto _ri = bufferR + shape::getIndexOffset(e, xTadShapeInfo);
         auto _gi = bufferG + shape::getIndexOffset(e, xTadShapeInfo);
         auto _bi = bufferB + shape::getIndexOffset(e, xTadShapeInfo);
@@ -152,7 +151,7 @@ static void _CUDA_G adjustSaturationSingleNCHWKernel(void *xBuffer, Nd4jLong *xT
         T h, s, v;
         // Convert the RGB color to Hue/V-range.
         helpers::rgb_to_hsv(_ri[0], _gi[0], _bi[0], &h, &s, &v);
-        s = sd::math::nd4j_min<T>((T) 1.0f, sd::math::nd4j_max<T>((T) 0.0f, s * delta));
+        s = sd::math::sd_min<T>((T) 1.0f, sd::math::sd_max<T>((T) 0.0f, s * delta));
         // Convert the hue and v-range back into RGB.
         helpers::hsv_to_rgb(h, s, v, _ro, _go, _bo);
     }
@@ -184,7 +183,7 @@ static void _adjust_saturation_batch(sd::LaunchContext * context, NDArray *array
 
     if (isNHWC) {
         // in case of nhwc batch, we don't really care about examples: it's still bunch of RGB values
-        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_single, (context, array, output, delta, isNHWC);, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_single, (context, array, output, delta, isNHWC);, SD_FLOAT_TYPES);
     } else {
         // TODO: check this one
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(array->shapeInfo(), {0, 2, 3});
@@ -201,9 +200,9 @@ void adjust_saturation(sd::LaunchContext * context, NDArray *array, NDArray *out
 
     float d = delta->e<float>(0);
     if (array->rankOf() == 4) {
-        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_batch, (context, array, output, d, isNHWC);, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_batch, (context, array, output, d, isNHWC);, SD_FLOAT_TYPES);
     } else {
-        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_single, (context, array, output, d, isNHWC);, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _adjust_saturation_single, (context, array, output, d, isNHWC);, SD_FLOAT_TYPES);
     }
 }
 */

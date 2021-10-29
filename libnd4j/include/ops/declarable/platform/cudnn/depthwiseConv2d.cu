@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include "cudnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -268,7 +267,7 @@ PLATFORM_IMPL(depthwise_conv2d, ENGINE_CUDA) {
 
     ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW, paddingMode);
 
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, mC);
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, mC);
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "DEPTHWISECONV2D CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     REQUIRE_TRUE(output->sizeAt(indIOioC) == iC*mC, 0, "DEPTHWISECONV2D CUDNN OP: the output_channels must be equal to input_channels * channels_multiplier = %i !", iC*mC);
     if (bias)
@@ -293,7 +292,7 @@ PLATFORM_IMPL(depthwise_conv2d, ENGINE_CUDA) {
     }
     depthwiseConv2dCUDNN(block.launchContext(), input, uNewWeights.get(), bias, output, kH,kW,sH,sW,pH,pW,dH,dW, paddingMode, isNCHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -357,8 +356,8 @@ PLATFORM_IMPL(depthwise_conv2d_bp, ENGINE_CUDA) {
 
     ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW, paddingMode);
 
-    std::vector<Nd4jLong> expectedGradOShape   = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, mC);
+    std::vector<sd::LongType> expectedGradOShape   = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, mC);
     REQUIRE_TRUE(gradO->isSameShape(expectedGradOShape), 0,  "DEPTHWISECONV2D_BP CUDNN OP: wrong shape of output gradients (next epsilon) array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedGradOShape).c_str(), ShapeUtils::shapeAsString(gradO).c_str());
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "DEPTHWISECONV2D_BP CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if(bias)
@@ -406,7 +405,7 @@ PLATFORM_IMPL(depthwise_conv2d_bp, ENGINE_CUDA) {
             gradI->assign((*newGradI)({0,0,  0,gradI->sizeAt(1),  0,gradI->sizeAt(2),  0,0}));
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 PLATFORM_CHECK(depthwise_conv2d_bp, ENGINE_CUDA) {

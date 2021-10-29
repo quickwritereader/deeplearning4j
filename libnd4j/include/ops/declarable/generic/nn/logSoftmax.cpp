@@ -47,7 +47,7 @@ CONFIGURABLE_OP_IMPL(log_softmax, 1, 1, true, 0, 0) {
 
     helpers::logSoftmax(block.launchContext(), *input, *output, dim);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(log_softmax_bp) {
@@ -72,7 +72,7 @@ CONFIGURABLE_OP_IMPL(log_softmax_bp, 2, 1, true, 0, 0) {
 
     gradI->assign( *gradO - (*gradI * *gradO).reduceAlongDimension(reduce::Sum, {dim}, true) );
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 

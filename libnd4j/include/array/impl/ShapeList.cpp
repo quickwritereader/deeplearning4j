@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 //
 
-#include <system/pointercast.h>
 #include <array/ShapeList.h>
 
 namespace sd {
@@ -28,7 +27,7 @@ namespace sd {
 //        _autoremovable = autoRemovable;
 //    }
 
-    ShapeList::ShapeList(const Nd4jLong* shape) {
+    ShapeList::ShapeList(const sd::LongType* shape) {
         if (shape != nullptr)
             _shapes.push_back(shape);
     }
@@ -38,15 +37,15 @@ namespace sd {
             destroy();
     }
 
-    ShapeList::ShapeList(const std::vector<const Nd4jLong*> &shapes, bool isWorkspace) : ShapeList(shapes){
+    ShapeList::ShapeList(const std::vector<const sd::LongType*> &shapes, bool isWorkspace) : ShapeList(shapes){
         _workspace = isWorkspace;
     }
 
-    ShapeList::ShapeList(const std::vector<const Nd4jLong*>& shapes) {
+    ShapeList::ShapeList(const std::vector<const sd::LongType*>& shapes) {
         _shapes = shapes;
     }
 
-    std::vector<const Nd4jLong*>* ShapeList::asVector() {
+    std::vector<const sd::LongType*>* ShapeList::asVector() {
         return &_shapes;
     }
 
@@ -66,14 +65,14 @@ namespace sd {
         return (int) _shapes.size();
     }
 
-    const Nd4jLong* ShapeList::at(int idx) {
+    const sd::LongType* ShapeList::at(int idx) {
         if (_shapes.size() <= idx)
             throw std::runtime_error("Can't find requested variable by index");
 
         return _shapes.at(idx);
     }
 
-    void ShapeList::push_back(const Nd4jLong *shape) {
+    void ShapeList::push_back(const sd::LongType *shape) {
         _shapes.push_back(shape);
     }
 

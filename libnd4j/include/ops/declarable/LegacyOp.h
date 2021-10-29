@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYOP_H
 #define LIBND4J_LEGACYOP_H
-
 #include <ops/declarable/DeclarableOp.h>
 #include <helpers/PointersManager.h>
 
@@ -35,7 +34,7 @@ namespace sd {
         *
         *
         */
-        class ND4J_EXPORT LegacyOp : public DeclarableOp {
+        class SD_LIB_EXPORT LegacyOp : public DeclarableOp {
         protected:
             // this field is mainly for debugging
             // it defines, which legacy op should be invoked on a given data
@@ -43,7 +42,7 @@ namespace sd {
             int _numInputs = 0;
 
             // All Op classes provide own specific implementation for this method
-            Nd4jStatus validateAndExecute(Context& block) override = 0;
+            sd::Status validateAndExecute(Context& block) override = 0;
         public:
             LegacyOp(int numInputs);
             LegacyOp(int numInputs, int opNum);

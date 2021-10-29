@@ -19,9 +19,7 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyTransformBoolOp.h>
-
 #include <legacy/NativeOpExecutioner.h>
 
 
@@ -39,7 +37,7 @@ namespace sd {
             return new LegacyTransformBoolOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyTransformBoolOp::validateAndExecute(Context &block) {
+        sd::Status LegacyTransformBoolOp::validateAndExecute(Context &block) {
             auto input = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
 
@@ -57,7 +55,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         /**

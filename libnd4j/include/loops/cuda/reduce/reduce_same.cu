@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //  @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <loops/reduce_same.h>
 #include <loops/legacy_ops.h>
@@ -35,19 +34,19 @@ using namespace simdOps;
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename OpType>
-__global__ void simpleReduce(const void *x, const Nd4jLong *outerXTadShapeInfo, const Nd4jLong *innerXTadShapeInfo,
-                            void *extraParams, void *vreductionBuffer, void *z, const Nd4jLong *zShapeInfo) {
+SD_KERNEL void simpleReduce(const void *x, const sd::LongType *outerXTadShapeInfo, const sd::LongType *innerXTadShapeInfo,
+                            void *extraParams, void *vreductionBuffer, void *z, const sd::LongType *zShapeInfo) {
 
     functions::reduce::ReduceSameFunction<X>::template transformCudaXD<OpType>(x, outerXTadShapeInfo, innerXTadShapeInfo, extraParams, vreductionBuffer, z, zShapeInfo);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename OpType>
-__global__ void simpleScalar(void const* x, Nd4jLong const* xShapeInfo,
+SD_KERNEL void simpleScalar(void const* x, sd::LongType const* xShapeInfo,
                             void *extraParams,
-                            void *z, Nd4jLong const* zShapeInfo,
+                            void *z, sd::LongType const* zShapeInfo,
                             int *dimension, int dimensionLength,
-                            void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo) {
+                            void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo) {
 
     functions::reduce::ReduceSameFunction<X>::template execScalarCuda<OpType>(x, xShapeInfo, extraParams, z, zShapeInfo, reductionBuffer, tadOnlyShapeInfo);
 }
@@ -59,7 +58,7 @@ namespace reduce    {
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template <typename OpType>
-__device__ void ReduceSameFunction<X>::aggregatePartials(void *vsPartials, Nd4jLong tid, Nd4jLong numItems, void *vextraParams) {
+SD_DEVICE void ReduceSameFunction<X>::aggregatePartials(void *vsPartials, sd::LongType tid, sd::LongType numItems, void *vextraParams) {
 
     // start the shared memory loop on the next power of 2 less
     // than the block size.  If block size is not a power of 2,
@@ -68,7 +67,7 @@ __device__ void ReduceSameFunction<X>::aggregatePartials(void *vsPartials, Nd4jL
     auto sPartials = static_cast<X*>(vsPartials);
     auto extraParams = static_cast<X*>(vextraParams);
 
-    Nd4jLong floorPow2 = numItems;
+    sd::LongType floorPow2 = numItems;
 
     if (floorPow2 & (floorPow2 - 1)) {
 
@@ -81,7 +80,7 @@ __device__ void ReduceSameFunction<X>::aggregatePartials(void *vsPartials, Nd4jL
         __syncthreads();
     }
 
-    for (Nd4jLong activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
+    for (sd::LongType activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
           if (tid < activeThreads && tid + activeThreads < numItems)
             sPartials[tid] = OpType::update(sPartials[tid], sPartials[tid + activeThreads], extraParams);
 
@@ -92,9 +91,9 @@ __device__ void ReduceSameFunction<X>::aggregatePartials(void *vsPartials, Nd4jL
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template <typename OpType>
-__device__ void ReduceSameFunction<X>::transformCudaXD(const void *vx, const Nd4jLong *outerXTadShapeInfo, const Nd4jLong *innerXTadShapeInfo,
+SD_DEVICE void ReduceSameFunction<X>::transformCudaXD(const void *vx, const sd::LongType *outerXTadShapeInfo, const sd::LongType *innerXTadShapeInfo,
                                                         void *vextraParams, void *vreductionBuffer,
-                                                        void *vz, const Nd4jLong *zShapeInfo) {
+                                                        void *vz, const sd::LongType *zShapeInfo) {
 
     auto x = reinterpret_cast<X const*>(vx);
     auto z = reinterpret_cast<X*>(vz);
@@ -107,7 +106,7 @@ __device__ void ReduceSameFunction<X>::transformCudaXD(const void *vx, const Nd4
     // }
 
     //shared memory space for storing intermediate results
-    __shared__ X sPartials[CUDA_BLOCK_SIZE];
+    __shared__ X sPartials[SD_CUDA_BLOCK_SIZE];
     __shared__ int tadLen, numTads;
     __shared__ bool sameOffsets;
 
@@ -119,7 +118,7 @@ __device__ void ReduceSameFunction<X>::transformCudaXD(const void *vx, const Nd4
     }
     __syncthreads();
 
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
 
     for (int r = blockIdx.x; r < numTads; r += gridDim.x) {
 
@@ -135,7 +134,7 @@ __device__ void ReduceSameFunction<X>::transformCudaXD(const void *vx, const Nd4
         __syncthreads();
 
         // aggregate. do NOT reduce for elements > tadLen
-        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, tadLen), extraParams);
+        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, tadLen), extraParams);
         __syncthreads();
 
         if (threadIdx.x == 0)
@@ -145,22 +144,22 @@ __device__ void ReduceSameFunction<X>::transformCudaXD(const void *vx, const Nd4
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
-__device__ void ReduceSameFunction<X>::execScalarCudaLegacy(int opNum, void const* vx, Nd4jLong const* xShapeInfo,
+SD_DEVICE void ReduceSameFunction<X>::execScalarCudaLegacy(int opNum, void const* vx, sd::LongType const* xShapeInfo,
                                                           void *vextraParams,
-                                                          void *vz, Nd4jLong const* zShapeInfo,
+                                                          void *vz, sd::LongType const* zShapeInfo,
                                                           void *vreductionBuffer,
-                                                          Nd4jLong const* tadOnlyShapeInfo) {
+                                                          sd::LongType const* tadOnlyShapeInfo) {
     DISPATCH_BY_OPNUM_T(execScalarCuda, PARAMS(vx, xShapeInfo, vextraParams, vz, zShapeInfo, vreductionBuffer, tadOnlyShapeInfo), REDUCE_SAME_OPS);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template <typename OpType>
-__device__ void ReduceSameFunction<X>::execScalarCuda(void const* vx, Nd4jLong const* xShapeInfo,
+SD_DEVICE void ReduceSameFunction<X>::execScalarCuda(void const* vx, sd::LongType const* xShapeInfo,
                                                         void *vextraParams,
-                                                        void * vz, Nd4jLong const* zShapeInfo,
+                                                        void * vz, sd::LongType const* zShapeInfo,
                                                         void *vreductionBuffer,
-                                                        Nd4jLong const* tadOnlyShapeInfo) {
+                                                        sd::LongType const* tadOnlyShapeInfo) {
     auto x = reinterpret_cast<X const*>(vx);
     auto z = reinterpret_cast<X*>(vz);
     auto extraParams = reinterpret_cast<X*>(vextraParams);
@@ -169,9 +168,9 @@ __device__ void ReduceSameFunction<X>::execScalarCuda(void const* vx, Nd4jLong c
     auto tid = blockDim.x * blockIdx.x + threadIdx.x;
 
     //shared memory space for storing intermediate results
-    __shared__ X sPartials[CUDA_BLOCK_SIZE];
-    __shared__ Nd4jLong xEws;
-    __shared__ Nd4jLong len;
+    __shared__ X sPartials[SD_CUDA_BLOCK_SIZE];
+    __shared__ sd::LongType xEws;
+    __shared__ sd::LongType len;
 
     if(threadIdx.x == 0) {
         xEws = shape::elementWiseStride(xShapeInfo);
@@ -188,7 +187,7 @@ __device__ void ReduceSameFunction<X>::execScalarCuda(void const* vx, Nd4jLong c
             sPartials[threadIdx.x] = OpType::update(sPartials[threadIdx.x], OpType::op(x[shape::getIndexOffset(i, xShapeInfo)], extraParams), extraParams);
 
     __syncthreads();
-    aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, len), extraParams);
+    aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, len), extraParams);
     __syncthreads();
 
     if (gridDim.x > 1) {
@@ -218,7 +217,7 @@ __device__ void ReduceSameFunction<X>::execScalarCuda(void const* vx, Nd4jLong c
                 sPartials[threadIdx.x] = OpType::update(sPartials[threadIdx.x], reductionBuffer[i], extraParams);
 
             __syncthreads();
-            aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(gridDim.x, blockDim.x), extraParams);
+            aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(gridDim.x, blockDim.x), extraParams);
             __syncthreads();
 
             if (threadIdx.x == 0) {
@@ -239,10 +238,10 @@ __device__ void ReduceSameFunction<X>::execScalarCuda(void const* vx, Nd4jLong c
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template<typename OpType>
-__host__ void ReduceSameFunction<X>::intermediateXD(dim3 launchDims, cudaStream_t *stream,
-                                                       const void *x, const Nd4jLong *dXShapeInfo, const Nd4jLong *hXShapeInfo,
+SD_HOST void ReduceSameFunction<X>::intermediateXD(dim3 launchDims, cudaStream_t *stream,
+                                                       const void *x, const sd::LongType *dXShapeInfo, const sd::LongType *hXShapeInfo,
                                                        void *extraParams, void *vreductionBuffer,
-                                                       void *z, const Nd4jLong *dZShapeInfo, const Nd4jLong *hZShapeInfo, const int* dims) {
+                                                       void *z, const sd::LongType *dZShapeInfo, const sd::LongType *hZShapeInfo, const int* dims) {
 
     if(shape::isEmpty(hXShapeInfo)) {
 
@@ -267,14 +266,14 @@ __host__ void ReduceSameFunction<X>::intermediateXD(dim3 launchDims, cudaStream_
 
         auto outerPack = sd::ConstantShapeHelper::getInstance().createSubArrShapeInfo(hXShapeInfo, dims, zRank);
         auto innerPack = sd::ConstantShapeHelper::getInstance().createSubArrShapeInfo(hXShapeInfo, dims+zRank, tadRank);
-        simpleReduce<X, OpType><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(x, reinterpret_cast<Nd4jLong const*>(outerPack.special()), reinterpret_cast<Nd4jLong const*>(innerPack.special()), extraParams, vreductionBuffer, z, dZShapeInfo);
+        simpleReduce<X, OpType><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(x, reinterpret_cast<sd::LongType const*>(outerPack.special()), reinterpret_cast<sd::LongType const*>(innerPack.special()), extraParams, vreductionBuffer, z, dZShapeInfo);
     }
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template<typename OpType>
-__host__ void ReduceSameFunction<X>::intermediateScalar(dim3 launchDims, cudaStream_t *stream, void const* x, Nd4jLong const* xShapeInfo, Nd4jLong const* hXShapeInfo, void *extraParams, void *z, Nd4jLong const* zShapeInfo, Nd4jLong const* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo) {
+SD_HOST void ReduceSameFunction<X>::intermediateScalar(dim3 launchDims, cudaStream_t *stream, void const* x, sd::LongType const* xShapeInfo, sd::LongType const* hXShapeInfo, void *extraParams, void *z, sd::LongType const* zShapeInfo, sd::LongType const* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo) {
 
     if (shape::isEmpty(hXShapeInfo)) {
 
@@ -294,7 +293,7 @@ __host__ void ReduceSameFunction<X>::intermediateScalar(dim3 launchDims, cudaStr
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
-_CUDA_H void ReduceSameFunction<X>::execReduceScalar(dim3 launchDims, cudaStream_t *stream, int opNum, void const* x, Nd4jLong const* xShapeInfo, Nd4jLong const* hXShapeInfo, void *extraParams, void *z, Nd4jLong const* zShapeInfo, Nd4jLong const* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo) {
+SD_HOST void ReduceSameFunction<X>::execReduceScalar(dim3 launchDims, cudaStream_t *stream, int opNum, void const* x, sd::LongType const* xShapeInfo, sd::LongType const* hXShapeInfo, void *extraParams, void *z, sd::LongType const* zShapeInfo, sd::LongType const* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo) {
 
         DISPATCH_BY_OPNUM_T(intermediateScalar, PARAMS(launchDims, stream, x, xShapeInfo, hXShapeInfo, extraParams, z, zShapeInfo, hZShapeInfo, dimension, dimensionLength, reductionBuffer, tadOnlyShapeInfo), REDUCE_SAME_OPS);
         sd::DebugHelper::checkErrorCode(stream, "execReduceScalarSame(...) failed");
@@ -302,10 +301,10 @@ _CUDA_H void ReduceSameFunction<X>::execReduceScalar(dim3 launchDims, cudaStream
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
-_CUDA_H void ReduceSameFunction<X>::execReduceXD(dim3 launchDims, cudaStream_t *stream, const int opNum,
-                                                    const void *x, const Nd4jLong *dXShapeInfo, const Nd4jLong *hXShapeInfo,
+SD_HOST void ReduceSameFunction<X>::execReduceXD(dim3 launchDims, cudaStream_t *stream, const int opNum,
+                                                    const void *x, const sd::LongType *dXShapeInfo, const sd::LongType *hXShapeInfo,
                                                     void *extraParams, void *vreductionBuffer,
-                                                    void *z, const Nd4jLong *dZShapeInfo, const Nd4jLong *hZShapeInfo, const int *dims) {
+                                                    void *z, const sd::LongType *dZShapeInfo, const sd::LongType *hZShapeInfo, const int *dims) {
 
     if(shape::length(hZShapeInfo) == 1)  {
         ReduceSameFunction<X>::execReduceScalar(launchDims, stream, opNum, x, dXShapeInfo, hXShapeInfo, extraParams, z, dZShapeInfo, hZShapeInfo, nullptr, 0, vreductionBuffer, nullptr);
@@ -318,7 +317,7 @@ _CUDA_H void ReduceSameFunction<X>::execReduceXD(dim3 launchDims, cudaStream_t *
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
-__device__ void initializeShared(X *extraParams, X **sPartials, int sMemSize) {
+SD_DEVICE void initializeShared(X *extraParams, X **sPartials, int sMemSize) {
     int sPartialsLength = sMemSize / sizeof(X);
     X *sPartialsDeref = (X *) *sPartials;
     for (int i = 0; i < sPartialsLength; i++)
@@ -327,7 +326,7 @@ __device__ void initializeShared(X *extraParams, X **sPartials, int sMemSize) {
 }
 
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL ReduceSameFunction, , LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN ReduceSameFunction, , SD_COMMON_TYPES);
 
 }
 }

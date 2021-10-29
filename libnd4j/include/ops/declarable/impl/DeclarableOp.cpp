@@ -19,9 +19,8 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/DeclarableOp.h>
-#include <graph/Status.h>
+
 #include <helpers/ShapeUtils.h>
 #include <array/NDArrayFactory.h>
 #include <exceptions/graph_exception.h>
@@ -33,7 +32,7 @@
 
 namespace sd {
     namespace ops {
-        Nd4jStatus conditionHelper(const char *file, int line, int condition, int argNumber, const char *format, ...) {
+        sd::Status conditionHelper(const char *file, int line, int condition, int argNumber, const char *format, ...) {
             if (!condition) {
                 va_list args;
 
@@ -44,9 +43,9 @@ namespace sd {
                 printf("\n");
                 fflush(stdout);
 
-                return ND4J_STATUS_BAD_PARAMS;
+                return sd::Status::BAD_PARAMS;
             }
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DeclarableOp::DeclarableOp() {
@@ -94,7 +93,7 @@ namespace sd {
             return _descriptor->getOpName();
         }
 
-        Nd4jLong DeclarableOp::getOpHash() {
+        sd::LongType DeclarableOp::getOpHash() {
             return _descriptor->getHash();
         }
 
@@ -140,10 +139,10 @@ namespace sd {
                     if (var->getNDArray() != nullptr && var->getNDArray()->nonNull()) {
                         z = var->getNDArray();
                     } else {
-                        nd4j_printf("Can't get Z variable for node_%i!\n", ctx.nodeId());
+                        sd_printf("Can't get Z variable for node_%i!\n", ctx.nodeId());
                     }
                 } else {
-                    nd4j_printf("BOOM!\n", "");
+                    sd_printf("BOOM!\n", "");
                     throw std::runtime_error("Boom!");
                 }
             }
@@ -327,7 +326,7 @@ namespace sd {
                                 //outSha->destroy();
                                 delete outSha;
 
-                                nd4j_printf("Expected vs provided shapes mismatch %s vs %s at index %i with expected shape info %s and output shape info %s\n", eShape.c_str(), aShape.c_str(), pair.second,eShapeInfoString.c_str(),aShapeInfoString.c_str());
+                                sd_printf("Expected vs provided shapes mismatch %s vs %s at index %i with expected shape info %s and output shape info %s\n", eShape.c_str(), aShape.c_str(), pair.second,eShapeInfoString.c_str(),aShapeInfoString.c_str());
 
                                 throw std::runtime_error("Expected vs provided shapes mismatch");
                             }
@@ -359,7 +358,7 @@ namespace sd {
                                     //outSha->destroy();
                                     delete outSha;
 
-                                    nd4j_printf("Expected vs provided shapes mismatch %s vs %s at index %i with expected shape info %s and output shape info %s. Conditions, shapeEquals: %d, array empty: %d\n", eShape.c_str(), aShape.c_str(), idx,eShapeInfoString.c_str(),aShapeInfoString.c_str(),shapeEquals,arrayEmpty);
+                                    sd_printf("Expected vs provided shapes mismatch %s vs %s at index %i with expected shape info %s and output shape info %s. Conditions, shapeEquals: %d, array empty: %d\n", eShape.c_str(), aShape.c_str(), idx,eShapeInfoString.c_str(),aShapeInfoString.c_str(),shapeEquals,arrayEmpty);
                                     throw std::runtime_error("Output array did not match expected shape.");
                                 }
 
@@ -392,14 +391,14 @@ namespace sd {
             ctx.pushNDArrayToVariableSpace(ctx.nodeId(), outputNumber, &array, !ctx.isInplace());
         }
 
-        bool sd::ops::DeclarableOp::allocateResult(Context& block, Nd4jLong* shape) {
+        bool sd::ops::DeclarableOp::allocateResult(Context& block, sd::LongType* shape) {
             auto var = block.variable(block.getNodeId(), 0);
 
             auto workspace = block.getWorkspace();
 
-            Nd4jLong len = shape::length(shape);
-            Nd4jLong* __shape;
-            ALLOCATE(__shape, workspace, shape::shapeInfoLength(shape), Nd4jLong); //new int[shape[0] * 2 + 4];
+            sd::LongType len = shape::length(shape);
+            sd::LongType* __shape;
+            ALLOCATE(__shape, workspace, shape::shapeInfoLength(shape), sd::LongType); //new int[shape[0] * 2 + 4];
 
             memcpy(__shape, shape, shape::shapeInfoByteLength(shape));
 
@@ -420,11 +419,11 @@ namespace sd {
         }
 
 
-        bool sd::ops::DeclarableOp::allocateResult(Context& block, std::initializer_list<Nd4jLong>& shape, char order) {
+        bool sd::ops::DeclarableOp::allocateResult(Context& block, std::initializer_list<sd::LongType>& shape, char order) {
             auto var = block.variable(block.getNodeId(), 0);
             auto workspace = block.getWorkspace();
 
-            Nd4jLong len = shape::length(shape);
+            sd::LongType len = shape::length(shape);
             // if that's first run - we probably have nothing here
             if (var->getNDArray() == nullptr) {
                 var->setNDArray(new NDArray(order, shape, block.dataType(), block.launchContext()));
@@ -437,7 +436,7 @@ namespace sd {
             return true;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateDataTypes(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateDataTypes(Context& block) {
             _registrator.lock();
             if (!_registered) {
                 _registered = true;
@@ -456,9 +455,9 @@ namespace sd {
                     inputTypes[inT++] = array->dataType();
                     if (!_descriptor->checkInputMatch(cnt, array->dataType())) {
                         auto ctype = DataTypeUtils::asString(array->dataType());
-                        nd4j_printf("Op [%s] failed check for input [%i], DataType: [%s]\n",
+                        sd_printf("Op [%s] failed check for input [%i], DataType: [%s]\n",
                                     _descriptor->getOpName()->data(), cnt, ctype.c_str());
-                        return ND4J_STATUS_BAD_ARGUMENTS;
+                        return sd::Status::BAD_ARGUMENTS;
                     }
                     cnt++;
                 }
@@ -477,9 +476,9 @@ namespace sd {
                         inputTypes[inT++] = array->dataType();
                         if (!_descriptor->checkInputMatch(cnt, array->dataType())) {
                             auto ctype = DataTypeUtils::asString(array->dataType());
-                            nd4j_printf("Op [%s] failed check for input [%i], DataType: [%s]\n",
+                            sd_printf("Op [%s] failed check for input [%i], DataType: [%s]\n",
                                         _descriptor->getOpName()->data(), cnt, ctype.c_str());
-                            return ND4J_STATUS_BAD_ARGUMENTS;
+                            return sd::Status::BAD_ARGUMENTS;
                         }
                     }
 
@@ -505,9 +504,9 @@ namespace sd {
 
                             if (ia->dataType() != cType) {
                                 auto t = DataTypeUtils::asString(cType);
-                                nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
+                                sd_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
                                             _descriptor->getOpName()->data(), index, t.c_str());
-                                return ND4J_STATUS_BAD_ARGUMENTS;
+                                return sd::Status::BAD_ARGUMENTS;
                             }
                         } else {
                             // for same mode, output type must be the same as input type
@@ -515,25 +514,25 @@ namespace sd {
 
                             if (ia->dataType() != cType) {
                                 auto t = DataTypeUtils::asString(cType);
-                                nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
+                                sd_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
                                             _descriptor->getOpName()->data(), index, t.c_str());
-                                return ND4J_STATUS_BAD_ARGUMENTS;
+                                return sd::Status::BAD_ARGUMENTS;
                             }
                         }
                     } else if (_descriptor->isInherit(index)) {
                         // in inherit mode, output type must be the same as one of input types
                         if (std::find(inputTypes.begin(), inputTypes.end(), cType) == inputTypes.end()) {
                             auto t = DataTypeUtils::asString(cType);
-                            nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s].\n",
+                            sd_printf("Op [%s] failed check for output [%i], DataType: [%s].\n",
                                         _descriptor->getOpName()->data(), index, t.c_str());
-                            return ND4J_STATUS_BAD_ARGUMENTS;
+                            return sd::Status::BAD_ARGUMENTS;
                         }
 
                     } else if (!_descriptor->checkOutputMatch(index, cType)) {
                         auto t = DataTypeUtils::asString(cType);
-                        nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s];\n",
+                        sd_printf("Op [%s] failed check for output [%i], DataType: [%s];\n",
                                     _descriptor->getOpName()->data(), index, t.c_str());
-                        return ND4J_STATUS_BAD_ARGUMENTS;
+                        return sd::Status::BAD_ARGUMENTS;
                     }
                     index++;
                 }
@@ -559,9 +558,9 @@ namespace sd {
 
                                     if (iv->getNDArray()->dataType() != cType) {
                                         auto t = DataTypeUtils::asString(cType);
-                                        nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
+                                        sd_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
                                                     _descriptor->getOpName()->data(), index, t.c_str());
-                                        return ND4J_STATUS_BAD_ARGUMENTS;
+                                        return sd::Status::BAD_ARGUMENTS;
                                     }
                                 } else {
                                     // for same mode, output type must be the same as input type
@@ -569,25 +568,25 @@ namespace sd {
 
                                     if (iv->getNDArray()->dataType() != cType) {
                                         auto t = DataTypeUtils::asString(cType);
-                                        nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
+                                        sd_printf("Op [%s] failed check for output [%i], DataType: [%s]\n",
                                                     _descriptor->getOpName()->data(), index, t.c_str());
-                                        return ND4J_STATUS_BAD_ARGUMENTS;
+                                        return sd::Status::BAD_ARGUMENTS;
                                     }
                                 }
                             } else if (_descriptor->isInherit(index)) {
                                 // in inherit mode, output type must be the same as one of input types
                                 if (std::find(inputTypes.begin(), inputTypes.end(), cType) == inputTypes.end()) {
                                     auto t = DataTypeUtils::asString(cType);
-                                    nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s].\n",
+                                    sd_printf("Op [%s] failed check for output [%i], DataType: [%s].\n",
                                                 _descriptor->getOpName()->data(), index, t.c_str());
-                                    return ND4J_STATUS_BAD_ARGUMENTS;
+                                    return sd::Status::BAD_ARGUMENTS;
                                 }
 
                             } else if (!_descriptor->checkOutputMatch(index, cType)) {
                                 auto t = DataTypeUtils::asString(cType);
-                                nd4j_printf("Op [%s] failed check for output [%i], DataType: [%s];\n",
+                                sd_printf("Op [%s] failed check for output [%i], DataType: [%s];\n",
                                             _descriptor->getOpName()->data(), index, t.c_str());
-                                return ND4J_STATUS_BAD_ARGUMENTS;
+                                return sd::Status::BAD_ARGUMENTS;
                             }
                         }
                     } else
@@ -596,16 +595,16 @@ namespace sd {
             }
 
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::execute(Context* block) {
-            nd4j_debug("Executing op: [%s]\n", this->getOpName()->c_str());
+        sd::Status sd::ops::DeclarableOp::execute(Context* block) {
+            sd_debug("Executing op: [%s]\n", this->getOpName()->c_str());
 
             std::chrono::time_point<std::chrono::system_clock> timeEnter, timeStart, timeEnd;
-            Nd4jLong prepTime, outerTime;
+            sd::LongType prepTime, outerTime;
 
-            Nd4jLong memoryBefore = block->workspace() == nullptr ? 0L : block->workspace()->getSpilledSize() + block->workspace()->getUsedSize();
+            sd::LongType memoryBefore = block->workspace() == nullptr ? 0L : block->workspace()->getSpilledSize() + block->workspace()->getUsedSize();
             if (Environment::getInstance().isProfiling())
                 timeEnter = std::chrono::system_clock::now();
 
@@ -628,7 +627,7 @@ namespace sd {
             }
 
 
-            Nd4jStatus status;
+            sd::Status status;
             bool hasHelper = false;
 
             // platform helpers use might be forbidden for various reasons, so we'll check it out first
@@ -659,8 +658,8 @@ namespace sd {
                 if (fp != nullptr) {
                     auto p = fp->profile();
                     if (p != nullptr) {
-                        Nd4jLong memoryAfter = block->workspace() == nullptr ? 0L : block->workspace()->getSpilledSize() + block->workspace()->getUsedSize();
-                        Nd4jLong memoryUsed = memoryAfter - memoryBefore;
+                        sd::LongType memoryAfter = block->workspace() == nullptr ? 0L : block->workspace()->getSpilledSize() + block->workspace()->getUsedSize();
+                        sd::LongType memoryUsed = memoryAfter - memoryBefore;
                         p->nodeById(block->nodeId())->setPreparationTime(prepTime);
                         p->nodeById(block->nodeId())->setExecutionTime(outerTime);
                         p->nodeById(block->nodeId())->setTotalSize(memoryUsed);
@@ -696,7 +695,7 @@ namespace sd {
                     auto first = array->isEmpty() ? std::string("Empty NDArray") : array->asString(32);
                     auto type = DataTypeUtils::asString(array->dataType());
 
-                    nd4j_printf("node_%i:%i result shape: %s; dtype: %s; first values %s\n", block->nodeId(), e, shape.c_str(), type.c_str(), first.c_str());
+                    sd_printf("node_%i:%i result shape: %s; dtype: %s; first values %s\n", block->nodeId(), e, shape.c_str(), type.c_str(), first.c_str());
                 }
             }
 
@@ -738,76 +737,76 @@ namespace sd {
             */
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateArguments(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateArguments(Context& block) {
             /*
              * We're checking number of T and I arguments. If number of args is finite number - we check strict equality
              * If number of args is variable (-1), but variables MUST be present - we check for non-zero number of arguments
              */
             if (_descriptor->getNumberOfTArgs() > 0) {
                 if ((int) block.getTArguments()->size() < _descriptor->getNumberOfTArgs()) {
-                    nd4j_printf("%s: %i T args expected, but %i received\n", this->getOpName()->c_str(), _descriptor->getNumberOfTArgs(), block.getTArguments()->size());
-                    return ND4J_STATUS_BAD_PARAMS;
+                    sd_printf("%s: %i T args expected, but %i received\n", this->getOpName()->c_str(), _descriptor->getNumberOfTArgs(), block.getTArguments()->size());
+                    return sd::Status::BAD_PARAMS;
                 }
             } else
             if (_descriptor->getNumberOfTArgs() == -1)
                 if (block.getTArguments()->size() == 0) {
-                    nd4j_printf("%s: Number of T arguments should be positive number, but got 0 arguments\n", this->getOpName()->c_str());
-                    return ND4J_STATUS_BAD_PARAMS;
+                    sd_printf("%s: Number of T arguments should be positive number, but got 0 arguments\n", this->getOpName()->c_str());
+                    return sd::Status::BAD_PARAMS;
                 }
 
             if (_descriptor->getNumberOfIArgs() > 0) {
                 if ((int) block.getIArguments()->size() < _descriptor->getNumberOfIArgs()) {
-                    nd4j_printf("%s: %i int args expected, but %i received\n", this->getOpName()->c_str(), _descriptor->getNumberOfIArgs(), block.getIArguments()->size());
-                    return ND4J_STATUS_BAD_PARAMS;
+                    sd_printf("%s: %i int args expected, but %i received\n", this->getOpName()->c_str(), _descriptor->getNumberOfIArgs(), block.getIArguments()->size());
+                    return sd::Status::BAD_PARAMS;
                 }
             } else
             if (_descriptor->getNumberOfIArgs() == -1)
                 if (block.getIArguments()->size() == 0) {
-                    nd4j_printf("%s: Number of Integer arguments should be positive number, but got 0 arguments\n", this->getOpName()->c_str());
-                    return ND4J_STATUS_BAD_PARAMS;
+                    sd_printf("%s: Number of Integer arguments should be positive number, but got 0 arguments\n", this->getOpName()->c_str());
+                    return sd::Status::BAD_PARAMS;
                 }
 
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInputDimensions(Context& block, int rank) {
+        sd::Status sd::ops::DeclarableOp::validateInputDimensions(Context& block, int rank) {
             if (block.width() == 0)
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
 
             for (auto p: *block.inputs()) {
                 auto v = block.variable(p);
                 NDArray *aV = v->getNDArray();
 
                 if (aV == nullptr)
-                    return ND4J_STATUS_BAD_INPUT;
+                    return sd::Status::BAD_INPUT;
 
                 if (aV->rankOf() != rank)
-                    return ND4J_STATUS_BAD_DIMENSIONS;
+                    return sd::Status::BAD_DIMENSIONS;
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInput2D(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateInput2D(Context& block) {
             return validateInputDimensions(block, 2);
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInput3D(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateInput3D(Context& block) {
             return validateInputDimensions(block, 3);
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInput4D(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateInput4D(Context& block) {
             return validateInputDimensions(block, 4);
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateNonEmptyInput(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateNonEmptyInput(Context& block) {
             if (this->getOpDescriptor()->getNumberOfInputs() == -2 || this->getOpDescriptor()->getNumberOfInputs() == 0)
-                return Status::OK();
+                return sd::Status::OK;
 
             if (block.width() < 1) {
-                nd4j_printf("%s: no operands provided for the op", this->getOpName()->c_str());
-                return ND4J_STATUS_BAD_INPUT;
+                sd_printf("%s: no operands provided for the op", this->getOpName()->c_str());
+                return sd::Status::BAD_INPUT;
             }
 
 
@@ -816,11 +815,11 @@ namespace sd {
                 auto v = block.variable(p);
                 if (v == nullptr) {
                     if (this->getOpName() != nullptr) {
-                        nd4j_printf("Node [%i:<%s>]: Variable [%i] (%i:%i) is NULL\n", block.getNodeId(), this->getOpName()->c_str(), cnt, p.first, p.second);
+                        sd_printf("Node [%i:<%s>]: Variable [%i] (%i:%i) is NULL\n", block.getNodeId(), this->getOpName()->c_str(), cnt, p.first, p.second);
                     } else {
-                        nd4j_printf("Node [%i:<noname>]: Variable [%i] (%i:%i) is NULL\n", block.getNodeId(), cnt, p.first, p.second);
+                        sd_printf("Node [%i:<noname>]: Variable [%i] (%i:%i) is NULL\n", block.getNodeId(), cnt, p.first, p.second);
                     }
-                    return ND4J_STATUS_BAD_INPUT;
+                    return sd::Status::BAD_INPUT;
                 }
 
                 if (v->variableType() == VariableType::NDARRAY) {
@@ -832,36 +831,36 @@ namespace sd {
 
                     if (aV == nullptr || !aV->nonNull()) {
                         if (this->getOpName() != nullptr) {
-                            nd4j_printf("Node [%i:<%s>]: NDArray [%i] (%i:%i) is NULL\n", block.getNodeId(), this->getOpName()->c_str(), cnt, p.first, p.second);
+                            sd_printf("Node [%i:<%s>]: NDArray [%i] (%i:%i) is NULL\n", block.getNodeId(), this->getOpName()->c_str(), cnt, p.first, p.second);
                         } else {
-                            nd4j_printf("Node [%i:<noname>]: NDArray [%i] (%i:%i) is NULL\n", block.getNodeId(), cnt, p.first, p.second);
+                            sd_printf("Node [%i:<noname>]: NDArray [%i] (%i:%i) is NULL\n", block.getNodeId(), cnt, p.first, p.second);
                         }
-                        return ND4J_STATUS_BAD_INPUT;
+                        return sd::Status::BAD_INPUT;
                     }
                 }
 
                 cnt++;
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateOrdersMatch(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateOrdersMatch(Context& block) {
             if (block.width() == 0)
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
 
             NDArray *a0 = block.variable(0)->getNDArray();
             for (auto p: *block.inputs()) {
                 auto v = block.variable(p);
                 NDArray *aV = v->getNDArray();
                 if (a0->ordering() != aV->ordering())
-                    return ND4J_STATUS_BAD_ORDER;
+                    return sd::Status::BAD_ORDER;
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::execute(sd::graph::RandomGenerator& rng, const std::vector<NDArray*>& inputs, const std::vector<NDArray*>& outputs, const std::vector<double>& tArgs, const std::vector<Nd4jLong>& iArgs, const std::vector<bool>& bArgs, const std::vector<sd::DataType>& dArgs, bool isInplace, sd::DataType type) {
+        sd::Status sd::ops::DeclarableOp::execute(sd::graph::RandomGenerator& rng, const std::vector<NDArray*>& inputs, const std::vector<NDArray*>& outputs, const std::vector<double>& tArgs, const std::vector<sd::LongType>& iArgs, const std::vector<bool>& bArgs, const std::vector<sd::DataType>& dArgs, bool isInplace, sd::DataType type) {
             VariableSpace variableSpace;
             FlowPath fp;
             variableSpace.setFlowPath(&fp);
@@ -898,7 +897,7 @@ namespace sd {
             for (int e = 0; e < tArgs.size(); e++)
                 block.getTArguments()->emplace_back(tArgs.at(e));
 
-            // FIXME: iargs should be Nd4jLong
+            // FIXME: iargs should be sd::LongType
             for (int e = 0; e < iArgs.size(); e++)
                 block.getIArguments()->emplace_back(static_cast<int>(iArgs.at(e)));
 
@@ -908,42 +907,42 @@ namespace sd {
             for (int e = 0; e < dArgs.size(); e++)
                 block.getDArguments()->push_back(dArgs.at(e));
 
-            Nd4jStatus result = this->execute(&block);
+            sd::Status result = this->execute(&block);
 
             return result;
         }
 
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs) {
-            return execute(inputs, outputs, std::vector<double>(), std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs) {
+            return execute(inputs, outputs, std::vector<double>(), std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<double> tArgs) {
-            return execute(inputs, outputs, tArgs, std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<double> tArgs) {
+            return execute(inputs, outputs, tArgs, std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<sd::DataType> dArgs) {
-            return execute(inputs, outputs, std::vector<double>(), std::vector<Nd4jLong>(), std::vector<bool>(), dArgs);
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<sd::DataType> dArgs) {
+            return execute(inputs, outputs, std::vector<double>(), std::vector<sd::LongType>(), std::vector<bool>(), dArgs);
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<float> tArgs) {
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<float> tArgs) {
             std::vector<double> realArgs;
             for (auto v:tArgs)
                 realArgs.emplace_back(v);
 
-            return execute(inputs, outputs, realArgs, std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+            return execute(inputs, outputs, realArgs, std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<Nd4jLong> iArgs) {
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<sd::LongType> iArgs) {
             return execute(inputs, outputs, std::vector<double>(), iArgs, std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<int> iArgs) {
-            std::vector<Nd4jLong> realArgs;
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<int> iArgs) {
+            std::vector<sd::LongType> realArgs;
             for (auto v:iArgs)
                 realArgs.emplace_back(v);
 
@@ -951,11 +950,11 @@ namespace sd {
         }
 
         template <>
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<bool> bArgs) {
-            return execute(inputs, outputs, std::vector<double>(), std::vector<Nd4jLong>(), bArgs, std::vector<sd::DataType>());
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, std::initializer_list<bool> bArgs) {
+            return execute(inputs, outputs, std::vector<double>(), std::vector<sd::LongType>(), bArgs, std::vector<sd::DataType>());
         }
 
-        Nd4jStatus DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, const std::vector<double> &tArgs, const std::vector<Nd4jLong> &iArgs, const std::vector<bool> &bArgs, const std::vector<sd::DataType> &dArgs, bool isInplace) {
+        sd::Status DeclarableOp::execute(const std::vector<NDArray *> &inputs, const std::vector<NDArray *> &outputs, const std::vector<double> &tArgs, const std::vector<sd::LongType> &iArgs, const std::vector<bool> &bArgs, const std::vector<sd::DataType> &dArgs, bool isInplace) {
             Context ctx(1);
 
             for (int e = 0; e < inputs.size(); e++) {
@@ -979,12 +978,12 @@ namespace sd {
         }
 
         sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs) {
-            return evaluate(inputs, std::vector<double>(), std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+            return evaluate(inputs, std::vector<double>(), std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
         sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<int> iArgs) {
-            std::vector<Nd4jLong> realArgs;
+            std::vector<sd::LongType> realArgs;
             for (auto v:iArgs)
                 realArgs.emplace_back(v);
 
@@ -992,7 +991,7 @@ namespace sd {
         }
 
         template <>
-        sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<Nd4jLong> iArgs) {
+        sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<sd::LongType> iArgs) {
             return evaluate(inputs, std::vector<double>(), iArgs, std::vector<bool>(), std::vector<sd::DataType>());
         }
 
@@ -1002,25 +1001,25 @@ namespace sd {
             for (auto v:tArgs)
                 realArgs.emplace_back(v);
 
-            return evaluate(inputs, realArgs, std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+            return evaluate(inputs, realArgs, std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
         sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<double> tArgs) {
-            return evaluate(inputs, tArgs, std::vector<Nd4jLong>(), std::vector<bool>(), std::vector<sd::DataType>());
+            return evaluate(inputs, tArgs, std::vector<sd::LongType>(), std::vector<bool>(), std::vector<sd::DataType>());
         }
 
         template <>
         sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<bool> bArgs) {
-            return evaluate(inputs, std::vector<double>(), std::vector<Nd4jLong>(), bArgs, std::vector<sd::DataType>());
+            return evaluate(inputs, std::vector<double>(), std::vector<sd::LongType>(), bArgs, std::vector<sd::DataType>());
         }
 
         template <>
         sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, std::initializer_list<sd::DataType> bArgs) {
-            return evaluate(inputs, std::vector<double>(), std::vector<Nd4jLong>(), std::vector<bool>(), bArgs);
+            return evaluate(inputs, std::vector<double>(), std::vector<sd::LongType>(), std::vector<bool>(), bArgs);
         }
 
-        sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, const std::vector<double> &tArgs, const std::vector<Nd4jLong> &iArgs, const std::vector<bool> &bArgs, const std::vector<sd::DataType> &dArgs, bool isInplace) {
+        sd::ResultSet DeclarableOp::evaluate(const std::vector<NDArray *> &inputs, const std::vector<double> &tArgs, const std::vector<sd::LongType> &iArgs, const std::vector<bool> &bArgs, const std::vector<sd::DataType> &dArgs, bool isInplace) {
             VariableSpace variableSpace;
             //ResultSet arrayList;
             FlowPath fp;
@@ -1056,13 +1055,13 @@ namespace sd {
             for (int e = 0; e < dArgs.size(); e++)
                 block.getDArguments()->push_back(dArgs.at(e));
 
-            Nd4jStatus status = this->execute(&block);
+            sd::Status status = this->execute(&block);
             ResultSet arrayList;
             if (isInplace)
                 arrayList.setNonRemovable();
 
             arrayList.setStatus(status);
-            if (status != ND4J_STATUS_OK)
+            if (status != sd::Status::OK)
                 return arrayList;
 
             if (!isInplace) {
@@ -1095,32 +1094,32 @@ namespace sd {
             return evaluate(holder.getInArrs(), holder.getTArgs(), holder.getIArgs(), holder.getBArgs(), std::vector<sd::DataType>(), isInplace);
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInputDimensionsMatch(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateInputDimensionsMatch(Context& block) {
             if (block.width() == 0)
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
 
             NDArray *a0 = block.array(0);
             for (int e = 1; e < block.width(); e++) {
                 auto aV = block.array(e);
                 if (!shape::equalsSoft(a0->shapeInfo(), aV->shapeInfo()))
-                    return ND4J_STATUS_BAD_DIMENSIONS;
+                    return sd::Status::BAD_DIMENSIONS;
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
-        Nd4jStatus sd::ops::DeclarableOp::validateInputLengthMatch(Context& block) {
+        sd::Status sd::ops::DeclarableOp::validateInputLengthMatch(Context& block) {
             if (block.width() == 0)
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
 
 
-            Nd4jLong l0 = block.array(0)->lengthOf();
+            sd::LongType l0 = block.array(0)->lengthOf();
             for (uint32_t e = 0; e < block.width(); e++) {
                 if (l0 != block.array(e)->lengthOf())
-                    return ND4J_STATUS_BAD_LENGTH;
+                    return sd::Status::BAD_LENGTH;
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         samediff::EmptyHandling DeclarableOp::emptyHandling() {

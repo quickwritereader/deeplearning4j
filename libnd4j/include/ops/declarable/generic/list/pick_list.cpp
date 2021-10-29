@@ -37,20 +37,20 @@ namespace sd {
                     indices.emplace_back(ia->e<int>(e));
             } else if (block.getIArguments()->size() > 0) {
                 indices = *(block.getIArguments());
-            } else return ND4J_STATUS_BAD_ARGUMENTS;
+            } else return sd::Status::BAD_ARGUMENTS;
 
             for (auto& v: indices) {
                 if (v >= list->height()) {
-                    nd4j_printf("Requested index [%i] is higher (or equal) then ArrayList height: [%i]", v,
+                    sd_printf("Requested index [%i] is higher (or equal) then ArrayList height: [%i]", v,
                                 list->height());
-                    return ND4J_STATUS_BAD_ARGUMENTS;
+                    return sd::Status::BAD_ARGUMENTS;
                 }
             }
             auto result = list->pick(indices);
 
 //            OVERWRITE_RESULT(result);
             setupResult(result, block);
-            return Status::OK();
+            return sd::Status::OK;
         }
     }
 }

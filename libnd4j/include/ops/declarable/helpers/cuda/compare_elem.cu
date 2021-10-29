@@ -15,7 +15,6 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
-
 #include <ops/declarable/helpers/compare_elem.h>
 
 namespace sd {
@@ -23,7 +22,7 @@ namespace sd {
         namespace helpers {
 
             template <typename T>
-            static _CUDA_G void comparator(void *vx, const Nd4jLong *xShapeInfo, Nd4jLong length, const bool isStrict, void *reductionBuffer, bool *z) {
+            static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::LongType length, const bool isStrict, void *reductionBuffer, bool *z) {
                 auto x = reinterpret_cast<T*>(vx);
                 auto reduction = reinterpret_cast<uint32_t*>(reductionBuffer);
 
@@ -49,7 +48,7 @@ namespace sd {
                 __syncthreads();
 
                 // aggregate sums in shared memory
-                for (uint activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+                for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
                     if (threadIdx.x < activeThreads)
                         shared[threadIdx.x] += shared[threadIdx.x + activeThreads];
                     __syncthreads();
@@ -85,7 +84,7 @@ namespace sd {
 
                         __syncthreads();
 
-                        for (uint activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+                        for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
                             if (threadIdx.x < activeThreads)
                                 shared[threadIdx.x] += shared[threadIdx.x + activeThreads];
                             __syncthreads();
@@ -113,7 +112,7 @@ namespace sd {
                 auto z = NDArrayFactory::create<bool>(false, context);
 
                 const int numThreads = 256;
-                const int numBlocks = sd::math::nd4j_min<int>(128, sd::math::nd4j_max<int>(1, input->lengthOf() / numThreads));
+                const int numBlocks = sd::math::sd_min<int>(128, sd::math::sd_max<int>(1, input->lengthOf() / numThreads));
 
                 comparator<T><<<numBlocks, numThreads, numThreads * 4 + 1024, *context->getCudaStream()>>>(input->specialBuffer(), input->specialShapeInfo(), input->lengthOf(), isStrictlyIncreasing, context->getReductionPointer(), reinterpret_cast<bool *>(z.specialBuffer()));
 
@@ -123,15 +122,15 @@ namespace sd {
                 output = z.e<bool>(0);
             }
 
-            ND4J_LOCAL void compare_elem(sd::LaunchContext * context, NDArray *input, bool isStrictlyIncreasing, bool& output) {
+            void compare_elem(sd::LaunchContext * context, NDArray *input, bool isStrictlyIncreasing, bool& output) {
                 auto xType = input->dataType();
                 input->syncToDevice();
 
-                BUILD_SINGLE_SELECTOR(xType, _compare_elem, (context, input, isStrictlyIncreasing, output), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, _compare_elem, (context, input, isStrictlyIncreasing, output), SD_COMMON_TYPES);
             }
 
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _compare_elem, (sd::LaunchContext * context, NDArray *A, bool isStrictlyIncreasing, bool& output);, LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void _compare_elem, (sd::LaunchContext * context, NDArray *A, bool isStrictlyIncreasing, bool& output);, SD_COMMON_TYPES);
         }
     }
 }

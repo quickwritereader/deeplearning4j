@@ -33,7 +33,7 @@ namespace ops {
 
         helpers::eye(block.launchContext(), *OUTPUT_VARIABLE(0));
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(eye) {
@@ -70,21 +70,21 @@ namespace ops {
 
         REQUIRE_TRUE(params.size() > 1, 0, "Size is not provided for eye op.");
 
-        Nd4jLong* outShapeInfo(nullptr);
+        sd::LongType* outShapeInfo(nullptr);
 
         const int size = params.size();
 
         switch(size) {
 
             case 2:
-                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
                 outShapeInfo[0] = 2;
                 outShapeInfo[1] = params[1];
                 outShapeInfo[2] = params[1];
                 break;
 
             case 3:
-                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
                 outShapeInfo[0] = 2;
                 outShapeInfo[1] = params[1];
                 outShapeInfo[2] = params[2];
@@ -92,7 +92,7 @@ namespace ops {
 
             default:
                 int rank = size-1;
-                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);
+                ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);
                 outShapeInfo[0] = rank;
                 outShapeInfo[rank-1] = params[1];
                 outShapeInfo[rank] = params[2];

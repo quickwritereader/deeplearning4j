@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include "../ConstantTadHelper.h"
 #include <helpers/TAD.h>
 #include <helpers/ShapeUtils.h>
@@ -32,7 +31,7 @@
 namespace sd {
 
     ConstantTadHelper::ConstantTadHelper() {
-        MAP_IMPL<TadDescriptor, TadPack> pack;
+        SD_MAP_IMPL<TadDescriptor, TadPack> pack;
         _cache.emplace_back(pack);
     }
 
@@ -41,15 +40,15 @@ namespace sd {
       return instance;
     }
 
-    TadPack ConstantTadHelper::tadForDimensions(const Nd4jLong *originalShape, int dimension, const bool keepUnitiesInShape) {
+    TadPack ConstantTadHelper::tadForDimensions(const sd::LongType *originalShape, int dimension, const bool keepUnitiesInShape) {
         return tadForDimensions(originalShape, &dimension, 1, keepUnitiesInShape);
     }
 
-    TadPack ConstantTadHelper::tadForDimensions(const Nd4jLong *originalShape, const std::vector<int> &dimensions, const bool keepUnitiesInShape) {
+    TadPack ConstantTadHelper::tadForDimensions(const sd::LongType *originalShape, const std::vector<int> &dimensions, const bool keepUnitiesInShape) {
         return tadForDimensions(originalShape, const_cast<int *>(dimensions.data()), dimensions.size(), keepUnitiesInShape);
     }
 
-    TadPack ConstantTadHelper::tadForDimensions(const Nd4jLong *originalShape, int* dimensions, int dimLength, const bool keepUnitiesInShape) {
+    TadPack ConstantTadHelper::tadForDimensions(const sd::LongType *originalShape, int* dimensions, int dimLength, const bool keepUnitiesInShape) {
         TadDescriptor tadDescriptor(originalShape, dimensions, dimLength, keepUnitiesInShape);
         return tadForDimensions(tadDescriptor);
     }
@@ -68,14 +67,14 @@ namespace sd {
             const auto shapeInfo = descriptor.originalShape().toShapeInfo();
             const int rank = shape::rank(shapeInfo);
             const std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(rank, descriptor.axis());
-            const Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(shapeInfo, dimsToExclude);
+            const sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(shapeInfo, dimsToExclude);
             const int subArrRank = (rank == dimsToExclude.size() || descriptor.areUnitiesinShape()) ? rank : rank - dimsToExclude.size();
 
-            auto sPtr = std::make_shared<PointerWrapper>(new Nd4jLong[shape::shapeInfoLength(subArrRank)], std::make_shared<PrimaryPointerDeallocator>());   // shape of sub-arrays (same for all for them)
-            auto oPtr = std::make_shared<PointerWrapper>(new Nd4jLong[numOfSubArrs], std::make_shared<PrimaryPointerDeallocator>());
+            auto sPtr = std::make_shared<PointerWrapper>(new sd::LongType[shape::shapeInfoLength(subArrRank)], std::make_shared<PrimaryPointerDeallocator>());   // shape of sub-arrays (same for all for them)
+            auto oPtr = std::make_shared<PointerWrapper>(new sd::LongType[numOfSubArrs], std::make_shared<PrimaryPointerDeallocator>());
 
             if (numOfSubArrs > 0)
-                shape::calcSubArrsShapeInfoAndOffsets(shapeInfo, numOfSubArrs, dimsToExclude.size(), dimsToExclude.data(), sPtr->pointerAsT<Nd4jLong>(), oPtr->pointerAsT<Nd4jLong>(), descriptor.areUnitiesinShape());
+                shape::calcSubArrsShapeInfoAndOffsets(shapeInfo, numOfSubArrs, dimsToExclude.size(), dimsToExclude.data(), sPtr->pointerAsT<sd::LongType>(), oPtr->pointerAsT<sd::LongType>(), descriptor.areUnitiesinShape());
 
             ConstantShapeBuffer shapeBuffer(sPtr);
             ConstantOffsetsBuffer offsetsBuffer(oPtr);

@@ -50,7 +50,7 @@ CONFIGURABLE_OP_IMPL(clipbyavgnorm, -1, 1, true, -2, 0) {
     }
 
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(clipbyavgnorm) {
@@ -75,13 +75,13 @@ CUSTOM_OP_IMPL(clipbyavgnorm_bp, -2, 1, false, -1, 0) {
     }
 
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(clipbyavgnorm_bp) {
 
-    Nd4jLong *newShape = nullptr;
+    sd::LongType *newShape = nullptr;
     COPY_SHAPE(inputShape->at(1), newShape);
 
     return SHAPELIST(CONSTANT(newShape));

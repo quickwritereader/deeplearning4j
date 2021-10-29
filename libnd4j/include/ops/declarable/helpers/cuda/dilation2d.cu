@@ -19,26 +19,25 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/dilation2d.h>
 #include <array/DataTypeUtils.h>
 #include <helpers/PointersManager.h>
 
 namespace sd    {
-namespace ops 	  {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-__global__ static void dilation2dCuda(const void* vx, const Nd4jLong* xShapeInfo,
-									  const void* vy, const Nd4jLong* yShapeInfo,
-									  		void* vz, const Nd4jLong* zShapeInfo,
-									  const int sH, const int sW,
-									  const int pH, const int pW,
-									  const int dH, const int dW) {
+SD_KERNEL static void dilation2dCuda(const void* vx, const sd::LongType* xShapeInfo,
+                                      const void* vy, const sd::LongType* yShapeInfo,
+                                              void* vz, const sd::LongType* zShapeInfo,
+                                      const int sH, const int sW,
+                                      const int pH, const int pW,
+                                      const int dH, const int dW) {
 
-	// x [bS, iH, iW, iC]
-	// y [kH, kW, iC]
+    // x [bS, iH, iW, iC]
+    // y [kH, kW, iC]
     // z [bS, oH, oW, iC]
 
     const X* x = reinterpret_cast<const X*>(vx);
@@ -46,8 +45,8 @@ __global__ static void dilation2dCuda(const void* vx, const Nd4jLong* xShapeInfo
           Z* z = reinterpret_cast<Z*>(vz);
 
     __shared__ int xzRank, yRank, *sharedMem;
-    __shared__ uint iH, iW, kH, kW;
-    __shared__ Nd4jLong zLen;
+    __shared__ sd::Unsigned iH, iW, kH, kW;
+    __shared__ sd::LongType zLen;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
@@ -78,53 +77,53 @@ __global__ static void dilation2dCuda(const void* vx, const Nd4jLong* xShapeInfo
 
     const auto zOffset = shape::getOffset(zShapeInfo, xzCoords);
 
-    yCoords[2] = xzCoords[3];		// iC coordinate is same for x, y and z
+    yCoords[2] = xzCoords[3];        // iC coordinate is same for x, y and z
 
     const auto oh = xzCoords[1];
     const auto ow = xzCoords[2];
 
     X max = -DataTypeUtils::max<X>();
 
-	for (yCoords[0] = 0; yCoords[0] < kH; ++yCoords[0]) {
-    	xzCoords[1] = oh * sH - pH + yCoords[0] * dH;
+    for (yCoords[0] = 0; yCoords[0] < kH; ++yCoords[0]) {
+        xzCoords[1] = oh * sH - pH + yCoords[0] * dH;
         if (xzCoords[1] < 0 || xzCoords[1] >= iH) continue;
 
         for (yCoords[1] = 0; yCoords[1] < kW; ++yCoords[1]) {
-        	xzCoords[2] = ow * sW - pW + yCoords[1] * dW;
+            xzCoords[2] = ow * sW - pW + yCoords[1] * dW;
             if(xzCoords[2] < 0 || xzCoords[2] >= iW) continue;
 
             const X val = x[shape::getOffset(xShapeInfo, xzCoords)] + y[shape::getOffset(yShapeInfo, yCoords)];
             if (val > max)
-            	max = val;
-		}
-	}
+                max = val;
+        }
+    }
 
-	z[zOffset] = static_cast<Z>(max);
+    z[zOffset] = static_cast<Z>(max);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
 static void dilation2dCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                   const void* vx, const Nd4jLong* xShapeInfo,
-                                   const void* vy, const Nd4jLong* yShapeInfo,
-                                         void* vz, const Nd4jLong* zShapeInfo,
+                                   const void* vx, const sd::LongType* xShapeInfo,
+                                   const void* vy, const sd::LongType* yShapeInfo,
+                                         void* vz, const sd::LongType* zShapeInfo,
                                    const int sH, const int sW,
-								   const int pH, const int pW,
-								   const int dH, const int dW) {
+                                   const int pH, const int pW,
+                                   const int dH, const int dW) {
 
     dilation2dCuda<X,Z><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, sH, sW, pH, pW, dH, dW);
 }
 
-ND4J_LOCAL void dilation2d(sd::LaunchContext* context, NDArray *input, NDArray *weights, NDArray *output, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
+void dilation2d(sd::LaunchContext* context, NDArray *input, NDArray *weights, NDArray *output, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
 
-   	PointersManager manager(context, "dilation2d");
+       PointersManager manager(context, "dilation2d");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (output->lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = (weights->rankOf() + output->rankOf()) * sizeof(int) * threadsPerBlock  + 128;
 
     NDArray::prepareSpecialUse({output}, {input, weights});
-    BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), dilation2dCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), weights->specialBuffer(), weights->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), sH, sW, pH, pW, dH, dW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), dilation2dCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), weights->specialBuffer(), weights->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), sH, sW, pH, pW, dH, dW), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({output}, {input, weights});
 
     manager.synchronize();

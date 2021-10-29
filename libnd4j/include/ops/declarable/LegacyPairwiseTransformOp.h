@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYPAIRWISETRANSFORMOP_H
 #define LIBND4J_LEGACYPAIRWISETRANSFORMOP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -30,9 +29,9 @@ namespace sd {
         /**
         *   This class provides wrapper for Pairwise transform operations
         */
-        class ND4J_EXPORT LegacyPairwiseTransformOp: public LegacyOp {
+        class SD_LIB_EXPORT LegacyPairwiseTransformOp: public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override;
+            sd::Status validateAndExecute(Context& block) override;
         public:
             LegacyPairwiseTransformOp();
             LegacyPairwiseTransformOp(int opNum);

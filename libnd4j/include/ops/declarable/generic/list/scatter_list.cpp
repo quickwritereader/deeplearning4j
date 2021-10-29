@@ -56,11 +56,11 @@ namespace sd {
             for (int e = 0; e < tads.size(); e++) {
                 auto idx = indices->e<int>(e);
                 if (idx >= tads.size())
-                    return ND4J_STATUS_BAD_ARGUMENTS;
+                    return sd::Status::BAD_ARGUMENTS;
 
                 auto arr = new NDArray(tads.at(e)->dup(array->ordering()));
                 auto res = list->write(idx, arr);
-                if (res != ND4J_STATUS_OK)
+                if (res != sd::Status::OK)
                     return res;
             }
 
@@ -68,7 +68,7 @@ namespace sd {
                 //OVERWRITE_RESULT(list);
                 setupResultList(list, block);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArrayScatterV3, scatter_list);
         DECLARE_SYN(tensorarrayscatterv3, scatter_list);

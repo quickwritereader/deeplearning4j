@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/print_variable.h>
 #include <helpers/PointersManager.h>
 
@@ -27,7 +26,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename T>
-            static _CUDA_G void print_device(const void *special, const Nd4jLong *shapeInfo) {
+            static SD_KERNEL void print_device(const void *special, const sd::LongType *shapeInfo) {
                 auto length = shape::length(shapeInfo);
                 auto x = reinterpret_cast<const T*>(special);
 
@@ -45,15 +44,15 @@ namespace sd {
             }
 
             template <typename T>
-            static _CUDA_H void exec_print_device(LaunchContext &ctx, const void *special, const Nd4jLong *shapeInfo) {
+            static SD_HOST void exec_print_device(LaunchContext &ctx, const void *special, const sd::LongType *shapeInfo) {
                 print_device<T><<<1, 1, 1024, *ctx.getCudaStream()>>>(special, shapeInfo);
             }
 
-            ND4J_LOCAL void print_special(LaunchContext &ctx, const NDArray &array, const std::string &message) {
+            void print_special(LaunchContext &ctx, const NDArray &array, const std::string &message) {
                 NDArray::prepareSpecialUse({}, {&array});
 
                 PointersManager pm(&ctx, "print_device");
-                BUILD_SINGLE_SELECTOR(array.dataType(), exec_print_device, (ctx, array.specialBuffer(), array.specialShapeInfo()), LIBND4J_TYPES)
+                BUILD_SINGLE_SELECTOR(array.dataType(), exec_print_device, (ctx, array.specialBuffer(), array.specialShapeInfo()), SD_COMMON_TYPES)
                 pm.synchronize();
 
                 NDArray::registerSpecialUse({}, {&array});

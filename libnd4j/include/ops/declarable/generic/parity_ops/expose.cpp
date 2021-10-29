@@ -43,7 +43,7 @@ namespace sd {
                 }
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SYN(Enter, expose);
         DECLARE_SYN(enter, expose);

@@ -45,9 +45,9 @@ namespace sd {
             if (rowCountsPtr) {
                 helpers::barnes_symmetrize(rowP, colP, valP, N, outputRows, outputCols, outputVals, rowCountsPtr);
                 delete rowCountsPtr;
-                return Status::OK();
+                return sd::Status::OK;
             }
-            return Status::THROW("barnes_symmetrized: Cannot loop due wrong input data.");
+            return Logger::logKernelFailureMsg("barnes_symmetrized: Cannot loop due wrong input data.");
         }
 
         DECLARE_TYPES(barnes_symmetrized) {
@@ -63,7 +63,7 @@ namespace sd {
 
         DECLARE_SHAPE_FN(barnes_symmetrized) {
             auto valPShapeInfo = inputShape->at(2);
-            Nd4jLong* outShapeInfo;
+            sd::LongType* outShapeInfo;
             auto rowP = INPUT_VARIABLE(0);
             auto colP = INPUT_VARIABLE(1);
             auto N = rowP->lengthOf() - 1;
@@ -72,12 +72,12 @@ namespace sd {
             auto dataType = rowP->dataType(); //ArrayOptions::dataType(inputShape->at(0));
             NDArray* rowCounts = NDArrayFactory::create_<int>('c', { N }, block.launchContext()); //rowP->dup();
             //srowCounts->assign(0);
-            Nd4jLong len = helpers::barnes_row_count(rowP, colP, N, *rowCounts);
+            sd::LongType len = helpers::barnes_row_count(rowP, colP, N, *rowCounts);
             rowCounts->syncToHost();
             //            rowCounts->printBuffer("Row Counts");
             if (len <= 0) throw std::runtime_error("barnes_symmetrized: Cannot allocate shape due non-positive len.");
             rowCountsPtr = rowCounts;
-            //ALLOCATE(outShapeInfo, block.workspace(), shape::shapeInfoLength(2), Nd4jLong);
+            //ALLOCATE(outShapeInfo, block.workspace(), shape::shapeInfoLength(2), sd::LongType);
 //            outShapeInfo[1] = 1;
 //            outShapeInfo[2] = len;
            // ShapeUtils::updateStridesAndType(outShapeInfo, ArrayOptions::dataType(valPShapeInfo), 'c');

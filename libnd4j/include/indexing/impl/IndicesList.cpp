@@ -19,14 +19,13 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <indexing/IndicesList.h>
 
 using namespace sd;
 
 sd::IndicesList::IndicesList(std::initializer_list<NDIndex *> list) {
-	for (auto v: list)
-	_indices.emplace_back(v);
+    for (auto v: list)
+    _indices.emplace_back(v);
 }
 
 sd::IndicesList::~IndicesList() {

@@ -19,10 +19,8 @@
 //
 // Created by raver119 on 10.11.2017.
 //
-
 #include <helpers/logger.h>
 #include <helpers/BitwiseUtils.h>
-#include <system/pointercast.h>
 #include <types/float16.h>
 
 namespace sd {

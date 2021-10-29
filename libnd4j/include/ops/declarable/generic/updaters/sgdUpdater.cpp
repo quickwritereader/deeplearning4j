@@ -38,7 +38,7 @@ namespace sd {
             auto output = OUTPUT_VARIABLE(0);
 
             if (input->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             bool bLearningRate = 2 == block.width() || 1 == block.getTArguments()->size();
 
@@ -54,7 +54,7 @@ namespace sd {
                 input->applyScalar(scalar::Multiply, T_ARG(0), *output);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(sgd_updater) {

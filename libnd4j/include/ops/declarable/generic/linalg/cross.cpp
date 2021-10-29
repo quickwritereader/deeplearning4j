@@ -54,7 +54,7 @@ namespace ops {
             helpers::crossBatched(block.launchContext(), a, b, o);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 }
 }

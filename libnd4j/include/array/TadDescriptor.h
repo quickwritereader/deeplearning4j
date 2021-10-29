@@ -23,11 +23,10 @@
 #ifndef DEV_TESTS_TADDESCRIPTOR_H
 #define DEV_TESTS_TADDESCRIPTOR_H
 
-#include "ShapeDescriptor.h"
-#include <system/dll.h>
+#include <array/ShapeDescriptor.h>
 
 namespace sd {
-        class ND4J_EXPORT TadDescriptor {
+        class SD_LIB_EXPORT TadDescriptor {
             private:
             ShapeDescriptor _originalShape;
 
@@ -36,7 +35,7 @@ namespace sd {
             bool _unitiesInShape;
 
             public:
-            explicit TadDescriptor(const Nd4jLong *originalShape, const int *dimensions, const int length, const bool keepUnitiesInShape = false);
+            explicit TadDescriptor(const sd::LongType *originalShape, const int *dimensions, const int length, const bool keepUnitiesInShape = false);
             explicit TadDescriptor(const ShapeDescriptor &descriptor, const std::vector<int> &dimensions, const bool keepUnitiesInShape = false);
             ~TadDescriptor() = default;
 
@@ -72,7 +71,7 @@ namespace sd {
 
 namespace std {
         template<>
-        class ND4J_EXPORT hash<sd::TadDescriptor> {
+        class SD_LIB_EXPORT hash<sd::TadDescriptor> {
             public:
             size_t operator()(const sd::TadDescriptor &k) const;
         };

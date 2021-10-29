@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 11.10.2017.
 //
-
 #include "memory/MemoryUtils.h"
 #include <helpers/logger.h>
 
@@ -39,7 +38,7 @@
 
 bool sd::memory::MemoryUtils::retrieveMemoryStatistics(sd::memory::MemoryReport &report) {
 #if defined(__APPLE__)
-    nd4j_debug("APPLE route\n", "");
+    sd_debug("APPLE route\n", "");
 /*
     struct task_basic_info t_info;
     mach_msg_type_number_t t_info_count = TASK_BASIC_INFO_COUNT;
@@ -51,7 +50,7 @@ bool sd::memory::MemoryUtils::retrieveMemoryStatistics(sd::memory::MemoryReport 
     report.setRSS(t_info.resident_size);
 
 
-    nd4j_debug("RSS: %lld; VM: %lld;\n", report.getRSS(), report.getVM());
+    sd_debug("RSS: %lld; VM: %lld;\n", report.getRSS(), report.getVM());
 */
     struct rusage _usage;
 
@@ -59,15 +58,15 @@ bool sd::memory::MemoryUtils::retrieveMemoryStatistics(sd::memory::MemoryReport 
 
     report.setRSS(_usage.ru_maxrss);
 
-    nd4j_debug("Usage: %lld; %lld; %lld; %lld;\n", _usage.ru_ixrss, _usage.ru_idrss, _usage.ru_isrss, _usage.ru_maxrss);
+    sd_debug("Usage: %lld; %lld; %lld; %lld;\n", _usage.ru_ixrss, _usage.ru_idrss, _usage.ru_isrss, _usage.ru_maxrss);
 
     return true;
 #elif defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-    nd4j_debug("WIN32 route\n", "");
+    sd_debug("WIN32 route\n", "");
 
 
 #else
-    nd4j_debug("LINUX route\n", "");
+    sd_debug("LINUX route\n", "");
     int fd = open("/proc/self/statm", O_RDONLY, 0);
     if (fd >= 0) {
         char line[256];
@@ -75,7 +74,7 @@ bool sd::memory::MemoryUtils::retrieveMemoryStatistics(sd::memory::MemoryReport 
         int n;
         lseek(fd, 0, SEEK_SET);
         if ((n = read(fd, line, sizeof(line))) > 0 && (s = (char*)memchr(line, ' ', n)) != NULL) {
-            report.setRSS((Nd4jLong)(atoll(s + 1) * getpagesize()));
+            report.setRSS((sd::LongType)(atoll(s + 1) * getpagesize()));
         }
         close(fd);
     }
@@ -87,7 +86,7 @@ bool sd::memory::MemoryUtils::retrieveMemoryStatistics(sd::memory::MemoryReport 
 
     report.setRSS(_usage.ru_maxrss);
 
-    //nd4j_printf("Usage: %lld; %lld; %lld; %lld;\n", _usage.ru_ixrss, _usage.ru_idrss, _usage.ru_isrss, _usage.ru_maxrss);
+    //sd_printf("Usage: %lld; %lld; %lld; %lld;\n", _usage.ru_ixrss, _usage.ru_idrss, _usage.ru_isrss, _usage.ru_maxrss);
      */
 
 

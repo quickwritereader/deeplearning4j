@@ -37,7 +37,7 @@ CONFIGURABLE_OP_IMPL(adjust_contrast, 1, 1, true, 0, 0) {
 
     // just skip op if input is empty
     if (input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     REQUIRE_TRUE(block.numT() > 0 || block.width() > 1, 0, "ADJUST_CONTRAST: Scale factor required");
     REQUIRE_TRUE(input->rankOf() > 2, 0, "ADJUST_CONTRAST: op expects rank of input array to be >= 3, but got %i instead", input->rankOf());
@@ -66,7 +66,7 @@ CONFIGURABLE_OP_IMPL(adjust_contrast, 1, 1, true, 0, 0) {
     if(block.width() == 1)
         delete factor;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(adjust_contrast) {
@@ -83,7 +83,7 @@ CONFIGURABLE_OP_IMPL(adjust_contrast_v2, 1, 1, true, 0, 0) {
 
     // just skip op if input is empty
     if (input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     REQUIRE_TRUE(input->rankOf() > 2, 0, "ADJUST_CONTRAST_V2: op expects rank of input array to be >= 3, but got %i instead", input->rankOf());
 //    REQUIRE_TRUE(input->sizeAt(-1) == 3, 0, "ADJUST_CONTRAST_V2: operation expects image with 3 channels (R, G, B), but got %i instead", input->sizeAt(-1));
@@ -117,7 +117,7 @@ CONFIGURABLE_OP_IMPL(adjust_contrast_v2, 1, 1, true, 0, 0) {
     if(block.width() == 1)
         delete factor;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(adjust_contrast_v2) {

@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/imagesHelpers.h>
 #include <helpers/ConstantTadHelper.h>
@@ -35,13 +34,13 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void rgbToYuvCuda(const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets, void* vz, const Nd4jLong *zShapeInfo, const Nd4jLong* zTadOffsets, const Nd4jLong numOfTads, const int dimC) {
+SD_KERNEL void rgbToYuvCuda(const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets, void* vz, const sd::LongType *zShapeInfo, const sd::LongType* zTadOffsets, const sd::LongType numOfTads, const int dimC) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank;
-    __shared__ Nd4jLong xDimCstride, zDimCstride;
+    __shared__ sd::LongType xDimCstride, zDimCstride;
 
     if (threadIdx.x == 0) {
         rank = shape::rank(xShapeInfo);
@@ -52,7 +51,7 @@ __global__ void rgbToYuvCuda(const void* vx, const Nd4jLong* xShapeInfo, const N
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
         const T* xTad = x + xTadOffsets[i];
         T* zTad = z + zTadOffsets[i];
 
@@ -63,26 +62,26 @@ __global__ void rgbToYuvCuda(const void* vx, const Nd4jLong* xShapeInfo, const N
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-linkage void rgbToYuvCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets, void* vz, const Nd4jLong* zShapeInfo, const Nd4jLong* zTadOffsets, const Nd4jLong numOfTads, const int dimC) {
+ void rgbToYuvCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets, void* vz, const sd::LongType* zShapeInfo, const sd::LongType* zTadOffsets, const sd::LongType numOfTads, const int dimC) {
 
     rgbToYuvCuda<T> << <blocksPerGrid, threadsPerBlock, 256, * stream >> > (vx, xShapeInfo, xTadOffsets, vz, zShapeInfo, zTadOffsets, numOfTads, dimC);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), { dimC });
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), { dimC });
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX.numberOfTads();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (numOfTads + threadsPerBlock - 1) / threadsPerBlock;
 
     PointersManager manager(context, "yuv_to_rgb");
 
     NDArray::prepareSpecialUse({ &output }, { &input });
-    BUILD_SINGLE_SELECTOR(input.dataType(), rgbToYuvCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), packX.platformOffsets(), output.specialBuffer(), output.specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), rgbToYuvCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), packX.platformOffsets(), output.specialBuffer(), output.specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({ &output }, { &input });
 
     manager.synchronize();
@@ -90,13 +89,13 @@ ND4J_LOCAL void transformRgbYuv(sd::LaunchContext* context, const NDArray& input
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void yuvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets, void* vz, const Nd4jLong *zShapeInfo, const Nd4jLong* zTadOffsets, const Nd4jLong numOfTads, const int dimC) {
+SD_KERNEL void yuvToRgbCuda(const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets, void* vz, const sd::LongType *zShapeInfo, const sd::LongType* zTadOffsets, const sd::LongType numOfTads, const int dimC) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank;
-    __shared__ Nd4jLong xDimCstride, zDimCstride;
+    __shared__ sd::LongType xDimCstride, zDimCstride;
 
     if (threadIdx.x == 0) {
         rank = shape::rank(xShapeInfo);
@@ -107,7 +106,7 @@ __global__ void yuvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, const N
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
         const T* xTad = x + xTadOffsets[i];
         T* zTad = z + zTadOffsets[i];
 
@@ -118,26 +117,26 @@ __global__ void yuvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, const N
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-linkage void yuvToRgbCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets, void* vz, const Nd4jLong* zShapeInfo, const Nd4jLong* zTadOffsets, const Nd4jLong numOfTads, const int dimC) {
+ void yuvToRgbCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets, void* vz, const sd::LongType* zShapeInfo, const sd::LongType* zTadOffsets, const sd::LongType numOfTads, const int dimC) {
 
     yuvToRgbCuda<T> << <blocksPerGrid, threadsPerBlock, 256, * stream >> > (vx, xShapeInfo, xTadOffsets, vz, zShapeInfo, zTadOffsets, numOfTads, dimC);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), { dimC });
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), { dimC });
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX.numberOfTads();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (numOfTads + threadsPerBlock - 1) / threadsPerBlock;
 
     PointersManager manager(context, "yuv_to_rgb");
 
     NDArray::prepareSpecialUse({ &output }, { &input });
-    BUILD_SINGLE_SELECTOR(input.dataType(), yuvToRgbCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), packX.platformOffsets(), output.specialBuffer(), output.specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), yuvToRgbCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), packX.platformOffsets(), output.specialBuffer(), output.specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({ &output }, { &input });
 
     manager.synchronize();
@@ -146,34 +145,34 @@ ND4J_LOCAL void transformYuvRgb(sd::LaunchContext* context, const NDArray& input
 ///////////////////////////////////////////////////////////////////
 // for example xShapeInfo = {2,3,4}, zShapeInfo = {2,1,4}
 template<typename T>
-__global__ void rgbToGrsCuda(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, const int dimC) {
+SD_KERNEL void rgbToGrsCuda(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, const int dimC) {
 
-	const auto x = reinterpret_cast<const T*>(vx);
-		  auto z = reinterpret_cast<T*>(vz);
+    const auto x = reinterpret_cast<const T*>(vx);
+          auto z = reinterpret_cast<T*>(vz);
 
-	__shared__ Nd4jLong zLen;
-	__shared__ int rank, *sharedMem;	// xRank == zRank
+    __shared__ sd::LongType zLen;
+    __shared__ int rank, *sharedMem;    // xRank == zRank
 
-	if (threadIdx.x == 0) {
-		extern __shared__ unsigned char shmem[];
+    if (threadIdx.x == 0) {
+        extern __shared__ unsigned char shmem[];
         sharedMem = reinterpret_cast<int*>(shmem);
 
-		zLen = shape::length(zShapeInfo);
-		rank = shape::rank(zShapeInfo);
-	}
-	__syncthreads();
+        zLen = shape::length(zShapeInfo);
+        rank = shape::rank(zShapeInfo);
+    }
+    __syncthreads();
 
-	auto coords = sharedMem + threadIdx.x * rank;
+    auto coords = sharedMem + threadIdx.x * rank;
 
-	for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i +=  gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i +=  gridDim.x * blockDim.x) {
 
-		if (dimC == (rank - 1) && 'c' == shape::order(xShapeInfo) && 1 == shape::elementWiseStride(xShapeInfo) && 'c' == shape::order(zShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo)) {
-			const auto xStep = i*3;
+        if (dimC == (rank - 1) && 'c' == shape::order(xShapeInfo) && 1 == shape::elementWiseStride(xShapeInfo) && 'c' == shape::order(zShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo)) {
+            const auto xStep = i*3;
             z[i] = 0.2989f * x[xStep] + 0.5870f * x[xStep + 1] + 0.1140f * x[xStep + 2];
-		}
-		else {
+        }
+        else {
 
-	    	shape::index2coords(i, zShapeInfo, coords);
+            shape::index2coords(i, zShapeInfo, coords);
 
             const auto zOffset  = shape::getOffset(zShapeInfo, coords);
             const auto xOffset0 = shape::getOffset(xShapeInfo, coords);
@@ -181,45 +180,45 @@ __global__ void rgbToGrsCuda(const void *vx, const Nd4jLong *xShapeInfo, void *v
             const auto xOffset2 = xOffset1 + shape::stride(xShapeInfo)[dimC];
 
             z[zOffset] = 0.2989f * x[xOffset0] + 0.5870f * x[xOffset1] + 0.1140f * x[xOffset2];
-		}
-	}
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-linkage void rgbToGrsCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream, const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, const int dimC) {
+ void rgbToGrsCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream, const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, const int dimC) {
 
-	rgbToGrsCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vz, zShapeInfo, dimC);
+    rgbToGrsCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vz, zShapeInfo, dimC);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
 
-	PointersManager manager(context, "rgbToGrs");
+    PointersManager manager(context, "rgbToGrs");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = input.rankOf() * sizeof(int) * threadsPerBlock + 128;
 
-	NDArray::prepareSpecialUse({&output}, {&input});
-	BUILD_SINGLE_SELECTOR(input.dataType(), rgbToGrsCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), dimC), NUMERIC_TYPES);
-	NDArray::registerSpecialUse({&output}, {&input});
+    NDArray::prepareSpecialUse({&output}, {&input});
+    BUILD_SINGLE_SELECTOR(input.dataType(), rgbToGrsCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), dimC), SD_NUMERIC_TYPES);
+    NDArray::registerSpecialUse({&output}, {&input});
 
-	manager.synchronize();
+    manager.synchronize();
 }
 
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void _CUDA_G rgbToHsvCuda(const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                  void* vz, const Nd4jLong *zShapeInfo, const Nd4jLong* zTadOffsets,
-                                  const Nd4jLong numOfTads, const int dimC) {
+static void SD_KERNEL rgbToHsvCuda(const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                  void* vz, const sd::LongType *zShapeInfo, const sd::LongType* zTadOffsets,
+                                  const sd::LongType numOfTads, const int dimC) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank;
-    __shared__ Nd4jLong xDimCstride, zDimCstride;
+    __shared__ sd::LongType xDimCstride, zDimCstride;
 
     if (threadIdx.x == 0) {
         rank = shape::rank(xShapeInfo);
@@ -230,7 +229,7 @@ static void _CUDA_G rgbToHsvCuda(const void* vx, const Nd4jLong* xShapeInfo, con
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
         const T* xTad = x + xTadOffsets[i];
         T* zTad = z + zTadOffsets[i];
 
@@ -240,15 +239,15 @@ static void _CUDA_G rgbToHsvCuda(const void* vx, const Nd4jLong* xShapeInfo, con
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void _CUDA_G hsvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                 void* vz, const Nd4jLong *zShapeInfo, const Nd4jLong* zTadOffsets,
-                                 const Nd4jLong numOfTads, const int dimC) {
+static void SD_KERNEL hsvToRgbCuda(const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                 void* vz, const sd::LongType *zShapeInfo, const sd::LongType* zTadOffsets,
+                                 const sd::LongType numOfTads, const int dimC) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank;
-    __shared__ Nd4jLong xDimCstride, zDimCstride;
+    __shared__ sd::LongType xDimCstride, zDimCstride;
 
     if (threadIdx.x == 0) {
         rank = shape::rank(xShapeInfo);
@@ -259,7 +258,7 @@ static void _CUDA_G hsvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, con
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < numOfTads; i += gridDim.x * blockDim.x) {
         const T* xTad = x + xTadOffsets[i];
         T* zTad = z + zTadOffsets[i];
 
@@ -269,38 +268,38 @@ static void _CUDA_G hsvToRgbCuda(const void* vx, const Nd4jLong* xShapeInfo, con
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static _CUDA_H void hsvToRgbCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
-                                          const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                          void* vz, const Nd4jLong* zShapeInfo, const Nd4jLong* zTadOffsets,
-                                          const Nd4jLong numOfTads, const int dimC) {
+static SD_HOST void hsvToRgbCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
+                                          const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                          void* vz, const sd::LongType* zShapeInfo, const sd::LongType* zTadOffsets,
+                                          const sd::LongType numOfTads, const int dimC) {
 
     hsvToRgbCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, xTadOffsets, vz, zShapeInfo, zTadOffsets, numOfTads, dimC);
 }
 
 template<typename T>
-static _CUDA_H void rgbToHsvCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
-                                         const void* vx, const Nd4jLong* xShapeInfo, const Nd4jLong* xTadOffsets,
-                                         void* vz, const Nd4jLong* zShapeInfo, const Nd4jLong* zTadOffsets,
-                                         const Nd4jLong numOfTads, const int dimC) {
+static SD_HOST void rgbToHsvCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
+                                         const void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xTadOffsets,
+                                         void* vz, const sd::LongType* zShapeInfo, const sd::LongType* zTadOffsets,
+                                         const sd::LongType numOfTads, const int dimC) {
 
     rgbToHsvCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, xTadOffsets, vz, zShapeInfo, zTadOffsets, numOfTads, dimC);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),  {dimC});
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), {dimC});
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX.numberOfTads();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (numOfTads + threadsPerBlock - 1) / threadsPerBlock;
 
     PointersManager manager(context, "hsv_to_rgb");
 
     NDArray::prepareSpecialUse({output}, {input});
-    BUILD_SINGLE_SELECTOR(input->dataType(), hsvToRgbCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), hsvToRgbCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({output}, {input});
 
     manager.synchronize();
@@ -311,27 +310,27 @@ void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),  {dimC});
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), {dimC});
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX.numberOfTads();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (numOfTads + threadsPerBlock - 1) / threadsPerBlock;
 
     PointersManager manager(context, "rgb_to_hsv");
 
     NDArray::prepareSpecialUse({output}, {input});
-    BUILD_SINGLE_SELECTOR(input->dataType(), rgbToHsvCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), rgbToHsvCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input->specialBuffer(), input->specialShapeInfo(), packX.platformOffsets(), output->specialBuffer(), output->specialShapeInfo(), packZ.platformOffsets(), numOfTads, dimC), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({output}, {input});
 
     manager.synchronize();
 }
 
 template<typename T>
-static __global__ void tripleTransformerCuda(const void *vx, const Nd4jLong *xShapeInfo, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xOffsets, void *vz, const Nd4jLong *zShapeInfo, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zOffsets, const int dimC, int mode, uint64_t numTads) {
+static SD_KERNEL void tripleTransformerCuda(const void *vx, const sd::LongType *xShapeInfo, const sd::LongType *xTadShapeInfo, const sd::LongType *xOffsets, void *vz, const sd::LongType *zShapeInfo, const sd::LongType *zTadShapeInfo, const sd::LongType *zOffsets, const int dimC, int mode, uint64_t numTads) {
     const auto x = reinterpret_cast<const T*>(vx);
     auto z = reinterpret_cast<T*>(vz);
 
-    __shared__ Nd4jLong zLen, *sharedMem;
-    __shared__ int rank;	// xRank == zRank
+    __shared__ sd::LongType zLen, *sharedMem;
+    __shared__ int rank;    // xRank == zRank
 
     float yiqarr[3][3] = {
             { 0.299f,  0.59590059f,  0.2115f },
@@ -349,14 +348,14 @@ static __global__ void tripleTransformerCuda(const void *vx, const Nd4jLong *xSh
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+        sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
         zLen = shape::length(zShapeInfo);
         rank = shape::rank(zShapeInfo);
     }
     __syncthreads();
 
-    Nd4jLong* coords = sharedMem + threadIdx.x * rank;
+    sd::LongType* coords = sharedMem + threadIdx.x * rank;
 
     if (dimC == (rank - 1) && 'c' == shape::order(xShapeInfo) && 1 == shape::elementWiseStride(xShapeInfo) && 'c' == shape::order(zShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo)) {
         for (uint64_t f = blockIdx.x * blockDim.x + threadIdx.x; f < zLen / 3; f +=  gridDim.x * blockDim.x) {
@@ -371,8 +370,8 @@ static __global__ void tripleTransformerCuda(const void *vx, const Nd4jLong *xSh
         }
     } else {
         // TAD based case
-        const Nd4jLong xDimCstride = shape::stride(xShapeInfo)[dimC];
-        const Nd4jLong zDimCstride = shape::stride(zShapeInfo)[dimC];
+        const sd::LongType xDimCstride = shape::stride(xShapeInfo)[dimC];
+        const sd::LongType zDimCstride = shape::stride(zShapeInfo)[dimC];
 
         for (uint64_t i = blockIdx.x * blockDim.x + threadIdx.x; i < numTads; i += blockDim.x * gridDim.x) {
             const T* xTad = x + xOffsets[i];
@@ -400,7 +399,7 @@ static void rgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* ou
 }
 
 template <typename T>
-FORCEINLINE static void yiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void yiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
@@ -409,16 +408,13 @@ FORCEINLINE static void yiqRgb(sd::LaunchContext* context, const NDArray* input,
     NDArray::registerSpecialUse({output}, {input});
 }
 
-ND4J_LOCAL void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), yiqRgb, (context, input, output, dimC), FLOAT_TYPES);
+void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), yiqRgb, (context, input, output, dimC), SD_FLOAT_TYPES);
 }
 
-ND4J_LOCAL void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), rgbYiq, (context, input, output, dimC), FLOAT_TYPES);
+void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), rgbYiq, (context, input, output, dimC), SD_FLOAT_TYPES);
 }
-
-
-
 
 
 }

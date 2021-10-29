@@ -20,7 +20,6 @@
 // @author raver119@gmail.com, created on 30.11.17.
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/col2im.h>
 #include <helpers/PointersManager.h>
 
@@ -31,17 +30,17 @@ namespace helpers {
 //////////////////////////////////////////////////////////////////////////
 // columns [bS, iC, kH, kW, oH, oW] to be de-convoluted to image [bS, iC, iH, iW]
 template <typename T>
-static __global__ void col2imCuda(const void* columns, const Nd4jLong* colShapeInfo, void* image, const Nd4jLong* imShapeInfo, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
+static SD_KERNEL void col2imCuda(const void* columns, const sd::LongType* colShapeInfo, void* image, const sd::LongType* imShapeInfo, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
 
     const T* col = reinterpret_cast<const T*>(columns);
           T* im = reinterpret_cast<T*>(image);
 
-    __shared__ uint kH, kW, oH, oW, *sharedMem;
-    __shared__ Nd4jLong imLen;
+    __shared__ sd::Unsigned kH, kW, oH, oW, *sharedMem;
+    __shared__ sd::LongType imLen;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<uint*>(shmem);
+        sharedMem = reinterpret_cast<sd::Unsigned*>(shmem);
 
         kH = dH * (colShapeInfo[3] - 1) + 1;
         kW = dW * (colShapeInfo[4] - 1) + 1;
@@ -57,7 +56,7 @@ static __global__ void col2imCuda(const void* columns, const Nd4jLong* colShapeI
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < imLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < imLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, imShapeInfo, coords);
 
@@ -65,14 +64,14 @@ static __global__ void col2imCuda(const void* columns, const Nd4jLong* colShapeI
 
         const auto bSiCoffset = coords[0] * colShapeInfo[7] + coords[1] * colShapeInfo[8];
 
-        const uint imH = coords[2] + pH;
-        const uint imW = coords[3] + pW;
+        const sd::Unsigned imH = coords[2] + pH;
+        const sd::Unsigned imW = coords[3] + pW;
 
-        const uint colHstart = (imH < kH) ? 0 : (imH - kH) / sH + 1;
-        const uint colWstart = (imW < kW) ? 0 : (imW - kW) / sW + 1;
+        const sd::Unsigned colHstart = (imH < kH) ? 0 : (imH - kH) / sH + 1;
+        const sd::Unsigned colWstart = (imW < kW) ? 0 : (imW - kW) / sW + 1;
 
-        const uint colHend = sd::math::nd4j_min<uint>(imH / sH + 1, oH);
-        const uint colWend = sd::math::nd4j_min<uint>(imW / sW + 1, oW);
+        const sd::Unsigned colHend = sd::math::sd_min<sd::Unsigned>(imH / sH + 1, oH);
+        const sd::Unsigned colWend = sd::math::sd_min<sd::Unsigned>(imW / sW + 1, oW);
 
         T val = 0;
 
@@ -94,13 +93,13 @@ static __global__ void col2imCuda(const void* columns, const Nd4jLong* colShapeI
 ////////////////////////////////////////////////////////////////////////
 // columns [bS, iC, kH, kW, oH, oW] to be de-convoluted to image [bS, iC, iH, iW]
 template<typename T>
-__global__ static void col2imCuda2(const void *columns, void *image, const Nd4jLong *colShapeInfo, const Nd4jLong *imShapeInfo, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
+SD_KERNEL static void col2imCuda2(const void *columns, void *image, const sd::LongType *colShapeInfo, const sd::LongType *imShapeInfo, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
 
           const auto col = reinterpret_cast<const T*>(columns);
           auto im = reinterpret_cast<T*>(image);
 
-          auto colShape = shape::shapeOf(const_cast<Nd4jLong *>(colShapeInfo));
-          auto colStride = shape::stride(const_cast<Nd4jLong *>(colShapeInfo));
+          auto colShape = shape::shapeOf(const_cast<sd::LongType *>(colShapeInfo));
+          auto colStride = shape::stride(const_cast<sd::LongType *>(colShapeInfo));
 
           int colStride0 = colStride[0];
           int colStride1 = colStride[1];
@@ -112,9 +111,9 @@ __global__ static void col2imCuda2(const void *columns, void *image, const Nd4jL
           int kH = colShape[2];
           int kW = colShape[3];
 
-          auto imShape  = shape::shapeOf(const_cast<Nd4jLong *>(imShapeInfo));
-          auto imOrder  = shape::order(const_cast<Nd4jLong *>(imShapeInfo));
-          auto imStride = shape::stride(const_cast<Nd4jLong *>(imShapeInfo));
+          auto imShape  = shape::shapeOf(const_cast<sd::LongType *>(imShapeInfo));
+          auto imOrder  = shape::order(const_cast<sd::LongType *>(imShapeInfo));
+          auto imStride = shape::stride(const_cast<sd::LongType *>(imShapeInfo));
 
           int bS = imShape[0];
           int iC = imShape[1];
@@ -142,10 +141,10 @@ __global__ static void col2imCuda2(const void *columns, void *image, const Nd4jL
               // compute the start and end of the output
               // These are the indexes for dimensions ??? in the 6d col matrix
               int w_col_start = (w_im < kWeff) ? 0 : (w_im - kWeff) / sW + 1;
-              int w_col_end = sd::math::nd4j_min<int>(w_im / sW + 1, oW);
+              int w_col_end = sd::math::sd_min<int>(w_im / sW + 1, oW);
 
               int h_col_start = (h_im < kHeff) ? 0 : (h_im - kHeff) / sH + 1;
-              int h_col_end = sd::math::nd4j_min<int>(h_im / sH + 1, oH);
+              int h_col_end = sd::math::sd_min<int>(h_im / sH + 1, oH);
 
               //Iterate over col entries in the 6d array... these are added up
               for (int colH = h_col_start; colH < h_col_end; colH += 1) {
@@ -177,8 +176,8 @@ __global__ static void col2imCuda2(const void *columns, void *image, const Nd4jL
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void col2imCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                               const void* columns, const Nd4jLong* colShapeInfo,
-                                     void* image, const Nd4jLong* imShapeInfo,
+                               const void* columns, const sd::LongType* colShapeInfo,
+                                     void* image, const sd::LongType* imShapeInfo,
                                const int sH, const int sW, const int pH, const int pW, const int dH, const int dW) {
 
     // col2imCuda2<T><<<512, 512, 1024, *stream>>>(columns, image, colShapeInfo, imShapeInfo, sH, sW, pH, pW, dH, dW);
@@ -186,21 +185,20 @@ static void col2imCudaLauncher(const int blocksPerGrid, const int threadsPerBloc
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void col2im(sd::LaunchContext& context, const NDArray& col, NDArray& im, const int sH, const int sW, const int pH, const int pW, const int iH, const int iW, const int dH, const int dW) {
+void col2im(sd::LaunchContext& context, const NDArray& col, NDArray& im, const int sH, const int sW, const int pH, const int pW, const int iH, const int iW, const int dH, const int dW) {
 
     PointersManager manager(&context, "col2im");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (im.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-    const int sharedMem = col.rankOf() * sizeof(uint) * threadsPerBlock  + 256;
+    const int sharedMem = col.rankOf() * sizeof(sd::Unsigned) * threadsPerBlock  + 256;
 
     NDArray::prepareSpecialUse({&im}, {&col});
-    BUILD_SINGLE_SELECTOR(im.dataType(), col2imCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context.getCudaStream(), col.specialBuffer(), col.specialShapeInfo(), im.specialBuffer(), im.specialShapeInfo(), sH, sW, pH, pW, dH, dW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(im.dataType(), col2imCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context.getCudaStream(), col.specialBuffer(), col.specialShapeInfo(), im.specialBuffer(), im.specialShapeInfo(), sH, sW, pH, pW, dH, dW), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({&im}, {&col});
 
     manager.synchronize();
 }
-
 
 
 }

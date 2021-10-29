@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/OpDescriptor.h>
 #include <ops/declarable/DeclarableListOp.h>
 #include <graph/Context.h>
@@ -54,7 +53,7 @@ namespace sd {
         }
 
         sd::NDArray* sd::ops::DeclarableListOp::getZ(Context& block, int inputId) {
-            //nd4j_printf("wow\n","");
+            //sd_printf("wow\n","");
             return nullptr;
         }
 
@@ -73,11 +72,11 @@ namespace sd {
             return this->execute(list, ins, tas, ias);
         }
 
-        Nd4jStatus DeclarableListOp::execute(Context* block) {
+        sd::Status DeclarableListOp::execute(Context* block) {
             if (block == nullptr)
                 throw std::invalid_argument("Block is NULL");
 
-            nd4j_debug("Executing list op: [%s]\n", this->getOpName()->c_str());
+            sd_debug("Executing list op: [%s]\n", this->getOpName()->c_str());
 
             // ensure number of IArgs, TArgs match our expectations
             REQUIRE_OK(this->validateArguments(*block));
@@ -87,7 +86,7 @@ namespace sd {
 
             auto timeStart = std::chrono::system_clock::now();
 
-            Nd4jStatus status = this->validateAndExecute(*block);
+            sd::Status status = this->validateAndExecute(*block);
 
             auto timeEnd = std::chrono::system_clock::now();
             auto outerTime = std::chrono::duration_cast<std::chrono::nanoseconds> (timeEnd - timeStart).count();
@@ -133,7 +132,7 @@ namespace sd {
                 block.getIArguments()->emplace_back(iArgs.at(e));
 
 
-            Nd4jStatus result = this->validateAndExecute(block);
+            sd::Status result = this->validateAndExecute(block);
             ResultSet res;
             res.setStatus(result);
 

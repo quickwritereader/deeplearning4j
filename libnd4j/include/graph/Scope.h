@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SCOPE_H
 #define LIBND4J_SCOPE_H
-
 #include <string>
 #include <unordered_map>
 #include <graph/Node.h>
@@ -36,7 +35,7 @@ namespace sd {
          *
          * @tparam T
          */
-        class ND4J_EXPORT Scope {
+        class SD_LIB_EXPORT Scope {
         protected:
             // Graph-unique IDs for Scope instances
             int _id;

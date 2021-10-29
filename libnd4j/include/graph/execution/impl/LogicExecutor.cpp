@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 20.10.2017.
 //
-
 #include <graph/execution/LogicExecutor.h>
 #include <graph/execution/LogicScope.h>
 #include <graph/execution/LogicWhile.h>
@@ -36,7 +35,7 @@
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicExecutor::processNode(Graph *graph, Node *node) {
+        sd::Status LogicExecutor::processNode(Graph *graph, Node *node) {
             switch (node->opNum()) {
                 case sd::logic::While:
                     return LogicWhile::processNode(graph, node);
@@ -63,11 +62,11 @@ namespace sd {
             }
 
             if (node->getName() == nullptr) {
-                nd4j_printf("Unknown LogicOp used at node [%i]: [%i]\n", node->id(), node->opNum());
+                sd_printf("Unknown LogicOp used at node [%i]: [%i]\n", node->id(), node->opNum());
             } else {
-                nd4j_printf("Unknown LogicOp used at node [%i:<%s>]: [%i]\n", node->id(), node->getName()->c_str(), node->opNum());
+                sd_printf("Unknown LogicOp used at node [%i:<%s>]: [%i]\n", node->id(), node->getName()->c_str(), node->opNum());
             }
-            return ND4J_STATUS_BAD_INPUT;
+            return sd::Status::BAD_INPUT;
         }
     }
 }

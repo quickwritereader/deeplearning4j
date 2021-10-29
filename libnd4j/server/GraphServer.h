@@ -20,12 +20,10 @@
 // @author raver119@gmail.com
 //
 
-
 #include <grpc++/grpc++.h>
 #include <array/NDArray.h>
 #include <graph/Graph.h>
 #include <ops/declarable/CustomOperations.h>
-
 #include <graph/generated/graph.grpc.fb.h>
 
 namespace sd {

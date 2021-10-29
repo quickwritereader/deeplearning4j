@@ -19,30 +19,29 @@
 //
 // Created by raver on 9/1/2018.
 //
-
 #include <exceptions/graph_exception.h>
 #include <helpers/StringUtils.h>
 
 namespace sd {
-    graph_exception::graph_exception(std::string message, Nd4jLong graphId) : std::runtime_error(message) {
+    graph_exception::graph_exception(std::string message, sd::LongType graphId) : std::runtime_error(message) {
         this->_message = message;
             this->_graphId = graphId;
     }
 
-    graph_exception::graph_exception(std::string message, std::string description, Nd4jLong graphId) : std::runtime_error(message) {
+    graph_exception::graph_exception(std::string message, std::string description, sd::LongType graphId) : std::runtime_error(message) {
         this->_message = message;
         this->_description = description;
         this->_graphId = graphId;
     }
 
-    graph_exception::graph_exception(std::string message, const char *description, Nd4jLong graphId) : std::runtime_error(message) {
+    graph_exception::graph_exception(std::string message, const char *description, sd::LongType graphId) : std::runtime_error(message) {
         this->_message = message;
         this->_description = description;
         this->_graphId = graphId;
     }
 
 
-    Nd4jLong graph_exception::graphId() {
+    sd::LongType graph_exception::graphId() {
         return _graphId;
     }
 

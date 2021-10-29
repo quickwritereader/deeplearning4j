@@ -64,7 +64,7 @@ namespace sd {
 
             sd::ops::helpers::skipgram(*syn0, *syn1, *syn1neg, *expTable, *negTable, *target, *ngStarter, nsRounds, *indices, *codes, *alpha, *randomValue, *inferenceVector, isPreciseMode, numWorkers);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(skipgram) {

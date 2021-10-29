@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_VARIABLE_H
 #define LIBND4J_VARIABLE_H
-
 #include <string>
 #include <array/NDArray.h>
 #include <array/NDArrayList.h>
@@ -36,19 +35,19 @@
 namespace std {
 
     template <>
-    class ND4J_EXPORT hash<std::pair<int, int>> {
+    class SD_LIB_EXPORT hash<std::pair<int, int>> {
     public:
         size_t operator()(const std::pair<int,int>& k) const;
     };
 
     template <>
-    class ND4J_EXPORT hash<bfloat16> {
+    class SD_LIB_EXPORT hash<bfloat16> {
     public:
         size_t operator()(const bfloat16& k) const;
     };
 
     template <>
-    class ND4J_EXPORT hash<float16> {
+    class SD_LIB_EXPORT hash<float16> {
     public:
         size_t operator()(const float16& k) const;
     };
@@ -58,14 +57,14 @@ namespace std {
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT Variable {
+        class SD_LIB_EXPORT Variable {
         protected:
             int _id = 0;
             int _index = 0;
             sd::NDArray *_ndarray = nullptr;
             std::string _name;
 
-            std::vector<Nd4jLong> _shape;
+            std::vector<sd::LongType> _shape;
 
             bool _external = false;
             bool _readOnly = false;
@@ -95,7 +94,7 @@ namespace sd {
             Variable* clone();
 
             template <typename N>
-            ND4J_EXPORT Variable* asT();
+            SD_LIB_EXPORT Variable* asT();
 
             bool hasNDArray();
             sd::NDArray* getNDArray();
@@ -135,7 +134,7 @@ namespace sd {
             std::string *getName();
             void setName(std::string *name);
 
-            std::vector<Nd4jLong>& shape();
+            std::vector<sd::LongType>& shape();
 
 #ifndef __JAVACPP_HACK__
             /**

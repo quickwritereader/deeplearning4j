@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/Sqrtm.h>
 #include <ops/declarable/helpers/lup.h>
 #include <helpers/EigenValsAndVecs.h>
@@ -44,7 +43,7 @@ static void sqrtmQuasiTrianDiag(const NDArray& matrixT, NDArray& sqrtT ) {
             const auto elemT = matrixT.t<T>(i, i);
             if(elemT < (T)0)
                 throw std::runtime_error("ops::helpers::Sqrtm::sqrtmQuasiTrianDiag: can't take sqrt of negative diagonal element of T matrix !");
-            sqrtT.r<T>(i,i) = math::nd4j_sqrt<T,T>(elemT);
+            sqrtT.r<T>(i,i) = math::sd_sqrt<T,T>(elemT);
         }
         else {
 
@@ -247,7 +246,7 @@ void Sqrtm<T>::calc(const NDArray& in, NDArray& out) {
         throw std::runtime_error("ops::helpers::Sqrtm::calc: output matrix must have the same shape as input one!");
 
     if(in.lengthOf() == 1) {
-        out.r<T>(0) = math::nd4j_sqrt<T,T>(in.t<T>(0));
+        out.r<T>(0) = math::sd_sqrt<T,T>(in.t<T>(0));
         return;
     }
 
@@ -267,7 +266,7 @@ void Sqrtm<T>::calc(const NDArray& in, NDArray& out) {
     MmulHelper::mmul(&schur._U, &temp, &out);
 }
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL Sqrtm, ,FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template class  Sqrtm, ,SD_FLOAT_TYPES);
 
 
 }

@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 31.08.2018
 //
-
 #include <ops/declarable/helpers/histogramFixedWidth.h>
 
 namespace sd {
@@ -28,7 +27,7 @@ namespace helpers {
 
 
 template <typename T>
-ND4J_LOCAL void histogramFixedWidth_(const NDArray& input, const NDArray& range, NDArray& output) {
+void histogramFixedWidth_(const NDArray& input, const NDArray& range, NDArray& output) {
 
     const int nbins = output.lengthOf();
 
@@ -42,27 +41,27 @@ ND4J_LOCAL void histogramFixedWidth_(const NDArray& input, const NDArray& range,
     const T secondEdge     = leftEdge + binWidth;
     const T lastButOneEdge = rightEdge - binWidth;
 
-    Nd4jLong inputLength = input.lengthOf();
+    sd::LongType inputLength = input.lengthOf();
 
     // FIXME: make this one parallel without CRITICAL section
-    for(Nd4jLong i = 0; i < inputLength; ++i) {
+    for(sd::LongType i = 0; i < inputLength; ++i) {
         const T value = input.e<T>(i);
 
         if(value < secondEdge) {
-            output.p<Nd4jLong>(0, output.e<Nd4jLong>(0) + 1);
+            output.p<sd::LongType>(0, output.e<sd::LongType>(0) + 1);
         } else if(value >= lastButOneEdge) {
-            output.p<Nd4jLong>(nbins - 1, output.e<Nd4jLong>(nbins - 1) + 1);
+            output.p<sd::LongType>(nbins - 1, output.e<sd::LongType>(nbins - 1) + 1);
         } else {
-            Nd4jLong currInd = static_cast<Nd4jLong>((value - leftEdge) / binWidth);
-            output.p<Nd4jLong>(currInd, output.e<Nd4jLong>(currInd) + 1);
+            sd::LongType currInd = static_cast<sd::LongType>((value - leftEdge) / binWidth);
+            output.p<sd::LongType>(currInd, output.e<sd::LongType>(currInd) + 1);
         }
     }
 }
 
-ND4J_LOCAL void histogramFixedWidth(sd::LaunchContext * context, const NDArray& input, const NDArray& range, NDArray& output) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), histogramFixedWidth_, (input, range, output), LIBND4J_TYPES);
+void histogramFixedWidth(sd::LaunchContext * context, const NDArray& input, const NDArray& range, NDArray& output) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), histogramFixedWidth_, (input, range, output), SD_COMMON_TYPES);
 }
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void histogramFixedWidth_, (const NDArray& input, const NDArray& range, NDArray& output), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void histogramFixedWidth_, (const NDArray& input, const NDArray& range, NDArray& output), SD_COMMON_TYPES);
 
 
 }

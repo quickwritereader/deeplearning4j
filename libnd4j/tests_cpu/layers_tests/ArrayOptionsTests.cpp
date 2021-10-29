@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.01.2018.
 //
-
 #include "testlayers.h"
 #include <array/ArrayOptions.h>
 #include <array/NDArray.h>
@@ -29,7 +28,7 @@ using namespace sd;
 
 class ArrayOptionsTests : public testing::Test {
 public:
-    Nd4jLong shape[8] = {2, 5, 5, 5, 1, 0, 1, 99};
+    sd::LongType shape[8] = {2, 5, 5, 5, 1, 0, 1, 99};
 };
 
 TEST_F(ArrayOptionsTests, TestShape_Basic_0) {

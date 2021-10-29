@@ -76,7 +76,7 @@ CUSTOM_OP_IMPL(concat, -1, 1, false, 0, 0) {
     if(numOfNonEmptyArrs == 0){
         //All inputs are empty arrays -> return empty, mainly for TF import compatibility (no op)
         REQUIRE_TRUE(OUTPUT_VARIABLE(0)->isEmpty(), 0, "CONCAT op: If all input variables are empty, output must be empty");
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     const int rank = nonEmptyArrs[0]->rankOf();                     //  look up to first non-empty array
@@ -111,7 +111,7 @@ CUSTOM_OP_IMPL(concat, -1, 1, false, 0, 0) {
     for(int index : arrsToDelete)
         delete nonEmptyArrs[index];
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_SYN(ParallelConcat, concat);
@@ -175,7 +175,7 @@ DECLARE_SHAPE_FN(concat) {
     // ******** end of input validation ******** //
 
 
-    Nd4jLong* outShapeInfo(nullptr);
+    sd::LongType* outShapeInfo(nullptr);
     COPY_SHAPE(arrShapes.at(0), outShapeInfo);
 
     // case when we have only one input array
@@ -232,23 +232,23 @@ DECLARE_SHAPE_FN(concat) {
         //     // it's possible to get into situation when your input has only 1 input. That's just assign
         //     if (elements == 1) {
         //         output->assign(first);
-        //         return Status::OK();
+        //         return sd::Status::OK;
         //     }
 
         //     bool oldScalars = first->rankOf() == 2 && first->isScalar();
 
-        //     auto buffers = new Nd4jPointer[elements];
-        //     auto shapes = new Nd4jPointer[elements];
+        //     auto buffers = new sd::Pointer[elements];
+        //     auto shapes = new sd::Pointer[elements];
 
-        //     buffers[0] = (Nd4jPointer) first->buffer();
-        //     shapes[0] = (Nd4jPointer) first->shapeInfo();
+        //     buffers[0] = (sd::Pointer) first->buffer();
+        //     shapes[0] = (sd::Pointer) first->shapeInfo();
 
         //     if (_dimension < 0)
         //         _dimension += first->rankOf();
 
         //     if (sd::Environment::getInstance().isDebugAndVerbose()) {
         //         printf("Shape %i: ", 0);
-        //         shape::printShapeInfoLinear((Nd4jLong *) shapes[0]);
+        //         shape::printShapeInfoLinear((sd::LongType *) shapes[0]);
         //     }
 
         //     int er = 0;
@@ -259,8 +259,8 @@ DECLARE_SHAPE_FN(concat) {
         //         if (array->isEmpty())
         //             continue;
 
-        //         buffers[er] = reinterpret_cast<Nd4jPointer>(array->buffer());
-        //         shapes[er++] = reinterpret_cast<Nd4jPointer>(array->shapeInfo());
+        //         buffers[er] = reinterpret_cast<sd::Pointer>(array->buffer());
+        //         shapes[er++] = reinterpret_cast<sd::Pointer>(array->shapeInfo());
 
         //         oldScalars &= array->rankOf() == 2 && array->isScalar();
 
@@ -273,7 +273,7 @@ DECLARE_SHAPE_FN(concat) {
         //         fflush(stdout);
 
         //     if (oldScalars) {
-        //         nd4j_debug("OLD_SCALARS!\n","");
+        //         sd_debug("OLD_SCALARS!\n","");
         //         _dimension = 1;
         //     }
 
@@ -287,7 +287,7 @@ DECLARE_SHAPE_FN(concat) {
         //     delete[] buffers;
         //     delete[] shapes;
 
-        //     return ND4J_STATUS_OK;
+        //     return sd::Status::OK;
         // }
 
         // DECLARE_SYN(ParallelConcat, concat);
@@ -301,8 +301,8 @@ DECLARE_SHAPE_FN(concat) {
         //     NDArray<T>* first = nullptr;
         //     auto last = inputShape->at(inputShape->size() - 1);
 
-        //     Nd4jLong elements = 0;
-        //     Nd4jLong *newShape;
+        //     sd::LongType elements = 0;
+        //     sd::LongType *newShape;
 
         //     for (int  e = 0; e < inputShape->size(); e++) {
         //         auto s = INPUT_VARIABLE(e);
@@ -331,7 +331,7 @@ DECLARE_SHAPE_FN(concat) {
 
         //         // all scalars
         //         if (allScalars) {
-        //             ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(1), Nd4jLong);
+        //             ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(1), sd::LongType);
 
         //             shape::shapeBuffer(1, &elements, newShape);
         //             return SHAPELIST(newShape);
@@ -339,8 +339,8 @@ DECLARE_SHAPE_FN(concat) {
 
         //         // any scalar
         //         if (hasScalars) {
-        //             ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(1), Nd4jLong);
-        //             Nd4jLong length = shape::length(inp);
+        //             ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(1), sd::LongType);
+        //             sd::LongType length = shape::length(inp);
         //             for (int i = 1; i < block.width(); i++) {
         //                 auto c = INPUT_VARIABLE(i);
         //                 if (c->isEmpty())
@@ -355,7 +355,7 @@ DECLARE_SHAPE_FN(concat) {
         //     }
 
 
-        //     ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(first->shapeInfo()), Nd4jLong);
+        //     ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(first->shapeInfo()), sd::LongType);
 
         //     if (_dimension < 0)
         //         _dimension += first->rankOf();
@@ -394,7 +394,7 @@ CUSTOM_OP_IMPL(concat_bp, -1, -1, false, 0, 0) {
     for (int e = 0; e < numOfInArrs - 1; e++) {
         auto originalChunk = INPUT_VARIABLE(e);
         auto epsilonChunk = OUTPUT_VARIABLE(e);
-        std::vector<Nd4jLong> indices(2 * epsilonNext->rankOf());
+        std::vector<sd::LongType> indices(2 * epsilonNext->rankOf());
 
         int width = originalChunk->sizeAt(axis);
 
@@ -411,7 +411,7 @@ CUSTOM_OP_IMPL(concat_bp, -1, -1, false, 0, 0) {
         startPos += width;
     }
 
-    return ND4J_STATUS_OK;
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(concat_bp) {

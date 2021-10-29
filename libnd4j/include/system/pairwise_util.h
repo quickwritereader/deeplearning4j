@@ -24,37 +24,21 @@
 
 #ifndef NATIVEOPERATIONS_PAIRWISE_UTIL_H
 #define NATIVEOPERATIONS_PAIRWISE_UTIL_H
-#ifdef __CUDACC__
-#include <cuda.h>
-#include <cuda_runtime.h>
-#endif
-#ifndef _OPENMP
-#define omp_get_thread_num() 0
-#define omp_get_num_threads() 1
-#define omp_get_max_threads() 1
-#define omp_set_num_threads(threads)
-#endif
-
 #include <math/templatemath.h>
 #include <functional>
-#include <system/pointercast.h>
 #include <system/op_boilerplate.h>
-#include <system/dll.h>
-#include <system/nd4jmemset.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 //Loops adapted from:
 //https://github.com/numpy/numpy/blob/009b17a85a22707e63ac9ea1896413992bbf9ce5/numpy/core/src/private/lowlevel_strided_loops.h#L401-L401
 
 /*
 namespace shape {
 
-    Nd4jLong length(const Nd4jLong *shapeInfo);
-    Nd4jLong elementWiseStride(const Nd4jLong *shapeInfo);
-    char order(const Nd4jLong *shapeInfo);
-    bool isStrideSimple(const Nd4jLong* shapeInfo);
-    Nd4jLong getIndexOffset(Nd4jLong index, const Nd4jLong *shapeInfo);
+    sd::LongType length(const sd::LongType *shapeInfo);
+    sd::LongType elementWiseStride(const sd::LongType *shapeInfo);
+    char order(const sd::LongType *shapeInfo);
+    bool isStrideSimple(const sd::LongType* shapeInfo);
+    sd::LongType getIndexOffset(sd::LongType index, const sd::LongType *shapeInfo);
 }
 
  */
@@ -81,9 +65,7 @@ typedef struct {
  *  We can work on optimizations later that leverage openmp,
  *  the gpu etc
  */
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+SD_HOST_DEVICE
 void quickSort(StridePermutation *arr, int elements);
 
 
@@ -183,10 +165,6 @@ void quickSort(StridePermutation *arr, int elements);
         } while ((idim) < (ndim))
 
 
-
-
-
-
 /*NUMPY_API
  *
  * This function populates the first ndim elements
@@ -194,9 +172,7 @@ void quickSort(StridePermutation *arr, int elements);
  * For example, the stride array (4, -2, 12) becomes
  * [(2, 12), (0, 4), (1, -2)].
  */
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+SD_HOST_DEVICE
 inline void  SortStrideArray(int ndim, int strides[],
                              StridePermutation *out_strideperm) {
 
@@ -228,19 +204,16 @@ inline void  SortStrideArray(int ndim, int strides[],
  */
 template <typename T>
 
-#ifdef __CUDACC__
-__host__ __device__
-#endif
-inline int PrepareOneRawArrayIter(int ndim, Nd4jLong shape[],
-                                  T data[], Nd4jLong strides[],
-                                  int *out_ndim, Nd4jLong outShape[],
-                                  T **out_data, Nd4jLong *outStrides) {
+SD_HOST_DEVICE
+inline int PrepareOneRawArrayIter(int ndim, sd::LongType shape[],
+                                  T data[], sd::LongType strides[],
+                                  int *out_ndim, sd::LongType outShape[],
+                                  T **out_data, sd::LongType *outStrides) {
 
     for (int i = 0; i < ndim; i++) {
         outShape[i] = shape[i];
         outStrides[i] = strides[i];
     }
-
 
 
 #if 0
@@ -268,17 +241,17 @@ inline int PrepareOneRawArrayIter(int ndim, Nd4jLong shape[],
 
 class BlockInformation {
 public:
-    Nd4jLong items;
+    sd::LongType items;
     int threads;
-    Nd4jLong chunks;
-    Nd4jLong modulo;
-    Nd4jLong remainder;
+    sd::LongType chunks;
+    sd::LongType modulo;
+    sd::LongType remainder;
 
-    BlockInformation(Nd4jLong length, int threshold) {
+    BlockInformation(sd::LongType length, int threshold) {
 
     threads = length / threshold;
-    threads = (1 < threads)?threads:1;//sd::math::nd4j_max<int>(1, threads);
-    threads = (threads < omp_get_max_threads())?threads:omp_get_max_threads();//sd::math::nd4j_min<int>(threads, omp_get_max_threads());
+    threads = (1 < threads)?threads:1;//sd::math::sd_max<int>(1, threads);
+    threads = (threads < omp_get_max_threads())?threads:omp_get_max_threads();//sd::math::sd_min<int>(threads, omp_get_max_threads());
 
     items = length / threads;
     remainder = length % threads;
@@ -313,9 +286,7 @@ class CudaBlockInformation {
  *  We can work on optimizations later that leverage openmp,
  *  the gpu etc
  */
-#ifdef __CUDACC__
-__host__ __device__
-#endif
+SD_HOST_DEVICE
 inline void quickSort(StridePermutation *arr, int elements) {
 #define  MAX_LEVELS  300
 
@@ -375,12 +346,12 @@ inline void quickSort(StridePermutation *arr, int elements) {
  * Returns 0 on success, -1 on failure.
  */
 template <typename X, typename Y>
-int _CUDA_HD PrepareTwoRawArrayIter(int ndim, Nd4jLong *shape,
-                           X *dataA, Nd4jLong *stridesA,
-                           Y *dataB, Nd4jLong *stridesB,
-                           int *out_ndim, Nd4jLong *outShape,
-                           X **out_dataA, Nd4jLong *outStridesA,
-                           Y **out_dataB, Nd4jLong *outStridesB) {
+int SD_HOST_DEVICE PrepareTwoRawArrayIter(int ndim, sd::LongType *shape,
+                           X *dataA, sd::LongType *stridesA,
+                           Y *dataB, sd::LongType *stridesB,
+                           int *out_ndim, sd::LongType *outShape,
+                           X **out_dataA, sd::LongType *outStridesA,
+                           Y **out_dataB, sd::LongType *outStridesB) {
     int i;
 
 /* Sort the axes based on the destination strides */
@@ -392,9 +363,9 @@ int _CUDA_HD PrepareTwoRawArrayIter(int ndim, Nd4jLong *shape,
 
 /* Reverse any negative strides of operand A */
     for (i = 0; i < ndim; i++) {
-        Nd4jLong stride_entryA = outStridesA[i];
-        Nd4jLong stride_entryB = outStridesB[i];
-        Nd4jLong shape_entry = outShape[i];
+        sd::LongType stride_entryA = outStridesA[i];
+        sd::LongType stride_entryB = outStridesB[i];
+        sd::LongType shape_entry = outShape[i];
 
         if (stride_entryA < 0) {
             dataA += stride_entryA * (shape_entry - 1);
@@ -466,17 +437,15 @@ int _CUDA_HD PrepareTwoRawArrayIter(int ndim, Nd4jLong *shape,
  * Returns 0 on success, -1 on failure.
  */
 template <typename X, typename Y, typename Z>
-#ifdef __CUDACC__
-__host__ __device__
-#endif
-int  PrepareThreeRawArrayIter(int ndim, Nd4jLong shape[],
-                              X *dataA, Nd4jLong *stridesA,
-                              Y *dataB, Nd4jLong *stridesB,
-                              Z *dataC, Nd4jLong *stridesC,
-                              int &out_ndim, Nd4jLong *outShape,
-                              X **out_dataA, Nd4jLong outStridesA[],
-                              Y **out_dataB, Nd4jLong outStridesB[],
-                              Z **out_dataC, Nd4jLong outStridesC[])
+SD_HOST_DEVICE
+int  PrepareThreeRawArrayIter(int ndim, sd::LongType shape[],
+                              X *dataA, sd::LongType *stridesA,
+                              Y *dataB, sd::LongType *stridesB,
+                              Z *dataC, sd::LongType *stridesC,
+                              int &out_ndim, sd::LongType *outShape,
+                              X **out_dataA, sd::LongType outStridesA[],
+                              Y **out_dataB, sd::LongType outStridesB[],
+                              Z **out_dataC, sd::LongType outStridesC[])
 {
 
     /* Special case 0 and 1 dimensions */

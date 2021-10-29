@@ -43,7 +43,7 @@ namespace sd {
 
             // todo maybe we need an error like on Java side
             if (gradient->isEmpty() || initStateU->isEmpty() || initStateM->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initStateU), 0, "ADABELIEF UPDATER OP: input state V must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -84,7 +84,7 @@ namespace sd {
             }
 
             helpers::updaterAdaBelief(block.launchContext(), *gradient, *initStateU, *initStateM, *update, *stateU, *stateM, dLr, dBeta1, dBeta2, dEpsilon, iteration);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(adabelief_updater) {

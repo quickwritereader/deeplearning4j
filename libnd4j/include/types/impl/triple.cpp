@@ -19,7 +19,6 @@
 //
 // Created by raver on 4/5/2018.
 //
-
 #include <types/triple.h>
 
 namespace sd {

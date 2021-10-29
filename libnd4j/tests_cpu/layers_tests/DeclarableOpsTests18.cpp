@@ -22,7 +22,6 @@
  //
  // @author raver119@gmail.com
  //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -45,12 +44,12 @@ public:
 
 TEST_F(DeclarableOpsTests18, test_bitcast_1) {
     auto x = NDArrayFactory::create<double>(0.23028551377579154);
-    auto z = NDArrayFactory::create<Nd4jLong>(0);
-    auto e = NDArrayFactory::create<Nd4jLong>(4597464930322771456L);
+    auto z = NDArrayFactory::create<sd::LongType>(0);
+    auto e = NDArrayFactory::create<sd::LongType>(4597464930322771456L);
 
     sd::ops::bitcast op;
-    auto status = op.execute({ &x }, { &z }, {}, { (Nd4jLong)sd::DataType::INT64 }, {});
-    ASSERT_EQ(Status::OK(), status);
+    auto status = op.execute({ &x }, { &z }, {}, { (sd::LongType)sd::DataType::INT64 }, {});
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -146,8 +145,8 @@ TEST_F(DeclarableOpsTests18, TestSoftMax_bp_TEST) {
 
     sd::ops::softmax_bp op;
 
-    Nd4jStatus status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(output.equalsTo(exp));
 
 }
@@ -165,8 +164,8 @@ TEST_F(DeclarableOpsTests18, TestSoftMax_bp_TEST2) {
 
     sd::ops::softmax_bp op;
 
-    Nd4jStatus status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(output.equalsTo(exp));
 
 }
@@ -187,8 +186,8 @@ TEST_F(DeclarableOpsTests18, TestSoftMax_bp_TEST3) {
 
     sd::ops::softmax_bp op;
 
-    Nd4jStatus status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &input, &epsilon }, { &output }, {}, { axis });
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(output.equalsTo(exp));
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -204,7 +203,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_1) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -234,7 +233,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_2) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -263,7 +262,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_3) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -292,7 +291,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_4) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -321,7 +320,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_5) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -362,7 +361,7 @@ TEST_F(DeclarableOpsTests18, XWPlusB_Bp_6) {
     sd::ops::xw_plus_b_bp op;
     auto result = op.evaluate({ &x, &w, &b, &dLdz }, {}, { 1 });
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto dLdx = result.at(0);
     auto dLdw = result.at(1);
@@ -392,9 +391,9 @@ TEST_F(DeclarableOpsTests18, TestUpdaterSgd1) {
 
     sd::ops::sgd_updater op;
 
-    Nd4jStatus status = op.execute({ &gradient, &lr }, { &gradient }, {}, { });
+    sd::Status status = op.execute({ &gradient, &lr }, { &gradient }, {}, { });
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(update.equalsTo(gradient));
 
 }
@@ -407,8 +406,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterSgd2) {
 
     sd::ops::sgd_updater op;
 
-    Nd4jStatus status = op.execute({ &gradient }, { &gradient }, { 0.001f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &gradient }, { &gradient }, { 0.001f }, { });
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(update.equalsTo(gradient));
 
 }
@@ -428,7 +427,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterSgd3) {
     sd::ops::sgd_updater op;
 
     auto  results = op.evaluate({ &gradient }, { 0.001f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
 }
@@ -444,8 +443,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm1) {
 
     sd::ops::rms_prop_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &init, &lr, &decay, &epsilon }, { &grad0, &init }, {  }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &init, &lr, &decay, &epsilon }, { &grad0, &init }, {  }, { });
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp0('c', { 1, 5 }, { 0.4472121903197142,     0.4472095514452829,     0.4472135169488324,    0.44721352981195367,    0.44721349127249754 }, DataType::FLOAT32);
     NDArray stateG0('c', { 1, 5 }, { 0.00164065126484513,    0.00055124687044416,    0.03816546608068996,    0.04711672627124962,    0.02749591463177582 }, DataType::FLOAT32);
 
@@ -455,7 +454,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm1) {
 
     NDArray grad1('c', { 1, 5 }, { 0.0139725673943758,    0.19333727657794952,     0.9288347363471985,     0.9253600239753723,     0.3578299283981323 }, DataType::FLOAT32);
     status = op.execute({ &grad1, &init, &lr, &decay, &epsilon }, { &grad1, &init }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp1('c', { 1, 5 }, { 0.03528177364993147,     0.3952537075263024,    0.32964378302079766,    0.31269398966616074,     0.1984174163852542 }, DataType::FLOAT32);
     NDArray stateG1('c', { 1, 5 }, { 0.00156838033358239,    0.00239264965265088,    0.07939389114891399,    0.08757544865627226,    0.03252323178305766 }, DataType::FLOAT32);
 
@@ -464,7 +463,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm1) {
 
     NDArray grad2('c', { 1, 5 }, { 0.5442887544631958,     0.5386605262756348,      0.884294331073761,    0.15599730610847473,     0.7259345054626465 }, DataType::FLOAT32);
     status = op.execute({ &grad2, &init, &lr, &decay, &epsilon }, { &grad2, &init }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp2('c', { 1, 5 }, { 0.4262874753567082,    0.41582357367557454,     0.2613066321005825,    0.05369221235564697,     0.3034061716240995 }, DataType::FLOAT32);
     NDArray stateG2('c', { 1, 5 }, { 0.01630247372865814,    0.01678077529839554,    0.11452301978992785,     0.0844134341991137,    0.05724611550496966 }, DataType::FLOAT32);
 
@@ -482,8 +481,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm2) {
 
     sd::ops::rms_prop_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &init }, { &update, &init }, { 0.1f, 0.95f, 1.e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &init }, { &update, &init }, { 0.1f, 0.95f, 1.e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp0('c', { 1, 5 }, { 0.4472135330146769,    0.44721357487863594,    0.44721358411270346,     0.4472135878446271,     0.447213589800546 }, DataType::FLOAT32);
     NDArray stateG0('c', { 1, 5 }, { 0.05000000950000005,     0.2000000095000002,     0.4500000095000004,     0.8000000095000007,      1.250000009500001 }, DataType::FLOAT32);
 
@@ -491,7 +490,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm2) {
     ASSERT_TRUE(init.equalsTo(stateG0));
 
     status = op.execute({ &grad, &init }, { &update, &init }, { 0.1f, 0.95f, 1.e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp1('c', { 1, 5 }, { 0.32025628253164734,     0.3202562987764395,    0.32025630254446874,     0.3202563041196892,     0.3202563049660074 }, DataType::FLOAT32);
     NDArray stateG1('c', { 1, 5 }, { 0.09750000902500008,     0.3900000090250003,     0.8775000090250007,     1.5600000090250012,      2.437500009025002 }, DataType::FLOAT32);
 
@@ -499,7 +498,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm2) {
     ASSERT_TRUE(init.equalsTo(stateG1));
 
     status = op.execute({ &grad, &init }, { &update, &init }, { 0.1f, 0.95f, 1.e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp2('c', { 1, 5 }, { 0.2647903457769699,     0.2647903552517623,    0.26479035752571606,     0.2647903584968847,     0.2647903590265272 }, DataType::FLOAT32);
     NDArray stateG2('c', { 1, 5 }, { 0.1426250085737501,     0.5705000085737504,      1.283625008573751,     2.2820000085737515,      3.565625008573753 }, DataType::FLOAT32);
 
@@ -530,14 +529,14 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm3) {
     update.assign(updateC);
     stateG.assign(stateG0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
     ASSERT_TRUE(stateG.equalsTo(results.at(1)));
 
     results = op.evaluate({ &grad, &stateG }, { 0.1f, 0.95f, 1.e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.32025628253164734,     0.3202562987764395,    0.32025630254446874,     0.3202563041196892,     0.3202563049660074 }, DataType::FLOAT32);
     NDArray stateG1C('c', { 1, 5 }, { 0.09750000902500008,     0.3900000090250003,     0.8775000090250007,     1.5600000090250012,      2.437500009025002 }, DataType::FLOAT32);
@@ -545,7 +544,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm3) {
     update.assign(update1C);
     stateG.assign(stateG1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
@@ -553,7 +552,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm3) {
 
 
     results = op.evaluate({ &grad, &stateG }, { 0.1f, 0.95f, 1.e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update2C('c', { 1, 5 }, { 0.2647903457769699,     0.2647903552517623,    0.26479035752571606,     0.2647903584968847,     0.2647903590265272 }, DataType::FLOAT32);
     NDArray stateG2C('c', { 1, 5 }, { 0.1426250085737501,     0.5705000085737504,      1.283625008573751,     2.2820000085737515,      3.565625008573753 }, DataType::FLOAT32);
@@ -561,7 +560,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterRmsProm3) {
     update.assign(update2C);
     stateG.assign(stateG2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
@@ -580,8 +579,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaGrad1) {
 
     sd::ops::ada_grad_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &init, &lr, &epsilon }, { &grad0, &init }, {  }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &init, &lr, &epsilon }, { &grad0, &init }, {  }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
 }
 //////////////////////////////////////////////////////////////////////
@@ -592,8 +591,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs1) {
 
     sd::ops::nesterovs_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &init }, { &grad0, &init }, { 0.1f, 0.9f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &init }, { &grad0, &init }, { 0.1f, 0.9f }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.13067425191402435, 0.14878066658973696, 0.14530628323554992, 0.11747827231884002, 0.06277371048927306 }, DataType::FLOAT32);
     NDArray stateV0('c', { 1, 5 }, { -0.06877592206001282, -0.0783056139945984, -0.07647699117660522, -0.06183066964149475, -0.03303879499435425 }, DataType::FLOAT32);
@@ -603,7 +602,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs1) {
 
     NDArray grad1('c', { 1, 5 }, { 0.3676236569881439, 0.07645636051893234, 0.45949840545654297, 0.6335387825965881, 0.2953402101993561 }, DataType::FLOAT32);
     status = op.execute({ &grad1, &init }, { &grad1, &init }, { 0.1f, 0.9f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp1('c', { 1, 5 }, { 0.12555699169635773, 0.07795425583422186, 0.14925105988979342, 0.17045521110296247, 0.08287606388330458 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { -0.09866069555282593, -0.0781206886470318, -0.11477913260459902, -0.11900148093700408, -0.05926893651485443 }, DataType::FLOAT32);
 
@@ -612,7 +611,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs1) {
 
     NDArray grad2('c', { 1, 5 }, { 0.9874004125595093, 0.41817641258239746, 0.16838215291500092, 0.00803728867322206, 0.37015461921691895 }, DataType::FLOAT32);
     status = op.execute({ &grad2, &init }, { &grad2, &init }, { 0.1f, 0.9f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp2('c', { 1, 5 }, { 0.26752124178409575, 0.1427312761947513, 0.12496370646357537, 0.09791828440688549, 0.11833721622824667 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { -0.18753466725349427, -0.11212626104056837, -0.12013943463563921, -0.10790506171062587, -0.09035750478506088 }, DataType::FLOAT32);
 
@@ -633,8 +632,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs2) {
 
     sd::ops::nesterovs_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &init, &lr, &momentum }, { &update, &init }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &init, &lr, &momentum }, { &update, &init }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.19,   0.38,  0.5700000000000001,   0.76,    0.95 }, DataType::FLOAT32);
     NDArray stateV0('c', { 1, 5 }, { -0.1, -0.2,   -0.30000000000000004,    -0.4, -0.5 }, DataType::FLOAT32);
@@ -643,7 +642,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs2) {
     ASSERT_TRUE(init.equalsTo(stateV0));
 
     status = op.execute({ &grad, &init, &lr, &momentum }, { &update, &init }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp1('c', { 1, 5 }, { 0.27099999999999996,  0.5419999999999999,   0.813,     1.0839999999999999,    1.355 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { -0.19,   -0.38,  -0.5700000000000001,  -0.76,  -0.95 }, DataType::FLOAT32);
 
@@ -651,7 +650,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs2) {
     ASSERT_TRUE(init.equalsTo(stateV1));
 
     status = op.execute({ &grad, &init, &lr, &momentum }, { &update, &init }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     NDArray updateExp2('c', { 1, 5 }, { 0.3439,  0.6878,  1.0317,   1.3756,   1.7195 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { -0.271,  -0.542,    -0.8130000000000002,   -1.084,  -1.355 }, DataType::FLOAT32);
 
@@ -681,14 +680,14 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs3) {
     update.assign(updateC);
     stateG.assign(stateG0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
     ASSERT_TRUE(stateG.equalsTo(results.at(1)));
 
     results = op.evaluate({ &grad, &stateG }, { 0.1f, 0.9f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.27099999999999996,  0.5419999999999999,   0.813,     1.0839999999999999,    1.355 }, DataType::FLOAT32);
     NDArray stateG1C('c', { 1, 5 }, { -0.19,   -0.38,  -0.5700000000000001,  -0.76,  -0.95 }, DataType::FLOAT32);
@@ -696,7 +695,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs3) {
     update.assign(update1C);
     stateG.assign(stateG1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
@@ -704,7 +703,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs3) {
 
 
     results = op.evaluate({ &grad, &stateG }, { 0.1f, 0.9f }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update2C('c', { 1, 5 }, { 0.3439,  0.6878,  1.0317,   1.3756,   1.7195 }, DataType::FLOAT32);
     NDArray stateG2C('c', { 1, 5 }, { -0.271,  -0.542,    -0.8130000000000002,   -1.084,  -1.355 }, DataType::FLOAT32);
@@ -712,7 +711,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNesterovs3) {
     update.assign(update2C);
     stateG.assign(stateG2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
     ASSERT_TRUE(stateG.isSameShape(results.at(1)));
@@ -729,8 +728,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax1) {
 
     sd::ops::ada_max_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.001,                  0.001,                  0.001,                  0.001,                  0.001 }, DataType::FLOAT32);
     NDArray stateU('c', { 1, 5 }, { 1,2,3,4,5 }, DataType::FLOAT32);
@@ -741,7 +740,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax1) {
     ASSERT_TRUE(initM.equalsTo(stateM0));
 
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.0019,                 0.0019,                 0.0019,                 0.0019,                 0.0019 }, DataType::FLOAT32);
     NDArray stateM1('c', { 1, 5 }, { 0.18999999999999995,     0.3799999999999999,     0.5699999999999998,     0.7599999999999998,     0.9499999999999997 }, DataType::FLOAT32);
@@ -750,7 +749,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax1) {
     ASSERT_TRUE(initM.equalsTo(stateM1));
 
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00271,                0.00271,                0.00271,                0.00271,                0.00271 }, DataType::FLOAT32);
     NDArray stateM2('c', { 1, 5 }, { 0.2709999999999999,     0.5419999999999998,     0.8129999999999998,     1.0839999999999996,     1.3549999999999995 }, DataType::FLOAT32);
@@ -773,8 +772,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax2) {
 
     sd::ops::ada_max_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initU, &initM }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.001,                  0.001,                  0.001,                  0.001,                  0.001 }, DataType::FLOAT32);
     NDArray stateU0('c', { 1, 5 }, { 0.05387359112501144,     0.9700437784194946,     0.8912011384963989,     0.8891847729682922,    0.18823780119419098 }, DataType::FLOAT32);
@@ -787,7 +786,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax2) {
     NDArray grad1('c', { 1, 5 }, { 0.6400517821311951,     0.3779360353946686,    0.35128724575042725,     0.6554615497589111,     0.8420050740242004 }, DataType::FLOAT32);
 
     status = op.execute({ &grad1, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad1, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00107575360832691,    0.00129089809294599,    0.00129546826560191,    0.00163878765669416,    0.00120120308808246 }, DataType::FLOAT32);
     NDArray stateU1('c', { 1, 5 }, { 0.6400517821311951,     0.9690737346410752,     0.8903099373579025,      0.888295588195324,     0.8420050740242004 }, DataType::FLOAT32);
@@ -800,7 +799,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax2) {
     NDArray grad2('c', { 1, 5 }, { 0.5984494686126709,    0.05978915095329285,     0.5749519467353821,     0.2804091274738312,     0.0192152876406908 }, DataType::FLOAT32);
 
     status = op.execute({ &grad2, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad2, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00190508497658779,    0.00122473022928962,    0.00181352349370876,    0.00179237223044249,    0.00110500865710834 }, DataType::FLOAT32);
     NDArray stateU2('c', { 1, 5 }, { 0.6394117303490638,     0.9681046609064341,     0.8894196274205446,     0.8874072926071286,     0.8411630689501762 }, DataType::FLOAT32);
@@ -841,7 +840,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax3) {
     stateV.assign(stateV0C);
     stateM.assign(stateM0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -851,7 +850,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax3) {
     ASSERT_TRUE(stateM.equalsTo(results.at(2)));
 
     results = op.evaluate({ &grad, &stateV, &stateM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.0019,     0.0019,      0.0019,   0.0019,  0.0019 }, DataType::FLOAT32);
     NDArray stateM1C('c', { 1, 5 }, { 0.18999999999999995,     0.3799999999999999,     0.5699999999999998,     0.7599999999999998,     0.9499999999999997 }, DataType::FLOAT32);
@@ -868,7 +867,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaMax3) {
 
 
     results = op.evaluate({ &grad, &stateV, &stateM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update2C('c', { 1, 5 }, { 0.00271,    0.00271,   0.00271,   0.00271,  0.00271 }, DataType::FLOAT32);
     NDArray stateM2C('c', { 1, 5 }, { 0.2709999999999999,     0.5419999999999998,     0.8129999999999998,     1.0839999999999996,     1.3549999999999995 }, DataType::FLOAT32);
@@ -894,8 +893,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam1) {
 
     sd::ops::adam_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.00099999968377233,    0.00099999984188614,    0.00099999989459076,    0.00099999992094306,    0.00099999993675445 }, DataType::FLOAT32);
     NDArray stateV('c', { 1, 5 }, { 0.001,  0.004,    0.00900000000000001,    0.01600000000000001,    0.02500000000000002 }, DataType::FLOAT32);
@@ -906,7 +905,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam1) {
     ASSERT_TRUE(initM.equalsTo(stateM0));
 
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00134383858541481,    0.00134383873569809,    0.00134383878579252,    0.00134383881083974,    0.00134383882586807 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -917,7 +916,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam1) {
     ASSERT_TRUE(initM.equalsTo(stateM1));
 
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00156540157923389,    0.00156540172220632,     0.0015654017698638,    0.00156540179369254,    0.00156540180798979 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.002997001,    0.01198800400000001,    0.02697300900000002,    0.04795201600000004,    0.07492502500000006 }, DataType::FLOAT32);
@@ -941,8 +940,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam2) {
 
     sd::ops::adam_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initU, &initM }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.00099999955614757,    0.00099999956584582,    0.00099999961419438,     0.0009999996671663,    0.00099999880851273 }, DataType::FLOAT32);
     NDArray stateU0('c', { 1, 5 }, { 0.00050760092379401,    0.00053053207656763,    0.00067183490719538,    0.00090270349695879,    0.00007044013001792 }, DataType::FLOAT32);
@@ -955,7 +954,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam2) {
     NDArray grad1('c', { 1, 5 }, { 0.4374369978904724,    0.11488933861255646,     0.6765823364257812,     0.7659900188446045,    0.04410457238554955 }, DataType::FLOAT32);
 
     status = op.execute({ &grad1, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad1, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00129067017716555,    0.00104532555849556,    0.00133106720937621,    0.00132869584719374,    0.00105226561254395 }, DataType::FLOAT32);
     NDArray stateU1('c', { 1, 5 }, { 0.00069844444999364,    0.00054320110461789,    0.00112892673025155,    0.00148854150243139,    0.00007231490319321 }, DataType::FLOAT32);
@@ -968,7 +967,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam2) {
     NDArray grad2('c', { 1, 5 }, { 0.496029257774353,    0.11621368676424026,     0.9112075567245483,     0.5717480182647705,     0.5975669026374817 }, DataType::FLOAT32);
 
     status = op.execute({ &grad2, &initU, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad2, &initU, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00150986322036664,    0.00108559662275258,    0.00156079502787382,    0.00150778241516558,    0.00130066803775601 }, DataType::FLOAT32);
     NDArray stateU2('c', { 1, 5 }, { 0.00094379103011182,    0.00055616352450461,    0.00195809701495322,    0.00181394875731865,    0.00042932879141777 }, DataType::FLOAT32);
@@ -1009,7 +1008,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam3) {
     stateV.assign(stateV0C);
     stateM.assign(stateM0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1019,7 +1018,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam3) {
     ASSERT_TRUE(stateM.equalsTo(results.at(2)));
 
     results = op.evaluate({ &grad, &stateV, &stateM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.00134383858541481,    0.00134383873569809,    0.00134383878579252,    0.00134383881083974,    0.00134383882586807 }, DataType::FLOAT32);
     NDArray stateV1C('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -1029,7 +1028,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam3) {
     stateV.assign(stateV1C);
     stateM.assign(stateM1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1048,7 +1047,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdam3) {
     stateV.assign(stateV2C);
     stateM.assign(stateM2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1095,8 +1094,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaBelief1) {
 
     sd::ops::adabelief_updater op;
     auto t=0;
-    Nd4jStatus status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.0011111f,  0.00111111f, 0.00111111f, 0.00111111f, 0.00111111f }, DataType::FLOAT32);
     NDArray stateV('c', { 1, 5 }, { 0.00081001f, 0.00324001f, 0.00729001f, 0.01296001f, 0.02025001f }, DataType::FLOAT32);
@@ -1106,7 +1105,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaBelief1) {
     ASSERT_TRUE(initM.equalsTo(stateM0));
     t=1;
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { t});
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.001168f, 0.001168f, 0.001168f, 0.001168f, 0.001168f}, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.00146531f, 0.00586118f, 0.01318763f, 0.02344466f, 0.03663227f }, DataType::FLOAT32);
@@ -1116,7 +1115,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaBelief1) {
     ASSERT_TRUE(initM.equalsTo(stateM1));
     t=2;
     status = op.execute({ &grad, &initU, &initM }, { &update, &initU, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, {t});
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00122557f, 0.00122558f, 0.00122558f, 0.00122558f, 0.00122558f }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.0019953f,  0.00798109f, 0.01795742f, 0.03192428f, 0.04988168f }, DataType::FLOAT32);
@@ -1138,8 +1137,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta1) {
 
     sd::ops::ada_delta_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &initMsg, &initMsdx }, { &update, &initMsg, &initMsdx }, { 0.95f, 1.0e-6 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initMsg, &initMsdx }, { &update, &initMsg, &initMsdx }, { 0.95f, 1.0e-6 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.00447209123431084,    0.00447212477470162,    0.00447213098596791,    0.00447213315991723,    0.00447213416614627 }, DataType::FLOAT32);
     NDArray stateMsg0('c', { 1, 5 }, { 0.05000000000000004,    0.20000000000000018,     0.4500000000000004,     0.8000000000000007,      1.250000000000001 }, DataType::FLOAT32);
@@ -1150,7 +1149,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta1) {
     ASSERT_TRUE(initMsdx.equalsTo(stateMsdx0));
 
     status = op.execute({ &grad, &initMsg, &initMsdx }, { &update, &initMsg, &initMsdx }, { 0.95f, 1.0e-6 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.0045290622655332,    0.00452909666868751,    0.00452910303972733,    0.00452910526959756,    0.00452910630171004 }, DataType::FLOAT32);
     NDArray stateMsg1('c', { 1, 5 }, { 0.09750000000000009,    0.39000000000000035,     0.8775000000000008,     1.5600000000000014,     2.4375000000000018 }, DataType::FLOAT32);
@@ -1161,7 +1160,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta1) {
     ASSERT_TRUE(initMsdx.equalsTo(stateMsdx1));
 
     status = op.execute({ &grad, &initMsg, &initMsdx }, { &update, &initMsg, &initMsdx }, { 0.95f, 1.0e-6 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00456759948242601,    0.00456763438748812,    0.00456764085147516,    0.00456764311387702,      0.004567644161047 }, DataType::FLOAT32);
     NDArray stateMsg2('c', { 1, 5 }, { 0.1426250000000001,     0.5705000000000005,     1.2836250000000011,      2.282000000000002,     3.5656250000000025 }, DataType::FLOAT32);
@@ -1183,8 +1182,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta2) {
 
     sd::ops::ada_delta_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &initMsg, &initMsdx, &rho, &epsilon }, { &grad0, &initMsg, &initMsdx }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &initMsg, &initMsdx, &rho, &epsilon }, { &grad0, &initMsg, &initMsdx }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.0044712172817412,    0.00446815612502933,    0.00447208107763182,      0.004472071321461,    0.00447153735969189 }, DataType::FLOAT32);
     NDArray stateMsg0('c', { 1, 5 }, { 0.00243326882084394,     0.0005611002391122,    0.04074588324665051,    0.03459534402219976,    0.00373477541890961 }, DataType::FLOAT32);
@@ -1197,7 +1196,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta2) {
     NDArray grad1('c', { 1, 5 }, { 0.6351608633995056,    0.21878601610660553,     0.6470938920974731,     0.3742971122264862,     0.9453978538513184 }, DataType::FLOAT32);
 
     status = op.execute({ &grad1, &initMsg, &initMsdx, &rho, &epsilon }, { &grad1, &initMsg, &initMsdx }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00598985959779411,    0.00571609509028959,    0.00374704195122062,    0.00265092283150538,    0.00608704322078556 }, DataType::FLOAT32);
     NDArray stateMsg1('c', { 1, 5 }, { 0.02248307149952203,    0.00292641126934659,    0.05964511434381081,    0.03987049323214412,     0.0482368917512981 }, DataType::FLOAT32);
@@ -1210,7 +1209,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta2) {
     NDArray grad2('c', { 1, 5 }, { 0.8484492301940918,     0.9634076952934265,     0.6676893830299377,     0.4450211524963379,    0.32364124059677124 }, DataType::FLOAT32);
 
     status = op.execute({ &grad2, &initMsg, &initMsdx, &rho, &epsilon }, { &grad2, &initMsg, &initMsdx }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00685468722145889,    0.00822128238053265,    0.00386965914609878,    0.00308849888680941,    0.00279277397245112 }, DataType::FLOAT32);
     NDArray stateMsg2('c', { 1, 5 }, { 0.05735222273539331,    0.04918781007340889,    0.07895331423716523,    0.04777915987899536,    0.05106222979448406 }, DataType::FLOAT32);
@@ -1251,7 +1250,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta3) {
     stateMsg.assign(stateV0C);
     stateMsdx.assign(stateM0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1271,7 +1270,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta3) {
     stateMsg.assign(stateV1C);
     stateMsdx.assign(stateM1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1290,7 +1289,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAdaDelta3) {
     stateMsg.assign(stateV2C);
     stateMsdx.assign(stateM2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1310,8 +1309,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam1) {
 
     sd::ops::nadam_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &initV, &initM }, { &update, &initV, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initV, &initM }, { &update, &initV, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.06008325654320519,    0.06008326604320069,    0.06008326920986652,    0.06008327079319956,    0.0600832717431994 }, DataType::FLOAT32);
     NDArray stateV('c', { 1, 5 }, { 0.001,   0.004,    0.00900000000000001,    0.01600000000000001,    0.02500000000000002 }, DataType::FLOAT32);
@@ -1322,7 +1321,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam1) {
     ASSERT_TRUE(initM.equalsTo(stateM0));
 
     status = op.execute({ &grad, &initV, &initM }, { &update, &initV, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.06061258367739481,    0.06061259045578174,    0.06061259271524436,    0.06061259384497576,    0.06061259452281461 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -1333,7 +1332,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam1) {
     ASSERT_TRUE(initM.equalsTo(stateM1));
 
     status = op.execute({ &grad, &initV, &initM }, { &update, &initV, &initM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.06281865774973168,    0.06281866348713228,    0.06281866539959938,    0.06281866635583296,    0.06281866692957314 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.002997001,    0.01198800400000001,    0.02697300900000002,    0.04795201600000004,    0.07492502500000006 }, DataType::FLOAT32);
@@ -1357,8 +1356,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam2) {
 
     sd::ops::nadam_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &initV, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initV, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &initV, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initV, &initM }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.06008325193356386,     0.0600832558615088,    0.06008321472550684,    0.06008325560661022,    0.0600818092240132 }, DataType::FLOAT32);
     NDArray stateV0('c', { 1, 5 }, { 0.00064763200471052,    0.00093192749752604,    0.00009759924275397,    0.00090824957522506,     0.0000001678916007 }, DataType::FLOAT32);
@@ -1371,7 +1370,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam2) {
     NDArray grad1('c', { 1, 5 }, { 0.9839006662368774,     0.8964805603027344,     0.3631269931793213,    0.00931886397302151,     0.6320028901100159 }, DataType::FLOAT32);
 
     status = op.execute({ &grad1, &initV, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad1, &initV, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.06273730114378717,     0.0596708938019245,    0.06226533928512862,    0.02621380498466489,    0.06059567064824535 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.00161504489372718,    0.00173467296502922,    0.00022936285668667,    0.00090742816687558,    0.0003995953768165 }, DataType::FLOAT32);
@@ -1384,7 +1383,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam2) {
     NDArray grad2('c', { 1, 5 }, { 0.7712154984474182,     0.1282273381948471,     0.7019220590591431,     0.8883536458015442,       0.33057701587677 }, DataType::FLOAT32);
 
     status = op.execute({ &grad2, &initV, &initM, &lr, &beta1, &beta2, &epsilon }, { &grad2, &initV, &initM }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.06062658222261493,    0.04001212712739213,    0.06906390273197544,    0.05804376499107734,    0.05097529565845974 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.00220820319387896,    0.00174938054232472,    0.00072182807082381,     0.0016956929387176,    0.00050847694486568 }, DataType::FLOAT32);
@@ -1425,7 +1424,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam3) {
     stateV.assign(stateV0C);
     stateM.assign(stateM0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1435,7 +1434,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam3) {
     ASSERT_TRUE(stateM.equalsTo(results.at(2)));
 
     results = op.evaluate({ &grad, &stateV, &stateM }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.06061258367739481,    0.06061259045578174,    0.06061259271524436,    0.06061259384497576,    0.06061259452281461 }, DataType::FLOAT32);
     NDArray stateV1C('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -1445,7 +1444,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam3) {
     stateV.assign(stateV1C);
     stateM.assign(stateM1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1464,7 +1463,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterNadam3) {
     stateV.assign(stateV2C);
     stateM.assign(stateM2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1485,8 +1484,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad1) {
 
     sd::ops::ams_grad_updater op;
 
-    Nd4jStatus status = op.execute({ &grad, &initV, &initM, &initH }, { &update, &initV, &initM, &initH }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad, &initV, &initM, &initH }, { &update, &initV, &initM, &initH }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.00099999968377233,    0.00099999984188614,    0.00099999989459076,    0.00099999992094306,    0.00099999993675445 }, DataType::FLOAT32);
     NDArray stateV0('c', { 1, 5 }, { 0.001,                  0.004,    0.00900000000000001,    0.01600000000000001,    0.02500000000000002 }, DataType::FLOAT32);
@@ -1499,7 +1498,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad1) {
     ASSERT_TRUE(initM.equalsTo(stateM0));
 
     status = op.execute({ &grad, &initV, &initM, &initH }, { &update, &initV, &initM, &initH }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00134383858541481,    0.00134383873569809,    0.00134383878579252,    0.00134383881083974,    0.00134383882586807 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -1512,7 +1511,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad1) {
     ASSERT_TRUE(initM.equalsTo(stateM1));
 
     status = op.execute({ &grad, &initV, &initM, &initH }, { &update, &initV, &initM, &initH }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00156540157923389,    0.00156540172220632,     0.0015654017698638,    0.00156540179369254,    0.00156540180798979 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.002997001,    0.01198800400000001,    0.02697300900000002,    0.04795201600000004,    0.07492502500000006 }, DataType::FLOAT32);
@@ -1539,8 +1538,8 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad2) {
 
     sd::ops::ams_grad_updater op;
 
-    Nd4jStatus status = op.execute({ &grad0, &initV, &initM, &initH, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initV, &initM, &initH }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = op.execute({ &grad0, &initV, &initM, &initH, &lr, &beta1, &beta2, &epsilon }, { &grad0, &initV, &initM, &initH }, { }, { });
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp0('c', { 1, 5 }, { 0.00099999944815292,    0.00099999269777932,    0.00099999873015716,    0.00099999951457465,    0.00099999954934402 }, DataType::FLOAT32);
     NDArray stateV0('c', { 1, 5 }, { 0.00032836890830282,    0.00000187535612164,    0.00006201531449819,    0.00042437977439011,     0.0004923901284225 }, DataType::FLOAT32);
@@ -1555,7 +1554,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad2) {
     NDArray grad1('c', { 1, 5 }, { 0.6404328346252441,     0.9432603120803833,    0.45608729124069214,     0.9097326993942261,      0.748093843460083 }, DataType::FLOAT32);
 
     status = op.execute({ &grad1, &initV, &initM, &initH, &lr, &beta1, &beta2, &epsilon }, { &grad1, &initV, &initM, &initH }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp1('c', { 1, 5 }, { 0.00134565543815267,    0.00104022434054697,    0.00130914539820157,    0.00133725290576052,     0.0013453914974122 }, DataType::FLOAT32);
     NDArray stateV1('c', { 1, 5 }, { 0.00073819475506065,    0.00089161349711151,    0.00026996891641496,    0.00125156897896282,    0.00105154213691696 }, DataType::FLOAT32);
@@ -1570,7 +1569,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad2) {
     NDArray grad2('c', { 1, 5 }, { 0.46250319480895996,    0.09698919206857681,    0.21754667162895203,    0.46824514865875244,     0.6005083918571472 }, DataType::FLOAT32);
 
     status = op.execute({ &grad2, &initV, &initM, &initH, &lr, &beta1, &beta2, &epsilon }, { &grad2, &initV, &initM, &initH }, { }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     NDArray updateExp2('c', { 1, 5 }, { 0.00154098993679222,    0.00103399135000281,    0.00147364850040774,    0.00149693641196572,    0.00155078467854623 }, DataType::FLOAT32);
     NDArray stateV2('c', { 1, 5 }, { 0.00095136576551408,    0.00090012878699251,    0.00031702550183538,    0.00146957092922632,     0.0014111009234709 }, DataType::FLOAT32);
@@ -1620,7 +1619,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad3) {
     stateM.assign(stateM0C);
     stateH.assign(stateH0C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1632,7 +1631,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad3) {
     ASSERT_TRUE(stateH.equalsTo(results.at(3)));
 
     results = op.evaluate({ &grad, &stateV, &stateM, &stateH }, { 0.001f, 0.9f, 0.999f, 1.0e-8 }, { });
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     NDArray update1C('c', { 1, 5 }, { 0.00134383858541481,    0.00134383873569809,    0.00134383878579252,    0.00134383881083974,    0.00134383882586807 }, DataType::FLOAT32);
     NDArray stateV1C('c', { 1, 5 }, { 0.001999,    0.00799600000000001,    0.01799100000000001,    0.03198400000000003,    0.04997500000000005 }, DataType::FLOAT32);
@@ -1645,7 +1644,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad3) {
     stateM.assign(stateM1C);
     stateH.assign(stateH1C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));
@@ -1670,7 +1669,7 @@ TEST_F(DeclarableOpsTests18, TestUpdaterAmsGrad3) {
     stateM.assign(stateM2C);
     stateH.assign(stateH2C);
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     ASSERT_TRUE(update.isSameShape(results.at(0)));
     ASSERT_TRUE(update.equalsTo(results.at(0)));

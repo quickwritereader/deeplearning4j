@@ -21,7 +21,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 #include <execution/Threads.h>
@@ -45,23 +44,23 @@ namespace sd {
              *
              * */
             template <typename T>
-            static _CUDA_HD void lowerTriangularSolve(T const* leftInput, Nd4jLong const* leftInputShape,
-                                                        T const* rightInput, Nd4jLong const* rightInputShape,
-                                                        bool const unitOnDiag, T* output, const Nd4jLong* outputShape,
-                                                        Nd4jLong rows, Nd4jLong cols) {
+            static SD_HOST_DEVICE void lowerTriangularSolve(T const* leftInput, sd::LongType const* leftInputShape,
+                                                        T const* rightInput, sd::LongType const* rightInputShape,
+                                                        bool const unitOnDiag, T* output, const sd::LongType* outputShape,
+                                                        sd::LongType rows, sd::LongType cols) {
 
                 for (auto r = 0; r < rows; r++) {
                     for (auto j = 0; j < cols; j++) {
-                        Nd4jLong posY[] = {r, j};
-                        Nd4jLong posX[] = {r, r};
+                        sd::LongType posY[] = {r, j};
+                        sd::LongType posX[] = {r, r};
                         auto xIndex = shape::getOffset(leftInputShape, posX, 0);
                         auto yIndex = shape::getOffset(rightInputShape, posY, 0);
                         auto zIndex = shape::getOffset(outputShape, posY, 0);
 
                         auto sum = rightInput[yIndex];
                         for (auto c = 0; c < r; c++) {
-                            Nd4jLong posZ[] = {c, j};
-                            Nd4jLong pos[] = {r, c};
+                            sd::LongType posZ[] = {c, j};
+                            sd::LongType pos[] = {r, c};
                             auto xcIndex = shape::getOffset(leftInputShape, pos, 0);
                             auto zcIndex = shape::getOffset(outputShape, posZ, 0);
                             sum -= leftInput[xcIndex] * output[zcIndex];
@@ -86,21 +85,21 @@ namespace sd {
              * */
 
             template <typename T>
-            static _CUDA_HD void upperTriangularSolve(T const* leftInput, Nd4jLong const* leftInputShape,
-                    T const* rightInput, Nd4jLong const* rightInputShape, bool const unitOnDiag, T* output,
-                    const Nd4jLong* outputShape, Nd4jLong rows, Nd4jLong cols) {
+            static SD_HOST_DEVICE void upperTriangularSolve(T const* leftInput, sd::LongType const* leftInputShape,
+                    T const* rightInput, sd::LongType const* rightInputShape, bool const unitOnDiag, T* output,
+                    const sd::LongType* outputShape, sd::LongType rows, sd::LongType cols) {
 
                 for (auto r = rows; r > 0; r--) {
                     for (auto j = 0; j < cols; j++) {
-                        Nd4jLong posY[] = {r - 1, j};
-                        Nd4jLong posX[] = {r - 1, r - 1};
+                        sd::LongType posY[] = {r - 1, j};
+                        sd::LongType posX[] = {r - 1, r - 1};
                         auto xIndex = shape::getOffset(leftInputShape, posX, 0);
                         auto yIndex = shape::getOffset(rightInputShape, posY, 0);
                         auto zIndex = shape::getOffset(outputShape, posY, 0);
                         auto sum = rightInput[yIndex];
                         for (auto c = r; c < rows; c++) {
-                            Nd4jLong posZ[] = {c, j};
-                            Nd4jLong pos[] = {r - 1, c};
+                            sd::LongType posZ[] = {c, j};
+                            sd::LongType pos[] = {r - 1, c};
                             auto zcIndex = shape::getOffset(outputShape, posZ, 0);
                             auto xcIndex = shape::getOffset(leftInputShape, pos, 0);
                             sum -= leftInput[xcIndex] * output[zcIndex];
@@ -111,13 +110,13 @@ namespace sd {
             }
 
             template <typename T>
-            static __global__ void triangularSolveKernel(T const* leftInput, Nd4jLong const* leftPartShape,
-                    T const* rightInput, Nd4jLong const* rightPartShape, bool const lower, bool const unitsOnDiag, T* output,
-                    const Nd4jLong* outputShape, const Nd4jLong* tadLeftShape, const Nd4jLong* tadLeftOffset, const Nd4jLong* tadRightShape,
-                    const Nd4jLong* tadRightOffset, const Nd4jLong* tadOutputShape, const Nd4jLong* tadOutputOffset, Nd4jLong batchNum) {
+            static SD_KERNEL void triangularSolveKernel(T const* leftInput, sd::LongType const* leftPartShape,
+                    T const* rightInput, sd::LongType const* rightPartShape, bool const lower, bool const unitsOnDiag, T* output,
+                    const sd::LongType* outputShape, const sd::LongType* tadLeftShape, const sd::LongType* tadLeftOffset, const sd::LongType* tadRightShape,
+                    const sd::LongType* tadRightOffset, const sd::LongType* tadOutputShape, const sd::LongType* tadOutputOffset, sd::LongType batchNum) {
 
-                __shared__ Nd4jLong rows;
-                __shared__ Nd4jLong cols;
+                __shared__ sd::LongType rows;
+                __shared__ sd::LongType cols;
 
                 if (threadIdx.x == 0) {
                     rows = shape::sizeAt(leftPartShape, -2);
@@ -142,7 +141,7 @@ namespace sd {
             }
 
             template <typename T>
-            static int triangularSolveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput,
+            static sd::Status triangularSolveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput,
                     bool lower, bool unitsOnDiag, NDArray* output) {
                 NDArray::prepareSpecialUse({output}, {leftInput, rightInput});
                 auto leftTads = ConstantTadHelper::getInstance().tadForDimensions(leftInput->shapeInfo(), {-2, -1});
@@ -161,7 +160,7 @@ namespace sd {
 
                 NDArray::registerSpecialUse({output}, {leftInput, rightInput});
 
-                return Status::OK();
+                return sd::Status::OK;
 
             }
 
@@ -175,7 +174,7 @@ namespace sd {
             /// \param output - output vector (x on equation Tx = b)
             ///
             template <typename T>
-            ND4J_LOCAL void triangularSolve2D(sd::LaunchContext* context, const NDArray& leftInput, const NDArray& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output) {
+            void triangularSolve2D(sd::LaunchContext* context, const NDArray& leftInput, const NDArray& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output) {
 
                 triangularSolveFunctor_<T>(context, const_cast<NDArray*>(&leftInput), const_cast<NDArray*>(&rightInput), lower, unitsOnDiag, &output);
 
@@ -192,28 +191,28 @@ namespace sd {
                 // }
                 // output.syncToDevice();
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), SD_FLOAT_TYPES);
 //            template void triangularSolve2D<float>(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output);
 //            template void triangularSolve2D<bfloat16>(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output);
 //            template void triangularSolve2D<float16>(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output);
 //            template void triangularSolve2D<double>(sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output);
 
-            ND4J_LOCAL int triangularSolveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool unitsOnDiag, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(leftInput->dataType(), return triangularSolveFunctor_, (context, leftInput, rightInput, lower, unitsOnDiag, output), FLOAT_NATIVE);
+            sd::Status triangularSolveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool lower, bool unitsOnDiag, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(leftInput->dataType(), return triangularSolveFunctor_, (context, leftInput, rightInput, lower, unitsOnDiag, output), SD_FLOAT_NATIVE);
             }
 
             template <typename T>
-            static __global__ void upperAdjointKernel(T const* input, T* output,
-                    Nd4jLong batchSize, Nd4jLong rows, Nd4jLong columns,
-                    Nd4jLong const* inputTads, Nd4jLong const* inputOffsets, Nd4jLong const* outputTads, Nd4jLong const* outputOffsets) {
+            static SD_KERNEL void upperAdjointKernel(T const* input, T* output,
+                    sd::LongType batchSize, sd::LongType rows, sd::LongType columns,
+                    sd::LongType const* inputTads, sd::LongType const* inputOffsets, sd::LongType const* outputTads, sd::LongType const* outputOffsets) {
 
                 for (auto b = blockIdx.x; b < batchSize; b += gridDim.x) {
                     auto inputPart = input + inputOffsets[b];
                     auto outputPart = output + outputOffsets[b];
                     for (auto r = threadIdx.x; r < rows; r += blockDim.x) {
                         for (auto c = threadIdx.y; c <= r; c += blockDim.y) {
-                            Nd4jLong zPos[] = {r, c};
-                            Nd4jLong xPos[] = {c, r};
+                            sd::LongType zPos[] = {r, c};
+                            sd::LongType xPos[] = {c, r};
                             auto zIndex = shape::getOffset(outputTads, zPos);
                             auto xIndex = shape::getOffset(inputTads, xPos);
                             outputPart[zIndex] = inputPart[xIndex];
@@ -224,17 +223,17 @@ namespace sd {
             }
 
             template <typename T>
-            static __global__ void lowerAdjointKernel(T const* input, T* output,
-                         Nd4jLong batchSize, Nd4jLong rows, Nd4jLong columns,
-                         Nd4jLong const* inputTads, Nd4jLong const* inputOffsets, Nd4jLong const* outputTads, Nd4jLong const* outputOffsets) {
+            static SD_KERNEL void lowerAdjointKernel(T const* input, T* output,
+                         sd::LongType batchSize, sd::LongType rows, sd::LongType columns,
+                         sd::LongType const* inputTads, sd::LongType const* inputOffsets, sd::LongType const* outputTads, sd::LongType const* outputOffsets) {
 
                 for (auto b = blockIdx.x; b < batchSize; b += gridDim.x) {
                     auto inputPart = input + inputOffsets[b];
                     auto outputPart = output + outputOffsets[b];
                     for (auto r = threadIdx.x; r < rows; r += blockDim.x) {
                         for (auto c = r + threadIdx.y; c < columns; c += blockDim.y) {
-                            Nd4jLong zPos[] = {r, c};
-                            Nd4jLong xPos[] = {c, r};
+                            sd::LongType zPos[] = {r, c};
+                            sd::LongType xPos[] = {c, r};
                             auto zIndex = shape::getOffset(outputTads, zPos);
                             auto xIndex = shape::getOffset(inputTads, xPos);
                             outputPart[zIndex] = inputPart[xIndex];
@@ -262,8 +261,8 @@ namespace sd {
                 }
             }
 
-            ND4J_LOCAL void adjointMatrix(sd::LaunchContext* context, NDArray const* input, bool const lower, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), adjointTriangularMatrix_, (context, input, lower, output), FLOAT_NATIVE);
+            void adjointMatrix(sd::LaunchContext* context, NDArray const* input, bool const lower, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), adjointTriangularMatrix_, (context, input, lower, output), SD_FLOAT_NATIVE);
             }
 
 /*
@@ -332,7 +331,7 @@ namespace sd {
                     }
                 }
             }
-            BUILD_SINGLE_TEMPLATE(template void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void triangularSolve2D, (sd::LaunchContext* context, NDArray const& leftInput, NDArray const& rightInput, bool const lower, bool const unitsOnDiag, NDArray& output), SD_FLOAT_TYPES);
 */
 
 

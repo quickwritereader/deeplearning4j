@@ -32,9 +32,9 @@ namespace sd {
          */
          OP_IMPL(broadcastgradientargs, 2, 2, true) {
             
-            nd4j_printf("BroadcastGradientArgs: Not implemented yet\n", "");
+            sd_printf("BroadcastGradientArgs: Not implemented yet\n", "");
 
-            return ND4J_STATUS_KERNEL_FAILURE;
+            return sd::Status::KERNEL_FAILURE;
         }
         DECLARE_SYN(BroadcastGradientArgs, broadcastgradientargs);
 

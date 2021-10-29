@@ -21,12 +21,10 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
 #include <helpers/MmulHelper.h>
-
 #include <execution/Threads.h>
 #include <helpers/ConstantTadHelper.h>
 #include "../triangular_solve.h"
@@ -38,11 +36,11 @@ namespace sd {
         namespace helpers {
     
             template <typename T>
-            static __global__ void oneOnDiagonalKernel(T* ioBuf, Nd4jLong const*  ioShape, Nd4jLong const*  tadShape, Nd4jLong const*  tadOffsets, Nd4jLong batchNum, Nd4jLong rowNum) {
+            static SD_KERNEL void oneOnDiagonalKernel(T* ioBuf, sd::LongType const*  ioShape, sd::LongType const*  tadShape, sd::LongType const*  tadOffsets, sd::LongType batchNum, sd::LongType rowNum) {
                 for (auto i = blockIdx.x; i < batchNum; i += gridDim.x) {
                     auto matrixPart = ioBuf + tadOffsets[i];
                     for (auto j = threadIdx.x; j < rowNum; j += blockDim.x) {
-                        Nd4jLong pos[] = {j, j};
+                        sd::LongType pos[] = {j, j};
                         auto offset = shape::getOffset(tadShape, pos);
 
                         matrixPart[offset] = T(1.f);
@@ -51,15 +49,15 @@ namespace sd {
             }
 
             template <typename T>
-            static __global__ void restorePermutationsKernel(T* PBuf, Nd4jLong const*  PShapeInfo, int const* permutationsBuf,
-            Nd4jLong const*  PTadShapeInfo, Nd4jLong const*  PTadSOffsets, Nd4jLong const*  permutationsTadShapeInfo, Nd4jLong const*  permutationsTadOffsets, Nd4jLong batchNum, Nd4jLong rowNum) {
+            static SD_KERNEL void restorePermutationsKernel(T* PBuf, sd::LongType const*  PShapeInfo, int const* permutationsBuf,
+            sd::LongType const*  PTadShapeInfo, sd::LongType const*  PTadSOffsets, sd::LongType const*  permutationsTadShapeInfo, sd::LongType const*  permutationsTadOffsets, sd::LongType batchNum, sd::LongType rowNum) {
                 for (auto batch = blockIdx.x; batch < batchNum; batch += gridDim.x) {
                     auto permutations = permutationsBuf + permutationsTadOffsets[batch];
                     auto P = PBuf + PTadSOffsets[batch];
 
                     for (auto row = threadIdx.x; row < rowNum; row += blockDim.x) {
                         //auto posX[] = {row};
-                        Nd4jLong posZ[] = {row, permutations[row]};
+                        sd::LongType posZ[] = {row, permutations[row]};
                         auto zOffset = shape::getOffset(PTadShapeInfo, posZ);
                         P[zOffset] = T(1.f);
                     }
@@ -67,7 +65,7 @@ namespace sd {
             }
 
             template <typename T>
-            static int solveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput,
+            static sd::Status solveFunctor_(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput,
                                      bool adjoint, NDArray* output) {
                 NDArray::prepareSpecialUse({output}, {leftInput, rightInput});
                 // stage 1: LU decomposition batched
@@ -95,26 +93,26 @@ namespace sd {
                 helpers::triangularSolveFunctor(context, &leftOutput, &rightOutput, false, false, output);
                 NDArray::registerSpecialUse({output}, {leftInput, rightInput});
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int solveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool adjoint, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(leftInput->dataType(), return solveFunctor_, (context, leftInput, rightInput, adjoint, output), FLOAT_TYPES);
+            sd::Status solveFunctor(sd::LaunchContext * context, NDArray* leftInput, NDArray* rightInput, bool adjoint, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(leftInput->dataType(), return solveFunctor_, (context, leftInput, rightInput, adjoint, output), SD_FLOAT_TYPES);
             }
 
             template <typename T>
-            static __global__ void adjointKernel(T* output, Nd4jLong batchSize, Nd4jLong rows, Nd4jLong columns, Nd4jLong const*  outputTads, 
-                                                 Nd4jLong const*  outputOffsets) {
+            static SD_KERNEL void adjointKernel(T* output, sd::LongType batchSize, sd::LongType rows, sd::LongType columns, sd::LongType const*  outputTads, 
+                                                 sd::LongType const*  outputOffsets) {
 
                 for (auto b = blockIdx.x; b < batchSize; b += gridDim.x) {
                     auto outputPart = output + outputOffsets[b];
                     for (auto r = threadIdx.x; r < rows; r += blockDim.x) {
                         for (auto c = threadIdx.y; c < r; c += blockDim.y) {
-                            Nd4jLong zPos[] = {r, c};
-                            Nd4jLong xPos[] = {c, r};
+                            sd::LongType zPos[] = {r, c};
+                            sd::LongType xPos[] = {c, r};
                             auto zIndex = shape::getOffset(outputTads, zPos);
                             auto xIndex = shape::getOffset(outputTads, xPos);
-                            math::nd4j_swap(outputPart[zIndex], outputPart[xIndex]);
+                            math::sd_swap(outputPart[zIndex], outputPart[xIndex]);
                         }
                     }
                 }
@@ -135,8 +133,8 @@ namespace sd {
                 NDArray::registerSpecialUse({output}, {input});
             }
 
-            ND4J_LOCAL void adjointMatrix(sd::LaunchContext* context, NDArray const* input, NDArray* output) {
-                BUILD_SINGLE_SELECTOR(input->dataType(), adjointMatrix_, (context, input, output), FLOAT_TYPES);
+            void adjointMatrix(sd::LaunchContext* context, NDArray const* input, NDArray* output) {
+                BUILD_SINGLE_SELECTOR(input->dataType(), adjointMatrix_, (context, input, output), SD_FLOAT_TYPES);
             }
 
         }

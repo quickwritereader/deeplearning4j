@@ -38,12 +38,12 @@ namespace sd {
 
             auto tZ = BroadcastHelper::broadcastApply(BROADCAST(MinPairwise),x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z) {
                 OVERWRITE_RESULT(tZ);
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(minimum) {
@@ -68,7 +68,7 @@ namespace sd {
             auto gradX = OUTPUT_VARIABLE(0);
             auto gradY = OUTPUT_VARIABLE(1);
             helpers::minimumBPFunctor(block.launchContext(), x, y, epsNext, gradX, gradY);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(minimum_bp) {
@@ -79,8 +79,8 @@ namespace sd {
             // eps always has shape of x
             // grad always has shape of y
 
-            Nd4jLong *shapeE;
-            Nd4jLong *shapeG;
+            sd::LongType *shapeE;
+            sd::LongType *shapeG;
 
             COPY_SHAPE(x, shapeE);
             COPY_SHAPE(y, shapeG);

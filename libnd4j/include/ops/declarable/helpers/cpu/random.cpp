@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/random.h>
 //#include <vector>
 #include <memory>
@@ -42,7 +41,7 @@ namespace helpers {
      * @return gamma distributed value
      */
     template <typename T>
-    ND4J_LOCAL T gammaLess(graph::RandomGenerator& rng, T const alpha, T const beta) {
+    T gammaLess(graph::RandomGenerator& rng, T const alpha, T const beta) {
         auto d = T(1.0334f) - T(0.0766f) * math::p_exp(T(2.2942f) * alpha);
         auto a = math::p_pow(T(2.f), alpha) * math::p_pow(T(1.f) - math::p_exp(-d * T(0.5f)), alpha);
         auto b = alpha * math::p_pow(d, alpha - T(1.f)) * exp(-d);
@@ -82,12 +81,12 @@ namespace helpers {
      * @return - gamma distributed value with given params
      */
     template <typename T>
-    ND4J_LOCAL T gammaGreat(graph::RandomGenerator& rng, T const alpha, T const beta) {
+    T gammaGreat(graph::RandomGenerator& rng, T const alpha, T const beta) {
         auto decreasedAlpha = alpha - T(1.f/3.f);
         auto c = T(1.)/ math::p_sqrt(T(9.f) * decreasedAlpha);
         static auto index = 0LL;
         T x;
-        auto normalDistributed = [](graph::RandomGenerator& rng, Nd4jLong& index) {
+        auto normalDistributed = [](graph::RandomGenerator& rng, sd::LongType& index) {
             auto v1 = rng.relativeT(index++, T(0.f), T(1.f));
             auto v2 = rng.relativeT(index++, T(0.f), T(1.f));
 
@@ -115,11 +114,11 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL void fillRandomGamma_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output) {
+    void fillRandomGamma_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output) {
 
         auto broadcasted = alpha->shapeInfo();
         if (beta != nullptr) {
-            const Nd4jLong* broadcastedShape = nullptr;
+            const sd::LongType* broadcastedShape = nullptr;
             ShapeUtils::evalBroadcastShapeInfo(*alpha, *beta, true, broadcastedShape, context->getWorkspace());
             broadcasted = broadcastedShape;
         }
@@ -140,9 +139,9 @@ namespace helpers {
         T* outputBuf = output->dataBuffer()->primaryAsT<T>();
 
         PRAGMA_OMP_PARALLEL_FOR
-        for (Nd4jLong k = 0; k < shift; k++) {
+        for (sd::LongType k = 0; k < shift; k++) {
             auto pos = k * step;
-            for (Nd4jLong e = 0; e < step; e++)
+            for (sd::LongType e = 0; e < step; e++)
                     if (directOutput) {
                         outputBuf[pos + e] = copyAlpha->t<T>(e) <= 1? gammaLess(rng, copyAlpha->t<T>(e), beta?copyBeta->t<T>(e):T(1.f)):gammaGreat(rng, copyAlpha->t<T>(e), beta?copyBeta->t<T>(e):T(1.f));
                     }
@@ -158,11 +157,11 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void fillRandomGamma(LaunchContext* context, graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(output->dataType(), fillRandomGamma_, (context, rng, alpha, beta, output), FLOAT_NATIVE);
+    void fillRandomGamma(LaunchContext* context, graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(output->dataType(), fillRandomGamma_, (context, rng, alpha, beta, output), SD_FLOAT_NATIVE);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void fillRandomGamma_, (LaunchContext* context,
-            graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output), FLOAT_NATIVE);
+    BUILD_SINGLE_TEMPLATE(template void fillRandomGamma_, (LaunchContext* context,
+            graph::RandomGenerator& rng, NDArray* alpha, NDArray* beta, NDArray* output), SD_FLOAT_NATIVE);
 
     /*
      * algorithm Poisson generator based upon the inversion by sequential search:[48]:505
@@ -176,7 +175,7 @@ namespace helpers {
     return x.
      * */
     template <typename T, typename Z>
-    ND4J_LOCAL void fillRandomPoisson_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* lambda, NDArray* output) {
+    void fillRandomPoisson_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* lambda, NDArray* output) {
         auto shift = output->lengthOf() / lambda->lengthOf();
         auto step = lambda->lengthOf();
         T* lambdaBuf = lambda->dataBuffer()->primaryAsT<T>();
@@ -184,11 +183,11 @@ namespace helpers {
         bool directLa = lambda->ews() == 1 && lambda->ordering() == 'c';
         bool directOut = output->ews() == 1 && output->ordering() == 'c';
         PRAGMA_OMP_PARALLEL_FOR
-        for (Nd4jLong k = 0; k < shift; k++) {
+        for (sd::LongType k = 0; k < shift; k++) {
             auto pos = k * step;
             auto u = rng.relativeT<T>(k, 0., 1.);
-            for (Nd4jLong e = 0; e < step; e++) {
-                auto p = math::nd4j_exp<T, T>(-lambda->t<T>(e));
+            for (sd::LongType e = 0; e < step; e++) {
+                auto p = math::sd_exp<T, T>(-lambda->t<T>(e));
                 auto s = p;
                 auto x = Z(0.f);
                 while (u > s) {
@@ -205,16 +204,16 @@ namespace helpers {
     }
 
 
-    ND4J_LOCAL void fillRandomPoisson(LaunchContext* context, graph::RandomGenerator& rng, NDArray* lambda, NDArray* output) {
-        BUILD_DOUBLE_SELECTOR(lambda->dataType(), output->dataType(), fillRandomPoisson_, (context, rng, lambda, output), FLOAT_TYPES, FLOAT_TYPES);
+    void fillRandomPoisson(LaunchContext* context, graph::RandomGenerator& rng, NDArray* lambda, NDArray* output) {
+        BUILD_DOUBLE_SELECTOR(lambda->dataType(), output->dataType(), fillRandomPoisson_, (context, rng, lambda, output), SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     }
 
-    BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL void fillRandomPoisson_, (LaunchContext* context,
-            graph::RandomGenerator& rng, NDArray* lambda, NDArray* output), FLOAT_TYPES, FLOAT_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template void fillRandomPoisson_, (LaunchContext* context,
+            graph::RandomGenerator& rng, NDArray* lambda, NDArray* output), SD_FLOAT_TYPES, SD_FLOAT_TYPES);
  
 
     template <typename T>
-    ND4J_LOCAL void fillRandomUniform_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* min, NDArray* max, NDArray* output) {
+    void fillRandomUniform_(LaunchContext* context, graph::RandomGenerator& rng, NDArray* min, NDArray* max, NDArray* output) {
         T minVal = T(0);
         T maxVal = DataTypeUtils::max<T>();
         if (min)
@@ -226,20 +225,20 @@ namespace helpers {
             RandomLauncher::fillUniform(context, rng, output, minVal, maxVal);
         else {
             PRAGMA_OMP_PARALLEL_FOR
-            for (Nd4jLong i = 0; i < output->lengthOf(); i++) {
+            for (sd::LongType i = 0; i < output->lengthOf(); i++) {
                 output->r<T>(i) = rng.relativeT<T>(i, minVal, maxVal);
             }
         }
     }
 
-    ND4J_LOCAL void fillRandomUniform(LaunchContext* context, graph::RandomGenerator& rng, NDArray* min, NDArray* max, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(output->dataType(), fillRandomUniform_, (context, rng, min, max, output), NUMERIC_TYPES);
+    void fillRandomUniform(LaunchContext* context, graph::RandomGenerator& rng, NDArray* min, NDArray* max, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(output->dataType(), fillRandomUniform_, (context, rng, min, max, output), SD_NUMERIC_TYPES);
     }
 
     // used https://en.wikipedia.org/wiki/Categorical_distribution
     // methods: gumbel trick + softmax + argmax
     template <typename Tx, typename Tz>
-    ND4J_LOCAL void fillRandomMultiNomial_(LaunchContext* context, graph::RandomGenerator& rng, NDArray& input, NDArray& output, const Nd4jLong numOfSamples, const int dimC) {
+    void fillRandomMultiNomial_(LaunchContext* context, graph::RandomGenerator& rng, NDArray& input, NDArray& output, const sd::LongType numOfSamples, const int dimC) {
 
         const Tx* x = input.bufferAsT<Tx>();
         Tz* z = output.bufferAsT<Tz>();
@@ -248,13 +247,13 @@ namespace helpers {
         Tx maxVal = 1.0;
 
         auto dimA = (0 == dimC) ? 1 : 0;
-        const Nd4jLong batchValue = output.sizeAt(dimC);
-        const Nd4jLong numOfClassX = input.sizeAt(dimA);
+        const sd::LongType batchValue = output.sizeAt(dimC);
+        const sd::LongType numOfClassX = input.sizeAt(dimA);
 
-        const Nd4jLong zDimAstride = output.stridesOf()[dimA];
-        const Nd4jLong xDimAstride = input.stridesOf()[dimA];
-        const Nd4jLong zDimCstride = output.stridesOf()[dimC];
-        const Nd4jLong xDimCstride = input.stridesOf()[dimC];
+        const sd::LongType zDimAstride = output.stridesOf()[dimA];
+        const sd::LongType xDimAstride = input.stridesOf()[dimA];
+        const sd::LongType zDimCstride = output.stridesOf()[dimC];
+        const sd::LongType xDimCstride = input.stridesOf()[dimC];
 
         auto func = PRAGMA_THREADS_FOR_2D{
                 for (auto nBatchIndex = start_x; nBatchIndex < stop_x; nBatchIndex += inc_x) {
@@ -267,9 +266,9 @@ namespace helpers {
 
                         auto nSamplesPerBatch = nBatchIndex * numOfClassX * numOfSamples;
                         auto nClassesPerSample = nSampleIndexInBatch * numOfClassX;
-                        for (Nd4jLong nClass = 0; nClass < numOfClassX; nClass += 1) {
+                        for (sd::LongType nClass = 0; nClass < numOfClassX; nClass += 1) {
                             auto nIndex = nSamplesPerBatch + nClassesPerSample + nClass;
-                            auto unifornLog = sd::math::nd4j_log<Tx, Tx>(-sd::math::nd4j_log<Tx, Tx>(rng.relativeT<Tx>(nIndex, minVal, maxVal)));
+                            auto unifornLog = sd::math::sd_log<Tx, Tx>(-sd::math::sd_log<Tx, Tx>(rng.relativeT<Tx>(nIndex, minVal, maxVal)));
                             Tx tValue = (xTad[nClass * xDimAstride] - unifornLog);
                             if (tValue > Max) {
                                 Max = tValue;
@@ -286,8 +285,8 @@ namespace helpers {
         return;
     }
 
-    ND4J_LOCAL void fillRandomMultiNomial(LaunchContext* context, graph::RandomGenerator& rng, NDArray& input, NDArray& output, const Nd4jLong numOfSamples, const int dimC) {
-        BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), fillRandomMultiNomial_, (context, rng, input, output, numOfSamples, dimC), FLOAT_TYPES, INDEXING_TYPES);
+    void fillRandomMultiNomial(LaunchContext* context, graph::RandomGenerator& rng, NDArray& input, NDArray& output, const sd::LongType numOfSamples, const int dimC) {
+        BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), fillRandomMultiNomial_, (context, rng, input, output, numOfSamples, dimC), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
     }
 
 }

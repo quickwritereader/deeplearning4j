@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_STASHTESTS_H
 #define LIBND4J_STASHTESTS_H
-
 #include <array/NDArray.h>
 #include "testlayers.h"
 #include <graph/Stash.h>

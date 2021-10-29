@@ -40,12 +40,12 @@ namespace sd {
 //            auto tZ = BroadcastHelper::broadcastApply({scalar::IGammac, pairwise::IGammac, broadcast::IGammac}, x, y, z);
             auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::IGammac(), x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z) {
                 OVERWRITE_RESULT(tZ);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(igammac) {

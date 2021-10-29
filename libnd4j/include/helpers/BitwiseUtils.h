@@ -22,15 +22,13 @@
 
 #ifndef LIBND4J_BITWISEUTILS_H
 #define LIBND4J_BITWISEUTILS_H
-
 #include <vector>
 #include <array/ByteOrder.h>
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
 #include <climits>
 
 namespace sd {
-    class ND4J_EXPORT BitwiseUtils {
+    class SD_LIB_EXPORT BitwiseUtils {
     public:
 
 
@@ -66,7 +64,7 @@ namespace sd {
          * @return
          */
         template <typename T>
-        static FORCEINLINE T swap_bytes(T v) {
+        static SD_INLINE T swap_bytes(T v) {
             static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
 
             union S {
@@ -93,35 +91,35 @@ namespace sd {
          * @param v
          * @return
          */
-        static int FORCEINLINE flip_bits(int v) {
+        static int SD_INLINE flip_bits(int v) {
             return ~v;
         }
 
-        static int8_t FORCEINLINE flip_bits(int8_t v) {
+        static int8_t SD_INLINE flip_bits(int8_t v) {
             return ~v;
         }
 
-        static int16_t FORCEINLINE flip_bits(int16_t v) {
+        static int16_t SD_INLINE flip_bits(int16_t v) {
             return ~v;
         }
 
-        static uint8_t FORCEINLINE flip_bits(uint8_t v) {
+        static uint8_t SD_INLINE flip_bits(uint8_t v) {
             return ~v;
         }
 
-        static uint16_t FORCEINLINE flip_bits(uint16_t v) {
+        static uint16_t SD_INLINE flip_bits(uint16_t v) {
             return ~v;
         }
 
-        static uint32_t FORCEINLINE flip_bits(uint32_t v) {
+        static uint32_t SD_INLINE flip_bits(uint32_t v) {
             return ~v;
         }
 
-        static uint64_t FORCEINLINE flip_bits(uint64_t v) {
+        static uint64_t SD_INLINE flip_bits(uint64_t v) {
             return ~v;
         }
 
-        static Nd4jLong FORCEINLINE flip_bits(Nd4jLong v) {
+        static sd::LongType SD_INLINE flip_bits(sd::LongType v) {
             return ~v;
         }
     };

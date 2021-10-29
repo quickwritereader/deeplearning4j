@@ -38,10 +38,10 @@ namespace sd {
 
                 REQUIRE_TRUE(idx->isScalar(), 0, "Index should be Scalar");
 
-                //nd4j_printf("Writing [%i]:\n", idx->e<int>(0));
+                //sd_printf("Writing [%i]:\n", idx->e<int>(0));
                 //input->printShapeInfo("input shape");
                 //input->printIndexedBuffer("input buffer");
-                Nd4jStatus result = list->write(idx->e<int>(0), new NDArray(input->dup()));
+                sd::Status result = list->write(idx->e<int>(0), new NDArray(input->dup()));
 
                 auto res = NDArrayFactory::create_(list->counter(), block.launchContext());
                 //res->printShapeInfo("Write_list 2 output shape");
@@ -54,7 +54,7 @@ namespace sd {
                 auto input = INPUT_VARIABLE(1);
                 auto idx = INT_ARG(0);
 
-                Nd4jStatus result = list->write(idx, new NDArray(input->dup()));
+                sd::Status result = list->write(idx, new NDArray(input->dup()));
 
                 auto res = NDArrayFactory::create_(list->counter(), block.launchContext());
                 //res->printShapeInfo("Write_list 1 output shape");
@@ -62,7 +62,7 @@ namespace sd {
                 setupResult(res, block);
                 return result;
             } else
-                return ND4J_STATUS_BAD_INPUT;
+                return sd::Status::BAD_INPUT;
         }
         DECLARE_SYN(TensorArrayWriteV3, write_list);
         DECLARE_SYN(tensorarraywritev3, write_list);

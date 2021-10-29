@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/ArrayUtils.h>
 
 namespace sd {
@@ -33,26 +32,26 @@ namespace sd {
             memcpy(target, list.data(), list.size() * sizeof(int));
         }
 
-        void toLongPtr(std::initializer_list<Nd4jLong> list, Nd4jLong* target) {
-            std::vector<Nd4jLong> vec(list);
+        void toLongPtr(std::initializer_list<sd::LongType> list, sd::LongType* target) {
+            std::vector<sd::LongType> vec(list);
             toLongPtr(vec, target);
         }
 
-        void toLongPtr(std::vector<Nd4jLong>& list, Nd4jLong* target) {
-            memcpy(target, list.data(), list.size() * sizeof(Nd4jLong));
+        void toLongPtr(std::vector<sd::LongType>& list, sd::LongType* target) {
+            memcpy(target, list.data(), list.size() * sizeof(sd::LongType));
         }
 
-        std::vector<Nd4jLong> toLongVector(std::vector<int> vec) {
-            std::vector<Nd4jLong> result(vec.size());
-            Nd4jLong vecSize = vec.size();
+        std::vector<sd::LongType> toLongVector(std::vector<int> vec) {
+            std::vector<sd::LongType> result(vec.size());
+            sd::LongType vecSize = vec.size();
 
-            for (Nd4jLong e = 0; e < vecSize; e++)
+            for (sd::LongType e = 0; e < vecSize; e++)
                 result[e] = vec[e];
 
             return result;
         }
 
-        std::vector<Nd4jLong> toLongVector(std::vector<Nd4jLong> vec) {
+        std::vector<sd::LongType> toLongVector(std::vector<sd::LongType> vec) {
             return vec;
         }
     }

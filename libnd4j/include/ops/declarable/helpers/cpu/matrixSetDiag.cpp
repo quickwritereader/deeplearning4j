@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <array/ResultSet.h>
 #include <ops/declarable/helpers/matrixSetDiag.h>
 #include <execution/Threads.h>
@@ -31,7 +30,7 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
+void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
 
     // input and output are the same array (x == z) when zeroPad = true
     // xRank = zRank, xRank = yRank + 1
@@ -41,9 +40,9 @@ ND4J_LOCAL void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, ND
     const T* y = diagonal.bufferAsT<T>();
           T* z = output.bufferAsT<T>();
 
-    const Nd4jLong* xShapeInfo = input.shapeInfo();
-    const Nd4jLong* yShapeInfo = diagonal.shapeInfo();
-    const Nd4jLong* zShapeInfo = output.shapeInfo();
+    const sd::LongType* xShapeInfo = input.shapeInfo();
+    const sd::LongType* yShapeInfo = diagonal.shapeInfo();
+    const sd::LongType* zShapeInfo = output.shapeInfo();
 
     const bool areSameOffsets = shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);    // shapes are definitely the same, but strides might not
 
@@ -52,9 +51,9 @@ ND4J_LOCAL void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, ND
 
     auto func = PRAGMA_THREADS_FOR {
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
 
-        for (Nd4jLong i = 0; i < xLen; ++i) {
+        for (sd::LongType i = 0; i < xLen; ++i) {
 
             shape::index2coordsCPU(start, i, xShapeInfo, coords);
 
@@ -72,8 +71,8 @@ ND4J_LOCAL void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, ND
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiag_, (input, diagonal, output, zeroPad), LIBND4J_TYPES);
+void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiag_, (input, diagonal, output, zeroPad), SD_COMMON_TYPES);
 }
 
 }

@@ -41,7 +41,7 @@ OP_IMPL(random_shuffle, 1, 1, true) {
 
     helpers::randomShuffle(block.launchContext(), *input, *output, rng, isInplace);
     
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 

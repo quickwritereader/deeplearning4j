@@ -28,8 +28,7 @@
 #ifndef TEMPLATEMATH_H_
 #define TEMPLATEMATH_H_
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+
 #include <math/platformmath.h>
 #include <array/DataTypeUtils.h>
 
@@ -52,91 +51,91 @@ namespace sd {
 
 #endif
 
-	namespace math {
-		template<typename T>
-		math_def inline T nd4j_abs(T value);
+    namespace math {
+        template<typename T>
+        SD_HOST_DEVICE inline T sd_abs(T value);
 
         template<typename T>
-        math_def inline void nd4j_swap(T &val1, T &val2);
+        SD_HOST_DEVICE inline void sd_swap(T &val1, T &val2);
 
-		template<typename T>
-        math_def inline T nd4j_max(T val1, T val2);
+        template<typename T>
+        SD_HOST_DEVICE inline T sd_max(T val1, T val2);
 
-		template<typename T>
-        math_def inline T nd4j_min(T val1, T val2);
-
-		template <typename T>
-		math_def inline bool nd4j_eq(T val1, T val2, double eps);
-
-		template<typename T, typename Z>
-		math_def inline Z nd4j_re(T val1, T val2);
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_rint(T val1);
-
-		template<typename T, typename Z>
-		math_def inline Z nd4j_copysign(T val1, T val2);
-
-		template <typename T, typename Z>
-        math_def inline Z nd4j_softplus(T val);
-
-		template <typename T>
-		math_def inline T nd4j_rotl(T val, T shift);
+        template<typename T>
+        SD_HOST_DEVICE inline T sd_min(T val1, T val2);
 
         template <typename T>
-        math_def inline T nd4j_rotr(T val, T shift);
+        SD_HOST_DEVICE inline bool sd_eq(T val1, T val2, double eps);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_re(T val1, T val2);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_rint(T val1);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_copysign(T val1, T val2);
+
+        template <typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_softplus(T val);
+
+        template <typename T>
+        SD_HOST_DEVICE inline T sd_rotl(T val, T shift);
+
+        template <typename T>
+        SD_HOST_DEVICE inline T sd_rotr(T val, T shift);
 
 //#ifndef __CUDACC__
         template<typename X, typename Y, typename Z>
-        math_def inline Z nd4j_dot(X *x, Y *y, int length);
+        SD_HOST_DEVICE inline Z sd_dot(X *x, Y *y, int length);
 //#endif
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_ceil(T val1);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_ceil(T val1);
 
-		template<typename T>
-        math_def inline bool nd4j_isnan(T val1);
+        template<typename T>
+        SD_HOST_DEVICE inline bool sd_isnan(T val1);
 
-		template<typename T>
-        math_def inline bool nd4j_isinf(T val1);
+        template<typename T>
+        SD_HOST_DEVICE inline bool sd_isinf(T val1);
 
-		template<typename T>
-        math_def inline bool nd4j_isfin(T val1);
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_cos(T val);
+        template<typename T>
+        SD_HOST_DEVICE inline bool sd_isfin(T val1);
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_cosh(T val);
+        SD_HOST_DEVICE inline Z sd_cos(T val);
 
-		template<typename X, typename Z>
-        math_def inline Z nd4j_exp(X val);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_cosh(T val);
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_floor(T val);
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_exp(X val);
 
-		template<typename X, typename Z>
-        math_def inline Z nd4j_log(X val);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_floor(T val);
 
-		template<typename X, typename Y, typename Z>
-        math_def inline Z nd4j_pow(X val, Y val2);
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_round(T val);
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_log(X val);
 
         template<typename X, typename Y, typename Z>
-        math_def inline Z nd4j_remainder(X num, Y denom);
+        SD_HOST_DEVICE inline Z sd_pow(X val, Y val2);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_round(T val);
 
         template<typename X, typename Y, typename Z>
-        math_def inline Z nd4j_fmod(X num, Y denom);
+        SD_HOST_DEVICE inline Z sd_remainder(X num, Y denom);
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_erf(T num);
+        template<typename X, typename Y, typename Z>
+        SD_HOST_DEVICE inline Z sd_fmod(X num, Y denom);
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_erfc(T num);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_erf(T num);
 
-        math_def inline int32_t floatToRawIntBits(float d) {
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_erfc(T num);
+
+        SD_HOST_DEVICE inline int32_t floatToRawIntBits(float d) {
             union {
                 float f;
                 int32_t i;
@@ -145,7 +144,7 @@ namespace sd {
             return tmp.i;
         }
 
-        math_def inline float intBitsToFloat(int32_t i) {
+        SD_HOST_DEVICE inline float intBitsToFloat(int32_t i) {
             union {
                 float f;
                 int32_t i;
@@ -154,123 +153,123 @@ namespace sd {
             return tmp.f;
         }
 
-        math_def inline float mulsignf(float x, float y) {
+        SD_HOST_DEVICE inline float mulsignf(float x, float y) {
             return intBitsToFloat(floatToRawIntBits(x) ^ (floatToRawIntBits(y) & (1 << 31)));
         }
 
-        math_def inline float copysignfk(float x, float y) {
+        SD_HOST_DEVICE inline float copysignfk(float x, float y) {
             return intBitsToFloat((floatToRawIntBits(x) & ~(1 << 31)) ^ (floatToRawIntBits(y) & (1 << 31)));
         }
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_sigmoid(T val) {
-			return (Z) 1.0f / ((Z) 1.0f + nd4j_exp<T, Z>(-val));
-		}
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_elu(T val, T alpha) {
-			if (val >= (T) 0.f)
-				return val;
-			return static_cast<Z>(alpha) * (nd4j_exp<T, Z>(val) - static_cast<Z>(1.0f));
-		}
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_leakyrelu(T val,T alpha) {
-			if (val < (T) 0.0f)
-			    return alpha * val;
-			else
-			    return val;
-		}
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_eluderivative(T val, T alpha) {
-			if (val >= static_cast<T>(0.0f))
-				return static_cast<Z>(1.0f);
-			return static_cast<Z>(alpha) * nd4j_exp<T, Z>(val);
-			//return val >= 0.0 ? 1.0 : nd4j_exp(val);
-		}
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_sin(T val);
-
-		template<typename T, typename Z>
-		math_def inline Z nd4j_sinh(T val);
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_softplus(T val) {
-			return nd4j_log<T, Z>((Z) 1.0f + nd4j_exp<T, Z>(val));
-		}
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_softsign(T val) {
-			return val / ((T) 1.0f + sd::math::nd4j_abs<T>(val));
-		}
-
-		template<typename X, typename Z>
-        math_def inline Z nd4j_sqrt(X val);
-
-		template<typename X, typename Z>
-        math_def inline Z nd4j_tanh(X val);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_sigmoid(T val) {
+            return (Z) 1.0f / ((Z) 1.0f + sd_exp<T, Z>(-val));
+        }
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_tan(T val);
+        SD_HOST_DEVICE inline Z sd_elu(T val, T alpha) {
+            if (val >= (T) 0.f)
+                return val;
+            return static_cast<Z>(alpha) * (sd_exp<T, Z>(val) - static_cast<Z>(1.0f));
+        }
 
-		template<typename X, typename Z>
-		math_def inline Z nd4j_atan2(X val1, X val2);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_leakyrelu(T val,T alpha) {
+            if (val < (T) 0.0f)
+                return alpha * val;
+            else
+                return val;
+        }
 
-		template<typename X, typename Z>
-		math_def inline Z nd4j_atan2(X val1, X val2) {
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_eluderivative(T val, T alpha) {
+            if (val >= static_cast<T>(0.0f))
+                return static_cast<Z>(1.0f);
+            return static_cast<Z>(alpha) * sd_exp<T, Z>(val);
+            //return val >= 0.0 ? 1.0 : sd_exp(val);
+        }
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_sin(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_sinh(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_softplus(T val) {
+            return sd_log<T, Z>((Z) 1.0f + sd_exp<T, Z>(val));
+        }
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_softsign(T val) {
+            return val / ((T) 1.0f + sd::math::sd_abs<T>(val));
+        }
+
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_sqrt(X val);
+
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_tanh(X val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_tan(T val);
+
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_atan2(X val1, X val2);
+
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_atan2(X val1, X val2) {
             return p_atan2<Z>(static_cast<Z>(val1), static_cast<Z>(val2));
-		}
+        }
 
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_tan(T tval) {
+        SD_HOST_DEVICE inline Z sd_tan(T tval) {
             return p_tan<Z>(static_cast<Z>(tval));
         }
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_tanhderivative(T val) {
-			Z tanh = nd4j_tanh<T,Z>(val);
-			return (Z) 1.0f - tanh * tanh;
-		}
-		template <typename T, typename Z>
-        math_def inline T nd4j_sigmoidderivative(T val) {
-			Z sigmoid = nd4j_sigmoid<T,Z>(val);
-			return sigmoid * ((Z) 1.0f - sigmoid);
-		}
-
-		template<typename T, typename Z>
-        math_def inline T nd4j_softsignderivative(T val) {
-			T y = (T) 1.0f + nd4j_abs(val);
-			return (Z) 1.0f / (y * y);
-		}
+        SD_HOST_DEVICE inline Z sd_tanhderivative(T val) {
+            Z tanh = sd_tanh<T,Z>(val);
+            return (Z) 1.0f - tanh * tanh;
+        }
+        template <typename T, typename Z>
+        SD_HOST_DEVICE inline T sd_sigmoidderivative(T val) {
+            Z sigmoid = sd_sigmoid<T,Z>(val);
+            return sigmoid * ((Z) 1.0f - sigmoid);
+        }
 
         template<typename T, typename Z>
-        math_def inline T nd4j_sgn(T val) {
+        SD_HOST_DEVICE inline T sd_softsignderivative(T val) {
+            T y = (T) 1.0f + sd_abs(val);
+            return (Z) 1.0f / (y * y);
+        }
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline T sd_sgn(T val) {
             return val < (T) 0.0f ? (Z) -1.0f : val > (T) 0.0f ? (Z) 1.0f : (Z) 0.0f;
         }
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_sign(T val) {
-            return nd4j_sgn<T, Z>(val);
+        SD_HOST_DEVICE inline Z sd_sign(T val) {
+            return sd_sgn<T, Z>(val);
         }
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_signum(T val) {
-            return nd4j_sgn<T, Z>(val);
+        SD_HOST_DEVICE inline Z sd_signum(T val) {
+            return sd_sgn<T, Z>(val);
         }
 
         template<typename X, typename Z>
-        math_def inline Z nd4j_gamma(X a);
+        SD_HOST_DEVICE inline Z sd_gamma(X a);
 
         template<typename X, typename Z>
-        math_def inline Z nd4j_lgamma(X x);
+        SD_HOST_DEVICE inline Z sd_lgamma(X x);
 
 //#ifndef __CUDACC__
 /*
         template<>
-        math_def inline float16 nd4j_dot<float16>(float16 *x, float16 *y, int length) {
+        SD_HOST_DEVICE inline float16 sd_dot<float16>(float16 *x, float16 *y, int length) {
             float16 dot = (float16) 0.0f;
 
             // TODO: since we can't use simd on unions, we might use something else here.
@@ -282,434 +281,434 @@ namespace sd {
         }
         */
 
-		template<typename X, typename Y, typename Z>
-        math_def inline Z nd4j_dot(X *x, Y *y, int length) {
+        template<typename X, typename Y, typename Z>
+        SD_HOST_DEVICE inline Z sd_dot(X *x, Y *y, int length) {
             Z dot = (Z)0.0f;
 
-			for(int e = 0; e < length; e++) {
-				dot += static_cast<Z>(x[e]) * static_cast<Z>(y[e]);
-			}
+            for(int e = 0; e < length; e++) {
+                dot += static_cast<Z>(x[e]) * static_cast<Z>(y[e]);
+            }
 
-			return dot;
-		}
+            return dot;
+        }
 //#endif
 
-		template<typename T, typename Z>
-        math_def inline Z nd4j_acos(T val);
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_acos(T val);
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_sech(T val);
-
-		template<typename T, typename Z>
-		math_def inline Z nd4j_acosh(T val);
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_asin(T val);
-
-		template<typename T, typename Z>
-		math_def inline Z nd4j_asinh(T val);
+        SD_HOST_DEVICE inline Z sd_sech(T val);
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_asinh(T val) {
+        SD_HOST_DEVICE inline Z sd_acosh(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_asin(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_asinh(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_asinh(T val) {
             //Math.log(Math.sqrt(Math.pow(x, 2) + 1) + x)
-            return nd4j_log<Z, Z>(nd4j_sqrt<Z, Z>(nd4j_pow<T,T,Z>(val, (T) 2) + (Z) 1.f) + (Z) val);
+            return sd_log<Z, Z>(sd_sqrt<Z, Z>(sd_pow<T,T,Z>(val, (T) 2) + (Z) 1.f) + (Z) val);
         }
-
-		template<typename T, typename Z>
-        math_def inline Z nd4j_atan(T val);
 
         template<typename T, typename Z>
-        math_def inline Z nd4j_atanh(T val);
+        SD_HOST_DEVICE inline Z sd_atan(T val);
+
+        template<typename T, typename Z>
+        SD_HOST_DEVICE inline Z sd_atanh(T val);
 
 
         template<>
-        math_def inline float16 nd4j_abs<float16>(float16 value) {
-#ifdef NATIVE_HALFS
-			if (value < (float16) 0.f) {
-				 return float16(__hneg(value.data));
-			} else
-				return value;
+        SD_HOST_DEVICE inline float16 sd_abs<float16>(float16 value) {
+#ifdef SD_NATIVE_HALFS
+            if (value < (float16) 0.f) {
+                 return float16(__hneg(value.data));
+            } else
+                return value;
 #else
-			return (float16) fabsf((float) value);
+            return (float16) fabsf((float) value);
 #endif
-		}
-        template<>
-        math_def inline bfloat16 nd4j_abs<bfloat16>(bfloat16 value) {
-		return (bfloat16) fabsf((float) value);
         }
-		template<>
-        math_def inline float nd4j_abs<float>(float value) {
-			return fabsf(value);
-		}
+        template<>
+        SD_HOST_DEVICE inline bfloat16 sd_abs<bfloat16>(bfloat16 value) {
+        return (bfloat16) fabsf((float) value);
+        }
+        template<>
+        SD_HOST_DEVICE inline float sd_abs<float>(float value) {
+            return fabsf(value);
+        }
 
-		template<>
-        math_def inline double nd4j_abs<double>(double value) {
-			return fabs(value);
-		}
+        template<>
+        SD_HOST_DEVICE inline double sd_abs<double>(double value) {
+            return fabs(value);
+        }
 
-		template<>
-        math_def inline int nd4j_abs<int>(int value) {
-			return abs(value);
-		}
+        template<>
+        SD_HOST_DEVICE inline int sd_abs<int>(int value) {
+            return abs(value);
+        }
 
-		template<>
-		math_def inline Nd4jLong nd4j_abs<Nd4jLong>(Nd4jLong value) {
-			return llabs(value);
-		}
+        template<>
+        SD_HOST_DEVICE inline sd::LongType sd_abs<sd::LongType>(sd::LongType value) {
+            return llabs(value);
+        }
 
-		template<>
-		math_def inline bool nd4j_abs<bool>(bool value) {
-			return value;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_abs<bool>(bool value) {
+            return value;
+        }
 
-		template<>
-		math_def inline uint8_t nd4j_abs<uint8_t>(uint8_t value) {
-			return value;
-		}
+        template<>
+        SD_HOST_DEVICE inline uint8_t sd_abs<uint8_t>(uint8_t value) {
+            return value;
+        }
 
-		template<>
-		math_def inline uint16_t nd4j_abs<uint16_t>(uint16_t value) {
-			return value;
-		}
+        template<>
+        SD_HOST_DEVICE inline uint16_t sd_abs<uint16_t>(uint16_t value) {
+            return value;
+        }
 
-		template<>
-		math_def inline uint32_t nd4j_abs<uint32_t>(uint32_t value) {
-			return value;
-		}
+        template<>
+        SD_HOST_DEVICE inline uint32_t sd_abs<uint32_t>(uint32_t value) {
+            return value;
+        }
 
-		template<>
-		math_def inline Nd4jULong nd4j_abs<Nd4jULong>(Nd4jULong value) {
-			return value;
-		}
+        template<>
+        SD_HOST_DEVICE inline sd::UnsignedLong sd_abs<sd::UnsignedLong>(sd::UnsignedLong value) {
+            return value;
+        }
 
-		template<>
-		math_def inline int8_t nd4j_abs<int8_t>(int8_t value) {
-			return value < 0 ? -value : value;
-		}
+        template<>
+        SD_HOST_DEVICE inline int8_t sd_abs<int8_t>(int8_t value) {
+            return value < 0 ? -value : value;
+        }
 
-		template<>
-		math_def inline int16_t nd4j_abs<int16_t>(int16_t value) {
-			return value < 0 ? -value : value;
-		}
+        template<>
+        SD_HOST_DEVICE inline int16_t sd_abs<int16_t>(int16_t value) {
+            return value < 0 ? -value : value;
+        }
 
 
-		template<>
-        math_def inline bool nd4j_isnan<float16>(float16 value) {
-			return *(value.data.getXP()) == 0x7fffU;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<float16>(float16 value) {
+            return *(value.data.getXP()) == 0x7fffU;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<bfloat16>(bfloat16 value) {
-			return value == bfloat16::nan(); //0x7fffU;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<bfloat16>(bfloat16 value) {
+            return value == bfloat16::nan(); //0x7fffU;
+        }
 
-		template<>
-        math_def inline bool nd4j_isnan<float>(float value) {
-			return value != value;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<float>(float value) {
+            return value != value;
+        }
 
-		template<>
-        math_def inline bool nd4j_isnan<double>(double value) {
-			return value != value;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<double>(double value) {
+            return value != value;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<int>(int value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<int>(int value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<uint32_t>(uint32_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<uint32_t>(uint32_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<uint16_t>(uint16_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<uint16_t>(uint16_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<uint8_t>(uint8_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<uint8_t>(uint8_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<int16_t>(int16_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<int16_t>(int16_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<int8_t>(int8_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<int8_t>(int8_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<bool>(bool value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<bool>(bool value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<Nd4jLong>(Nd4jLong value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<sd::LongType>(sd::LongType value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isnan<Nd4jULong>(Nd4jULong value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isnan<sd::UnsignedLong>(sd::UnsignedLong value) {
+            return false;
+        }
 
-		template<>
-        math_def inline bool nd4j_isinf<float16>(float16 value) {
-			return value < (float16) -HALF_MAX_VALUE || value > (float16) HALF_MAX_VALUE;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<float16>(float16 value) {
+            return value < (float16) -HALF_MAX_VALUE || value > (float16) HALF_MAX_VALUE;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<bfloat16>(bfloat16 value) {
-			return value < (bfloat16) -BFLOAT16_MAX_VALUE || value > (bfloat16) BFLOAT16_MAX_VALUE;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<bfloat16>(bfloat16 value) {
+            return value < (bfloat16) -BFLOAT16_MAX_VALUE || value > (bfloat16) BFLOAT16_MAX_VALUE;
+        }
 
-		template<>
-        math_def inline bool nd4j_isinf<float>(float value) {
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<float>(float value) {
 #ifdef __CUDACC__
             return isinf(value);
 #else
             return std::isinf(value);
 #endif
             //return value < -FLOAT_MAX_VALUE || value > FLOAT_MAX_VALUE;
-		}
+        }
 
-		template<>
-        math_def inline bool nd4j_isinf<double>(double value) {
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<double>(double value) {
 #ifdef __CUDACC__
             return isinf(value);
 #else
             return std::isinf(value);
 #endif
             //return value < -DOUBLE_MAX_VALUE || value > DOUBLE_MAX_VALUE;
-		}
+        }
 
-		template<>
-        math_def inline bool nd4j_isinf<int>(int value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<int>(int value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<uint32_t>(uint32_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<uint32_t>(uint32_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<uint16_t>(uint16_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<uint16_t>(uint16_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<uint8_t>(uint8_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<uint8_t>(uint8_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<int16_t>(int16_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<int16_t>(int16_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<int8_t>(int8_t value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<int8_t>(int8_t value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<bool>(bool value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<bool>(bool value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<Nd4jLong>(Nd4jLong value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<sd::LongType>(sd::LongType value) {
+            return false;
+        }
 
-		template<>
-		math_def inline bool nd4j_isinf<Nd4jULong>(Nd4jULong value) {
-			return false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_isinf<sd::UnsignedLong>(sd::UnsignedLong value) {
+            return false;
+        }
 
-		template<typename T>
-        math_def inline bool nd4j_isfin(T value) {
-			return !nd4j_isnan<T>(value) && !nd4j_isinf<T>(value);
-		}
+        template<typename T>
+        SD_HOST_DEVICE inline bool sd_isfin(T value) {
+            return !sd_isnan<T>(value) && !sd_isinf<T>(value);
+        }
 
-		template<>
-		math_def inline float16 nd4j_copysign<float16>(float16 val1, float16 val2) {
-			return (float16) copysignf((float) val1, (float) val2);
-		}
+        template<>
+        SD_HOST_DEVICE inline float16 sd_copysign<float16>(float16 val1, float16 val2) {
+            return (float16) copysignf((float) val1, (float) val2);
+        }
 
-		template<>
-		math_def inline float nd4j_copysign<float>(float val1, float val2) {
-			return copysignf(val1, val2);
-		}
+        template<>
+        SD_HOST_DEVICE inline float sd_copysign<float>(float val1, float val2) {
+            return copysignf(val1, val2);
+        }
 
-		template<>
-		math_def inline double nd4j_copysign<double>(double val1, double val2) {
-			return copysign(val1, val2);
-		}
+        template<>
+        SD_HOST_DEVICE inline double sd_copysign<double>(double val1, double val2) {
+            return copysign(val1, val2);
+        }
 
-		template<>
-		math_def inline int nd4j_copysign<int>(int val1, int val2) {
-			if (val2 < 0) return -(nd4j_abs<int>(val1));
-			else return nd4j_abs<int>(val1);
-		}
+        template<>
+        SD_HOST_DEVICE inline int sd_copysign<int>(int val1, int val2) {
+            if (val2 < 0) return -(sd_abs<int>(val1));
+            else return sd_abs<int>(val1);
+        }
 
-		template<>
-		math_def inline Nd4jLong nd4j_copysign<Nd4jLong>(Nd4jLong val1, Nd4jLong val2) {
-			if (val2 < 0) return -(nd4j_abs<Nd4jLong>(val1));
-			else return nd4j_abs<Nd4jLong>(val1);
-		}
+        template<>
+        SD_HOST_DEVICE inline sd::LongType sd_copysign<sd::LongType>(sd::LongType val1, sd::LongType val2) {
+            if (val2 < 0) return -(sd_abs<sd::LongType>(val1));
+            else return sd_abs<sd::LongType>(val1);
+        }
 
-		template<>
-		math_def inline bool nd4j_max(bool val1, bool val2) {
-			return (val1 || val2) ? true : false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_max(bool val1, bool val2) {
+            return (val1 || val2) ? true : false;
+        }
 
-		template<typename T>
-		math_def inline T nd4j_max(T val1, T val2) {
-			return val1 > val2 ? val1 : val2;
-		}
+        template<typename T>
+        SD_HOST_DEVICE inline T sd_max(T val1, T val2) {
+            return val1 > val2 ? val1 : val2;
+        }
 
-		template<>
-		math_def inline bool nd4j_min(bool val1, bool val2) {
-			return (val1 && val2) ? true : false;
-		}
+        template<>
+        SD_HOST_DEVICE inline bool sd_min(bool val1, bool val2) {
+            return (val1 && val2) ? true : false;
+        }
 
-		template<typename T>
-		math_def inline T nd4j_min(T val1, T val2) {
-			return val1 < val2 ? val1 : val2;
-		}
+        template<typename T>
+        SD_HOST_DEVICE inline T sd_min(T val1, T val2) {
+            return val1 < val2 ? val1 : val2;
+        }
 
-		template <typename T>
-		math_def inline bool nd4j_eq(T d1, T d2, double eps) {
-			if (sd::math::nd4j_isinf<T>(d1) && sd::math::nd4j_isinf<T>(d2)) {
-				if (d1 > 0 && d2 > 0)
-					return true;
-				else if (d1 < 0 && d2 < 0)
-					return true;
-				else
-					return false;
-			}
+        template <typename T>
+        SD_HOST_DEVICE inline bool sd_eq(T d1, T d2, double eps) {
+            if (sd::math::sd_isinf<T>(d1) && sd::math::sd_isinf<T>(d2)) {
+                if (d1 > 0 && d2 > 0)
+                    return true;
+                else if (d1 < 0 && d2 < 0)
+                    return true;
+                else
+                    return false;
+            }
 
-			auto diff = static_cast<double>(sd::math::nd4j_abs<T>(d1 - d2));
+            auto diff = static_cast<double>(sd::math::sd_abs<T>(d1 - d2));
 
 
-			// works well except in the range of very large numbers
-			if (diff <= eps)
-				return true;
+            // works well except in the range of very large numbers
+            if (diff <= eps)
+                return true;
 
-			// Knuth approach
-			// works well except in the range of very small numbers
-			if (diff <= sd::math::nd4j_max<double>(sd::math::nd4j_abs<double>(static_cast<double>(d1)), sd::math::nd4j_abs<double>(static_cast<double>(d2))) * eps)
-				return true;
+            // Knuth approach
+            // works well except in the range of very small numbers
+            if (diff <= sd::math::sd_max<double>(sd::math::sd_abs<double>(static_cast<double>(d1)), sd::math::sd_abs<double>(static_cast<double>(d2))) * eps)
+                return true;
 
-			return false;
-		}
-
-		template <typename X, typename Z>
-        math_def inline Z nd4j_ceil(X val) {
-            return static_cast<Z>(p_ceil<X>(val));
-		}
+            return false;
+        }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_round(X val) {
+        SD_HOST_DEVICE inline Z sd_ceil(X val) {
+            return static_cast<Z>(p_ceil<X>(val));
+        }
+
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_round(X val) {
             return static_cast<Z>(p_round<X>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_asin(X val) {
+        SD_HOST_DEVICE inline Z sd_asin(X val) {
             return p_asin<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_atan(X val) {
+        SD_HOST_DEVICE inline Z sd_atan(X val) {
             return p_atan<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_atanh(X val) {
+        SD_HOST_DEVICE inline Z sd_atanh(X val) {
             return p_atanh<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_cosh(X val) {
+        SD_HOST_DEVICE inline Z sd_cosh(X val) {
             return p_cosh<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_rint(X val) {
+        SD_HOST_DEVICE inline Z sd_rint(X val) {
             return p_rint<X>(val);
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_sinh(X val) {
+        SD_HOST_DEVICE inline Z sd_sinh(X val) {
             return p_sinh<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_acos(X val) {
+        SD_HOST_DEVICE inline Z sd_acos(X val) {
             return p_acos<Z>(static_cast<Z>(val));
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_sech(X val) {
-            return static_cast<Z>(1) / nd4j_cosh<X,Z>(val);
+        SD_HOST_DEVICE inline Z sd_sech(X val) {
+            return static_cast<Z>(1) / sd_cosh<X,Z>(val);
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_acosh(X val) {
+        SD_HOST_DEVICE inline Z sd_acosh(X val) {
             return p_acosh<Z>(static_cast<Z>(val));
         }
 
-		template <typename X, typename Z>
-        math_def inline Z nd4j_cos(X val) {
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_cos(X val) {
             return p_cos<Z>(static_cast<Z>(val));
-		}
+        }
 
-		template <typename X, typename Z>
-        math_def inline Z nd4j_exp(X val) {
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_exp(X val) {
             return p_exp<X>(val);
         }
 
-		template<typename X, typename Z>
-        math_def inline Z nd4j_floor(X val) {
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_floor(X val) {
             return static_cast<Z>(p_floor<X>(val));
-		}
+        }
 
-		template<typename X, typename Z>
-        math_def inline Z nd4j_log(X val) {
+        template<typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_log(X val) {
             return static_cast<Z>(p_log<X>(val));
-		}
+        }
 
-		/**
-		 * This func is special case - it must return floating point value, and optionally Y arg can be floating point argument
-		 * @tparam X
-		 * @tparam Y
-		 * @tparam Z
-		 * @param val
-		 * @param val2
-		 * @return
-		 */
+        /**
+         * This func is special case - it must return floating point value, and optionally Y arg can be floating point argument
+         * @tparam X
+         * @tparam Y
+         * @tparam Z
+         * @param val
+         * @param val2
+         * @return
+         */
         template <>
-        math_def inline float nd4j_pow(float val, float val2) {
+        SD_HOST_DEVICE inline float sd_pow(float val, float val2) {
             return p_pow<float>(val, val2);
         }
 
-		template <typename X, typename Y, typename Z>
-        math_def inline Z nd4j_pow(X val, Y val2) {
+        template <typename X, typename Y, typename Z>
+        SD_HOST_DEVICE inline Z sd_pow(X val, Y val2) {
             return p_pow<Z>(static_cast<Z>(val), static_cast<Z>(val2));
-		}
+        }
 
         /**
          * LogGamma(a) - float point extension of ln(n!)
          **/
         template <typename X, typename Z>
-        math_def inline Z nd4j_lgamma(X x) {
+        SD_HOST_DEVICE inline Z sd_lgamma(X x) {
 //            if (x <= X(0.0))
 //            {
 //                std::stringstream os;
@@ -718,7 +717,7 @@ namespace sd {
 //            }
 
             if (x < X(12.0)) {
-                return nd4j_log<Z,Z>(nd4j_gamma<X,Z>(x));
+                return sd_log<Z,Z>(sd_gamma<X,Z>(x));
             }
 
             // Abramowitz and Stegun 6.1.41
@@ -749,112 +748,111 @@ namespace sd {
 
             static const double halfLogTwoPi = 0.91893853320467274178032973640562;
 
-            return Z((double(x) - 0.5) * nd4j_log<X,double>(x) - double(x) + halfLogTwoPi + series);
+            return Z((double(x) - 0.5) * sd_log<X,double>(x) - double(x) + halfLogTwoPi + series);
         }
 
 
-
         template<typename T>
-		math_def inline T nd4j_re(T val1, T val2) {
-			if (val1 == (T) 0.0f && val2 == (T) 0.0f)
-				return (T) 0.0f;
+        SD_HOST_DEVICE inline T sd_re(T val1, T val2) {
+            if (val1 == (T) 0.0f && val2 == (T) 0.0f)
+                return (T) 0.0f;
 
-			return nd4j_abs<T>(val1 - val2) / (nd4j_abs<T>(val1) + nd4j_abs<T>(val2));
+            return sd_abs<T>(val1 - val2) / (sd_abs<T>(val1) + sd_abs<T>(val2));
         }
 
 
         template <typename X, typename Y, typename Z>
-		math_def inline Z nd4j_remainder(X val, Y val2) {
+        SD_HOST_DEVICE inline Z sd_remainder(X val, Y val2) {
             return p_remainder<Z>(static_cast<Z>(val), static_cast<Z>(val2));
-		}
+        }
 
-		template <typename X, typename Y, typename Z>
-		math_def inline Z nd4j_fmod(X val, Y val2) {
+        template <typename X, typename Y, typename Z>
+        SD_HOST_DEVICE inline Z sd_fmod(X val, Y val2) {
             return p_fmod<Z>(static_cast<Z>(val), static_cast<Z>(val2));
-		}
+        }
 
 
-		template <typename X, typename Z>
-        math_def inline Z nd4j_sin(X val) {
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_sin(X val) {
             return p_sin<Z>(static_cast<Z>(val));
-		}
+        }
 
 
-		template <typename X, typename Z>
-        math_def inline Z nd4j_sqrt(X val) {
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_sqrt(X val) {
             return p_sqrt<Z>(static_cast<Z>(val));
         }
 
 
         template <typename X>
-        math_def inline X neg_tanh(X val) {
+        SD_HOST_DEVICE inline X neg_tanh(X val) {
             X o = static_cast<X>(1.0f);
             X t = static_cast<X>(2.0f);
             X e = static_cast<X>(M_E);
 
-            auto p = sd::math::nd4j_pow<X, X, X>(e, val * t);
+            auto p = sd::math::sd_pow<X, X, X>(e, val * t);
             return (p - o)/ (p + o);
         }
 
         template <typename X>
-        math_def inline X pos_tanh(X val) {
+        SD_HOST_DEVICE inline X pos_tanh(X val) {
             X o = static_cast<X>(1.0f);
             X t = static_cast<X>(-2.0f);
             X e = static_cast<X>(M_E);
 
-            auto p = sd::math::nd4j_pow<X, X, X>(e, val * t);
+            auto p = sd::math::sd_pow<X, X, X>(e, val * t);
             return (o - p) / (o + p);
         }
 
 
-        math_def inline float neu_tanh(float val, float sign) {
+        SD_HOST_DEVICE inline float neu_tanh(float val, float sign) {
             float e(M_E);
             float av = sign * val;
-            auto p = sd::math::nd4j_pow<float, float, float>(e, -av * 2.f);
+            auto p = sd::math::sd_pow<float, float, float>(e, -av * 2.f);
             return (1 - p) / (1 + p);
         }
 
         template <>
-        math_def inline float nd4j_tanh(float val) {
+        SD_HOST_DEVICE inline float sd_tanh(float val) {
             float sign = copysignfk(1.0f, val);
             return sign * neu_tanh(val, sign);
         }
 
 
-		template <typename X, typename Z>
-		math_def inline Z nd4j_tanh(X val) {
+        template <typename X, typename Z>
+        SD_HOST_DEVICE inline Z sd_tanh(X val) {
             return val <= 0 ? neg_tanh(val) : pos_tanh(val);
-		}
+        }
 
         template <typename T>
-        math_def inline T nd4j_rotl(T val, T shift) {
+        SD_HOST_DEVICE inline T sd_rotl(T val, T shift) {
             return p_rotl<T>(val, shift);
         }
 
         template <typename T>
-        math_def inline T nd4j_rotr(T val, T shift) {
+        SD_HOST_DEVICE inline T sd_rotr(T val, T shift) {
             return p_rotr<T>(val, shift);
         }
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_erf(X val) {
+        SD_HOST_DEVICE inline Z sd_erf(X val) {
             return p_erf<Z>(static_cast<Z>(val));
         }
 
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_erfc(X val) {
+        SD_HOST_DEVICE inline Z sd_erfc(X val) {
             return p_erfc<Z>(static_cast<Z>(val));
         }
 
         template<typename T>
-        math_def inline void nd4j_swap(T &val1, T &val2) {
+        SD_HOST_DEVICE inline void sd_swap(T &val1, T &val2) {
             T temp = val1; val1=val2; val2=temp;
         };
 
         template <typename X, typename Z>
-        math_def inline Z nd4j_gamma(X a) {
-//            nd4j_lgamma<X,Z>(a);
+        SD_HOST_DEVICE inline Z sd_gamma(X a) {
+//            sd_lgamma<X,Z>(a);
 //            return (Z)std::tgamma(a);
             // Split the function domain into three intervals:
             // (0, 0.001), [0.001, 12), and (12, infinity)
@@ -952,12 +950,12 @@ namespace sd {
 //                return DataTypeUtils::infOrMax<Z>();
             }
 
-            return sd::math::nd4j_exp<Z,Z>(sd::math::nd4j_lgamma<X,Z>(a));
+            return sd::math::sd_exp<Z,Z>(sd::math::sd_lgamma<X,Z>(a));
         }
 
         template <typename X, typename Y, typename Z>
-        math_def inline Z nd4j_igamma(X a, Y x) {
-            Z aim = nd4j_pow<X, X, Z>(x, a) / (nd4j_exp<X, Z>(x) * nd4j_gamma<Y, Z>(a));
+        SD_HOST_DEVICE inline Z sd_igamma(X a, Y x) {
+            Z aim = sd_pow<X, X, Z>(x, a) / (sd_exp<X, Z>(x) * sd_gamma<Y, Z>(a));
             auto sum = Z(0.);
             auto denom = Z(1.);
             if (a <= X(0.000001))
@@ -966,78 +964,78 @@ namespace sd {
 
             for (int i = 0; Z(1./denom) > Z(1.0e-12); i++) {
                 denom *= (a + i);
-                sum += nd4j_pow<X, int, Z>(x, i) / denom;
+                sum += sd_pow<X, int, Z>(x, i) / denom;
             }
             return aim * sum;
         }
 
         template <typename X, typename Y, typename Z>
-        math_def inline Z nd4j_igammac(X a, Y x) {
-            return Z(1.) - nd4j_igamma<X, Y, Z>(a, x);
+        SD_HOST_DEVICE inline Z sd_igammac(X a, Y x) {
+            return Z(1.) - sd_igamma<X, Y, Z>(a, x);
         }
 
 #ifdef __CUDACC__
-		namespace atomics {
+        namespace atomics {
 template <typename T>
-inline __device__ T nd4j_atomicAdd(T* address, T val);
+inline SD_DEVICE T sd_atomicAdd(T* address, T val);
 
 template <typename T>
-inline __device__ T nd4j_atomicSub(T* address, T val);
+inline SD_DEVICE T sd_atomicSub(T* address, T val);
 template <typename T>
-inline __device__ T nd4j_atomicMul(T* address, T val);
+inline SD_DEVICE T sd_atomicMul(T* address, T val);
 template <typename T>
-inline __device__ T nd4j_atomicDiv(T* address, T val);
+inline SD_DEVICE T sd_atomicDiv(T* address, T val);
 
 template <typename T>
-inline __device__ T nd4j_atomicMin(T* address, T val);
+inline SD_DEVICE T sd_atomicMin(T* address, T val);
 template <typename T>
-inline __device__ T nd4j_atomicMax(T* address, T val);
+inline SD_DEVICE T sd_atomicMax(T* address, T val);
 
 template <>
-inline __device__ int32_t nd4j_atomicMin<int32_t>(int32_t* address, int32_t val)  {
+inline SD_DEVICE int32_t sd_atomicMin<int32_t>(int32_t* address, int32_t val)  {
      return atomicMin(address, val);
 }
 
 template <>
-inline __device__ uint32_t nd4j_atomicMin<uint32_t>(uint32_t* address, uint32_t val)  {
+inline SD_DEVICE uint32_t sd_atomicMin<uint32_t>(uint32_t* address, uint32_t val)  {
      return atomicMin(address, val);
 }
 template <>
-inline __device__ float nd4j_atomicMin<float>(float* address, float val)  {
+inline SD_DEVICE float sd_atomicMin<float>(float* address, float val)  {
      int* address_as_ull = (int*)address;
     int old = __float_as_int(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, __float_as_int(math::nd4j_min(val, __int_as_float(assumed))));
-	} while (assumed != old);
-	return __int_as_float(old);
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __float_as_int(math::sd_min(val, __int_as_float(assumed))));
+    } while (assumed != old);
+    return __int_as_float(old);
 }
 template <>
-inline __device__ double nd4j_atomicMin<double>(double* address, double val)  {
+inline SD_DEVICE double sd_atomicMin<double>(double* address, double val)  {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = __double_as_longlong(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, __double_as_longlong(math::nd4j_min(val, __longlong_as_double(assumed))));
-	} while (assumed != old);
-	return __longlong_as_double(old);
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __double_as_longlong(math::sd_min(val, __longlong_as_double(assumed))));
+    } while (assumed != old);
+    return __longlong_as_double(old);
 }
 template <>
-inline __device__ uint64_t nd4j_atomicMin<uint64_t>(uint64_t* address, uint64_t val)  {
+inline SD_DEVICE uint64_t sd_atomicMin<uint64_t>(uint64_t* address, uint64_t val)  {
 #if __CUDA_ARCH__ >= 350
      return atomicMin((unsigned long long*)address, (unsigned long long)val);
 #else
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = __double_as_longlong(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, math::nd4j_min((unsigned long long)val, assumed));
-	} while (assumed != old);
-	return old;
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, math::sd_min((unsigned long long)val, assumed));
+    } while (assumed != old);
+    return old;
 #endif
 }
 template <>
-inline __device__ Nd4jLong nd4j_atomicMin<Nd4jLong>(Nd4jLong* address, Nd4jLong val)  {
+inline SD_DEVICE sd::LongType sd_atomicMin<sd::LongType>(sd::LongType* address, sd::LongType val)  {
 
  #if __CUDA_ARCH__ >= 350
      return atomicMin((unsigned long long*)address, (unsigned long long)val);
@@ -1045,331 +1043,331 @@ inline __device__ Nd4jLong nd4j_atomicMin<Nd4jLong>(Nd4jLong* address, Nd4jLong 
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = (unsigned long long)val, assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, math::nd4j_min(val, (Nd4jLong)assumed));
-	} while (assumed != old);
-	return old;
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, math::sd_min(val, (sd::LongType)assumed));
+    } while (assumed != old);
+    return old;
 #endif
 
 }
 template <>
-inline __device__ int16_t nd4j_atomicMin<int16_t>(int16_t* address, int16_t val)  {
+inline SD_DEVICE int16_t sd_atomicMin<int16_t>(int16_t* address, int16_t val)  {
     int32_t temp = *address;
     *address = atomicMin(&temp, (int)val);
     return *address;
 }
 template <>
-inline __device__ bfloat16 nd4j_atomicMin<bfloat16>(bfloat16* address, bfloat16 val)  {
-     return bfloat16(nd4j_atomicMin<int16_t>(&address->_data, val._data));
+inline SD_DEVICE bfloat16 sd_atomicMin<bfloat16>(bfloat16* address, bfloat16 val)  {
+     return bfloat16(sd_atomicMin<int16_t>(&address->_data, val._data));
 }
 template <>
-inline __device__ float16 nd4j_atomicMin<float16>(float16* address, float16 val)  {
-     return float16(nd4j_atomicMin<int16_t>(reinterpret_cast<int16_t*>(&address->data), (int16_t)val.data));
+inline SD_DEVICE float16 sd_atomicMin<float16>(float16* address, float16 val)  {
+     return float16(sd_atomicMin<int16_t>(reinterpret_cast<int16_t*>(&address->data), (int16_t)val.data));
 }
 template <>
-inline __device__ int32_t nd4j_atomicMax<int32_t>(int32_t* address, int32_t val)  {
+inline SD_DEVICE int32_t sd_atomicMax<int32_t>(int32_t* address, int32_t val)  {
      return atomicMax(address, val);
 }
 
 template <>
-inline __device__ uint32_t nd4j_atomicMax<uint32_t>(uint32_t* address, uint32_t val)  {
+inline SD_DEVICE uint32_t sd_atomicMax<uint32_t>(uint32_t* address, uint32_t val)  {
      return atomicMax(address, val);
 }
 
 template <>
-inline __device__ double nd4j_atomicMax<double>(double* address, double val)  {
+inline SD_DEVICE double sd_atomicMax<double>(double* address, double val)  {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = __double_as_longlong(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, __double_as_longlong(math::nd4j_max(val, __longlong_as_double(assumed))));
-	} while (assumed != old);
-	return __longlong_as_double(old);
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __double_as_longlong(math::sd_max(val, __longlong_as_double(assumed))));
+    } while (assumed != old);
+    return __longlong_as_double(old);
 }
 template <>
-inline __device__ float nd4j_atomicMax<float>(float* address, float val)  {
+inline SD_DEVICE float sd_atomicMax<float>(float* address, float val)  {
      int* address_as_ull = (int*)address;
     int old = __float_as_int(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, __float_as_int(math::nd4j_max(val, __int_as_float(assumed))));
-	} while (assumed != old);
-	return __int_as_float(old);
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __float_as_int(math::sd_max(val, __int_as_float(assumed))));
+    } while (assumed != old);
+    return __int_as_float(old);
 }
 template <>
-inline __device__ uint8_t nd4j_atomicMin<uint8_t>(uint8_t* address, uint8_t val)  {
+inline SD_DEVICE uint8_t sd_atomicMin<uint8_t>(uint8_t* address, uint8_t val)  {
     uint32_t temp = *address;
     *address = atomicMin(&temp, (uint32_t)val);
     return *address;
 }
 
 template <>
-inline __device__ int8_t nd4j_atomicMin<int8_t>(int8_t* address, int8_t val)  {
+inline SD_DEVICE int8_t sd_atomicMin<int8_t>(int8_t* address, int8_t val)  {
     int32_t temp = *address;
     *address = atomicMin(&temp, (int)val);
     return *address;
 }
 
 template <>
-inline __device__ uint16_t nd4j_atomicMin<uint16_t>(uint16_t* address, uint16_t val)  {
+inline SD_DEVICE uint16_t sd_atomicMin<uint16_t>(uint16_t* address, uint16_t val)  {
     uint32_t temp = *address;
     *address = atomicMin(&temp, (uint32_t)val);
     return *address;
 }
 
 template <>
-inline __device__ uint8_t nd4j_atomicMax<uint8_t>(uint8_t* address, uint8_t val)  {
+inline SD_DEVICE uint8_t sd_atomicMax<uint8_t>(uint8_t* address, uint8_t val)  {
     uint32_t temp = *address;
     *address = atomicMax(&temp, (uint32_t)val);
     return *address;
 }
 
 template <>
-inline __device__ int8_t nd4j_atomicMax<int8_t>(int8_t* address, int8_t val)  {
+inline SD_DEVICE int8_t sd_atomicMax<int8_t>(int8_t* address, int8_t val)  {
     int32_t temp = *address;
     *address = atomicMax(&temp, (int)val);
     return *address;
 }
 
 template <>
-inline __device__ uint16_t nd4j_atomicMax<uint16_t>(uint16_t* address, uint16_t val)  {
+inline SD_DEVICE uint16_t sd_atomicMax<uint16_t>(uint16_t* address, uint16_t val)  {
     uint32_t temp = *address;
     *address = atomicMax(&temp, (uint32_t)val);
     return *address;
 }
 
 template <>
-inline __device__ int16_t nd4j_atomicMax<int16_t>(int16_t* address, int16_t val)  {
+inline SD_DEVICE int16_t sd_atomicMax<int16_t>(int16_t* address, int16_t val)  {
     int32_t temp = *address;
     *address = atomicMax(&temp, (int32_t)val);
     return *address;
 }
 
 template <>
-inline __device__ float16 nd4j_atomicMax<float16>(float16* address, float16 val)  {
-	auto address_as_ull = (int*) address;
+inline SD_DEVICE float16 sd_atomicMax<float16>(float16* address, float16 val)  {
+    auto address_as_ull = (int*) address;
 
-	long addr = (long) address;
-	bool misaligned = addr & 0x3;
+    long addr = (long) address;
+    bool misaligned = addr & 0x3;
 
-	if (misaligned)
-		address_as_ull = (int *) (address - 1);
+    if (misaligned)
+        address_as_ull = (int *) (address - 1);
 
-	PAIR old, assumed, fresh;
+    PAIR old, assumed, fresh;
 
-	old.W = *address_as_ull;
-	do {
+    old.W = *address_as_ull;
+    do {
 
-		if (!misaligned) {
-			float16 res = nd4j_max((float16) old.B.H, val);
-			fresh.B.H = res.data;
-			fresh.B.L = old.B.L;
-		} else {
-			float16 res = nd4j_max((float16) old.B.L, val);
-			fresh.B.L = res.data;
-			fresh.B.H = old.B.H;
-		}
+        if (!misaligned) {
+            float16 res = sd_max((float16) old.B.H, val);
+            fresh.B.H = res.data;
+            fresh.B.L = old.B.L;
+        } else {
+            float16 res = sd_max((float16) old.B.L, val);
+            fresh.B.L = res.data;
+            fresh.B.H = old.B.H;
+        }
 
-		assumed.W = old.W;
-		old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
-	} while (assumed.W != old.W);
+        assumed.W = old.W;
+        old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
+    } while (assumed.W != old.W);
 
-	if (!misaligned) return old.B.H;
-	else return old.B.L;
+    if (!misaligned) return old.B.H;
+    else return old.B.L;
 }
 
 template <>
-inline __device__ bfloat16 nd4j_atomicMax<bfloat16>(bfloat16* address, bfloat16 val)  {
-	auto address_as_ull = (int*) address;
+inline SD_DEVICE bfloat16 sd_atomicMax<bfloat16>(bfloat16* address, bfloat16 val)  {
+    auto address_as_ull = (int*) address;
 
-	long addr = (long)(address);
-	bool misaligned = addr & 0x3;
+    long addr = (long)(address);
+    bool misaligned = addr & 0x3;
 
-	if (misaligned)
-		address_as_ull = (int *) (address - 1);
+    if (misaligned)
+        address_as_ull = (int *) (address - 1);
 
-	BPAIR old, assumed, fresh;
+    BPAIR old, assumed, fresh;
 
-	old.W = *address_as_ull;
-	do {
+    old.W = *address_as_ull;
+    do {
 
-		if (!misaligned) {
-			bfloat16 res = nd4j_max(old.B.H, val);
-			fresh.B.H = res;
-			fresh.B.L = old.B.L;
-		} else {
-			bfloat16 res = nd4j_max(old.B.L, val);
-			fresh.B.L = res;
-			fresh.B.H = old.B.H;
-		}
+        if (!misaligned) {
+            bfloat16 res = sd_max(old.B.H, val);
+            fresh.B.H = res;
+            fresh.B.L = old.B.L;
+        } else {
+            bfloat16 res = sd_max(old.B.L, val);
+            fresh.B.L = res;
+            fresh.B.H = old.B.H;
+        }
 
-		assumed.W = old.W;
-		old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
-	} while (assumed.W != old.W);
+        assumed.W = old.W;
+        old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
+    } while (assumed.W != old.W);
 
-	if (!misaligned) return old.B.H;
-	else return old.B.L;
+    if (!misaligned) return old.B.H;
+    else return old.B.L;
 }
 
 template <>
-inline __device__ uint64_t nd4j_atomicMax<uint64_t>(uint64_t* address, uint64_t val)  {
+inline SD_DEVICE uint64_t sd_atomicMax<uint64_t>(uint64_t* address, uint64_t val)  {
 #if __CUDA_ARCH__ >= 350
      return atomicMax((unsigned long long*)address, (unsigned long long)val);
 #else
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = __double_as_longlong(val), assumed;
     do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, math::nd4j_max((unsigned long long)val, assumed));
-	} while (assumed != old);
-	return old;
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, math::sd_max((unsigned long long)val, assumed));
+    } while (assumed != old);
+    return old;
 #endif
 }
 
 template <>
-inline __device__ Nd4jLong nd4j_atomicMax<Nd4jLong>(Nd4jLong* address, Nd4jLong val)  {
-	unsigned long long int* address_as_ull = (unsigned long long int *) address;
+inline SD_DEVICE sd::LongType sd_atomicMax<sd::LongType>(sd::LongType* address, sd::LongType val)  {
+    unsigned long long int* address_as_ull = (unsigned long long int *) address;
 
-	//return (Nd4jLong) atomicAdd(address_as_ull, (unsigned long long int) val);
-	unsigned long long int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, (unsigned long long)nd4j_max(val, (Nd4jLong)assumed));
-	} while (assumed != old);
-	return old;
+    //return (sd::LongType) atomicAdd(address_as_ull, (unsigned long long int) val);
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, (unsigned long long)sd_max(val, (sd::LongType)assumed));
+    } while (assumed != old);
+    return old;
 }
 
 
 template <>
-inline __device__ double nd4j_atomicAdd<double>(double* address, double val)  {
-	unsigned long long int* address_as_ull =
-			(unsigned long long int *) address;
-	unsigned long long int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed,__double_as_longlong(val +
-				__longlong_as_double(assumed)));
-	} while (assumed != old);
-	return __longlong_as_double(old);
+inline SD_DEVICE double sd_atomicAdd<double>(double* address, double val)  {
+    unsigned long long int* address_as_ull =
+            (unsigned long long int *) address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,__double_as_longlong(val +
+                __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
 }
 
 template <>
-inline __device__ Nd4jLong nd4j_atomicAdd<Nd4jLong>(Nd4jLong* address, Nd4jLong val)  {
-	unsigned long long int* address_as_ull = (unsigned long long int *) address;
+inline SD_DEVICE sd::LongType sd_atomicAdd<sd::LongType>(sd::LongType* address, sd::LongType val)  {
+    unsigned long long int* address_as_ull = (unsigned long long int *) address;
 
-	//return (Nd4jLong) atomicAdd(address_as_ull, (unsigned long long int) val);
-	unsigned long long int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, val + assumed);
-	} while (assumed != old);
-	return old;
+    //return (sd::LongType) atomicAdd(address_as_ull, (unsigned long long int) val);
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, val + assumed);
+    } while (assumed != old);
+    return old;
 }
 
 template <>
-inline __device__ long nd4j_atomicAdd<long>(long* address, long val)  {
-	unsigned long long* address_as_ull = (unsigned long long int *) address;
+inline SD_DEVICE long sd_atomicAdd<long>(long* address, long val)  {
+    unsigned long long* address_as_ull = (unsigned long long int *) address;
 
-//	return atomicAdd(address, val);
-	unsigned long int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, val + assumed);
-	} while (assumed != old);
-	return old;
+//    return atomicAdd(address, val);
+    unsigned long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, val + assumed);
+    } while (assumed != old);
+    return old;
 }
 
 template <>
-inline __device__ uint32_t nd4j_atomicAdd<uint32_t>(uint32_t* address, uint32_t val)  {
+inline SD_DEVICE uint32_t sd_atomicAdd<uint32_t>(uint32_t* address, uint32_t val)  {
     return atomicAdd(address, val);
 }
 
 template <>
-inline __device__ uint64_t nd4j_atomicAdd<uint64_t>(uint64_t* address, uint64_t val)  {
-//	unsigned long long* address_as_ull = (unsigned long long int *) address;
+inline SD_DEVICE uint64_t sd_atomicAdd<uint64_t>(uint64_t* address, uint64_t val)  {
+//    unsigned long long* address_as_ull = (unsigned long long int *) address;
 //
-////	return atomicAdd(address, val);
-//	unsigned long int old = *address_as_ull, assumed;
-//	do {
-//		assumed = old;
-//		old = atomicCAS(address_as_ull, assumed, val + assumed);
-//	} while (assumed != old);
-//	return old;
+////    return atomicAdd(address, val);
+//    unsigned long int old = *address_as_ull, assumed;
+//    do {
+//        assumed = old;
+//        old = atomicCAS(address_as_ull, assumed, val + assumed);
+//    } while (assumed != old);
+//    return old;
     return (uint64_t)atomicAdd((unsigned long long*)address, (unsigned long long)val);
 }
 
 template <>
-inline __device__ float16 nd4j_atomicAdd<float16>(float16* address, float16 val)  {
+inline SD_DEVICE float16 sd_atomicAdd<float16>(float16* address, float16 val)  {
 #if __CUDA_ARCH__ >= 700 && CUDA_VERSION_MAJOR >=10
     atomicAdd(reinterpret_cast<__half*>(address), val.data);
 #else
-	auto address_as_ull = (int*) address;
+    auto address_as_ull = (int*) address;
 
-	long addr = (long) address;
-	bool misaligned = addr & 0x3;
+    long addr = (long) address;
+    bool misaligned = addr & 0x3;
 
-	if (misaligned)
-		address_as_ull = (int *) (address - 1);
+    if (misaligned)
+        address_as_ull = (int *) (address - 1);
 
-	PAIR old, assumed, fresh;
+    PAIR old, assumed, fresh;
 
-	old.W = *address_as_ull;
-	do {
+    old.W = *address_as_ull;
+    do {
 
-		if (!misaligned) {
-			float16 res = ((float16) old.B.H) + val;
-			fresh.B.H = res.data;
-			fresh.B.L = old.B.L;
-		} else {
-			float16 res = ((float16) old.B.L) + val;
-			fresh.B.L = res.data;
-			fresh.B.H = old.B.H;
-		}
+        if (!misaligned) {
+            float16 res = ((float16) old.B.H) + val;
+            fresh.B.H = res.data;
+            fresh.B.L = old.B.L;
+        } else {
+            float16 res = ((float16) old.B.L) + val;
+            fresh.B.L = res.data;
+            fresh.B.H = old.B.H;
+        }
 
-		assumed.W = old.W;
-		old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
-	} while (assumed.W != old.W);
+        assumed.W = old.W;
+        old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
+    } while (assumed.W != old.W);
 
-	if (!misaligned) return old.B.H;
-	else return old.B.L;
+    if (!misaligned) return old.B.H;
+    else return old.B.L;
 #endif
 }
 
 template <>
-inline __device__ bfloat16 nd4j_atomicAdd<bfloat16>(bfloat16* address, bfloat16 val)  {
-	auto address_as_ull = (int*) address;
+inline SD_DEVICE bfloat16 sd_atomicAdd<bfloat16>(bfloat16* address, bfloat16 val)  {
+    auto address_as_ull = (int*) address;
 
-	auto addr = (long)(address);
-	bool misaligned = addr & 0x3;
+    auto addr = (long)(address);
+    bool misaligned = addr & 0x3;
 
-	if (misaligned)
-		address_as_ull = (int *) (address - 1);
+    if (misaligned)
+        address_as_ull = (int *) (address - 1);
 
-	BPAIR old, assumed, fresh;
+    BPAIR old, assumed, fresh;
 
-	old.W = *address_as_ull;
-	do {
+    old.W = *address_as_ull;
+    do {
 
-		if (!misaligned) {
-			bfloat16 res = old.B.H + val;
-			fresh.B.H = res;
-			fresh.B.L = old.B.L;
-		} else {
-			bfloat16 res = old.B.L + val;
-			fresh.B.L = res;
-			fresh.B.H = old.B.H;
-		}
+        if (!misaligned) {
+            bfloat16 res = old.B.H + val;
+            fresh.B.H = res;
+            fresh.B.L = old.B.L;
+        } else {
+            bfloat16 res = old.B.L + val;
+            fresh.B.L = res;
+            fresh.B.H = old.B.H;
+        }
 
-		assumed.W = old.W;
-		old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
-	} while (assumed.W != old.W);
+        assumed.W = old.W;
+        old.W = atomicCAS(address_as_ull, assumed.W, fresh.W);
+    } while (assumed.W != old.W);
 
-	if (!misaligned) return old.B.H;
-	else return old.B.L;
+    if (!misaligned) return old.B.H;
+    else return old.B.L;
 }
 
 template <typename T>
-static inline __device__ T internal_16bit_atomicAdd(T* address, T val) {
+static SD_INLINE SD_DEVICE T internal_16bit_atomicAdd(T* address, T val) {
     size_t shift = ((size_t)address & 2);
     int *base_address = (int *)((char*)address - shift);
 
@@ -1380,11 +1378,11 @@ static inline __device__ T internal_16bit_atomicAdd(T* address, T val) {
         } B;
         int W;
 
-        __host__ __device__
+        SD_HOST_DEVICE
         I16PAIR() {};
 
-		__host__ __device__
-		~I16PAIR() {};
+        SD_HOST_DEVICE
+        ~I16PAIR() {};
     };
 
     I16PAIR pairNew, pairOld, pairAssumed;
@@ -1418,17 +1416,17 @@ static inline __device__ T internal_16bit_atomicAdd(T* address, T val) {
 }
 
 template <>
-inline __device__ int16_t nd4j_atomicAdd<int16_t>(int16_t* address, int16_t val)  {
+inline SD_DEVICE int16_t sd_atomicAdd<int16_t>(int16_t* address, int16_t val)  {
     return internal_16bit_atomicAdd<int16_t>(address, val);
 }
 
 template <>
-inline __device__ uint16_t nd4j_atomicAdd<uint16_t>(uint16_t* address, uint16_t val)  {
+inline SD_DEVICE uint16_t sd_atomicAdd<uint16_t>(uint16_t* address, uint16_t val)  {
     return internal_16bit_atomicAdd<uint16_t>(address, val);
 }
 
 template <>
-inline __device__ int8_t nd4j_atomicAdd<int8_t>(int8_t* address, int8_t val)  {
+inline SD_DEVICE int8_t sd_atomicAdd<int8_t>(int8_t* address, int8_t val)  {
     int res = *address;
     atomicAdd(&res, (int)val);
     *address = res;
@@ -1436,7 +1434,7 @@ inline __device__ int8_t nd4j_atomicAdd<int8_t>(int8_t* address, int8_t val)  {
 }
 
 template <>
-inline __device__ uint8_t nd4j_atomicAdd<uint8_t>(uint8_t* address, uint8_t val)  {
+inline SD_DEVICE uint8_t sd_atomicAdd<uint8_t>(uint8_t* address, uint8_t val)  {
     int res = *address;
     atomicAdd(&res, (int)val);
     *address = res;
@@ -1444,77 +1442,77 @@ inline __device__ uint8_t nd4j_atomicAdd<uint8_t>(uint8_t* address, uint8_t val)
 }
 
 template <>
-inline __device__ bool nd4j_atomicAdd<bool>(bool* address, bool val)  {
+inline SD_DEVICE bool sd_atomicAdd<bool>(bool* address, bool val)  {
     *address += (val);
     return *address;
 }
 
 template <>
-inline __device__ double nd4j_atomicSub<double>(double* address, double val)  {
-	return nd4j_atomicAdd<double>(address, -val);
+inline SD_DEVICE double sd_atomicSub<double>(double* address, double val)  {
+    return sd_atomicAdd<double>(address, -val);
 }
 
 template <>
-inline __device__ double nd4j_atomicMul<double>(double* address, double val)  {
-	unsigned long long int* address_as_ull =
-			(unsigned long long int*) address;
-	unsigned long long int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed,__double_as_longlong(val *
-				__longlong_as_double(assumed)));
-	} while (assumed != old);
-	return __longlong_as_double(old);
+inline SD_DEVICE double sd_atomicMul<double>(double* address, double val)  {
+    unsigned long long int* address_as_ull =
+            (unsigned long long int*) address;
+    unsigned long long int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,__double_as_longlong(val *
+                __longlong_as_double(assumed)));
+    } while (assumed != old);
+    return __longlong_as_double(old);
 }
 
 template <>
-inline __device__ double nd4j_atomicDiv<double>(double* address, double val)  {
-	return nd4j_atomicMul<double>(address, 1./val);
+inline SD_DEVICE double sd_atomicDiv<double>(double* address, double val)  {
+    return sd_atomicMul<double>(address, 1./val);
 }
 
 template <>
-inline __device__ float nd4j_atomicAdd<float>(float* address, float val)  {
-	return atomicAdd(address,val);
+inline SD_DEVICE float sd_atomicAdd<float>(float* address, float val)  {
+    return atomicAdd(address,val);
 }
 //template <>
-//inline __device__ int nd4j_atomicAdd<int>(int* address, int val)  {
-//	return atomicAdd(address, val);
+//inline SD_DEVICE int sd_atomicAdd<int>(int* address, int val)  {
+//    return atomicAdd(address, val);
 //}
 template <>
-inline __device__ int32_t nd4j_atomicAdd<int32_t>(int32_t* address, int32_t val)  {
-	return (int32_t)atomicAdd((int*)address, (int)val);
+inline SD_DEVICE int32_t sd_atomicAdd<int32_t>(int32_t* address, int32_t val)  {
+    return (int32_t)atomicAdd((int*)address, (int)val);
 }
 
 
 template <>
-inline __device__ float nd4j_atomicSub<float>(float* address, float val) {
-	return nd4j_atomicAdd<float>(address, -val);
+inline SD_DEVICE float sd_atomicSub<float>(float* address, float val) {
+    return sd_atomicAdd<float>(address, -val);
 }
 
 template <>
-inline __device__ float16 nd4j_atomicSub<float16>(float16* address, float16 val) {
-	return nd4j_atomicAdd<float16>(address, -val);
+inline SD_DEVICE float16 sd_atomicSub<float16>(float16* address, float16 val) {
+    return sd_atomicAdd<float16>(address, -val);
 }
 template <>
-inline __device__ bfloat16 nd4j_atomicSub<bfloat16>(bfloat16* address, bfloat16 val) {
-	return nd4j_atomicAdd<bfloat16>(address, -val);
-}
-
-template <>
-inline __device__ float nd4j_atomicMul<float>(float* address, float val) {
-	int* address_as_ull =
-			( int*)address;
-	int old = *address_as_ull, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(address_as_ull, assumed, __float_as_int(val *
-				__int_as_float(assumed)));
-	} while (assumed != old);
-	return __int_as_float(old);
+inline SD_DEVICE bfloat16 sd_atomicSub<bfloat16>(bfloat16* address, bfloat16 val) {
+    return sd_atomicAdd<bfloat16>(address, -val);
 }
 
 template <>
-inline __device__ int8_t nd4j_atomicMul<int8_t>(int8_t* address, int8_t val) {
+inline SD_DEVICE float sd_atomicMul<float>(float* address, float val) {
+    int* address_as_ull =
+            ( int*)address;
+    int old = *address_as_ull, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __float_as_int(val *
+                __int_as_float(assumed)));
+    } while (assumed != old);
+    return __int_as_float(old);
+}
+
+template <>
+inline SD_DEVICE int8_t sd_atomicMul<int8_t>(int8_t* address, int8_t val) {
     unsigned int *base_address = (unsigned int *)((size_t)address & ~3);
     unsigned int selectors[] = {0x3214, 0x3240, 0x3410, 0x4210};
     unsigned int sel = selectors[(size_t)address & 3];
@@ -1537,7 +1535,7 @@ inline __device__ int8_t nd4j_atomicMul<int8_t>(int8_t* address, int8_t val) {
 }
 
 template <>
-inline __device__ unsigned char nd4j_atomicMul<unsigned char>(unsigned char* address, unsigned char val) {
+inline SD_DEVICE unsigned char sd_atomicMul<unsigned char>(unsigned char* address, unsigned char val) {
     unsigned int *base_address = (unsigned int *)((size_t)address & ~3);
     unsigned int selectors[] = {0x3214, 0x3240, 0x3410, 0x4210};
     unsigned int sel = selectors[(size_t)address & 3];
@@ -1560,7 +1558,7 @@ inline __device__ unsigned char nd4j_atomicMul<unsigned char>(unsigned char* add
 }
 
 template <typename T>
-static inline __device__ T internal_16bit_atomicMul(T* address, T val) {
+static SD_INLINE SD_DEVICE T internal_16bit_atomicMul(T* address, T val) {
     size_t shift = ((size_t)address & 2);
     int *base_address = (int *)((char*)address - shift);
 
@@ -1571,11 +1569,11 @@ static inline __device__ T internal_16bit_atomicMul(T* address, T val) {
         } B;
         int W;
 
-        __host__ __device__
+        SD_HOST_DEVICE
         I16PAIR() {};
 
-		__host__ __device__
-		~I16PAIR() {};
+        SD_HOST_DEVICE
+        ~I16PAIR() {};
     };
 
     I16PAIR pairNew, pairOld, pairAssumed;
@@ -1606,99 +1604,99 @@ static inline __device__ T internal_16bit_atomicMul(T* address, T val) {
 }
 
 template <>
-inline __device__ int16_t nd4j_atomicMul<int16_t>(int16_t* address, int16_t val) {
+inline SD_DEVICE int16_t sd_atomicMul<int16_t>(int16_t* address, int16_t val) {
     return internal_16bit_atomicMul<int16_t>(address, val);
 }
 
 template <>
-inline __device__ uint16_t nd4j_atomicMul<uint16_t>(uint16_t* address, uint16_t val) {
+inline SD_DEVICE uint16_t sd_atomicMul<uint16_t>(uint16_t* address, uint16_t val) {
     return internal_16bit_atomicMul<uint16_t>(address, val);
 }
 
 template <>
-inline __device__ int nd4j_atomicMul<int>(int* address, int val) {
-	int* res_address = address;
-	int old = *res_address, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(res_address, assumed, val * assumed);
-	} while (assumed != old);
+inline SD_DEVICE int sd_atomicMul<int>(int* address, int val) {
+    int* res_address = address;
+    int old = *res_address, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(res_address, assumed, val * assumed);
+    } while (assumed != old);
     return old;
 }
 
 template <>
-inline __device__ unsigned int nd4j_atomicMul<unsigned int>(unsigned int* address, unsigned int val) {
-	unsigned int* res_address = address;
-	unsigned int old = *res_address, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(res_address, assumed, val * assumed);
-	} while (assumed != old);
+inline SD_DEVICE unsigned int sd_atomicMul<unsigned int>(unsigned int* address, unsigned int val) {
+    unsigned int* res_address = address;
+    unsigned int old = *res_address, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(res_address, assumed, val * assumed);
+    } while (assumed != old);
     return old;
 }
 
 template <>
-inline __device__ int64_t nd4j_atomicMul<int64_t>(int64_t* address, int64_t val) {
-	unsigned long long int* res_address = (unsigned long long int*)address;
-	unsigned long long int old = *res_address, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(res_address, assumed, val * assumed);
-	} while (assumed != old);
+inline SD_DEVICE int64_t sd_atomicMul<int64_t>(int64_t* address, int64_t val) {
+    unsigned long long int* res_address = (unsigned long long int*)address;
+    unsigned long long int old = *res_address, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(res_address, assumed, val * assumed);
+    } while (assumed != old);
     return (int64_t)old;
 }
 
 template <>
-inline __device__ uint64_t nd4j_atomicMul<uint64_t>(uint64_t* address, uint64_t val) {
-	unsigned long long int* res_address = (unsigned long long int*)address;
-	unsigned long long int old = *res_address, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(res_address, assumed, val * assumed);
-	} while (assumed != old);
+inline SD_DEVICE uint64_t sd_atomicMul<uint64_t>(uint64_t* address, uint64_t val) {
+    unsigned long long int* res_address = (unsigned long long int*)address;
+    unsigned long long int old = *res_address, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(res_address, assumed, val * assumed);
+    } while (assumed != old);
     return (uint64_t)old;
 }
 
 #if !defined(_WIN32) && !defined(_WIN64)
 template <>
-inline __device__ Nd4jLong nd4j_atomicMul<Nd4jLong>(Nd4jLong* address, Nd4jLong val) {
-	unsigned long long int* res_address = (unsigned long long*)address;
-	unsigned long long int old = *res_address, assumed;
-	do {
-		assumed = old;
-		old = atomicCAS(res_address, assumed, val * assumed);
-	} while (assumed != old);
-    return (Nd4jLong)old;
+inline SD_DEVICE sd::LongType sd_atomicMul<sd::LongType>(sd::LongType* address, sd::LongType val) {
+    unsigned long long int* res_address = (unsigned long long*)address;
+    unsigned long long int old = *res_address, assumed;
+    do {
+        assumed = old;
+        old = atomicCAS(res_address, assumed, val * assumed);
+    } while (assumed != old);
+    return (sd::LongType)old;
 }
 #endif
 
 template <>
-inline __device__ bfloat16 nd4j_atomicMul<bfloat16>(bfloat16* address, bfloat16 val) {
-	return internal_16bit_atomicMul<bfloat16>(address, val);
+inline SD_DEVICE bfloat16 sd_atomicMul<bfloat16>(bfloat16* address, bfloat16 val) {
+    return internal_16bit_atomicMul<bfloat16>(address, val);
 }
 
 template <>
-inline __device__ float16 nd4j_atomicMul<float16>(float16* address, float16 val) {
-	return internal_16bit_atomicMul<float16>(address, val);
+inline SD_DEVICE float16 sd_atomicMul<float16>(float16* address, float16 val) {
+    return internal_16bit_atomicMul<float16>(address, val);
 }
 
 template <>
-inline __device__ float nd4j_atomicDiv<float>(float* address, float val) {
-	return nd4j_atomicMul<float>(address, 1.f / val);
+inline SD_DEVICE float sd_atomicDiv<float>(float* address, float val) {
+    return sd_atomicMul<float>(address, 1.f / val);
 }
 
 template <>
-inline __device__ float16 nd4j_atomicDiv<float16>(float16* address, float16 val) {
-	return internal_16bit_atomicMul<float16>(address, (float16) 1.f / val);
+inline SD_DEVICE float16 sd_atomicDiv<float16>(float16* address, float16 val) {
+    return internal_16bit_atomicMul<float16>(address, (float16) 1.f / val);
 }
 
 template <>
-inline __device__ bfloat16 nd4j_atomicDiv<bfloat16>(bfloat16* address, bfloat16 val) {
-	return internal_16bit_atomicMul<bfloat16>(address, (bfloat16) 1 / val);
+inline SD_DEVICE bfloat16 sd_atomicDiv<bfloat16>(bfloat16* address, bfloat16 val) {
+    return internal_16bit_atomicMul<bfloat16>(address, (bfloat16) 1 / val);
 }
 }
 #endif
-	}
+    }
 }
 
 #ifdef _OPENMP
@@ -1708,36 +1706,36 @@ inline __device__ bfloat16 nd4j_atomicDiv<bfloat16>(bfloat16* address, bfloat16 
 #endif
 
 #pragma omp declare reduction(maxTF : float,double,float16,bfloat16 :              \
-                omp_out = sd::math::nd4j_max(omp_in, omp_out) )\
+                omp_out = sd::math::sd_max(omp_in, omp_out) )\
                 initializer (omp_priv=-MAX_FLOAT)
 
 #pragma omp declare reduction(minTF : float,double,float16,bfloat16 :              \
-                omp_out = sd::math::nd4j_min(omp_in, omp_out) )\
+                omp_out = sd::math::sd_min(omp_in, omp_out) )\
                 initializer (omp_priv=MAX_FLOAT)
 
-#pragma omp declare reduction(maxT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
-                omp_out = sd::math::nd4j_max(omp_in, omp_out) )\
+#pragma omp declare reduction(maxT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+                omp_out = sd::math::sd_max(omp_in, omp_out) )\
                 initializer (omp_priv=0)
 
-#pragma omp declare reduction(minT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
-                omp_out = sd::math::nd4j_min(omp_in, omp_out) )\
+#pragma omp declare reduction(minT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+                omp_out = sd::math::sd_min(omp_in, omp_out) )\
                 initializer (omp_priv=0)
 
-#pragma omp declare reduction(amaxT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
-                omp_out = sd::math::nd4j_max(sd::math::nd4j_abs(omp_in), sd::math::nd4j_abs(omp_out)) )
+#pragma omp declare reduction(amaxT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+                omp_out = sd::math::sd_max(sd::math::sd_abs(omp_in), sd::math::sd_abs(omp_out)) )
 
-#pragma omp declare reduction(aminT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
-                omp_out = sd::math::nd4j_min(sd::math::nd4j_abs(omp_in), sd::math::nd4j_abs(omp_out)) )
+#pragma omp declare reduction(aminT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+                omp_out = sd::math::sd_min(sd::math::sd_abs(omp_in), sd::math::sd_abs(omp_out)) )
 
-#pragma omp declare reduction(asumT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
-                omp_out = sd::math::nd4j_abs(omp_in) + sd::math::nd4j_abs(omp_out))\
+#pragma omp declare reduction(asumT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+                omp_out = sd::math::sd_abs(omp_in) + sd::math::sd_abs(omp_out))\
                 initializer (omp_priv=0)
 
-#pragma omp declare reduction(sumT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+#pragma omp declare reduction(sumT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
                 omp_out = omp_in + omp_out)\
                 initializer (omp_priv=0)
 
-#pragma omp declare reduction(prodT : float,double,float16,bfloat16,int,Nd4jLong,Nd4jULong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
+#pragma omp declare reduction(prodT : float,double,float16,bfloat16,int,sd::LongType,sd::UnsignedLong,int8_t,uint8_t,bool,int16_t,uint16_t,uint32_t :              \
                 omp_out = omp_in * omp_out)\
                 initializer (omp_priv=1)
 

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 30.06.18.
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <helpers/OmpLaunchHelper.h>
@@ -84,10 +83,10 @@ TEST_F(OmpLaunchHelperTests, Test_BetterThreads_3) {
 }
 
 TEST_F(OmpLaunchHelperTests, test_tad_threads_1) {
-    Nd4jLong numTads = 16;
-    Nd4jLong tadLength = 16;
+    sd::LongType numTads = 16;
+    sd::LongType tadLength = 16;
 
-//    nd4j_printf("TT: [%i]; ET: [%i];\n", Environment::getInstance().tadThreshold(), Environment::getInstance().elementwiseThreshold());
+//    sd_printf("TT: [%i]; ET: [%i];\n", Environment::getInstance().tadThreshold(), Environment::getInstance().elementwiseThreshold());
     ASSERT_EQ(1, OmpLaunchHelper::tadThreads(tadLength, numTads));
 }
 
@@ -95,22 +94,22 @@ TEST_F(OmpLaunchHelperTests, test_tad_threads_2) {
     if (omp_get_max_threads() <= 1)
         return;
 
-    Nd4jLong numTads = 2;
-    Nd4jLong tadLength = Environment::getInstance().elementwiseThreshold();
+    sd::LongType numTads = 2;
+    sd::LongType tadLength = Environment::getInstance().elementwiseThreshold();
 
     ASSERT_EQ(2, OmpLaunchHelper::tadThreads(tadLength, numTads));
 }
 
 TEST_F(OmpLaunchHelperTests, test_tad_threads_3) {
-    Nd4jLong numTads = 2;
-    Nd4jLong tadLength = 128;
+    sd::LongType numTads = 2;
+    sd::LongType tadLength = 128;
 
     ASSERT_EQ(1, OmpLaunchHelper::tadThreads(tadLength, numTads));
 }
 
 TEST_F(OmpLaunchHelperTests, test_tad_threads_4) {
-    Nd4jLong numTads = 4;
-    Nd4jLong tadLength = 64;
+    sd::LongType numTads = 4;
+    sd::LongType tadLength = 64;
 
     ASSERT_EQ(1, OmpLaunchHelper::tadThreads(tadLength, numTads));
 }
@@ -118,8 +117,8 @@ TEST_F(OmpLaunchHelperTests, test_tad_threads_4) {
 TEST_F(OmpLaunchHelperTests, test_tad_threads_5) {
     auto exp = omp_get_max_threads();
 
-    Nd4jLong numTads = exp;
-    Nd4jLong tadLength = Environment::getInstance().elementwiseThreshold();
+    sd::LongType numTads = exp;
+    sd::LongType tadLength = Environment::getInstance().elementwiseThreshold();
 
     ASSERT_EQ(exp, OmpLaunchHelper::tadThreads(tadLength, numTads));
 }

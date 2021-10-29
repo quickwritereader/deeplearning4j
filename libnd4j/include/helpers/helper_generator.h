@@ -22,11 +22,9 @@
 
 #ifndef LIBND4J_HELPER_GENERATOR_H
 #define LIBND4J_HELPER_GENERATOR_H
-
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
 #include <array/DataTypeUtils.h>
-#include <system/dll.h>
+
 
 #ifdef _MSC_VER
 // include for uint64_t on MSVC
@@ -54,7 +52,7 @@ namespace sd {
     namespace random {
 
 #ifdef __CUDACC__
-        class ND4J_EXPORT CudaManaged {
+        class SD_LIB_EXPORT CudaManaged {
         private:
 
         protected:
@@ -72,21 +70,21 @@ namespace sd {
             }
         };
 
-        class ND4J_EXPORT RandomBuffer : public CudaManaged {
+        class SD_LIB_EXPORT RandomBuffer : public CudaManaged {
 #else
-        class ND4J_EXPORT RandomBuffer {
+        class SD_LIB_EXPORT RandomBuffer {
 #endif
         private:
             void *devHolder;
-            Nd4jLong size;
+            sd::LongType size;
             uint64_t *buffer;
             uint64_t *devBuffer;
-            Nd4jLong offset;
-            Nd4jLong seed;
-            Nd4jLong position;
-            Nd4jLong generation;
-            Nd4jLong currentPosition;
-            Nd4jLong amplifier;
+            sd::LongType offset;
+            sd::LongType seed;
+            sd::LongType position;
+            sd::LongType generation;
+            sd::LongType currentPosition;
+            sd::LongType amplifier;
             unsigned int synchronizer;
 
 #ifdef __CUDACC__
@@ -95,14 +93,14 @@ namespace sd {
 
         public:
             /**
-             * This method allocates buffer of size * sizeof(Nd4jLong)
+             * This method allocates buffer of size * sizeof(sd::LongType)
              *
              * @param size
              * @return
              */
 #ifdef __CUDACC__
-            __host__
-            RandomBuffer(Nd4jLong seed, Nd4jLong size, uint64_t *hostBuffer, uint64_t *devBuffer) {
+            SD_HOST
+            RandomBuffer(sd::LongType seed, sd::LongType size, uint64_t *hostBuffer, uint64_t *devBuffer) {
                 this->buffer = hostBuffer;
                 this->seed = seed;
                 this->size = size;
@@ -116,24 +114,24 @@ namespace sd {
                 cudaMalloc(&devHolder, sizeof(sd::random::RandomBuffer));
             }
 
-            __host__
-            Nd4jPointer getDevicePointer() {
-                return reinterpret_cast<Nd4jPointer>(devHolder);
+            SD_HOST
+            sd::Pointer getDevicePointer() {
+                return reinterpret_cast<sd::Pointer>(devHolder);
             }
 
-            __host__
+            SD_HOST
             ~RandomBuffer() {
                 cudaFree(devHolder);
             }
 
-            __host__
+            SD_HOST
             void propagateToDevice(sd::random::RandomBuffer *buffer, cudaStream_t stream) {
                 cudaMemcpyAsync(devHolder, buffer, sizeof(sd::random::RandomBuffer), cudaMemcpyHostToDevice, stream);
             }
 
-            __host__ __device__
+            SD_HOST_DEVICE
 #endif
-            RandomBuffer(Nd4jLong seed, Nd4jLong size, uint64_t *buffer) {
+            RandomBuffer(sd::LongType seed, sd::LongType size, uint64_t *buffer) {
                 this->buffer = buffer;
                 this->seed = seed;
                 this->size = size;
@@ -145,62 +143,62 @@ namespace sd {
                 this->devBuffer = buffer;
             }
 
-            inline _CUDA_HD uint64_t *getBuffer() {
+            SD_INLINE SD_HOST_DEVICE uint64_t *getBuffer() {
                 return this->buffer;
             }
 
-            inline _CUDA_HD uint64_t *getDeviceBuffer() {
+            SD_INLINE SD_HOST_DEVICE uint64_t *getDeviceBuffer() {
                 return this->devBuffer;
             }
 
 #ifdef __CUDACC__
-            _CUDA_HD curandGenerator_t *getGeneratorPointer() {
+            SD_HOST_DEVICE curandGenerator_t *getGeneratorPointer() {
                 return &gen;
             }
 
-            _CUDA_HD curandGenerator_t getGenerator() {
+            SD_HOST_DEVICE curandGenerator_t getGenerator() {
                 return gen;
             }
 
 
-            _CUDA_H void setBuffer(uint64_t *ptr) {
+            SD_HOST void setBuffer(uint64_t *ptr) {
                 this->buffer = ptr;
             }
 #endif
 
-            inline _CUDA_HD Nd4jLong getSize() {
+            SD_INLINE SD_HOST_DEVICE sd::LongType getSize() {
                 return this->size;
             }
 
-            inline _CUDA_HD Nd4jLong getSeed() {
+            SD_INLINE SD_HOST_DEVICE sd::LongType getSeed() {
                 return this->seed;
             }
 
-            void _CUDA_HD setSeed(Nd4jLong seed) {
+            void SD_HOST_DEVICE setSeed(sd::LongType seed) {
                 this->seed = seed;
                 this->amplifier = seed;
                 this->generation = 1;
             }
 
-            Nd4jLong _CUDA_HD getAllocatedSize() {
+            sd::LongType SD_HOST_DEVICE getAllocatedSize() {
                 return this->size * sizeof(double);
             }
 
-            inline _CUDA_HD Nd4jLong getOffset() {
+            SD_INLINE SD_HOST_DEVICE sd::LongType getOffset() {
                 return this->currentPosition;
             }
 
-            void _CUDA_HD setOffset(Nd4jLong offset) {
+            void SD_HOST_DEVICE setOffset(sd::LongType offset) {
                 this->currentPosition = offset;
             }
 
-            void _CUDA_HD reSeed(Nd4jLong amplifier) {
+            void SD_HOST_DEVICE reSeed(sd::LongType amplifier) {
                 this->amplifier = amplifier;
             }
 
-            inline _CUDA_D uint64_t getElement(Nd4jLong position) {
-                Nd4jLong actualPosition = this->getOffset() + position;
-                Nd4jLong tempGen = generation;
+            SD_INLINE SD_DEVICE uint64_t getElement(sd::LongType position) {
+                sd::LongType actualPosition = this->getOffset() + position;
+                sd::LongType tempGen = generation;
                 if (actualPosition >= this->size) {
                     tempGen += actualPosition / this->size;
                     actualPosition = actualPosition % this->size;
@@ -226,12 +224,12 @@ namespace sd {
 //                __syncthreads();
 #endif
                 if (amplifier != seed || generation > 1 || tempGen != generation)
-                    ret = next64(seedConv(static_cast<Nd4jLong>(ret)));
+                    ret = next64(seedConv(static_cast<sd::LongType>(ret)));
 
                 return ret;
             }
 
-            uint64_t _CUDA_HD next64(uint64_t shiftedSeed) {
+            uint64_t SD_HOST_DEVICE next64(uint64_t shiftedSeed) {
                 const auto s0 = static_cast<uint64_t>(shiftedSeed);
                 auto s1 = static_cast<uint64_t>(shiftedSeed) % sd::DataTypeUtils::max<int>() + 11;
                 uint64_t r0, r1;
@@ -243,17 +241,17 @@ namespace sd {
                 return r0 + r1;
             }
 
-            static _CUDA_HD inline uint64_t rotl(const uint64_t x, uint64_t k) {
+            static SD_HOST_DEVICE inline uint64_t rotl(const uint64_t x, uint64_t k) {
                 return (x << k) | (x >> (64 - k));
             }
 
-            uint64_t static _CUDA_HD inline safeShift(uint64_t x, uint64_t y) {
+            uint64_t static SD_HOST_DEVICE inline safeShift(uint64_t x, uint64_t y) {
                 if (y != 0 && x > sd::DataTypeUtils::max<uint64_t>() / y) {
                     return x / y + 11;
                 } else return (x * y) + 11;
             }
 
-            uint64_t _CUDA_HD seedConv(Nd4jLong seed) {
+            uint64_t SD_HOST_DEVICE seedConv(sd::LongType seed) {
                 uint64_t x = static_cast<uint64_t>(seed);
                 uint64_t z = (x += UINT64_C(0x9E3779B97F4A7C15));
                 z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
@@ -261,22 +259,22 @@ namespace sd {
                 return z ^ (z >> 31);
             }
 
-            void _CUDA_HD incrementGeneration() {
+            void SD_HOST_DEVICE incrementGeneration() {
                 this->generation++;
             }
 
-            Nd4jLong _CUDA_HD getNextIndex() {
+            sd::LongType SD_HOST_DEVICE getNextIndex() {
                 currentPosition++;
                 if (currentPosition >= size) {
                     currentPosition = 0;
                     generation++;
                 }
-                Nd4jLong ret = currentPosition;
+                sd::LongType ret = currentPosition;
 
                 return ret;
             }
 
-            uint64_t _CUDA_HD getNextElement() {
+            uint64_t SD_HOST_DEVICE getNextElement() {
                 // TODO: proper implementation needed here
                 return generation == 1 ? buffer[getNextIndex()] : buffer[getNextIndex()]  * generation;
             }
@@ -288,22 +286,22 @@ namespace sd {
              * @param numberOfElements number of elements to skip
              */
 #ifdef __CUDACC__
-            __device__
-            void rewind(Nd4jLong numberOfElements) {
+            SD_DEVICE
+            void rewind(sd::LongType numberOfElements) {
                 if (gridDim.x > 1) {
                     __shared__ bool amLast;
 
                     if (threadIdx.x == 0) {
-						unsigned int ticket = atomicInc(&synchronizer, gridDim.x);
-						amLast = (ticket == gridDim.x - 1);
-					}
-					__syncthreads();
+                        unsigned int ticket = atomicInc(&synchronizer, gridDim.x);
+                        amLast = (ticket == gridDim.x - 1);
+                    }
+                    __syncthreads();
 
-					if (amLast) {
-					    if (threadIdx.x == 0) {
-					        synchronizer = 0;
+                    if (amLast) {
+                        if (threadIdx.x == 0) {
+                            synchronizer = 0;
 
-					        Nd4jLong newPos = this->getOffset() + numberOfElements;
+                            sd::LongType newPos = this->getOffset() + numberOfElements;
                             if (newPos > this->getSize()) {
                                 generation += newPos / this->size;
                                 newPos = newPos % this->size;
@@ -313,11 +311,11 @@ namespace sd {
                             }
 
                             this->setOffset(newPos);
-					    }
-					}
+                        }
+                    }
                 } else {
                     if (threadIdx.x == 0) {
-                        Nd4jLong newPos = this->getOffset() + numberOfElements;
+                        sd::LongType newPos = this->getOffset() + numberOfElements;
                         if (newPos > this->getSize()) {
                             generation += newPos / this->size;
                             newPos = newPos % this->size;
@@ -331,8 +329,8 @@ namespace sd {
                 }
             }
 #endif
-            void rewindH(Nd4jLong numberOfElements) {
-                Nd4jLong newPos = this->getOffset() + numberOfElements;
+            void rewindH(sd::LongType numberOfElements) {
+                sd::LongType newPos = this->getOffset() + numberOfElements;
                 if (newPos > this->getSize()) {
                     generation += newPos / this->size;
                     newPos = newPos % this->size;
@@ -349,12 +347,12 @@ namespace sd {
             * This method returns random int in range [0..MAX_INT]
             * @return
             */
-            int _CUDA_D nextInt() {
+            int SD_DEVICE nextInt() {
                 auto u = nextUInt64();
                 return u <= sd::DataTypeUtils::max<int>() ? static_cast<int>(u) : static_cast<int>(u % sd::DataTypeUtils::max<int>());
             };
 
-            uint64_t _CUDA_D nextUInt64() {
+            uint64_t SD_DEVICE nextUInt64() {
                 return getNextElement();
             }
 
@@ -363,11 +361,11 @@ namespace sd {
              * @param to
              * @return
              */
-            int _CUDA_D nextInt(int to) {
+            int SD_DEVICE nextInt(int to) {
                 int r = nextInt();
                 int m = to - 1;
                 if ((to & m) == 0)  // i.e., bound is a power of 2
-                    r = ((to * (Nd4jLong) r) >> 31);
+                    r = ((to * (sd::LongType) r) >> 31);
                 else {
                     for (int u = r;
                          u - (r = u % to) + m < 0;
@@ -382,7 +380,7 @@ namespace sd {
              * @param to
              * @return
              */
-            int _CUDA_D nextInt(int from, int to) {
+            int SD_DEVICE nextInt(int from, int to) {
                 if (from == 0)
                     return nextInt(to);
 
@@ -395,7 +393,7 @@ namespace sd {
              * @return
              */
             template<typename T>
-            _CUDA_D T nextT() {
+            SD_DEVICE T nextT() {
                 auto u = static_cast<float>(nextUInt64());
                 auto m = static_cast<float>(sd::DataTypeUtils::max<uint64_t>());
                 return static_cast<T>(u / m);
@@ -407,7 +405,7 @@ namespace sd {
              * @return
              */
             template<typename T>
-            _CUDA_D T nextT(T to) {
+            SD_DEVICE T nextT(T to) {
                 if (to == static_cast<T>(1.0f))
                     return nextT<T>();
 
@@ -421,18 +419,18 @@ namespace sd {
              * @return
              */
             template<typename T>
-            _CUDA_D T inline nextT(T from, T to) {
+            SD_DEVICE T inline nextT(T from, T to) {
                 return from + (nextT<T>() * (to - from));
             }
 
-            inline _CUDA_D uint64_t relativeUInt64(Nd4jLong index) {
+            SD_INLINE SD_DEVICE uint64_t relativeUInt64(sd::LongType index) {
                 return getElement(index);
             }
 
             /**
              *  relative methods are made as workaround for lock-free concurrent execution
              */
-            inline int _CUDA_D relativeInt(Nd4jLong index) {
+            inline int SD_DEVICE relativeInt(sd::LongType index) {
                 auto u = relativeUInt64(index);
                 return u <= sd::DataTypeUtils::max<int>() ? static_cast<int>(u) : static_cast<int>(u % sd::DataTypeUtils::max<int>());
             }
@@ -444,7 +442,7 @@ namespace sd {
              * @param to
              * @return
              */
-            inline int _CUDA_D relativeInt(Nd4jLong index, int to) {
+            inline int SD_DEVICE relativeInt(sd::LongType index, int to) {
                 auto rel = relativeInt(index);
                 return rel % to;
             }
@@ -457,7 +455,7 @@ namespace sd {
              * @param from
              * @return
              */
-            inline _CUDA_D int relativeInt(Nd4jLong index, int from, int to) {
+            SD_INLINE SD_DEVICE int relativeInt(sd::LongType index, int from, int to) {
                 if (from == 0)
                     return relativeInt(index, to);
 
@@ -471,7 +469,7 @@ namespace sd {
              * @return
              */
             template <typename T>
-            inline _CUDA_D T relativeT(Nd4jLong index) {
+            SD_INLINE SD_DEVICE T relativeT(sd::LongType index) {
                 /**
                  * Basically we just get float u/m value, and convert into to
                  *
@@ -491,7 +489,7 @@ namespace sd {
  */
 
             template<typename T>
-            _CUDA_D T relativeT(Nd4jLong index, T to) {
+            SD_DEVICE T relativeT(sd::LongType index, T to) {
                 if (to == static_cast<T>(1.0f))
                     return relativeT<T>(index);
 
@@ -507,22 +505,22 @@ namespace sd {
  * @return
  */
             template<typename T>
-            _CUDA_D T relativeT(Nd4jLong index, T from, T to) {
+            SD_DEVICE T relativeT(sd::LongType index, T from, T to) {
                 return from + (relativeT<T>(index) * (to - from));
             }
 
         };
 
-        class ND4J_EXPORT IGenerator {
+        class SD_LIB_EXPORT IGenerator {
         protected:
-            Nd4jLong limit;
-            Nd4jLong seed;
+            sd::LongType limit;
+            sd::LongType seed;
             uint64_t *buffer;
             sd::random::RandomBuffer *realBuffer;
 
         public:
 
-            _CUDA_HD IGenerator(sd::random::RandomBuffer *buffer) {
+            SD_HOST_DEVICE IGenerator(sd::random::RandomBuffer *buffer) {
                 this->limit = buffer->getSize();
                 this->buffer = reinterpret_cast<uint64_t *>(buffer->getBuffer());
                 this->realBuffer = buffer;
@@ -530,32 +528,31 @@ namespace sd {
             }
 
 
-            _CUDA_HD RandomBuffer *getBuffer() {
+            SD_HOST_DEVICE RandomBuffer *getBuffer() {
                 return realBuffer;
             }
 
-            _CUDA_HD void setOffset(Nd4jLong offset) {
+            SD_HOST_DEVICE void setOffset(sd::LongType offset) {
                 this->realBuffer->setOffset(offset);
             }
 
-            _CUDA_HD Nd4jLong getElementAbsolute(Nd4jLong position) {
+            SD_HOST_DEVICE sd::LongType getElementAbsolute(sd::LongType position) {
                 return buffer[position];
             }
 
-            _CUDA_HD Nd4jLong getElementRelative(Nd4jLong position) {
+            SD_HOST_DEVICE sd::LongType getElementRelative(sd::LongType position) {
                 return buffer[realBuffer->getOffset() + position];
             }
 
-            virtual _CUDA_HD void refreshBuffer() = 0;
+            virtual SD_HOST_DEVICE void refreshBuffer() = 0;
         };
 
 
-
-        class ND4J_EXPORT Xoroshiro128 : public IGenerator {
+        class SD_LIB_EXPORT Xoroshiro128 : public IGenerator {
         protected:
             uint64_t state[2];
 
-            static inline _CUDA_HD uint64_t rotl(const uint64_t x, int k) {
+            static SD_INLINE SD_HOST_DEVICE uint64_t rotl(const uint64_t x, int k) {
                 return (x << k) | (x >> (64 - k));
             }
 
@@ -563,7 +560,7 @@ namespace sd {
              * This method returns 64 random bits
              * @return
              */
-            uint64_t _CUDA_HD next64() {
+            uint64_t SD_HOST_DEVICE next64() {
                 const uint64_t s0 = state[0];
                 uint64_t s1 = state[1];
                 const uint64_t result = s0 + s1;
@@ -575,7 +572,7 @@ namespace sd {
                 return result;
             }
 
-            uint64_t _CUDA_HD seedConv(Nd4jLong seed) {
+            uint64_t SD_HOST_DEVICE seedConv(sd::LongType seed) {
                 uint64_t x = static_cast<uint64_t>(seed);
                 uint64_t z = (x += UINT64_C(0x9E3779B97F4A7C15));
                 z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9);
@@ -583,7 +580,7 @@ namespace sd {
                 return z ^ (z >> 31);
             }
 
-            void _CUDA_H jump(void) {
+            void SD_HOST jump(void) {
                 static const uint64_t JUMP[] = { 0xbeac0467eba5facb, 0xd86b048b86aa9922 };
 
                 uint64_t s0 = 0;
@@ -602,17 +599,17 @@ namespace sd {
             }
 
         public:
-            _CUDA_HD Xoroshiro128(sd::random::RandomBuffer *buffer) : IGenerator(buffer) {
+            SD_HOST_DEVICE Xoroshiro128(sd::random::RandomBuffer *buffer) : IGenerator(buffer) {
                 //
             }
 
-            _CUDA_HD void refreshBuffer() {
+            SD_HOST_DEVICE void refreshBuffer() {
                 state[0] = seedConv(this->seed);
                 state[1] = seedConv(this->seed * 119 + 3);
 
                 int fd = 3 + 3;
 
-                for (Nd4jLong i = 0; i < limit; i++) {
+                for (sd::LongType i = 0; i < limit; i++) {
                     buffer[i] = next64();
                 }
             }

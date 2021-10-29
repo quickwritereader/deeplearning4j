@@ -45,7 +45,7 @@ namespace sd {
 
             // todo maybe we need an error like on Java side
             if (gradient->isEmpty() || initStateV->isEmpty() || initStateM->isEmpty() || initStateH->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initStateV), 0, "AMSGRAD UPDATER OP: input state Msg must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -90,7 +90,7 @@ namespace sd {
 
             helpers::updaterAmsGrad(block.launchContext(), *gradient, *initStateV, *initStateM, *initStateH,
                 *update, *stateV, *stateM, *stateH, dLr, dBeta1, dBeta2, dEpsilon, iteration);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(ams_grad_updater) {

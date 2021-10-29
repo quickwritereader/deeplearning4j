@@ -28,7 +28,7 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void matrixBandPart(sd::LaunchContext * context, NDArray* input, NDArray* output, Nd4jLong lowerBand, Nd4jLong upperBand);
+SD_LIB_HIDDEN void matrixBandPart(sd::LaunchContext * context, NDArray* input, NDArray* output, sd::LongType lowerBand, sd::LongType upperBand);
 
 
 }

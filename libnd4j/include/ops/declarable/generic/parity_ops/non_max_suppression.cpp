@@ -56,10 +56,10 @@ namespace sd {
                 scoreThreshold = T_ARG(1);
             }
             if (boxes->isEmpty() || scales->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             if (output->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(boxes->rankOf() == 2, 0, "image.non_max_suppression: The rank of boxes array should be 2, "
                                                   "but %i is given", boxes->rankOf());
@@ -76,13 +76,13 @@ namespace sd {
                     DataTypeUtils::asString(scales->dataType()).c_str());
             helpers::nonMaxSuppression(block.launchContext(), boxes, scales, maxOutputSize, overlayThreshold,
                     scoreThreshold, output);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(non_max_suppression) {
             auto in = inputShape->at(0);
             int outRank = shape::rank(in);
-            const Nd4jLong *outputShape = nullptr;
+            const sd::LongType *outputShape = nullptr;
 
             int maxOutputSize;
             if (block.width() > 2)
@@ -154,9 +154,9 @@ namespace sd {
                 scoreThreshold = T_ARG(1);
             }
             if (boxes->isEmpty() || scales->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
             if (output->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(boxes->rankOf() == 2, 0, "image.non_max_suppression: The rank of boxes array should be 2, but "
                                                   "%i is given", boxes->rankOf());
@@ -174,7 +174,7 @@ namespace sd {
 
             helpers::nonMaxSuppressionV3(block.launchContext(), boxes, scales, maxOutputSize, overlayThreshold,
                     scoreThreshold, output);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(non_max_suppression_v3) {

@@ -19,14 +19,13 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <array/NDArray.h>
 #include <helpers/helper_random.h>
 #include <graph/RandomGenerator.h>
 #include <execution/LaunchContext.h>
 
 namespace sd {
-    class ND4J_EXPORT RandomLauncher {
+    class SD_LIB_EXPORT RandomLauncher {
     public:
         static void applyDropOut(sd::LaunchContext *context, sd::graph::RandomGenerator& rng, NDArray *array, double retainProb, NDArray* z = nullptr);
         static void applyInvertedDropOut(sd::LaunchContext *context, sd::graph::RandomGenerator& rng, NDArray *array, double retainProb, NDArray* z = nullptr);

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/exceptions/unresolved_output_exception.h>
 #include <helpers/StringUtils.h>
 #include <utility>

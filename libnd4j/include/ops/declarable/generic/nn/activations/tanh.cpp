@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(tanh) {
@@ -53,7 +53,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::TanhDerivativeE, epsilon, z, nullptr);
             helpers::tanhDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TanhGrad, tanh_bp);
 

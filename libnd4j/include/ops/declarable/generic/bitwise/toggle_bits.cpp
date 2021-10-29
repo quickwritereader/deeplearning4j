@@ -40,7 +40,7 @@ namespace sd {
 
                 helpers::__toggle_bits(block.launchContext(), *x, *z);
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(toggle_bits) {

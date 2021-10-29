@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <execution/BlockingQueue.h>
 #include <execution/CallableWithArguments.h>
 #include <thread>

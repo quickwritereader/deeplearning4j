@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/helpers.h>
 #include <array/NDArray.h>
 
@@ -27,7 +26,7 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void _depthToSpace(sd::LaunchContext * context, const NDArray &input, NDArray *output, int block_size, bool isNHWC);
+SD_LIB_HIDDEN void _depthToSpace(sd::LaunchContext * context, const NDArray &input, NDArray *output, int block_size, bool isNHWC);
 }
 }
 }

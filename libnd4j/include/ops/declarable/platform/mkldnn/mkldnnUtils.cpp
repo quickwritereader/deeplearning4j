@@ -20,7 +20,6 @@
 // @author saudet
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <dnnl_types.h>
 #include <ops/declarable/helpers/convolutions.h>
 #include "mkldnnUtils.h"
@@ -306,7 +305,7 @@ void poolingBpONEDNN(const NDArray *input, const NDArray *gradO, NDArray *gradI,
 void getONEDNNMemoryDescLrn(const NDArray* src, const NDArray* diff_src, const NDArray* dst,
                             dnnl::memory::desc* lrn_src_md, dnnl::memory::desc* lrn_diff_src_md, dnnl::memory::desc* lrn_dst_md,
                             dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_dst_md, int axis) {
-    const Nd4jLong* shape = src->shapeInfo();
+    const sd::LongType* shape = src->shapeInfo();
     long rank = shape[0];
     long dim1 = axis; // MKL-DNN supports only 1 axis, which has to be the "channel" one
     long dim2 = axis >= 2 ? 1 : 2;
@@ -723,11 +722,11 @@ void getMKLDNNMemoryDescConv3d(
 void getMKLDNNMemoryDescBatchNorm(const NDArray* src, const NDArray* diff_src, const NDArray* dst,
                                   dnnl::memory::desc* batchnorm_src_md, dnnl::memory::desc* batchnorm_diff_src_md, dnnl::memory::desc* batchnorm_dst_md,
                                   dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_dst_md, int axis) {
-    const Nd4jLong* shape = src->shapeInfo();
-    Nd4jLong rank = shape[0];
-    Nd4jLong dim1 = axis; // MKL-DNN supports only 1 axis, which has to be the "channel" one
-    Nd4jLong dim2 = axis >= 2 ? 1 : 2;
-    Nd4jLong dim3 = axis >= 3 ? 2 : 3;
+    const sd::LongType* shape = src->shapeInfo();
+    sd::LongType rank = shape[0];
+    sd::LongType dim1 = axis; // MKL-DNN supports only 1 axis, which has to be the "channel" one
+    sd::LongType dim2 = axis >= 2 ? 1 : 2;
+    sd::LongType dim3 = axis >= 3 ? 2 : 3;
     dnnl::memory::dims batchnorm_src_tz = { (int)shape[1], (int)shape[dim1 + 1], rank > 2 ? (int)shape[dim2 + 1] : 1, rank > 3 ? (int)shape[dim3 + 1] : 1};
 
     auto type = dnnl::memory::data_type::f32;

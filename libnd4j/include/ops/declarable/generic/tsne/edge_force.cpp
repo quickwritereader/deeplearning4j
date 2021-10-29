@@ -28,7 +28,7 @@
 
 namespace sd {
 namespace ops  {
-		
+        
     CUSTOM_OP_IMPL(barnes_edge_forces, 4, 1, false, 0, 1) {
         auto rowP  = INPUT_VARIABLE(0);
         auto colP  = INPUT_VARIABLE(1);
@@ -44,7 +44,7 @@ namespace ops  {
 
         helpers::barnes_edge_forces(rowP, colP, valP, N, output, *dataP);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(barnes_edge_forces) {
@@ -58,8 +58,8 @@ namespace ops  {
     }
 
     DECLARE_SHAPE_FN(barnes_edge_forces) {
-        Nd4jLong* bufShape;
-        Nd4jLong* outShapeInfo;
+        sd::LongType* bufShape;
+        sd::LongType* outShapeInfo;
         outShapeInfo = ShapeBuilders::copyShapeInfoAndType(inputShape->at(3), inputShape->at(3), false, block.getWorkspace());
         return SHAPELIST(CONSTANT(outShapeInfo));
     }

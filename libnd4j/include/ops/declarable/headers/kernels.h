@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_KERNELS_H
 #define LIBND4J_KERNELS_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

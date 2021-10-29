@@ -27,7 +27,7 @@
 #include <system/op_boilerplate.h>
 
 //https://stackoverflow.com/questions/228005/alternative-to-itoa-for-converting-integer-to-string-c
-FORCEINLINE std::string int_array_to_string(Nd4jLong int_array[], Nd4jLong size_of_array) {
+SD_INLINE std::string int_array_to_string(sd::LongType int_array[], sd::LongType size_of_array) {
     std::string returnstring = "[";
     for (int temp = 0; temp < size_of_array; temp++) {
         returnstring += std::to_string(int_array[temp]);
@@ -38,7 +38,7 @@ FORCEINLINE std::string int_array_to_string(Nd4jLong int_array[], Nd4jLong size_
     return returnstring;
 }
 
-FORCEINLINE ::testing::AssertionResult arrsEquals(Nd4jLong n, Nd4jLong *assertion,Nd4jLong *other) {
+SD_INLINE ::testing::AssertionResult arrsEquals(sd::LongType n, sd::LongType *assertion,sd::LongType *other) {
     for(int i = 0; i < n; i++) {
         if(assertion[i] != other[i]) {
             std::string message = std::string("Failure at index  ") + std::to_string(i)  + std::string(" assertion: ") +  int_array_to_string(assertion,n) + std::string(" and test array ") + int_array_to_string(other,n) + std::string("  is not equal");

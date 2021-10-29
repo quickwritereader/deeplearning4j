@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <helpers/ShapeUtils.h>
@@ -47,12 +46,12 @@ class LaunchContextCudaTests : public testing::Test {
 void acquireContext(int threadId, int &deviceId) {
     deviceId = AffinityManager::currentDeviceId();
 
-    nd4j_printf("Creating thread: [%i]; assigned deviceId: [%i];\n", threadId, deviceId);
+    sd_printf("Creating thread: [%i]; assigned deviceId: [%i];\n", threadId, deviceId);
 
     auto lc = LaunchContext::defaultContext();
-    nd4j_printf("LC: [%p]\n", lc);
+    sd_printf("LC: [%p]\n", lc);
 
-    nd4j_printf("reductionPtr: [%p]; stream: [%p];\n", lc->getReductionPointer(), lc->getCudaStream());
+    sd_printf("reductionPtr: [%p]; stream: [%p];\n", lc->getReductionPointer(), lc->getCudaStream());
 }
 
 TEST_F(LaunchContextCudaTests, basic_test_1) {
@@ -62,7 +61,7 @@ TEST_F(LaunchContextCudaTests, basic_test_1) {
 
     threadA.join();
     threadB.join();
-    nd4j_printf("All threads joined\n","");
+    sd_printf("All threads joined\n","");
 
     if (AffinityManager::numberOfDevices() > 1)
         ASSERT_NE(deviceA, deviceB);
@@ -70,7 +69,7 @@ TEST_F(LaunchContextCudaTests, basic_test_1) {
 
 void fillArray(int tid, std::vector<NDArray*> &arrays) {
     auto array = NDArrayFactory::create_<int>('c', {3, 10});
-    nd4j_printf("Array created on device [%i]\n", AffinityManager::currentDeviceId());
+    sd_printf("Array created on device [%i]\n", AffinityManager::currentDeviceId());
     array->assign(tid);
     arrays[tid] = array;
 }
@@ -95,12 +94,12 @@ TEST_F(LaunchContextCudaTests, basic_test_2) {
 void initAffinity(int tid, std::vector<int> &aff) {
     auto affinity = AffinityManager::currentDeviceId();
     aff[tid] = affinity;
-    nd4j_printf("Thread [%i] affined with device [%i]\n", tid, affinity);
+    sd_printf("Thread [%i] affined with device [%i]\n", tid, affinity);
 }
 
 TEST_F(LaunchContextCudaTests, basic_test_3) {
     auto totalThreads = AffinityManager::numberOfDevices() * 4;
-    nd4j_printf("Total threads: %i\n", totalThreads);
+    sd_printf("Total threads: %i\n", totalThreads);
     std::vector<int> affinities(totalThreads);
 
     for (int e = 0; e < totalThreads; e++) {

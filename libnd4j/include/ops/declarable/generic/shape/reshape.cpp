@@ -38,7 +38,7 @@ CUSTOM_OP_IMPL(reshape, 1, 1, false, 0, -2) {
   if (x->isEmpty()) {
     REQUIRE_TRUE(z->isEmpty(), 0,
                  "Reshape: when input is empty, output must also be empty");
-    return Status::OK(); // No op
+    return sd::Status::OK; // No op
   }
 
   REQUIRE_TRUE(x->lengthOf() == z->lengthOf(), 0,
@@ -47,11 +47,11 @@ CUSTOM_OP_IMPL(reshape, 1, 1, false, 0, -2) {
                x->lengthOf(), z->lengthOf());
 
   if (Environment::getInstance().isDebugAndVerbose())
-    nd4j_printv("Reshape: new shape", z->getShapeAsVector());
+    sd_printv("Reshape: new shape", z->getShapeAsVector());
 
   z->assign(x->reshape(z->ordering(), z->getShapeAsVector()));
 
-  return Status::OK();
+  return sd::Status::OK;
 }
 
 DECLARE_TYPES(reshape) {
@@ -89,7 +89,7 @@ DECLARE_SHAPE_FN(reshape) {
   const auto x = INPUT_VARIABLE(0);
 
   std::vector<int> reshapeArgs;
-  std::vector<Nd4jLong> shapeNew;
+  std::vector<sd::LongType> shapeNew;
   char orderNew = 'c';
   /**
    * NOTE: The value here is negative as a flag.
@@ -132,7 +132,7 @@ DECLARE_SHAPE_FN(reshape) {
   REQUIRE_TRUE(!reshapeArgs.empty() || x->lengthOf() == 1, 0,
                "Reshape buffer should have at least 1 dimension !");
 
-  Nd4jLong newShapeLen = 1;
+  sd::LongType newShapeLen = 1;
   int pos = -1;
   bool newShapeEmpty = false;
 
@@ -154,10 +154,10 @@ DECLARE_SHAPE_FN(reshape) {
 
   if (pos != -1) {
 
-    Nd4jLong xLen = x->lengthOf();
+    sd::LongType xLen = x->lengthOf();
     if (x->isEmpty()) {
       xLen = 1;
-      for (uint i = 0; i < x->rankOf();
+      for (sd::Unsigned i = 0; i < x->rankOf();
            ++i) // take into account possible empty shapes
         if (x->sizeAt(i) > 0 || !newShapeEmpty)
           xLen *= x->sizeAt(i);

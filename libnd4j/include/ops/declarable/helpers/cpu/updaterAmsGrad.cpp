@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -52,9 +51,9 @@ static void amsGradUpdater_(const NDArray& gradient, const NDArray& initStateV, 
     const T epsilon = static_cast<T>(dEpsilon);
     const T iteration = static_cast<T>(nIteration);
 
-    T epsilonT = lr * sd::math::nd4j_sqrt<T, T>(1.0 - sd::math::nd4j_pow<T, T, T>(beta2, (iteration + 1))) / (1.0 - sd::math::nd4j_pow<T, T, T>(beta1, (iteration + 1)));
+    T epsilonT = lr * sd::math::sd_sqrt<T, T>(1.0 - sd::math::sd_pow<T, T, T>(beta2, (iteration + 1))) / (1.0 - sd::math::sd_pow<T, T, T>(beta1, (iteration + 1)));
 
-    if (sd::math::nd4j_isnan(epsilonT) || 0 == epsilonT || sd::math::nd4j_isinf(epsilonT))
+    if (sd::math::sd_isnan(epsilonT) || 0 == epsilonT || sd::math::sd_isinf(epsilonT))
         epsilonT = epsilon;
     
     const T mbeta1 = (1 - beta1);
@@ -75,9 +74,9 @@ static void amsGradUpdater_(const NDArray& gradient, const NDArray& initStateV, 
                  for (auto i = start; i < stop; i++) {
                      stM[i] = beta1 * initM[i] + grad[i] * mbeta1;
                      stV[i] = beta2 * initV[i] + grad[i] * grad[i] * mbeta2;
-                     stH[i] = sd::math::nd4j_max(initH[i], stV[i]);
+                     stH[i] = sd::math::sd_max(initH[i], stV[i]);
 
-                     up[i] = epsilonT * stM[i] / (sd::math::nd4j_sqrt<T, T>(stH[i]) + epsilon);
+                     up[i] = epsilonT * stM[i] / (sd::math::sd_sqrt<T, T>(stH[i]) + epsilon);
                  }
             };
 
@@ -95,7 +94,7 @@ static void amsGradUpdater_(const NDArray& gradient, const NDArray& initStateV, 
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -109,9 +108,9 @@ static void amsGradUpdater_(const NDArray& gradient, const NDArray& initStateV, 
             
             stM[stMOffset] = beta1 * initM[initMOffset] + grad[xOffset] * mbeta1;
             stV[stVOffset] = beta2 * initV[initVOffset] + grad[xOffset] * grad[xOffset] * mbeta2;
-            stH[stHOffset] = sd::math::nd4j_max(initH[initHOffset], stV[stVOffset]);
+            stH[stHOffset] = sd::math::sd_max(initH[initHOffset], stV[stVOffset]);
 
-            up[zOffset] = epsilonT * stM[stMOffset] / (sd::math::nd4j_sqrt<T, T>(stH[stHOffset]) + epsilon);
+            up[zOffset] = epsilonT * stM[stMOffset] / (sd::math::sd_sqrt<T, T>(stH[stHOffset]) + epsilon);
         }
     };
 
@@ -119,9 +118,9 @@ static void amsGradUpdater_(const NDArray& gradient, const NDArray& initStateV, 
     return;
 }
 
- void updaterAmsGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM, const NDArray& initStateH,
+void updaterAmsGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM, const NDArray& initStateH, 
                    NDArray& update, NDArray& stateV, NDArray& stateM, NDArray& stateH, const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), amsGradUpdater_, (gradient, initStateV, initStateM, initStateH, update, stateV, stateM, stateH, dLr, dBeta1, dBeta2, dEpsilon, nIteration), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), amsGradUpdater_, (gradient, initStateV, initStateM, initStateH, update, stateV, stateM, stateH, dLr, dBeta1, dBeta2, dEpsilon, nIteration), SD_FLOAT_TYPES);
 }
 
 

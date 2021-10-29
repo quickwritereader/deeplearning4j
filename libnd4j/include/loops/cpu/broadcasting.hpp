@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <loops/broadcasting.h>
 #include <loops/legacy_ops.h>
@@ -36,12 +35,12 @@ namespace broadcast {
 
         template <typename X, typename Y, typename Z>
         void Broadcast<X, Y, Z>::execInverse(const int opNum,
-                                             const void *x, const Nd4jLong *xShapeInfo,
-                                             const void *y, const Nd4jLong *yShapeInfo,
-                                             void *z, const Nd4jLong *zShapeInfo,
+                                             const void *x, const sd::LongType *xShapeInfo,
+                                             const void *y, const sd::LongType *yShapeInfo,
+                                             void *z, const sd::LongType *zShapeInfo,
                                              int *dimension, int dimensionLength,
-                                             const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffset,
-                                             const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffset,
+                                             const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffset,
+                                             const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffset,
                                              uint64_t start, uint64_t stop) {
             DISPATCH_BY_OPNUM_TTT(execInverse, PARAMS(x,
                                                xShapeInfo,
@@ -59,12 +58,12 @@ namespace broadcast {
 
         template <typename X, typename Y, typename Z>
         void Broadcast<X, Y, Z>::exec(const int opNum,
-                                      const void *x, const Nd4jLong *xShapeInfo,
-                                      const void *y, const Nd4jLong *yShapeInfo,
-                                      void *z, const Nd4jLong *zShapeInfo,
+                                      const void *x, const sd::LongType *xShapeInfo,
+                                      const void *y, const sd::LongType *yShapeInfo,
+                                      void *z, const sd::LongType *zShapeInfo,
                                       int *dimension, int dimensionLength,
-                                      const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffset,
-                                      const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffset,
+                                      const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffset,
+                                      const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffset,
                                       sd::LoopKind::Kind loopKind,
                                       uint64_t start, uint64_t stop) {
             DISPATCH_BY_OPNUM_TTT(exec, PARAMS(x,
@@ -84,12 +83,12 @@ namespace broadcast {
 
         template <typename X, typename  Y, typename Z>
         template<typename OpType>
-        void Broadcast<X, Y, Z>::exec(const void *vx, const Nd4jLong *xShapeInfo,
-                                      const void *vy, const Nd4jLong *yShapeInfo,
-                                      void *vz, const Nd4jLong *zShapeInfo,
+        void Broadcast<X, Y, Z>::exec(const void *vx, const sd::LongType *xShapeInfo,
+                                      const void *vy, const sd::LongType *yShapeInfo,
+                                      void *vz, const sd::LongType *zShapeInfo,
                                       int *dimension, int dimensionLength,
-                                      const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffset,
-                                      const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffset,
+                                      const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffset,
+                                      const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffset,
                                       sd::LoopKind::Kind loopKind,
                                       uint64_t start, uint64_t stop) {
 
@@ -166,7 +165,7 @@ namespace broadcast {
                         const auto oX = x[i];
 
                         PRAGMA_OMP_SIMD
-                        for (Nd4jLong f = 0; f < loopLength; f++)
+                        for (sd::LongType f = 0; f < loopLength; f++)
                             oZ[f] = OpType::op(oX, oY[f]);
                     }
                 } else if(kindOfLoop == sd::LoopKind::BROADCAST_SCALAR_Y){
@@ -180,7 +179,7 @@ namespace broadcast {
                         const auto oY = y[i];
 
                         PRAGMA_OMP_SIMD
-                        for (Nd4jLong f = 0; f < loopLength; f++)
+                        for (sd::LongType f = 0; f < loopLength; f++)
                             oZ[f] = OpType::op(oX[f], oY);
                     }
                 }
@@ -192,7 +191,7 @@ namespace broadcast {
                     auto  xStrides = shape::stride(xShapeInfo);
                     auto  zStrides = shape::stride(zShapeInfo);
 
-                    Nd4jLong  yStrides[3] = { 0,0,0 };
+                    sd::LongType  yStrides[3] = { 0,0,0 };
                     sd::ShapeUtils::copyCertainStridesFromShapeInfo(yShapeInfo, xRank, dimensionLength, dimension, yStrides);
 
                     uint64_t nSize1 = shape::sizeAt(zShapeInfo, 1);
@@ -221,7 +220,7 @@ namespace broadcast {
                     auto  xStrides = shape::stride(xShapeInfo);
                     auto  zStrides = shape::stride(zShapeInfo);
 
-                    Nd4jLong  yStrides[4] = { 0,0,0,0 };
+                    sd::LongType  yStrides[4] = { 0,0,0,0 };
                     sd::ShapeUtils::copyCertainStridesFromShapeInfo(yShapeInfo, xRank, dimensionLength, dimension, yStrides);
 
                     uint64_t nSize1 = shape::sizeAt(zShapeInfo, 1);
@@ -253,7 +252,7 @@ namespace broadcast {
                     auto  xStrides = shape::stride(xShapeInfo);
                     auto  zStrides = shape::stride(zShapeInfo);
 
-                    Nd4jLong  yStrides[5] = { 0,0,0,0,0 };
+                    sd::LongType  yStrides[5] = { 0,0,0,0,0 };
                     sd::ShapeUtils::copyCertainStridesFromShapeInfo(yShapeInfo, xRank, dimensionLength, dimension, yStrides);
 
                     uint32_t nSize1 = shape::sizeAt(zShapeInfo, 1);
@@ -282,7 +281,7 @@ namespace broadcast {
 
                 }
                 else if(shape::haveSameShapeAndStrides(xTadShapeShapeInfo, yShapeInfo) && shape::haveSameShapeAndStrides(xTadShapeShapeInfo, zTadShapeInfo)) {
-                    uint tadShapeShapeInfoCast[MAX_RANK];
+                    sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xTadShapeShapeInfo, tadShapeShapeInfoCast);
 
                     for (auto i = start; i < stop; i++) {
@@ -297,8 +296,8 @@ namespace broadcast {
                     }
                 }
                 else if(shape::haveSameShapeAndStrides(xTadShapeShapeInfo, yShapeInfo)) {
-                    uint tadShapeShapeInfoCast[MAX_RANK];
-                    uint tadShapeInfoZCast[MAX_RANK];
+                    sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned tadShapeInfoZCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xTadShapeShapeInfo, tadShapeShapeInfoCast);
                     bool canCastZ = sd::DataTypeUtils::castShapeInfo(zTadShapeInfo, tadShapeInfoZCast);
 
@@ -316,8 +315,8 @@ namespace broadcast {
                     }
                 }
                 else if(shape::haveSameShapeAndStrides(xTadShapeShapeInfo, zTadShapeInfo)) {
-                    uint tadShapeShapeInfoCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
+                    sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xTadShapeShapeInfo, tadShapeShapeInfoCast);
                     bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -334,8 +333,8 @@ namespace broadcast {
                     }
                 }
                 else if(shape::haveSameShapeAndStrides(yShapeInfo, zTadShapeInfo)) {
-                    uint tadShapeShapeInfoCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
+                    sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xTadShapeShapeInfo, tadShapeShapeInfoCast);
                     bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -352,9 +351,9 @@ namespace broadcast {
                     }
                 }
                 else {
-                    uint tadShapeShapeInfoCast[MAX_RANK];
-                    uint tadShapeInfoZCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
+                    sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned tadShapeInfoZCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xTadShapeShapeInfo, tadShapeShapeInfoCast);
                     bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
                     bool canCastZ = sd::DataTypeUtils::castShapeInfo(zTadShapeInfo, tadShapeInfoZCast);
@@ -375,15 +374,14 @@ namespace broadcast {
         }
 
 
-
         template <typename X, typename  Y, typename Z>
         template<typename OpType>
-        void Broadcast<X, Y, Z>::execInverse(const void *vx, const Nd4jLong *xShapeInfo,
-                                             const void *vy, const Nd4jLong *yShapeInfo,
-                                             void *vz, const Nd4jLong *zShapeInfo,
+        void Broadcast<X, Y, Z>::execInverse(const void *vx, const sd::LongType *xShapeInfo,
+                                             const void *vy, const sd::LongType *yShapeInfo,
+                                             void *vz, const sd::LongType *zShapeInfo,
                                              int *dimension, int dimensionLength,
-                                             const Nd4jLong *yTadShapeInfo, const Nd4jLong *yTadOffset,
-                                             const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffset,
+                                             const sd::LongType *yTadShapeInfo, const sd::LongType *yTadOffset,
+                                             const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffset,
                                              uint64_t start, uint64_t stop) {
 
             auto x = reinterpret_cast<const X *>(vx);
@@ -417,8 +415,8 @@ namespace broadcast {
             auto lenX = shape::length(xShapeInfo);
 
             int tadsPerThread = tads / TAD_THRESHOLD;
-            int threads = sd::math::nd4j_max<int>(1, tadsPerThread);
-            threads = sd::math::nd4j_min<int>(threads, sd::Environment::getInstance().maxThreads());
+            int threads = sd::math::sd_max<int>(1, tadsPerThread);
+            threads = sd::math::sd_min<int>(threads, sd::Environment::getInstance().maxThreads());
 
             auto yEws = shape::elementWiseStride(yTadShapeShapeInfo);
             auto xEws = shape::elementWiseStride(xShapeInfo);
@@ -447,7 +445,7 @@ namespace broadcast {
                 };
             }
             else if(shape::haveSameShapeAndStrides(yTadShapeShapeInfo, xShapeInfo) && shape::haveSameShapeAndStrides(yTadShapeShapeInfo, zTadShapeInfo)) {
-                uint tadShapeShapeInfoCast[MAX_RANK];
+                sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
                 bool canCastY = sd::DataTypeUtils::castShapeInfo(yTadShapeShapeInfo, tadShapeShapeInfoCast);
 
                 for (auto i = start; i < stop; i++) {
@@ -462,8 +460,8 @@ namespace broadcast {
                 };
             }
             else if(shape::haveSameShapeAndStrides(yTadShapeShapeInfo, xShapeInfo)) {
-                uint tadShapeShapeInfoCast[MAX_RANK];
-                uint tadShapeInfoZCast[MAX_RANK];
+                sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned tadShapeInfoZCast[SD_MAX_RANK];
                 bool canCastY = sd::DataTypeUtils::castShapeInfo(yTadShapeShapeInfo, tadShapeShapeInfoCast);
                 bool canCastZ = sd::DataTypeUtils::castShapeInfo(zTadShapeInfo, tadShapeInfoZCast);
 
@@ -480,8 +478,8 @@ namespace broadcast {
                 };
             }
             else if(shape::haveSameShapeAndStrides(yTadShapeShapeInfo, zTadShapeInfo)) {
-                uint tadShapeShapeInfoCast[MAX_RANK];
-                uint xShapeInfoCast[MAX_RANK];
+                sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                 bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 bool canCastY = sd::DataTypeUtils::castShapeInfo(yTadShapeShapeInfo, tadShapeShapeInfoCast);
 
@@ -498,8 +496,8 @@ namespace broadcast {
                 };
             }
             else if(shape::haveSameShapeAndStrides(xShapeInfo, zTadShapeInfo)) {
-                uint tadShapeShapeInfoCast[MAX_RANK];
-                uint xShapeInfoCast[MAX_RANK];
+                sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                 bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 bool canCastY = sd::DataTypeUtils::castShapeInfo(yTadShapeShapeInfo, tadShapeShapeInfoCast);
 
@@ -516,9 +514,9 @@ namespace broadcast {
                 };
             }
             else {
-                uint tadShapeShapeInfoCast[MAX_RANK];
-                uint tadShapeInfoZCast[MAX_RANK];
-                uint xShapeInfoCast[MAX_RANK];
+                sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+                sd::Unsigned tadShapeInfoZCast[SD_MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                 bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                 bool canCastY = sd::DataTypeUtils::castShapeInfo(yTadShapeShapeInfo, tadShapeShapeInfoCast);
                 bool canCastZ = sd::DataTypeUtils::castShapeInfo(zTadShapeInfo, tadShapeInfoZCast);
@@ -541,19 +539,19 @@ namespace broadcast {
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y, typename Z>
-    void Broadcast<X, Y, Z>::exec(const int opNum, const void *x, const Nd4jLong *xShapeInfo, const void *y, const Nd4jLong *yShapeInfo, void *z, const Nd4jLong *zShapeInfo) {
+    void Broadcast<X, Y, Z>::exec(const int opNum, const void *x, const sd::LongType *xShapeInfo, const void *y, const sd::LongType *yShapeInfo, void *z, const sd::LongType *zShapeInfo) {
 
     DISPATCH_BY_OPNUM_TTT(exec, PARAMS(x, xShapeInfo, y, yShapeInfo, z, zShapeInfo), BROADCAST_OPS);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execRank1(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execRank1(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
-    uint     zAxis0 = shape::sizeAt(zShapeInfo,   0);
-    Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, 0);
-    Nd4jLong yStrd0 = shape::strideAt(yShapeInfo, 0);
-    Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, 0);
+    sd::Unsigned     zAxis0 = shape::sizeAt(zShapeInfo,   0);
+    sd::LongType xStrd0 = shape::strideAt(xShapeInfo, 0);
+    sd::LongType yStrd0 = shape::strideAt(yShapeInfo, 0);
+    sd::LongType zStrd0 = shape::strideAt(zShapeInfo, 0);
 
     auto func = PRAGMA_THREADS_FOR{
 
@@ -579,17 +577,17 @@ static void execRank1(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execRank2(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execRank2(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
-    uint     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 1);
-    Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
-    Nd4jLong yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
-    Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    sd::Unsigned     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    sd::LongType yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
 
-    uint     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 0);
-    Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
-    Nd4jLong yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
-    Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    sd::Unsigned     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    sd::LongType yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
 
     auto func = PRAGMA_THREADS_FOR{
 
@@ -600,16 +598,16 @@ static void execRank2(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
             auto z0 = z + i0 * zStrd0;
 
             if(zStrd1 == 1 && xStrd1 == 1 && yStrd1 == 0)
-                for (uint i1 = 0; i1 < zAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < zAxis1; ++i1)
                     z0[i1] = OpType::op(x0[i1], *y0);
             else if(zStrd1 == 1 && xStrd1 == 0 && yStrd1 == 1)
-                for (uint i1 = 0; i1 < zAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < zAxis1; ++i1)
                     z0[i1] = OpType::op(*x0, y0[i1]);
             else if(zStrd1 == 1 && xStrd1 == 1 && yStrd1 == 1)
-                for (uint i1 = 0; i1 < zAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < zAxis1; ++i1)
                     z0[i1] = OpType::op(x0[i1], y0[i1]);
             else
-                for (uint i1 = 0; i1 < zAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < zAxis1; ++i1)
                     z0[i1 * zStrd1] = OpType::op(x0[i1 * xStrd1], y0[i1 * yStrd1]);
         }
     };
@@ -619,22 +617,22 @@ static void execRank2(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execRank3(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execRank3(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
-    uint     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 2);
-    Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
-    Nd4jLong yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
-    Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    sd::Unsigned     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    sd::LongType yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
 
-    uint     zAxis1 = shape::sizeAt(zShapeInfo,   1);
-    Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, 1);
-    Nd4jLong yStrd1 = shape::strideAt(yShapeInfo, 1);
-    Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, 1);
+    sd::Unsigned     zAxis1 = shape::sizeAt(zShapeInfo,   1);
+    sd::LongType xStrd1 = shape::strideAt(xShapeInfo, 1);
+    sd::LongType yStrd1 = shape::strideAt(yShapeInfo, 1);
+    sd::LongType zStrd1 = shape::strideAt(zShapeInfo, 1);
 
-    uint     zAxis2 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 2 : 0);
-    Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
-    Nd4jLong yStrd2 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
-    Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    sd::Unsigned     zAxis2 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    sd::LongType xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    sd::LongType yStrd2 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    sd::LongType zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
 
       auto func = PRAGMA_THREADS_FOR_2D {
 
@@ -646,16 +644,16 @@ static void execRank3(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
                 auto z1 = z + i0 * zStrd0 + i1 * zStrd1;
 
                 if(zStrd2 == 1 && xStrd2 == 1 && yStrd2 == 0)
-                    for (uint i2 = 0; i2 < zAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < zAxis2; ++i2)
                         z1[i2] = OpType::op(x1[i2], *y1);
                 else if(zStrd2 == 1 && xStrd2 == 0 && yStrd2 == 1)
-                    for (uint i2 = 0; i2 < zAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < zAxis2; ++i2)
                         z1[i2] = OpType::op(*x1, y1[i2]);
                 else if(zStrd2 == 1 && xStrd2 == 1 && yStrd2 == 1)
-                    for (uint i2 = 0; i2 < zAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < zAxis2; ++i2)
                         z1[i2] = OpType::op(x1[i2], y1[i2]);
                 else
-                    for (uint i2 = 0; i2 < zAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < zAxis2; ++i2)
                         z1[i2 * zStrd2] = OpType::op(x1[i2 * xStrd2], y1[i2 * yStrd2]);
             }
         }
@@ -666,27 +664,27 @@ static void execRank3(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execRank4(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execRank4(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
-    uint     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 3);
-    Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
-    Nd4jLong yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
-    Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
+    sd::Unsigned     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 3);
+    sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
+    sd::LongType yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
+    sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
 
-    uint     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 2);
-    Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
-    Nd4jLong yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
-    Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
+    sd::Unsigned     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 2);
+    sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
+    sd::LongType yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
+    sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
 
-    uint     zAxis2 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 2 : 1);
-    Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
-    Nd4jLong yStrd2 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
-    Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
+    sd::Unsigned     zAxis2 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 2 : 1);
+    sd::LongType xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
+    sd::LongType yStrd2 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
+    sd::LongType zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
 
-    uint     zAxis3 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 3 : 0);
-    Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
-    Nd4jLong yStrd3 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
-    Nd4jLong zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
+    sd::Unsigned     zAxis3 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 3 : 0);
+    sd::LongType xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
+    sd::LongType yStrd3 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
+    sd::LongType zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
 
      auto func = PRAGMA_THREADS_FOR_3D {
 
@@ -699,16 +697,16 @@ static void execRank4(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
                     auto z2 = z + i0 * zStrd0 + i1 * zStrd1 + i2 * zStrd2;
 
                     if(zStrd3 == 1 && xStrd3 == 1 && yStrd3 == 0)
-                        for (uint i3 = 0; i3 < zAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < zAxis3; ++i3)
                             z2[i3] = OpType::op(x2[i3], *y2);
                     else if(zStrd3 == 1 && xStrd3 == 0 && yStrd3 == 1)
-                        for (uint i3 = 0; i3 < zAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < zAxis3; ++i3)
                             z2[i3] = OpType::op(*x2, y2[i3]);
                     else if(zStrd3 == 1 && xStrd3 == 1 && yStrd3 == 1)
-                        for (uint i3 = 0; i3 < zAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < zAxis3; ++i3)
                             z2[i3] = OpType::op(x2[i3], y2[i3]);
                     else
-                        for (uint i3 = 0; i3 < zAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < zAxis3; ++i3)
                             z2[i3 * zStrd3] = OpType::op(x2[i3 * xStrd3], y2[i3 * yStrd3]);
                 }
             }
@@ -720,55 +718,55 @@ static void execRank4(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execRank5(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execRank5(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
-    uint     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 4);
-    Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
-    Nd4jLong yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
-    Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
+    sd::Unsigned     zAxis0 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 0 : 4);
+    sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
+    sd::LongType yStrd0 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
+    sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 4);
 
-    uint     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 3);
-    Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
-    Nd4jLong yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
-    Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
+    sd::Unsigned     zAxis1 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 1 : 3);
+    sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
+    sd::LongType yStrd1 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
+    sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 3);
 
-    uint     zAxis2 = shape::sizeAt(zShapeInfo,   2);
-    Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, 2);
-    Nd4jLong yStrd2 = shape::strideAt(yShapeInfo, 2);
-    Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, 2);
+    sd::Unsigned     zAxis2 = shape::sizeAt(zShapeInfo,   2);
+    sd::LongType xStrd2 = shape::strideAt(xShapeInfo, 2);
+    sd::LongType yStrd2 = shape::strideAt(yShapeInfo, 2);
+    sd::LongType zStrd2 = shape::strideAt(zShapeInfo, 2);
 
-    uint     zAxis3 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 3 : 1);
-    Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
-    Nd4jLong yStrd3 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
-    Nd4jLong zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
+    sd::Unsigned     zAxis3 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 3 : 1);
+    sd::LongType xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
+    sd::LongType yStrd3 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
+    sd::LongType zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 1);
 
-    uint     zAxis4 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 4 : 0);
-    Nd4jLong xStrd4 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
-    Nd4jLong yStrd4 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
-    Nd4jLong zStrd4 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
+    sd::Unsigned     zAxis4 = shape::sizeAt(zShapeInfo,   shape::order(zShapeInfo) == 'c' ? 4 : 0);
+    sd::LongType xStrd4 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
+    sd::LongType yStrd4 = shape::strideAt(yShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
+    sd::LongType zStrd4 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 4 : 0);
 
     auto func = PRAGMA_THREADS_FOR_3D {
 
         for (auto i0 = start_x; i0 < stop_x; ++i0) {
             for (auto i1 = start_y; i1 < stop_y; ++i1) {
                 for (auto i2 = start_z; i2 < stop_z; ++i2) {
-                    for (uint i3 = 0; i3 < zAxis3; ++i3) {
+                    for (sd::Unsigned i3 = 0; i3 < zAxis3; ++i3) {
 
                         auto x3 = x + i0 * xStrd0 + i1 * xStrd1 + i2 * xStrd2 + i3 * xStrd3;
                         auto y3 = y + i0 * yStrd0 + i1 * yStrd1 + i2 * yStrd2 + i3 * yStrd3;
                         auto z3 = z + i0 * zStrd0 + i1 * zStrd1 + i2 * zStrd2 + i3 * zStrd3;
 
                        if(zStrd4 == 1 && xStrd4 == 1 && yStrd4 == 0)
-                            for (uint i4 = 0; i4 < zAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < zAxis4; ++i4)
                                 z3[i4] = OpType::op(x3[i4], *y3);
                         else if(zStrd4 == 1 && xStrd4 == 0 && yStrd4 == 1)
-                            for (uint i4 = 0; i4 < zAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < zAxis4; ++i4)
                                 z3[i4] = OpType::op(*x3, y3[i4]);
                         else if(zStrd4 == 1 && xStrd4 == 1 && yStrd4 == 1)
-                            for (uint i4 = 0; i4 < zAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < zAxis4; ++i4)
                                 z3[i4] = OpType::op(x3[i4], y3[i4]);
                         else
-                            for (uint i4 = 0; i4 < zAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < zAxis4; ++i4)
                                 z3[i4 * zStrd4] = OpType::op(x3[i4 * xStrd4], y3[i4 * yStrd4]);
                     }
                 }
@@ -781,15 +779,15 @@ static void execRank5(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const 
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z, typename OpType>
-static void execDefault(const X *x, const Nd4jLong *xShapeInfo, const Y *y, const Nd4jLong *yShapeInfo, Z* z, const Nd4jLong *zShapeInfo) {
+static void execDefault(const X *x, const sd::LongType *xShapeInfo, const Y *y, const sd::LongType *yShapeInfo, Z* z, const sd::LongType *zShapeInfo) {
 
     const bool xzSameOffsets = shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);
     const bool yzSameOffsets = shape::haveSameShapeAndStrides(yShapeInfo, zShapeInfo);
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
-        Nd4jLong xOffset, yOffset, zOffset;
+        int coords[SD_MAX_RANK];
+        sd::LongType xOffset, yOffset, zOffset;
 
         for (auto i = start; i < stop; ++i) {
 
@@ -805,7 +803,7 @@ static void execDefault(const X *x, const Nd4jLong *xShapeInfo, const Y *y, cons
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename  Y, typename Z>
 template<typename OpType>
-void Broadcast<X, Y, Z>::exec(const void *vx, const Nd4jLong *xShapeInfo, const void *vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo) {
+void Broadcast<X, Y, Z>::exec(const void *vx, const sd::LongType *xShapeInfo, const void *vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo) {
 
     const X* x = reinterpret_cast<const X*>(vx);
     const Y* y = reinterpret_cast<const Y*>(vy);

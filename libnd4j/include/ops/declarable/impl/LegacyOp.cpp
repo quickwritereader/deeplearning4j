@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyOp.h>
 
 

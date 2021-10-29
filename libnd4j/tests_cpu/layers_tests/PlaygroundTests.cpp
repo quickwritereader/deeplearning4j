@@ -21,7 +21,6 @@
 //
 // Created by raver119 on 20.11.17.
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <chrono>
@@ -38,13 +37,11 @@
 #include <helpers/Loops.h>
 #include <helpers/RandomLauncher.h>
 #include <ops/declarable/helpers/convolutions.h>
-
 #include <helpers/BenchmarkHelper.h>
 #include <ops/declarable/helpers/scatter.h>
 #include <helpers/ConstantShapeHelper.h>
 #include <helpers/ConstantTadHelper.h>
 #include <array>
-
 #include <random>
 #include <ops/declarable/helpers/legacy_helpers.h>
 #include <ops/declarable/helpers/addBias.h>
@@ -65,18 +62,18 @@ public:
 };
 
 TEST_F(PlaygroundTests, test_avx) {
-    nd4j_printf("Optimal level: %i; Binary level: %i;\n", ::optimalLevel(), ::binaryLevel());
+    sd_printf("Optimal level: %i; Binary level: %i;\n", ::optimalLevel(), ::binaryLevel());
 }
 
 TEST_F(PlaygroundTests, buildver) {
-    nd4j_printf("%s\n", buildInfo());
+    sd_printf("%s\n", buildInfo());
 }
 
 TEST_F(PlaygroundTests, test_biasAdd_1) {
     auto x = NDArrayFactory::create<float>('c', {512, 3072});
     auto y = NDArrayFactory::create<float>('c', {3072});
 
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     sd::ops::biasadd op;
 
@@ -92,7 +89,7 @@ TEST_F(PlaygroundTests, test_biasAdd_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 }
 
 
@@ -121,7 +118,7 @@ TEST_F(PlaygroundTests, test_bert_full_1) {
 /*
     // validating graph now
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(Status::OK, status);
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(1620));
 
     auto array = graph->getVariableSpace()->getVariable(1620)->getNDArray();
@@ -138,7 +135,7 @@ TEST_F(PlaygroundTests, test_bert_full_1) {
     delete profile;
 
 /*
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     for (int e = 0; e < 1; e++) {
         auto timeStart = std::chrono::system_clock::now();
@@ -152,7 +149,7 @@ TEST_F(PlaygroundTests, test_bert_full_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 */
     delete graph;
 #endif
@@ -183,7 +180,7 @@ TEST_F(PlaygroundTests, test_bert_1) {
 /*
     // validating graph now
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(Status::OK, status);
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(198));
 
     auto array = graph->getVariableSpace()->getVariable(198)->getNDArray();
@@ -199,7 +196,7 @@ TEST_F(PlaygroundTests, test_bert_1) {
     delete profile;
 
 /*
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     for (int e = 0; e < 1; e++) {
         auto timeStart = std::chrono::system_clock::now();
@@ -213,7 +210,7 @@ TEST_F(PlaygroundTests, test_bert_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 */
     delete graph;
 #endif
@@ -235,7 +232,7 @@ TEST_F(PlaygroundTests, test_bert_2) {
 /*
     // validating graph now
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(Status::OK, status);
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(198));
 
     auto array = graph->getVariableSpace()->getVariable(198)->getNDArray();
@@ -251,7 +248,7 @@ TEST_F(PlaygroundTests, test_bert_2) {
     delete profile;
 
 /*
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     for (int e = 0; e < 1; e++) {
         auto timeStart = std::chrono::system_clock::now();
@@ -265,7 +262,7 @@ TEST_F(PlaygroundTests, test_bert_2) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 */
     delete graph;
 #endif
@@ -290,7 +287,7 @@ void original_argmax(const NDArray& input, std::vector<int>& axis, NDArray& outp
 
 template<typename T>
 void fill_random(sd::NDArray& arr) {
-    Nd4jLong coords[MAX_RANK] = {};
+    sd::LongType coords[SD_MAX_RANK] = {};
     std::random_device rd;
     std::mt19937 gen(rd());
     //for floats
@@ -298,7 +295,7 @@ void fill_random(sd::NDArray& arr) {
     T* x = arr.bufferAsT<T>();
     auto shapeInfo = arr.shapeInfo();
     auto strides = arr.stridesOf();
-    Nd4jLong rank = shapeInfo[0];
+    sd::LongType rank = shapeInfo[0];
     auto bases = &(shapeInfo[1]);
     size_t t = 1;
     for (size_t i = 0; i < rank ; i++) {
@@ -352,7 +349,7 @@ for (int k = N; k >= 1; k--) {
     do {
 
         std::vector<int> dimension;
-        std::vector<Nd4jLong> output_bases;
+        std::vector<sd::LongType> output_bases;
 
         for (int i = 0; i < N; ++i) // [0..N-1] integers
         {
@@ -368,21 +365,20 @@ int k = 4;
 auto dim = NDArrayFactory::create<int>(dimension);
 
 #if 1
-nd4j_printf("C(N:%d K:%d) \n", N, k);
+sd_printf("C(N:%d K:%d) \n", N, k);
 dim.printIndexedBuffer("Dimension");
 for (int xind : dimension) {
-    nd4j_printf(" %d ,", bases[xind]);
+    sd_printf(" %d ,", bases[xind]);
 }
-nd4j_printf("%s", "\n");
+sd_printf("%s", "\n");
 #endif
 
 
-
-std::vector<Nd4jLong> values;
+std::vector<sd::LongType> values;
 sd::ResultSet result;
 for (int e = 0; e < Loop; e++) {
     auto timeStart = std::chrono::system_clock::now();
-    NDArray exp = output_bases.size() > 0 ? NDArrayFactory::create<Nd4jLong>('c', output_bases) : NDArrayFactory::create<Nd4jLong>(0);
+    NDArray exp = output_bases.size() > 0 ? NDArrayFactory::create<sd::LongType>('c', output_bases) : NDArrayFactory::create<sd::LongType>(0);
     original_argmax(x, dimension, exp);
     auto timeEnd = std::chrono::system_clock::now();
     auto outerTime = std::chrono::duration_cast<std::chrono::microseconds>(timeEnd - timeStart).count();
@@ -391,7 +387,7 @@ for (int e = 0; e < Loop; e++) {
 
 std::sort(values.begin(), values.end());
 
-nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 #if COMBINATIONS
 
     } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -403,7 +399,7 @@ nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
 #define DEBUG 1
 
 void testNewReduction(bool random, bool checkCorrectness = false , char order ='c') {
-    std::vector<Nd4jLong> arr_dimensions;
+    std::vector<sd::LongType> arr_dimensions;
 #if defined(DEBUG)
     int bases[] = { 3, 2, 3, 3, 5 ,4,7,4,7,7 };
     constexpr int Loop = 1;
@@ -439,7 +435,7 @@ void testNewReduction(bool random, bool checkCorrectness = false , char order ='
 
             std::vector<int> dimension;
 
-            std::vector<Nd4jLong> output_bases;
+            std::vector<sd::LongType> output_bases;
 
             for (int i = 0; i < N; ++i) // [0..N-1] integers
             {
@@ -455,17 +451,17 @@ void testNewReduction(bool random, bool checkCorrectness = false , char order ='
     auto dim = NDArrayFactory::create<int>(dimension);
 
 #if 1
-    nd4j_printf("C(N:%d K:%d) \n", N, k);
+    sd_printf("C(N:%d K:%d) \n", N, k);
     dim.printIndexedBuffer("Dimension");
     for (int xind : dimension) {
-        nd4j_printf(" %d ,", bases[xind]);
+        sd_printf(" %d ,", bases[xind]);
     }
-    nd4j_printf("%s", "\n");
+    sd_printf("%s", "\n");
 #endif
 
 
     sd::ops::argmax op;
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
     sd::ResultSet result;
     for (int e = 0; e < Loop; e++) {
         auto timeStart = std::chrono::system_clock::now();
@@ -478,7 +474,7 @@ void testNewReduction(bool random, bool checkCorrectness = false , char order ='
 
     if (checkCorrectness) {
         //check for the correctness
-        NDArray exp = output_bases.size() > 0 ? NDArrayFactory::create<Nd4jLong>('c', output_bases) : NDArrayFactory::create<Nd4jLong>(0);
+        NDArray exp = output_bases.size() > 0 ? NDArrayFactory::create<sd::LongType>('c', output_bases) : NDArrayFactory::create<sd::LongType>(0);
         original_argmax(x, dimension, exp);
 
 
@@ -493,7 +489,7 @@ void testNewReduction(bool random, bool checkCorrectness = false , char order ='
     }
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 #if COMBINATIONS
 
         } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
@@ -547,7 +543,7 @@ TEST_F(PlaygroundTests, test_broadcast_1) {
         aY[e]->assign(119 * (e+3));
     }
 
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
     Context ctx(1);
 
     sd::ops::biasadd op;
@@ -569,7 +565,7 @@ TEST_F(PlaygroundTests, test_broadcast_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 
     for (int e = 0; e < pool; e++) {
         delete aX[e];
@@ -596,8 +592,7 @@ TEST_F(PlaygroundTests, test_broadcast_1) {
     }
 
 
-
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     for (int e = 0; e < 1000; e++) {
         auto x = aX[e < pool ? e : e % pool];
@@ -616,7 +611,7 @@ TEST_F(PlaygroundTests, test_broadcast_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 
     for (int e = 0; e < pool; e++) {
         delete aX[e];
@@ -629,7 +624,7 @@ TEST_F(PlaygroundTests, test_broadcast_1) {
 /*
 
 TEST_F(PlaygroundTests, test_s_0) {
-    std::vector<std::vector<Nd4jLong>> shapes = {{32, 224, 224, 3}, {32, 56, 56, 64}, {32, 7, 7, 512}};
+    std::vector<std::vector<sd::LongType>> shapes = {{32, 224, 224, 3}, {32, 56, 56, 64}, {32, 7, 7, 512}};
     std::vector<int> threads = {1, 2, 4, 8, 16};
 
     for (auto shape: shapes) {
@@ -640,7 +635,7 @@ TEST_F(PlaygroundTests, test_s_0) {
             auto y = NDArrayFactory::create<float>('c', {shape[3]});
             auto z = x.ulike();
 
-            std::vector<Nd4jLong> values;
+            std::vector<sd::LongType> values;
             Context ctx(1);
             ctx.setInputArray(0, &x);
             ctx.setInputArray(1, &y);
@@ -662,13 +657,13 @@ TEST_F(PlaygroundTests, test_s_0) {
 
             std::sort(values.begin(), values.end());
 
-            nd4j_printf("Shape: [%lld, %lld, %lld, %lld]; Threads: [%i]; Time: %lld us;\n", shape[0], shape[1], shape[2], shape[3], t, values[values.size() / 2]);
+            sd_printf("Shape: [%lld, %lld, %lld, %lld]; Threads: [%i]; Time: %lld us;\n", shape[0], shape[1], shape[2], shape[3], t, values[values.size() / 2]);
         }
     }
 }
 
 TEST_F(PlaygroundTests, test_s_1) {
-    std::vector<std::vector<Nd4jLong>> shapes = {{32, 3, 224, 224}, {32, 64, 56, 56}, {32, 512, 7, 7}};
+    std::vector<std::vector<sd::LongType>> shapes = {{32, 3, 224, 224}, {32, 64, 56, 56}, {32, 512, 7, 7}};
     std::vector<int> threads = {1, 2, 4, 8, 16};
 
     for (auto shape: shapes) {
@@ -679,7 +674,7 @@ TEST_F(PlaygroundTests, test_s_1) {
             auto y = NDArrayFactory::create<float>('c', {shape[1]});
             auto z = x.ulike();
 
-            std::vector<Nd4jLong> values;
+            std::vector<sd::LongType> values;
             Context ctx(1);
             ctx.setInputArray(0, &x);
             ctx.setInputArray(1, &y);
@@ -701,7 +696,7 @@ TEST_F(PlaygroundTests, test_s_1) {
 
             std::sort(values.begin(), values.end());
 
-            nd4j_printf("Shape: [%lld, %lld, %lld, %lld]; Threads: [%i]; Time: %lld us;\n", shape[0], shape[1], shape[2], shape[3], t, values[values.size() / 2]);
+            sd_printf("Shape: [%lld, %lld, %lld, %lld]; Threads: [%i]; Time: %lld us;\n", shape[0], shape[1], shape[2], shape[3], t, values[values.size() / 2]);
         }
     }
 }
@@ -713,7 +708,7 @@ TEST_F(PlaygroundTests, test_s_0) {
     auto y = NDArrayFactory::create<float>('c', {16});
     auto z = x.ulike();
 
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
     Context ctx(1);
     ctx.setInputArray(0, &x);
     ctx.setInputArray(1, &y);
@@ -734,7 +729,7 @@ TEST_F(PlaygroundTests, test_s_0) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 }
 */
 /*
@@ -761,7 +756,7 @@ TEST_F(PlaygroundTests, test_s_1) {
     ctx.setOutputArray(0, &z);
     ctx.setBArguments({true});
 
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     sd::ops::concat op;
     op.execute(&ctx);
@@ -779,7 +774,7 @@ TEST_F(PlaygroundTests, test_s_1) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld us;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld us;\n", values[values.size() / 2]);
 }
 */
 
@@ -797,7 +792,7 @@ TEST_F(PlaygroundTests, test_s_2) {
     };
 
     samediff::Threads::parallel_for(func, 0, 8192, 1, 4);
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
 
     for (int e = 0; e < 100000; e++) {
         s = 0;
@@ -814,14 +809,14 @@ TEST_F(PlaygroundTests, test_s_2) {
     };
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Time: %lld;\n", values[values.size() / 2]);
+    sd_printf("Time: %lld;\n", values[values.size() / 2]);
 }
  */
 /*
 TEST_F(PlaygroundTests, test_s_4) {
     std::atomic<float> f;
     std::atomic<int> s;
-    std::vector<Nd4jLong> valuesX, valuesY;
+    std::vector<sd::LongType> valuesX, valuesY;
     int iterations = 1000;
     s = 0;
     auto func = PRAGMA_THREADS_FOR {
@@ -886,22 +881,22 @@ TEST_F(PlaygroundTests, test_s_4) {
 
     if (valuesX.size() > 0) {
         std::sort(valuesX.begin(), valuesX.end());
-        nd4j_printf("OpenMP time: %lld; Min: %lld; Max: %lld;\n", valuesX[valuesX.size() / 2], valuesX[0], valuesX[valuesX.size() - 1]);
+        sd_printf("OpenMP time: %lld; Min: %lld; Max: %lld;\n", valuesX[valuesX.size() / 2], valuesX[0], valuesX[valuesX.size() - 1]);
     }
 
     if (valuesY.size() > 0) {
         std::sort(valuesY.begin(), valuesY.end());
-        nd4j_printf("Threads time: %lld; Min: %lld; Max: %lld;\n", valuesY[valuesY.size() / 2], valuesY[0], valuesY[valuesY.size() - 1]);
+        sd_printf("Threads time: %lld; Min: %lld; Max: %lld;\n", valuesY[valuesY.size() / 2], valuesY[0], valuesY[valuesY.size() - 1]);
     }
 
-    nd4j_printf("Sum: %f\n", z.sumNumber().e<float>(0));
+    sd_printf("Sum: %f\n", z.sumNumber().e<float>(0));
 }
 
 
 TEST_F(PlaygroundTests, test_s_5) {
     auto x = NDArrayFactory::create<float>('c', {32, 1, 28, 28});
 
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
     auto iterations = 100;
 
     auto startX = 0;
@@ -934,7 +929,7 @@ TEST_F(PlaygroundTests, test_s_5) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Calculations time: [Median: %lld; Min: %lld; Max: %lld;]\n", values[values.size() / 2], values[0], values[values.size()-1]);
+    sd_printf("Calculations time: [Median: %lld; Min: %lld; Max: %lld;]\n", values[values.size() / 2], values[0], values[values.size()-1]);
 }
 
 
@@ -942,7 +937,7 @@ TEST_F(PlaygroundTests, test_s_6) {
     auto x = NDArrayFactory::create<float>('c', {1024 * 1024 * 64});
     auto buffer = x.bufferAsT<float>();
     auto len = x.lengthOf();
-    std::vector<Nd4jLong> values;
+    std::vector<sd::LongType> values;
     auto iterations = 1000;
 
     for (int i = 0; i < iterations; i++) {
@@ -960,7 +955,7 @@ TEST_F(PlaygroundTests, test_s_6) {
 
     std::sort(values.begin(), values.end());
 
-    nd4j_printf("Calculations time: [Median: %lld; Min: %lld; Max: %lld;]\n", values[values.size() / 2], values[0], values[values.size()-1]);
+    sd_printf("Calculations time: [Median: %lld; Min: %lld; Max: %lld;]\n", values[values.size() / 2], values[0], values[values.size()-1]);
 }
 
 
@@ -995,10 +990,10 @@ TEST_F(PlaygroundTests, test_relubp_1) {
     auto timeEnd = std::chrono::system_clock::now();
 
     auto outerTime = std::chrono::duration_cast<std::chrono::microseconds> (timeEnd - timeStart).count();
-    auto time = (Nd4jLong) outerTime / iterations;
+    auto time = (sd::LongType) outerTime / iterations;
     auto bw = (1000000L * (float) (x.lengthOf() * x.sizeOfT()) / time) / 1024 / 1024 / 1024;
 
-    nd4j_printf("Time: %lld; BW: %f GB/s\n", time, bw);
+    sd_printf("Time: %lld; BW: %f GB/s\n", time, bw);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1075,13 +1070,13 @@ TEST_F(PlaygroundTests, lstmLayerCellBp_1) {
     // const int nOut = 6;
 
     const float cellClip = 1.1;       // clipping value
-    const Nd4jLong gateAct = 2;        // sigmoid activation for input (i), forget (f) and output (o) gates
+    const sd::LongType gateAct = 2;        // sigmoid activation for input (i), forget (f) and output (o) gates
     const float gateAlpha = 0;      // alpha value for activation for gates, not required for sigmoid
     const float gateBeta = 0;       // beta value for activation for gates, not required for sigmoid
-    const Nd4jLong cellAct = 0;        // tanh activation for cell state
+    const sd::LongType cellAct = 0;        // tanh activation for cell state
     const float cellAlpha = 0;      // alpha value for cell state activation, not required for tanh
     const float cellBeta = 0;       // beta value for cell state activation, not required for tanh
-    const Nd4jLong outAct = 0;         // tanh activation for output
+    const sd::LongType outAct = 0;         // tanh activation for output
     const float outAlpha = 0;       // alpha value for output activation, not required for tanh
     const float outBeta = 0;        // beta value for output activation, not required for tanh
 
@@ -1119,7 +1114,7 @@ TEST_F(PlaygroundTests, lstmLayerCellBp_1) {
     // b.assign(0.7);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {gateAct, cellAct, outAct};
 
     // std::vector<bool>     bArgs = {false, false};
     // const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &hI, &cI}, tArgs, iArgs, bArgs);
@@ -1201,7 +1196,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_1) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1259,7 +1254,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_2) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1319,7 +1314,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_3) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &seqLen, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1378,7 +1373,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_4) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1438,7 +1433,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_5) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &seqLen, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1498,7 +1493,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_6) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &seqLen, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1564,7 +1559,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_7) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &seqLen, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);
@@ -1630,7 +1625,7 @@ TEST_F(DeclarableOpsTests13, lstmLayer_bp_8) {
     b.linspace(1,-0.15);
 
     std::vector<double>   tArgs = {cellClip};
-    std::vector<Nd4jLong> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
+    std::vector<sd::LongType> iArgs = {dataFormat, directionMode, gateAct, cellAct, outAct};
     std::vector<bool>     bArgs = {hasBiases, hasSeqLen, hasInitH, hasInitC, hasPH, retFullSeq, retLastH, retLastC};
 
     const OpArgsHolder argsHolderFF({&x, &Wx, &Wr, &b, &seqLen, &hI, &cI, &Wp}, tArgs, iArgs, bArgs);

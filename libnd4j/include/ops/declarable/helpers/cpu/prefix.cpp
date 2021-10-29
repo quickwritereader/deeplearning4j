@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/ops.h>
 #include <helpers/shape.h>
 #include <helpers/TAD.h>
@@ -29,7 +28,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename T>
-            static void prefix_(scalar::Ops op, const void* vx, Nd4jLong const* xShapeInfo, void* vz, Nd4jLong const* zShapeInfo, bool exclusive, bool reverse) {
+            static void prefix_(scalar::Ops op, const void* vx, sd::LongType const* xShapeInfo, void* vz, sd::LongType const* zShapeInfo, bool exclusive, bool reverse) {
                 const auto x = reinterpret_cast<const T *>(vx);
                       auto z = reinterpret_cast<T *>(vz);
                 auto length = shape::length(xShapeInfo);
@@ -41,7 +40,7 @@ namespace sd {
                     if (shape::elementWiseStride(xShapeInfo) == 1 && shape::elementWiseStride(zShapeInfo) == 1 &&
                         shape::order(xShapeInfo) == 'c' && shape::order(zShapeInfo) == 'c') {
 
-                        for (Nd4jLong e = length - 1; e >= 0; --e) {
+                        for (sd::LongType e = length - 1; e >= 0; --e) {
                             sum = op == scalar::Add ? simdOps::Add<T, T, T>::op(sum, x[e]) : simdOps::Multiply<T, T, T>::op(sum, x[e]);
                             if (!exclusive)
                                 prevSum = sum;
@@ -53,7 +52,7 @@ namespace sd {
                     }
                     else {
 
-                        for (Nd4jLong e = length - 1; e >= 0; --e) {
+                        for (sd::LongType e = length - 1; e >= 0; --e) {
 
                             auto xOffset = shape::getIndexOffset(e, xShapeInfo);
                             auto zOffset = shape::getIndexOffset(e, zShapeInfo);
@@ -70,7 +69,7 @@ namespace sd {
                     if (shape::elementWiseStride(xShapeInfo) == 1 && shape::elementWiseStride(zShapeInfo) == 1 &&
                         shape::order(xShapeInfo) == 'c' && shape::order(zShapeInfo) == 'c') {
 
-                        for (Nd4jLong e = 0; e < length; e++) {
+                        for (sd::LongType e = 0; e < length; e++) {
                             sum = op == scalar::Add ? simdOps::Add<T, T, T>::op(sum, x[e]) : simdOps::Multiply<T, T, T>::op(sum, x[e]);
 
                             if (!exclusive)
@@ -83,7 +82,7 @@ namespace sd {
                     }
                     else {
 
-                        for (Nd4jLong e = 0; e < length; e++) {
+                        for (sd::LongType e = 0; e < length; e++) {
 
                             auto xOffset = shape::getIndexOffset(e, xShapeInfo);
                             auto zOffset = shape::getIndexOffset(e, zShapeInfo);
@@ -118,18 +117,17 @@ namespace sd {
                     prefix_<T>(op, x->buffer(), x->shapeInfo(), z->buffer(), z->shapeInfo(), exclusive, reverse);
             };
 
-            ND4J_LOCAL void prefix(sd::LaunchContext * context, scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse) {
-                BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, exclusive, reverse), LIBND4J_TYPES);
+            void prefix(sd::LaunchContext * context, scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse) {
+                BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, exclusive, reverse), SD_COMMON_TYPES);
             }
 
-            ND4J_LOCAL void prefix(sd::LaunchContext * context, scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse) {
-                BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, dims, exclusive, reverse), LIBND4J_TYPES);
+            void prefix(sd::LaunchContext * context, scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse) {
+                BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, dims, exclusive, reverse), SD_COMMON_TYPES);
             }
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void prefix_, (scalar::Ops op, const void* vx, Nd4jLong const* xShapeInfo, void* vz, Nd4jLong const* zShapeInfo, bool exclusive, bool reverse), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void prefix_, (scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse), LIBND4J_TYPES);
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void prefix_, (scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse), LIBND4J_TYPES);
-
+            BUILD_SINGLE_TEMPLATE(template void prefix_, (scalar::Ops op, const void* vx, sd::LongType const* xShapeInfo, void* vz, sd::LongType const* zShapeInfo, bool exclusive, bool reverse), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void prefix_, (scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse), SD_COMMON_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void prefix_, (scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse), SD_COMMON_TYPES);
 
 
         }

@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <array/DataBuffer.h>
 #include <array/DataTypeUtils.h>
 
@@ -60,7 +59,7 @@ void DataBuffer::allocateBuffers(const bool allocBoth) {    // always allocate p
 }
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const Nd4jLong offsetThis, const Nd4jLong offsetOther) {
+void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const sd::LongType offsetThis, const sd::LongType offsetOther) {
 
     if(sizeToCopyinBytes == 0)
         sizeToCopyinBytes = other.getLenInBytes();
@@ -72,9 +71,9 @@ void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinByte
 }
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes, const Nd4jLong offsetThis, const Nd4jLong offsetHostBuffer) {
+void DataBuffer::copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes, const sd::LongType offsetThis, const sd::LongType offsetHostBuffer) {
 
-	if(sizeToCopyinBytes == 0)
+    if(sizeToCopyinBytes == 0)
         sizeToCopyinBytes = getLenInBytes();
     if(sizeToCopyinBytes == 0)
         return;

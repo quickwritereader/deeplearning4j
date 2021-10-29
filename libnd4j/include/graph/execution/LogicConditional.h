@@ -23,7 +23,6 @@
 #ifndef LIBND4J_LOGICCONDITIONAL_H
 #define LIBND4J_LOGICCONDITIONAL_H
 
-#include <system/pointercast.h>
 #include <graph/Node.h>
 #include <graph/Graph.h>
 
@@ -42,7 +41,7 @@ namespace sd {
          */
         class LogicConditional {
         public:
-            static Nd4jStatus processNode(Graph* graph, Node* node);
+            static sd::Status processNode(Graph* graph, Node* node);
         };
     }
 }

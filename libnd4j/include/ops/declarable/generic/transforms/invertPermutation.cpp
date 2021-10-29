@@ -39,7 +39,7 @@ CONFIGURABLE_OP_IMPL(invert_permutation, 1, 1, false, 0, 0) {
     
     helpers::invertPermutation(block.launchContext(), *input, *output);
     
-    return Status::OK();
+    return sd::Status::OK;
 }
         
 DECLARE_SYN(InvertPermutation, invert_permutation);

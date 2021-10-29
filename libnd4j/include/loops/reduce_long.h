@@ -19,27 +19,21 @@
 
 #ifndef REDUCE_LONG_H
 #define REDUCE_LONG_H
-#include <system/dll.h>
+
 //#include <string>
 #include <stdio.h>
 #include <helpers/shape.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 #include <math/templatemath.h>
-#include <system/nd4jmalloc.h>
+
 #include <system/pairwise_util.h>
 #include <ops/ops.h>
 #include <system/op_boilerplate.h>
 #include <memory/Workspace.h>
 
 #pragma once
-#ifdef __CUDACC__
-#include <cuda.h>
-#include <cuda_runtime.h>
-#endif
 
-#include "legacy_ops.h"
+#include <loops/legacy_ops.h>
 
 //an op for the kernel
 namespace functions {
@@ -57,23 +51,23 @@ namespace functions {
         public:
 #ifdef __CUDACC__
             template<typename OpType>
-            static __device__ void aggregatePartials(void *sPartials, Nd4jLong tid, Nd4jLong numItems, void *extraParams);
+            static SD_DEVICE void aggregatePartials(void *sPartials, sd::LongType tid, sd::LongType numItems, void *extraParams);
 
             template<typename OpType>
-            static __device__ void execScalarCuda(const void *vx, const Nd4jLong *xShapeInfo, void *extraParams, void *vz, const Nd4jLong *zShapeInfo, void *reductionBuffer, const Nd4jLong *tadOnlyShapeInfo);
+            static SD_DEVICE void execScalarCuda(const void *vx, const sd::LongType *xShapeInfo, void *extraParams, void *vz, const sd::LongType *zShapeInfo, void *reductionBuffer, const sd::LongType *tadOnlyShapeInfo);
 
             template<typename OpType>
-            static __device__ void transformCudaXD(const void *vx, const Nd4jLong *outerXTadShapeInfo, const Nd4jLong *innerXTadShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const Nd4jLong *zShapeInfo);
+            static SD_DEVICE void transformCudaXD(const void *vx, const sd::LongType *outerXTadShapeInfo, const sd::LongType *innerXTadShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const sd::LongType *zShapeInfo);
 
             template<typename OpType>
-            static __host__ void intermediateScalar(dim3 launchDims, cudaStream_t *stream, const void *vx, const Nd4jLong *xShapeInfo, const Nd4jLong *hXShapeInfo, void *extraParams, void *vz, const Nd4jLong *zShapeInfo, const Nd4jLong *hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, const Nd4jLong *tadOnlyShapeInfo);
+            static SD_HOST void intermediateScalar(dim3 launchDims, cudaStream_t *stream, const void *vx, const sd::LongType *xShapeInfo, const sd::LongType *hXShapeInfo, void *extraParams, void *vz, const sd::LongType *zShapeInfo, const sd::LongType *hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, const sd::LongType *tadOnlyShapeInfo);
 
             template<typename OpType>
-            static __host__ void intermediateXD(dim3 launchDims, cudaStream_t *stream, const void *vx, const Nd4jLong *dXShapeInfo, const Nd4jLong *hXShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const Nd4jLong *dZShapeInfo, const Nd4jLong *hZShapeInfo, const int* dims);
+            static SD_HOST void intermediateXD(dim3 launchDims, cudaStream_t *stream, const void *vx, const sd::LongType *dXShapeInfo, const sd::LongType *hXShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const sd::LongType *dZShapeInfo, const sd::LongType *hZShapeInfo, const int* dims);
 
-            static __host__ void execReduceScalar(dim3 launchDims, cudaStream_t *stream, int opNum, const void *vx, const Nd4jLong *xShapeInfo, const Nd4jLong* hXShapeInfo, void *extraParams, void *vz, const Nd4jLong *zShapeInfo, const Nd4jLong* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, const Nd4jLong *tadOnlyShapeInfo);
+            static SD_HOST void execReduceScalar(dim3 launchDims, cudaStream_t *stream, int opNum, const void *vx, const sd::LongType *xShapeInfo, const sd::LongType* hXShapeInfo, void *extraParams, void *vz, const sd::LongType *zShapeInfo, const sd::LongType* hZShapeInfo, int *dimension, int dimensionLength, void *reductionBuffer, const sd::LongType *tadOnlyShapeInfo);
 
-            static __host__ void execReduceXD(dim3 launchDims, cudaStream_t *stream, int opNum, const void *vx, const Nd4jLong *dXShapeInfo, const Nd4jLong *hXShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const Nd4jLong *dZShapeInfo, const Nd4jLong *hZShapeInfo, const int *dims);
+            static SD_HOST void execReduceXD(dim3 launchDims, cudaStream_t *stream, int opNum, const void *vx, const sd::LongType *dXShapeInfo, const sd::LongType *hXShapeInfo, void *extraParams, void *vreductionBuffer, void *vz, const sd::LongType *dZShapeInfo, const sd::LongType *hZShapeInfo, const int *dims);
 
 #else
 
@@ -86,27 +80,27 @@ namespace functions {
              * @return
              */
             template<typename OpType>
-            static _CUDA_H Z execScalar(const void *x, const Nd4jLong *xShapeInfo, void *extraParams);
+            static SD_HOST Z execScalar(const void *x, const sd::LongType *xShapeInfo, void *extraParams);
 
             template<typename OpType>
-            static _CUDA_H void execScalar(const void *x, const Nd4jLong *xShapeInfo,
+            static SD_HOST void execScalar(const void *x, const sd::LongType *xShapeInfo,
                                            void *extraParams,
-                                           void *z, const Nd4jLong *zShapeInfo);
+                                           void *z, const sd::LongType *zShapeInfo);
 
 
             static Z execScalar(int opNum,
-                                const void *x, const Nd4jLong *xShapeInfo,
+                                const void *x, const sd::LongType *xShapeInfo,
                                 void *extraParams);
 
             static void execScalar(int opNum,
-                                   const void *x, const Nd4jLong *xShapeInfo,
+                                   const void *x, const sd::LongType *xShapeInfo,
                                    void *extraParams,
-                                   void *z, const Nd4jLong *zShapeInfo);
+                                   void *z, const sd::LongType *zShapeInfo);
 
             static void exec(int opNum, sd::memory::Workspace* workspace,
-                             const void *vx, const Nd4jLong *xShapeInfo,
+                             const void *vx, const sd::LongType *xShapeInfo,
                              void *vextraParams,
-                             void *vz, const Nd4jLong *zShapeInfo,
+                             void *vz, const sd::LongType *zShapeInfo,
                              const int *dims);
 
             /**
@@ -122,10 +116,10 @@ namespace functions {
              */
 
             template<typename OpType>
-            static void _CUDA_H exec(sd::memory::Workspace* workspace,
-                             const void *vx, const Nd4jLong *xShapeInfo,
+            static void SD_HOST exec(sd::memory::Workspace* workspace,
+                             const void *vx, const sd::LongType *xShapeInfo,
                              void *vextraParams,
-                             void *vz, const Nd4jLong *zShapeInfo,
+                             void *vz, const sd::LongType *zShapeInfo,
                              const int *dims);
 
             /**
@@ -138,10 +132,9 @@ namespace functions {
             * @param resultShapeInfo the shape information
             */
             template<typename OpType>
-            static void _CUDA_H exec(const void *x, const Nd4jLong *xShapeInfo,
+            static void SD_HOST exec(const void *x, const sd::LongType *xShapeInfo,
                                      void *extraParams,
-                                     void *result, const Nd4jLong *resultShapeInfo);
-
+                                     void *result, const sd::LongType *resultShapeInfo);
 
 
             /**
@@ -153,8 +146,8 @@ namespace functions {
             * @return
             */
             template<typename OpType>
-            static Z _CUDA_H execScalar(const void *x, Nd4jLong xElementWiseStride,
-                                        Nd4jLong length,
+            static Z SD_HOST execScalar(const void *x, sd::LongType xElementWiseStride,
+                                        sd::LongType length,
                                         void *extraParams);
 #endif
         };
@@ -167,7 +160,7 @@ namespace functions {
     * @param sMemSize
     */
         template<typename T>
-        __device__ void initializeShared(T *extraParams, T **sPartials, int sMemSize);
+        SD_DEVICE void initializeShared(T *extraParams, T **sPartials, int sMemSize);
 
 #endif
 

@@ -39,19 +39,19 @@ CUSTOM_OP_IMPL(permute, 1, 1, true, 0, -2) {
 
     if (x->isEmpty()) {
         REQUIRE_TRUE(z->isEmpty(), 0, "PERMUTE OP: when input is empty, output must also be empty");
-        return Status::OK();    //No op
+        return sd::Status::OK;    //No op
     }
 
     if (block.width() == 1 && block.getIArguments()->size() == 0) {
         z->assign(x->transpose());
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     std::vector<int> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<int>() : *block.getIArguments();
 
     z->assign(x->permute(permutationVector));
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

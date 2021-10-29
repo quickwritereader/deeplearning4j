@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/Node.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <ops/declarable/LegacyTransformSameOp.h>
@@ -46,12 +45,12 @@
 
 namespace sd {
     namespace graph {
-        void sd::graph::Node::setOuterTime(Nd4jLong time){
+        void sd::graph::Node::setOuterTime(sd::LongType time){
 //            if (hasBlockAttached())
 //                _block->setOuterTime(time);
         }
 
-        void sd::graph::Node::setInnerTime(Nd4jLong time){
+        void sd::graph::Node::setInnerTime(sd::LongType time){
 //            if (hasBlockAttached())
 //                _block->setInnerTime(time);
         }
@@ -104,11 +103,11 @@ namespace sd {
             return _active;
         }
 
-        Nd4jLong Node::getFrameId() {
+        sd::LongType Node::getFrameId() {
             return _frameId;
         }
 
-        void Node::setFrameId(Nd4jLong frameId) {
+        void Node::setFrameId(sd::LongType frameId) {
             _frameId = frameId;
         }
 
@@ -276,7 +275,7 @@ namespace sd {
             return _id;
         }
 
-        Nd4jLong sd::graph::Node::opNum() {
+        sd::LongType sd::graph::Node::opNum() {
             return _opNum;
         }
 
@@ -313,7 +312,7 @@ namespace sd {
             node->_dataType = DataTypeUtils::fromT<T>();
             return node;
         }
-        BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT Node* Node::asT, (), LIBND4J_TYPES);
+        BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT Node* Node::asT, (), SD_COMMON_TYPES);
 
         sd::graph::Node::Node(sd::ops::DeclarableOp *customOp, int id, std::initializer_list<int> input, std::initializer_list<int> output,  std::initializer_list<int> dimensions, float scalar, std::initializer_list<double> tArgs, std::initializer_list<int> iArgs) {
             this->_opType = OpType_CUSTOM;
@@ -498,9 +497,9 @@ namespace sd {
                 } else {
                     if (this->opType() != OpType_LOGIC) {
                         if (this->_name.size() > 0) {
-                            nd4j_debug("Node [%i:<%s>] has no inputs defined\n", this->_id, this->_name.c_str());
+                            sd_debug("Node [%i:<%s>] has no inputs defined\n", this->_id, this->_name.c_str());
                         } else {
-                            nd4j_debug("Node [%i:<noname>] has no inputs defined\n", this->_id);
+                            sd_debug("Node [%i:<noname>] has no inputs defined\n", this->_id);
                         }
                     }
                 }
@@ -510,7 +509,7 @@ namespace sd {
                     for (int e = 0; e < (int) node->output()->size(); e++) {
                         auto oid = node->output()->Get(e);
                         if (oid != this->_id && oid != 0) {
-                            nd4j_verbose("Picking output: %i\n", node->output()->Get(e));
+                            sd_verbose("Picking output: %i\n", node->output()->Get(e));
                             pickOutput(oid);
                         }
                     }
@@ -534,7 +533,7 @@ namespace sd {
 
                 if (this->opType() == OpType_LOGIC && this->opNum() == 100L) {
                     if (node->extraInteger()->size() < 1) {
-                        nd4j_printf("Node_%i is type of Enter, but has no FrameID defined\n", this->id());
+                        sd_printf("Node_%i is type of Enter, but has no FrameID defined\n", this->id());
                         throw std::runtime_error("Enter node must have FrameID specified");
                     }
 
@@ -640,7 +639,7 @@ namespace sd {
                 } else if (this->_opType == OpType_CUSTOM) {
                         auto op = sd::ops::OpRegistrator::getInstance().getOperation(this->opNum());
                         if (op == nullptr) {
-                            nd4j_verbose("Can't find operation: %lld\n", this->opNum());
+                            sd_verbose("Can't find operation: %lld\n", this->opNum());
                             throw std::runtime_error("Can't find requested operation");
                         }
 
@@ -653,7 +652,7 @@ namespace sd {
                         if (node->extraInteger() != nullptr)
                             for (uint32_t e = 0; e < node->extraInteger()->size(); e++) {
                                 auto v = node->extraInteger()->Get(e);
-                                // FIXME: remove this static_cast, iArgs should be Nd4jLong
+                                // FIXME: remove this static_cast, iArgs should be sd::LongType
                                 block->getIArguments()->emplace_back(static_cast<int>(v));
                             }
 

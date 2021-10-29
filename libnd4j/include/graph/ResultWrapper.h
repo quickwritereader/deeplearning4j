@@ -22,25 +22,23 @@
 
 #ifndef LIBND4J_RESULTWRAPPER_H
 #define LIBND4J_RESULTWRAPPER_H
-
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT ResultWrapper {
+        class SD_LIB_EXPORT ResultWrapper {
         private:
-            Nd4jLong _size = 0L;
-            Nd4jPointer _pointer = nullptr;
+            sd::LongType _size = 0L;
+            sd::Pointer _pointer = nullptr;
 
         public:
-            ResultWrapper(Nd4jLong size, Nd4jPointer ptr);
+            ResultWrapper(sd::LongType size, sd::Pointer ptr);
             ~ResultWrapper();
 
-            Nd4jLong size();
+            sd::LongType size();
 
-            Nd4jPointer pointer();
+            sd::Pointer pointer();
         };
     }
 }

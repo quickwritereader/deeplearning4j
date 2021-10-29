@@ -19,13 +19,12 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <graph/execution/LogicExit.h>
 
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicExit::processNode(Graph *graph, Node *node) {
+        sd::Status LogicExit::processNode(Graph *graph, Node *node) {
             // this op is basically no-op
             // we just know it exists
 
@@ -43,7 +42,7 @@ namespace sd {
             __variableSpace->getVariable(pair0)->setNDArray(input);
             __variableSpace->getVariable(pair0)->markRemovable(false);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
     }
 }

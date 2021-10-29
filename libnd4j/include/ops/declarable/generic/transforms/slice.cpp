@@ -53,7 +53,7 @@ namespace sd {
             REQUIRE_TRUE(begin.size() == x_rank, 0, "begin array should have length of [%i] but got [%i] instead", x_rank, begin.size());
             REQUIRE_TRUE(sz.size() == x_rank, 0, "size array should have length of [%i] but got [%i] instead", x_rank, sz.size());
 
-            std::vector<Nd4jLong> indices(2 * x_rank);
+            std::vector<sd::LongType> indices(2 * x_rank);
             auto empty = false;
             for (int e = 0; e < x_rank; e++) {
                 int size = sz[e];
@@ -79,13 +79,13 @@ namespace sd {
 
             if(empty){
                 REQUIRE_TRUE(output->isEmpty(), 0, "Slice: empty array indices requested, but output array is not empty");
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            Nd4jLong* subArrShapeInfo = nullptr;
-            ALLOCATE(subArrShapeInfo, block.getWorkspace(), shape::shapeInfoLength(input->rankOf()), Nd4jLong);
+            sd::LongType* subArrShapeInfo = nullptr;
+            ALLOCATE(subArrShapeInfo, block.getWorkspace(), shape::shapeInfoLength(input->rankOf()), sd::LongType);
 
-            Nd4jLong offset;
+            sd::LongType offset;
 
             shape::calcSubArrShapeInfoAndOffset(indices.data(), input->shapeInfo(), subArrShapeInfo, offset, true);
 
@@ -108,7 +108,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(slice) {
@@ -140,7 +140,7 @@ namespace sd {
             REQUIRE_TRUE(begin.size() == x_rank, 0, "Begin array should have length of [%i] but got [%i] instead", x_rank, begin.size());
             REQUIRE_TRUE(sz.size() == x_rank, 0, "Size array should have length of [%i] but got [%i] instead", x_rank, sz.size());
 
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             auto empty = false;
             for (int e = 0; e < x_rank; e++) {
                 auto size = sz[e];
@@ -200,12 +200,12 @@ namespace sd {
             REQUIRE_TRUE(begin.size() == x_rank, 0, "begin array should have length of [%i] but got [%i] instead", x_rank, begin.size());
             REQUIRE_TRUE(end.size() == x_rank, 0, "end array should have length of [%i] but got [%i] instead", x_rank, end.size());
 
-            std::vector<Nd4jLong> indices(2 * x_rank);
+            std::vector<sd::LongType> indices(2 * x_rank);
             for (int e = 0; e < x_rank; e++) {
                 int size = end[e];
                 int start = begin[e];
 
-				if (size == -1){	//-1 means all remaining values
+                if (size == -1){    //-1 means all remaining values
                     size = input->sizeAt(e) - start;
                 }
                 REQUIRE_TRUE(size > 0, 0, "Slice: interval for dimension %i is less then 1", e);
@@ -216,12 +216,12 @@ namespace sd {
             auto sub = (*output)(indices, true);
             sub.assign(epsNext);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(slice_bp) {
             auto inShape = inputShape->at(0);
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));

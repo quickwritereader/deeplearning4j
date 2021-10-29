@@ -27,20 +27,20 @@
 namespace sd {
 namespace ops {
 namespace helpers {
-    ND4J_LOCAL void decodeBitmap(sd::LaunchContext* context, const NDArray* input, NDArray* output) {
+    void decodeBitmap(sd::LaunchContext* context, const NDArray* input, NDArray* output) {
         auto stream = context->getCudaStream();
         NDArray::prepareSpecialUse({output}, {input});
 
         dim3 launchDims(512, 512, 16384);
         auto xType = output->dataType();
-        BUILD_SINGLE_SELECTOR(xType, cudaDecodeBitmapGeneric, (launchDims, stream, input->specialBuffer(), output->lengthOf(), output->specialBuffer()), FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, cudaDecodeBitmapGeneric, (launchDims, stream, input->specialBuffer(), output->lengthOf(), output->specialBuffer()), SD_FLOAT_TYPES);
 
         sd::DebugHelper::checkErrorCode(stream, "decodeBitmapFloat(...) failed");
 
         NDArray::registerSpecialUse({output}, {input});
     }
 
-    ND4J_LOCAL Nd4jLong encodeBitmap(sd::LaunchContext* context, NDArray* input, NDArray* output, float threshold) {
+    sd::LongType encodeBitmap(sd::LaunchContext* context, NDArray* input, NDArray* output, float threshold) {
         auto stream = LaunchContext::defaultContext()->getCudaStream();
         int *resultPointer = reinterpret_cast<int *>(LaunchContext::defaultContext()->getScalarPointer());
         int *reductionPointer = reinterpret_cast<int *>(LaunchContext::defaultContext()->getReductionPointer());
@@ -54,11 +54,11 @@ namespace helpers {
         auto xType = input->dataType();
         BUILD_SINGLE_SELECTOR(xType, cudaEncodeBitmapGeneric,
                               (launchDims, stream, input->specialBuffer(), input->lengthOf(), reinterpret_cast<int*>(output->specialBuffer()), resultPointer, reductionPointer, threshold),
-                              FLOAT_TYPES);
+                              SD_FLOAT_TYPES);
 
         sd::DebugHelper::checkErrorCode(stream, "encodeBitmapFloat(...) failed");
 
-        Nd4jLong dZ = (Nd4jLong) resultPointer[0];
+        sd::LongType dZ = (sd::LongType) resultPointer[0];
         resultPointer[0] = 0;
 
         NDArray::registerSpecialUse({output, input}, {});

@@ -20,7 +20,6 @@
 // Created by raver119 on 29.11.17.
 //
 
-
 #include "testlayers.h"
 #include <flatbuffers/flatbuffers.h>
 #include <graph/generated/node_generated.h>
@@ -81,7 +80,7 @@ TEST_F(GraphExecutionerTests, Test_Implicit_Output_3) {
     auto graph = GraphExecutioner::importFromFlatBuffers("./resources/reduce_dim_false.fb");
     auto status = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto outputs = graph->fetchOutputs();
 

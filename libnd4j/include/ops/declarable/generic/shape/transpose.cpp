@@ -39,19 +39,19 @@ CUSTOM_OP_IMPL(transpose, 1, 1, false, 0, 0) {
     //Special case: empty.reshape(<other empty shape>) -> return empty
     if (x->isEmpty()) {
         REQUIRE_TRUE(z->isEmpty(), 0, "TRANSPOSE OP: when input is empty, output must also be empty");
-        return Status::OK();    //No op
+        return sd::Status::OK;    //No op
     }
 
     if (block.width() == 1 && block.getIArguments()->size() == 0) {
         z->assign(x->transpose());
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     std::vector<int> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<int>() : *block.getIArguments();
 
     z->assign(x->permute(permutationVector));
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(transpose) {

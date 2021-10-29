@@ -19,13 +19,12 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/InferenceRequest.h>
 
 
 namespace sd {
     namespace graph {
-        InferenceRequest::InferenceRequest(Nd4jLong graphId, ExecutorConfiguration *configuration) {
+        InferenceRequest::InferenceRequest(sd::LongType graphId, ExecutorConfiguration *configuration) {
             this->_id = graphId;
             this->_configuration = configuration;
         }

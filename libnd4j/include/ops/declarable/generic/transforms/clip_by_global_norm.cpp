@@ -42,7 +42,7 @@ CUSTOM_OP_IMPL(clip_by_global_norm, 1, 2, true, 1, 0) {
     bool isInplace = block.isInplace();
     helpers::clipByGlobalNorm(block.launchContext(), inputs, clipNorm, block.workspace(), outputs, isInplace);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(clip_by_global_norm) {
@@ -52,7 +52,7 @@ DECLARE_SHAPE_FN(clip_by_global_norm) {
     for (int e = 0; e < block.width(); e++) {
         auto in = inputShape->at(e);
                 
-        Nd4jLong* newShape;
+        sd::LongType* newShape;
         COPY_SHAPE(in, newShape);
         shapeList->push_back(CONSTANT(newShape));
     }

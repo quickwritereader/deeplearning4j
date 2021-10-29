@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <system/BlasVersionHelper.h>
 
 namespace sd {

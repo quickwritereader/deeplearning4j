@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/segment.h>
 #include <ops/declarable/helpers/segment_common.h>
 #include <array/NDArrayFactory.h>
@@ -36,15 +35,15 @@ namespace helpers {
     // Segment ops linear kernels
     // -------------------------------------------------------------------------------------------------------------- //
     template<typename T, typename I>
-    static __global__ void
+    static SD_KERNEL void
     segmentSumLinearKernel(
-            const void *input, const Nd4jLong *inputShape,
-            int *starts, int *lengths, Nd4jLong numOfClasses,
-            void *output, const Nd4jLong *outputShape) {
+            const void *input, const sd::LongType *inputShape,
+            int *starts, int *lengths, sd::LongType numOfClasses,
+            void *output, const sd::LongType *outputShape) {
         __shared__
         T *val;
         __shared__
-        Nd4jLong xLen, zLen, segment, zIndex;
+        sd::LongType xLen, zLen, segment, zIndex;
         __shared__
         const T *x;
         __shared__
@@ -74,22 +73,22 @@ namespace helpers {
 
         for (auto e = start + threadIdx.x + 1; e < finish; e += blockDim.x) {
             auto xIndex = shape::getIndexOffset(e, inputShape);
-            sd::math::atomics::nd4j_atomicAdd(&z[zIndex], x[xIndex]);
+            sd::math::atomics::sd_atomicAdd(&z[zIndex], x[xIndex]);
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
 
     template<typename T, typename I>
-    static __global__ void
+    static SD_KERNEL void
     unsortedSegmentSumLinearKernel(
-            const void *input, const Nd4jLong *inputShape,
-            const void *indices, const Nd4jLong *indicesShape,
-            int *starts, int *lengths, Nd4jLong numOfClasses,
-            void *output, const Nd4jLong *outputShape) {
+            const void *input, const sd::LongType *inputShape,
+            const void *indices, const sd::LongType *indicesShape,
+            int *starts, int *lengths, sd::LongType numOfClasses,
+            void *output, const sd::LongType *outputShape) {
         __shared__
         T *val;
         __shared__
-        Nd4jLong xLen, zLen, segment, zIndex;
+        sd::LongType xLen, zLen, segment, zIndex;
         __shared__
         const T *x;
         __shared__
@@ -118,20 +117,20 @@ namespace helpers {
                 auto xIndex = shape::getIndexOffset(e, inputShape);
                 auto yIndex = shape::getIndexOffset(e, indicesShape);
                 if (y[yIndex] == segment && e != starts[segment]) {
-                    sd::math::atomics::nd4j_atomicAdd(&z[zIndex], x[xIndex]);
+                    sd::math::atomics::sd_atomicAdd(&z[zIndex], x[xIndex]);
                 }
             }
     }
     // -------------------------------------------------------------------------------------------------------------- //
     // SegmentSum kernel
     template <typename T, typename I>
-    static __global__ void segmentSumTadKernel(
-            const void* inputBuf, const Nd4jLong* inputShape, const Nd4jLong* inputTads, const Nd4jLong* inputTadOffsets,
+    static SD_KERNEL void segmentSumTadKernel(
+            const void* inputBuf, const sd::LongType* inputShape, const sd::LongType* inputTads, const sd::LongType* inputTadOffsets,
             const I* indices,
-            int* starts, int* lengths, Nd4jLong numOfClasses,
-            void* outputBuf, const Nd4jLong* outputShape, const Nd4jLong* outputTads, const Nd4jLong* outputTadOffsets) {
+            int* starts, int* lengths, sd::LongType numOfClasses,
+            void* outputBuf, const sd::LongType* outputShape, const sd::LongType* outputTads, const sd::LongType* outputTadOffsets) {
         __shared__ T* val;
-        __shared__ Nd4jLong len, zIndex, total;
+        __shared__ sd::LongType len, zIndex, total;
         __shared__ T* z;
         __shared__ int start, finish;
 
@@ -153,7 +152,7 @@ namespace helpers {
                 for (auto e = threadIdx.x; e < len; e += blockDim.x) {
                     auto xIndex = shape::getIndexOffset(e, inputTads);
                     auto zIndex = shape::getIndexOffset(e, outputTads);
-                    sd::math::atomics::nd4j_atomicAdd(&z[zIndex], x[xIndex]);
+                    sd::math::atomics::sd_atomicAdd(&z[zIndex], x[xIndex]);
                 }
             }
             else {
@@ -161,7 +160,7 @@ namespace helpers {
                     auto xIndex = shape::getIndexOffset(e, inputTads);
                     auto zIndex = shape::getIndexOffset(e, outputTads);
                     if (lengths[indices[idx]])
-                        sd::math::atomics::nd4j_atomicAdd(&z[zIndex], x[xIndex]);
+                        sd::math::atomics::sd_atomicAdd(&z[zIndex], x[xIndex]);
                 }
             }
         }
@@ -171,7 +170,7 @@ namespace helpers {
     template <typename T, typename I>
     static void segmentSumFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, NDArray* output) {
         auto stream = context->getCudaStream();
-        Nd4jLong numClasses = indices->e<Nd4jLong>(indices->lengthOf() - 1) + 1;
+        sd::LongType numClasses = indices->e<sd::LongType>(indices->lengthOf() - 1) + 1;
         NDArray classesRangesLens = NDArrayFactory::create<int>('c', {numClasses}, context);
         NDArray classesRangesBegs = NDArrayFactory::create<int>('c', {numClasses}, context);
 
@@ -199,16 +198,16 @@ namespace helpers {
 
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL void segmentSumFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* output) {
+    void segmentSumFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices});
         output->nullify();
-        BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), segmentSumFunctor_, (context, input, indices, output), NUMERIC_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), segmentSumFunctor_, (context, input, indices, output), SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices});
     }
 
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static void unsortedSegmentSumFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    static void unsortedSegmentSumFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
 //        NDArray classes = NDArrayFactory::create<int>('c', {numOfClasses, 2});
         NDArray classesRangesBegs = NDArrayFactory::create<int>('c', {numOfClasses}, context);
@@ -241,11 +240,11 @@ namespace helpers {
 
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL void unsortedSegmentSumFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    void unsortedSegmentSumFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices});
         output->nullify();
         BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), unsortedSegmentSumFunctor_, (context, input, indices, numOfClasses, output),
-                              NUMERIC_TYPES, INDEXING_TYPES);
+                              SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices});
 
     }
@@ -255,16 +254,16 @@ namespace helpers {
     // -------------------------------------------------------------------------------------------------------------- //
     // Sorted sum backpropagate
     template <typename T, typename I>
-    static __global__ void segmentSumBPLinearKernel(
-            const void* inputBuf, const Nd4jLong* inputShape,
-            const void* eps, const Nd4jLong* epsShape,
-            const void* indicesBuf, const Nd4jLong* indicesShape,
-            void* outputBuf, const Nd4jLong* outputShape) {
+    static SD_KERNEL void segmentSumBPLinearKernel(
+            const void* inputBuf, const sd::LongType* inputShape,
+            const void* eps, const sd::LongType* epsShape,
+            const void* indicesBuf, const sd::LongType* indicesShape,
+            void* outputBuf, const sd::LongType* outputShape) {
         auto x = reinterpret_cast<const T*>(inputBuf);
         auto y = reinterpret_cast<const I*>(indicesBuf);
         auto z = reinterpret_cast<T*>(outputBuf);
         auto gradOut = reinterpret_cast<const T*>(eps);
-        __shared__ Nd4jLong xLen, gradLen;
+        __shared__ sd::LongType xLen, gradLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -288,19 +287,19 @@ namespace helpers {
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void segmentSumBPTadKernel(
-            const void* inputBuf, const Nd4jLong* inputShape,
-            const void* eps, const Nd4jLong* epsShape,
-            const void* indicesBuf, const Nd4jLong* indicesShape,
-            void* outputBuf, const Nd4jLong* outputShape,
-            const Nd4jLong* inputTad, const Nd4jLong* inputOffsets,
-            const Nd4jLong* gradOutTad, const Nd4jLong* gradOutOffsets,
-            const Nd4jLong* outTad, const Nd4jLong* outOffsets) {
+    static SD_KERNEL void segmentSumBPTadKernel(
+            const void* inputBuf, const sd::LongType* inputShape,
+            const void* eps, const sd::LongType* epsShape,
+            const void* indicesBuf, const sd::LongType* indicesShape,
+            void* outputBuf, const sd::LongType* outputShape,
+            const sd::LongType* inputTad, const sd::LongType* inputOffsets,
+            const sd::LongType* gradOutTad, const sd::LongType* gradOutOffsets,
+            const sd::LongType* outTad, const sd::LongType* outOffsets) {
         __shared__ const T* x;
         __shared__ const T* gradOut;
         __shared__ const I* y;
         __shared__ T* z;
-        __shared__ Nd4jLong xLen, yLen, gradLen, currentLen;
+        __shared__ sd::LongType xLen, yLen, gradLen, currentLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -328,12 +327,12 @@ namespace helpers {
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    ND4J_LOCAL int segmentSumFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+    sd::Status segmentSumFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
         auto stream = context->getCudaStream();
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         if (input->isVector()) {
-            Nd4jLong loop_size = input->lengthOf();
-            auto numOfClasses = gradOut->lengthOf(); //indices->e<Nd4jLong>(loop_size - 1);
+            sd::LongType loop_size = input->lengthOf();
+            auto numOfClasses = gradOut->lengthOf(); //indices->e<sd::LongType>(loop_size - 1);
             segmentSumBPLinearKernel<T,I><<<gradOut->lengthOf(), input->lengthOf(), 256, *stream>>>(input->specialBuffer(),
                     input->specialShapeInfo(), gradOut->specialBuffer(), gradOut->specialShapeInfo(),
                     indices->specialBuffer(), indices->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo());
@@ -357,24 +356,24 @@ namespace helpers {
                     outputTads, outputTadOffsets);
         }
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
-        return Status::OK();
+        return sd::Status::OK;
     }
     // -------------------------------------------------------------------------------------------------------------- //
 
-    ND4J_LOCAL int segmentSumFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
+    sd::Status segmentSumFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return segmentSumFunctorBP_, (context, input,
-                indices, gradOut, output), FLOAT_TYPES, INDEXING_TYPES);
+                indices, gradOut, output), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
     }
 
     template <typename T, typename I>
-    static int unsortedSegmentSumFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    static sd::Status unsortedSegmentSumFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         if (input->isVector()) {
-            Nd4jLong loop_size = input->lengthOf();
-            auto numOfClasses = gradOut->lengthOf(); //indices->e<Nd4jLong>(loop_size - 1);
+            sd::LongType loop_size = input->lengthOf();
+            auto numOfClasses = gradOut->lengthOf(); //indices->e<sd::LongType>(loop_size - 1);
             segmentSumBPLinearKernel<T,I><<<gradOut->lengthOf(), input->lengthOf(), 256, *stream>>>(input->specialBuffer(),
                     input->specialShapeInfo(), gradOut->specialBuffer(), gradOut->specialShapeInfo(),
                     indices->specialBuffer(), indices->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo());
@@ -398,12 +397,12 @@ namespace helpers {
                     outputTads, outputTadOffsets);
         }
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
-        return Status::OK();
+        return sd::Status::OK;
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL int unsortedSegmentSumFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    sd::Status unsortedSegmentSumFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
-        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentSumFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), FLOAT_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentSumFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
     }
 

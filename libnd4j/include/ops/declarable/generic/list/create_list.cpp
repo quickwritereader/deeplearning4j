@@ -53,7 +53,7 @@ namespace sd {
             auto scalar = NDArrayFactory::create_(list->counter());
             block.pushNDArrayToVariableSpace(block.getNodeId(), 1, scalar);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArrayV3, create_list);
         DECLARE_SYN(tensorarrayv3, create_list);

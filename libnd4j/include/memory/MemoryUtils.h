@@ -24,17 +24,16 @@
 #define LIBND4J_MEMORYUTILS_H
 
 #include "MemoryReport.h"
-#include <system/dll.h>
+
 
 namespace sd {
     namespace memory {
-        class ND4J_EXPORT MemoryUtils {
+        class SD_LIB_EXPORT MemoryUtils {
         public:
             static bool retrieveMemoryStatistics(MemoryReport& report);
         };
     }
 }
-
 
 
 #endif //LIBND4J_MEMORYUTILS_H

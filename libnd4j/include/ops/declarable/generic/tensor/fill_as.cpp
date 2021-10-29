@@ -41,7 +41,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SYN(filllike, fill_as);
         DECLARE_SYN(fill_like, fill_as);

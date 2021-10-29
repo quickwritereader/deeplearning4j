@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/NDArray.h>
 #include <array/NDArrayList.h>
 #include "testlayers.h"
@@ -38,9 +37,9 @@ TEST_F(NDArrayListTests, BasicTests_1) {
     auto x = NDArrayFactory::create<float>('c', {1, 10});
     auto y = NDArrayFactory::create<float>('c', {1, 10});
 
-    ASSERT_EQ(ND4J_STATUS_OK, list.write(1, new NDArray(x.dup())));
+    ASSERT_EQ(sd::Status::OK, list.write(1, new NDArray(x.dup())));
 
-    //ASSERT_EQ(ND4J_STATUS_DOUBLE_WRITE, list.write(1, &y));
+    //ASSERT_EQ(sd::Status::DOUBLE_WRITE, list.write(1, &y));
 }
 
 TEST_F(NDArrayListTests, BasicTests_2) {
@@ -49,9 +48,9 @@ TEST_F(NDArrayListTests, BasicTests_2) {
     auto x = NDArrayFactory::create<float>('c', {1, 10});
     auto y = NDArrayFactory::create<float>('c', {1, 7});
 
-    ASSERT_EQ(ND4J_STATUS_OK, list.write(1, new NDArray(x.dup())));
+    ASSERT_EQ(sd::Status::OK, list.write(1, new NDArray(x.dup())));
 
-    ASSERT_EQ(ND4J_STATUS_BAD_INPUT, list.write(0, &y));
+    ASSERT_EQ(sd::Status::BAD_INPUT, list.write(0, &y));
 }
 
 

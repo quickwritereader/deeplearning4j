@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_WORKSPACETESTS_H
 #define LIBND4J_WORKSPACETESTS_H
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <memory/Workspace.h>
@@ -245,7 +244,7 @@ TEST_F(WorkspaceTests, Test_Graph_1) {
     auto workspace = graph->getVariableSpace()->workspace();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     delete graph;
 }
@@ -256,7 +255,7 @@ TEST_F(WorkspaceTests, Test_Externalized_1) {
         return;
 
     char buffer[10000];
-    ExternalWorkspace pojo((Nd4jPointer) buffer, 10000, nullptr, 0);
+    ExternalWorkspace pojo((sd::Pointer) buffer, 10000, nullptr, 0);
 
     ASSERT_EQ(10000, pojo.sizeHost());
     ASSERT_EQ(0, pojo.sizeDevice());

@@ -67,7 +67,7 @@ CUSTOM_OP_IMPL(lstmBlock, 9, 7, false, 2, 2) {
 
     helpers::lstmBlockTimeLoop(maxTSLength, x, cLast, yLast,   W, Wci, Wcf, Wco, b,    i, c, f, o, z, h, y, {(double)peephole, forgetBias, clippingCellValue}, dataFormat);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmBlock) {
@@ -95,8 +95,8 @@ DECLARE_SHAPE_FN(lstmBlock) {
     int t;
     int nOut = cLast[2];    //rank, bs, nOut, ...]
 
-    Nd4jLong *s(nullptr);
-    ALLOCATE(s, block.getWorkspace(), shape::shapeInfoLength(3), Nd4jLong);      // [time, bS, nOut]
+    sd::LongType *s(nullptr);
+    ALLOCATE(s, block.getWorkspace(), shape::shapeInfoLength(3), sd::LongType);      // [time, bS, nOut]
     s[0] = 3;
     if(dataFormat == 0){
         //[rank, seqLen, bs, nIn, ...]

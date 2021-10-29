@@ -24,7 +24,7 @@
 #ifndef LIBND4J_SCATTERHELPER_H
 #define LIBND4J_SCATTERHELPER_H
 
-#include <system/pointercast.h>
+#include <system/common.h>
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 #include <numeric>

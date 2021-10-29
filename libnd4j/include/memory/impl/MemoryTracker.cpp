@@ -19,16 +19,13 @@
 //
 // Created by raver119 on 07.05.19.
 //
-
 #include <memory/MemoryTracker.h>
 #include <stdexcept>
 #include <helpers/logger.h>
 
-
 #include <stdlib.h>
 
 #if defined(__GNUC__) && !defined(__MINGW64__) && !defined(SD_ANDROID_BUILD) && !defined(SD_IOS_BUILD)  && !defined(SD_APPLE_BUILD)
-
 #include <unistd.h>
 #include <execinfo.h>
 #include <cxxabi.h>
@@ -97,10 +94,10 @@ namespace sd {
 
 #endif
 
-        void MemoryTracker::countIn(MemoryType type, Nd4jPointer ptr, Nd4jLong numBytes) {
+        void MemoryTracker::countIn(MemoryType type, sd::Pointer ptr, sd::LongType numBytes) {
 #if defined(__GNUC__) && !defined(__MINGW64__) && !defined(SD_ANDROID_BUILD) && !defined(SD_IOS_BUILD)  && !defined(SD_APPLE_BUILD)
             if (Environment::getInstance().isDetectingLeaks()) {
-                auto lptr = reinterpret_cast<Nd4jLong>(ptr);
+                auto lptr = reinterpret_cast<sd::LongType>(ptr);
 
                 _locker.lock();
 
@@ -123,7 +120,7 @@ namespace sd {
                     return;
                 }
 
-                std::pair<Nd4jLong, AllocationEntry> pair(lptr, AllocationEntry(type, lptr, numBytes, stack));
+                std::pair<sd::LongType, AllocationEntry> pair(lptr, AllocationEntry(type, lptr, numBytes, stack));
                 _allocations.insert(pair);
 
                 _locker.unlock();
@@ -131,10 +128,10 @@ namespace sd {
 #endif
         }
 
-        void MemoryTracker::countOut(Nd4jPointer ptr) {
+        void MemoryTracker::countOut(sd::Pointer ptr) {
 #if defined(__GNUC__) && !defined(__MINGW64__) && !defined(SD_ANDROID_BUILD) && !defined(SD_IOS_BUILD)  && !defined(SD_APPLE_BUILD)
             if (Environment::getInstance().isDetectingLeaks()) {
-                auto lptr = reinterpret_cast<Nd4jLong>(ptr);
+                auto lptr = reinterpret_cast<sd::LongType>(ptr);
 
                 _locker.lock();
                 if (_released.count(lptr) > 0) {
@@ -144,7 +141,7 @@ namespace sd {
                 if (_allocations.count(lptr) > 0) {
                     //auto entry = _allocations[lptr];
                     //std::string stack("new stack");
-                    //std::pair<Nd4jLong, AllocationEntry> pair(lptr, entry);
+                    //std::pair<sd::LongType, AllocationEntry> pair(lptr, entry);
                     //_released.insert(pair);
 
 
@@ -158,10 +155,10 @@ namespace sd {
 
         void MemoryTracker::summarize() {
             if (!_allocations.empty()) {
-                nd4j_printf("\n%i leaked allocations\n", (int) _allocations.size());
+                sd_printf("\n%i leaked allocations\n", (int) _allocations.size());
 
                 for (auto &v: _allocations) {
-                    nd4j_printf("Leak of %i [%s] bytes\n%s\n\n", (int) v.second.numBytes(), v.second.memoryType() == MemoryType::HOST ? "HOST" : "DEVICE", v.second.stackTrace().c_str());
+                    sd_printf("Leak of %i [%s] bytes\n%s\n\n", (int) v.second.numBytes(), v.second.memoryType() == MemoryType::HOST ? "HOST" : "DEVICE", v.second.stackTrace().c_str());
                 }
 
                 throw std::runtime_error("Non-released allocations found");

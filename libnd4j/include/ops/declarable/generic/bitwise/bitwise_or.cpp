@@ -40,7 +40,7 @@ namespace sd {
 
             x->applyTrueBroadcast(BroadcastIntOpsTuple::custom(scalar::IntOps::IntOr, pairwise::IntOps::IntOr, broadcast::IntOps::IntOr), *y, *z, false);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(bitwise_or) {

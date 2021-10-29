@@ -40,7 +40,7 @@ namespace sd {
 
             if(output->isEmpty()){
                 //Empty output array - no-op
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             if (w > 1) {
@@ -55,7 +55,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_TYPES(fill) {
@@ -69,12 +69,12 @@ namespace sd {
 
             auto shapeArray = INPUT_VARIABLE(0);
             const int len = (int) shapeArray->lengthOf();
-            Nd4jLong *newShape = nullptr;
-            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(len), Nd4jLong);            
+            sd::LongType *newShape = nullptr;
+            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(len), sd::LongType);            
 
             newShape[0] = len;
             for (int e = 0; e < shapeArray->lengthOf(); e++){
-                newShape[e+1] = shapeArray->e<Nd4jLong>(e);
+                newShape[e+1] = shapeArray->e<sd::LongType>(e);
             }
 
             sd::DataType dataType;

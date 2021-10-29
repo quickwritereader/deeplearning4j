@@ -39,7 +39,7 @@ CONFIGURABLE_OP_IMPL(sqrtm, 1, 1, false, 0, 0) {
 
     helpers::sqrtm(block.launchContext(), input, output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

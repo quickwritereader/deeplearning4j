@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "../OpBenchmark.h"
 
 #ifndef DEV_TESTS_PAIRWISEBENCHMARK_H
@@ -28,7 +27,7 @@
 using namespace sd::graph;
 
 namespace sd {
-    class ND4J_EXPORT PairwiseBenchmark : public OpBenchmark {
+    class SD_LIB_EXPORT PairwiseBenchmark : public OpBenchmark {
     public:
         PairwiseBenchmark() : OpBenchmark() {
             //

@@ -42,8 +42,8 @@ CUSTOM_OP_IMPL(broadcast_dynamic_shape, 2, 1, false, 0, 0) {
 
     // contract shapeInfos, neglect and don't fill strides, ews, order
     // shapes are of interest only
-    std::vector<Nd4jLong> xShapeInfo(shape::shapeInfoLength(x->lengthOf()));
-    std::vector<Nd4jLong> yShapeInfo(shape::shapeInfoLength(y->lengthOf()));
+    std::vector<sd::LongType> xShapeInfo(shape::shapeInfoLength(x->lengthOf()));
+    std::vector<sd::LongType> yShapeInfo(shape::shapeInfoLength(y->lengthOf()));
 
     // fill rank and data type
     xShapeInfo[0] = x->lengthOf();
@@ -51,22 +51,22 @@ CUSTOM_OP_IMPL(broadcast_dynamic_shape, 2, 1, false, 0, 0) {
     ArrayOptions::setDataType(xShapeInfo.data(), sd::DataType::INT64); // fill with some data type, it doesn't matter what type exactly to choose
     ArrayOptions::setDataType(yShapeInfo.data(), sd::DataType::INT64);
 
-    for (Nd4jLong i = 0; i < x->lengthOf(); ++i)
-        xShapeInfo[i + 1] = x->e<Nd4jLong>(i);
+    for (sd::LongType i = 0; i < x->lengthOf(); ++i)
+        xShapeInfo[i + 1] = x->e<sd::LongType>(i);
 
-    for (Nd4jLong i = 0; i < y->lengthOf(); ++i)
-        yShapeInfo[i + 1] = y->e<Nd4jLong>(i);
+    for (sd::LongType i = 0; i < y->lengthOf(); ++i)
+        yShapeInfo[i + 1] = y->e<sd::LongType>(i);
 
-    const Nd4jLong* poinerOnOutShapeInfo = nullptr;
+    const sd::LongType* poinerOnOutShapeInfo = nullptr;
 
     const bool isBroadcastPossible = ShapeUtils::evalBroadcastShapeInfo(xShapeInfo.data(), yShapeInfo.data(), true, poinerOnOutShapeInfo, block.launchContext()->getWorkspace());
 
     REQUIRE_TRUE(isBroadcastPossible, 0, "BROADCAST_DYNAMIC_SHAPE OP: the shapes of two input arrays %s and %s are not suitable for broadcast operation !", ShapeUtils::shapeAsString(xShapeInfo.data()).c_str(), ShapeUtils::shapeAsString(yShapeInfo.data()).c_str());
 
-    for (Nd4jLong i = 0; i < z->lengthOf(); ++i)
-        z->p<Nd4jLong>(i, poinerOnOutShapeInfo[i + 1]);
+    for (sd::LongType i = 0; i < z->lengthOf(); ++i)
+        z->p<sd::LongType>(i, poinerOnOutShapeInfo[i + 1]);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(broadcast_dynamic_shape) {

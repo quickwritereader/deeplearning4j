@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.09.2018
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include<ops/declarable/helpers/addBias.h>
 #include <ops/declarable/helpers/im2col.h>
@@ -58,7 +57,7 @@ static void conv2d_(sd::graph::Context& block, const NDArray* input, const NDArr
 
             ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW, paddingMode);
 
-            nd4j_debug("MKL-DNN is not used for conv2d!\n", 0);
+            sd_debug("MKL-DNN is not used for conv2d!\n", 0);
 
             std::vector<int> permutForOutput;
 
@@ -101,8 +100,8 @@ static void conv2d_(sd::graph::Context& block, const NDArray* input, const NDArr
 
         }
 
- void ConvolutionUtils::conv2d(sd::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode, const int isNCHW, const int wFormat) {
-            BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), conv2d_, (block, input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat), FLOAT_TYPES);
+    void ConvolutionUtils::conv2d(sd::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode, const int isNCHW, const int wFormat) {
+            BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), conv2d_, (block, input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat), SD_FLOAT_TYPES);
 }
 
 }

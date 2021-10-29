@@ -36,7 +36,7 @@ namespace sd {
                     z->p(i, x->sizeAt(i));
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         };
         DECLARE_SYN(shape_n, shapes_of);
 

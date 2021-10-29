@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(upsampling2d, 1, 1, false, 0, 2) {
 
     ConvolutionUtils::upsampling2d(block, *input, *output, factorH, factorW, (bool)isNCHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(upsampling, upsampling2d);
 
@@ -65,8 +65,8 @@ DECLARE_SHAPE_FN(upsampling2d) {
     const int factorW = INT_ARG(1);
     const int isNCHW  = block.getIArguments()->size() > 2 ? INT_ARG(2) : 0;       // INT_ARG(2): 0-NCHW,  1-NHWC
 
-    Nd4jLong *outputShapeInfo = nullptr;
-    ALLOCATE(outputShapeInfo, block.getWorkspace(), shape::shapeInfoLength(inputShapeInfo[0]), Nd4jLong);
+    sd::LongType *outputShapeInfo = nullptr;
+    ALLOCATE(outputShapeInfo, block.getWorkspace(), shape::shapeInfoLength(inputShapeInfo[0]), sd::LongType);
 
     outputShapeInfo[0] = inputShapeInfo[0];
     outputShapeInfo[1] = inputShapeInfo[1];
@@ -109,7 +109,7 @@ CUSTOM_OP_IMPL(upsampling2d_bp, 2, 1, false, 0, 0) {
 
     ConvolutionUtils::upsampling2dBP(block, *gradO, *gradI, (bool)isNCHW);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(upsampling_bp, upsampling2d_bp);
 

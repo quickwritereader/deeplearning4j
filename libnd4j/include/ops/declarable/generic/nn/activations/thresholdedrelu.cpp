@@ -40,7 +40,7 @@ CONFIGURABLE_OP_IMPL(thresholdedrelu, 1, 1, true, 0, 0) {
 
     helpers::thresholdRelu(block.launchContext(), *input, scalar, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(thresholdedrelu) {
@@ -59,7 +59,7 @@ CONFIGURABLE_OP_IMPL(thresholdedrelu_bp, 2, 1, true, 0, 0) {
 
     helpers::thresholdReluDerivative(block.launchContext(), input, threshold, dLdO, dLdI);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(thresholdedrelu_bp) {

@@ -19,30 +19,20 @@
 //
 // Created by raver119 on 31.10.2017.
 //
-
 #include <helpers/logger.h>
 
 namespace sd {
 
 
-#ifdef __CUDACC__
-    __host__
-#endif
-    void Logger::info(const char *format, ...) {
+    SD_HOST void Logger::info(const char *format, ...) {
         va_list args;
         va_start(args, format);
-
         vprintf(format, args);
-
         va_end(args);
-
         fflush(stdout);
     }
 
-#ifdef __CUDACC__
-    __host__
-#endif
-     void Logger::printv(const char *format, const std::vector<int>& vec) {
+    SD_HOST void Logger::printv(const char *format, const std::vector<int>& vec) {
         printf("%s: {", format);
         for(int e = 0; e < vec.size(); e++) {
             auto v = vec[e];
@@ -54,10 +44,7 @@ namespace sd {
         fflush(stdout);
     }
 
-    #ifdef __CUDACC__
-    __host__
-#endif
-     void Logger::printv(const char *format, const std::vector<Nd4jLong>& vec) {
+    SD_HOST void Logger::printv(const char *format, const std::vector<sd::LongType>& vec) {
         printf("%s: {", format);
         for(int e = 0; e < vec.size(); e++) {
             auto v = vec[e];
@@ -67,5 +54,14 @@ namespace sd {
         }
         printf("}\n");
         fflush(stdout);
+    }
+
+    SD_HOST_DEVICE Status Logger::logStatusMsg(Status code, const char *msg){
+        if(msg!=nullptr) sd_printf("%s\n", msg);
+        return code;
+    }
+    
+    SD_HOST_DEVICE Status Logger::logKernelFailureMsg(const char *msg){
+        return logStatusMsg(Status::KERNEL_FAILURE, msg);
     }
 }

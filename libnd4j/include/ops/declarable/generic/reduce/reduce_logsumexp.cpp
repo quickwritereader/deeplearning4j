@@ -42,7 +42,7 @@ namespace ops {
             REQUIRE_TRUE(item >= -input->shapeInfo()[0] && item <input->shapeInfo()[0], 0, "REDUCE_LOGSUMEXP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !" , input->rankOf(), input->rankOf(), item);
 
         const bool keepDims = block.getTArguments()->size() > 0 ? (bool)T_ARG(0) : false;
-        Nd4jLong maxI = input->argMax();
+        sd::LongType maxI = input->argMax();
         auto maxVals = input->e(maxI);
         //void* whereMax = (void*)();
         auto internal = (*input);
@@ -51,7 +51,7 @@ namespace ops {
         internal.reduceAlongDimension(reduce::Sum, *output, axes, keepDims, false); //, (void*)&maxVals);
         output->applyTransform(transform::Log, *output);
         (*output) += maxVals;
-        return ND4J_STATUS_OK;
+        return sd::Status::OK;
     }
     DECLARE_TYPES(reduce_logsumexp) {
         getOpDescriptor()

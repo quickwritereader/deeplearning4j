@@ -26,7 +26,6 @@
 #ifndef LIBND4J_STRINGUTILS_H
 #define LIBND4J_STRINGUTILS_H
 
-#include <system/pointercast.h>
 #include <system/op_boilerplate.h>
 #include <string>
 #include <sstream>
@@ -35,10 +34,10 @@
 #include <helpers/unicode.h>
 
 namespace sd {
-    class ND4J_EXPORT StringUtils {
+    class SD_LIB_EXPORT StringUtils {
     public:
         template <typename T>
-        static FORCEINLINE std::string valueToString(T value) {
+        static SD_INLINE std::string valueToString(T value) {
             std::ostringstream os;
 
             os << value ;
@@ -61,10 +60,10 @@ namespace sd {
          * @param graphId
          * @return
          */
-        static FORCEINLINE std::string buildGraphErrorMessage(const char *message, Nd4jLong graphId) {
+        static SD_INLINE std::string buildGraphErrorMessage(const char *message, sd::LongType graphId) {
             std::string result(message);
             result += " [";
-            result += valueToString<Nd4jLong>(graphId);
+            result += valueToString<sd::LongType>(graphId);
             result += "]";
 
             return result;

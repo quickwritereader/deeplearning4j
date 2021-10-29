@@ -23,7 +23,6 @@
 
 #ifndef LIBND4J_OP_ENUMS_H
 #define LIBND4J_OP_ENUMS_H
-
 #include <loops/legacy_ops.h>
 #include <system/type_boilerplate.h>
 #include <system/enum_boilerplate.h>

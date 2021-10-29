@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/InteropDataBuffer.h>
 #include <array/DataTypeUtils.h>
 #include <execution/AffinityManager.h>
@@ -34,7 +33,7 @@ namespace sd {
 
         if (_offset + length > _dataBuffer->getLenInBytes()) {
             this->expand(length);
-            nd4j_debug("Expanding data buffer length by %d\n",length);
+            sd_debug("Expanding data buffer length by %d\n",length);
         }
     }
 

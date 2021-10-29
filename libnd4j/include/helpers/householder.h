@@ -23,7 +23,6 @@
 #ifndef LIBND4J_HOUSEHOLDER_H
 #define LIBND4J_HOUSEHOLDER_H
 
-
 #include "array/NDArray.h"
 
 namespace sd {
@@ -87,7 +86,6 @@ class Householder {
     static void mulRight(NDArray& matrix, const NDArray& tail, const T coeff);
 
 
-
 };
 
 
@@ -112,7 +110,6 @@ class Householder {
     // *
     // */
     // void svd(const NDArray& matrix, NDArray& u, NDArray& s, NDArray& v, const bool calcUV = false, const bool fullUV = false)
-
 
 
 }

@@ -40,10 +40,10 @@ namespace sd {
         if (x->reshapei(y->ordering(), y->getShapeAsVector())) {
 
             z->assign(x);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
-        return ND4J_STATUS_BAD_INPUT;
+        return sd::Status::BAD_INPUT;
     }
     DECLARE_SYN(reshape_as, reshapeas);
 

@@ -60,13 +60,13 @@ CUSTOM_OP_IMPL(lstmCell, 8, 2, false, 3, 2) {
     const int numUnits = ct_1->sizeAt(1);
 
     // input shapes validation
-    const std::vector<Nd4jLong> correctHt_1Shape = {bS, numProj};
-    const std::vector<Nd4jLong> correctCt_1Shape = {bS, numUnits};
-    const std::vector<Nd4jLong> correctWxShape   = {inSize, 4*numUnits};
-    const std::vector<Nd4jLong> correctWhShape   = {numProj, 4*numUnits};
-    const std::vector<Nd4jLong> correctWcShape   = {3*numUnits};
-    const std::vector<Nd4jLong> correctWpShape   = {numUnits, numProj};
-    const std::vector<Nd4jLong> correctBShape    = {4*numUnits};
+    const std::vector<sd::LongType> correctHt_1Shape = {bS, numProj};
+    const std::vector<sd::LongType> correctCt_1Shape = {bS, numUnits};
+    const std::vector<sd::LongType> correctWxShape   = {inSize, 4*numUnits};
+    const std::vector<sd::LongType> correctWhShape   = {numProj, 4*numUnits};
+    const std::vector<sd::LongType> correctWcShape   = {3*numUnits};
+    const std::vector<sd::LongType> correctWpShape   = {numUnits, numProj};
+    const std::vector<sd::LongType> correctBShape    = {4*numUnits};
 
     REQUIRE_TRUE(ht_1->isSameShape(correctHt_1Shape), 0, "LSTMCELL operation: wrong shape of initial cell output, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctHt_1Shape).c_str(), ShapeUtils::shapeAsString(ht_1).c_str());
     REQUIRE_TRUE(ct_1->isSameShape(correctCt_1Shape), 0, "LSTMCELL operation: wrong shape of initial cell state,  expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctCt_1Shape).c_str(), ShapeUtils::shapeAsString(ct_1).c_str());
@@ -80,7 +80,7 @@ CUSTOM_OP_IMPL(lstmCell, 8, 2, false, 3, 2) {
     // calculations
     helpers::lstmCell(block.launchContext(), xt,ht_1,ct_1, Wx,Wh,Wc,Wp, b,   ht,ct,   {(double)peephole, (double)projection, clippingCellValue, clippingProjValue, forgetBias});
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(lstmCell) {
@@ -109,13 +109,13 @@ DECLARE_SHAPE_FN(lstmCell) {
     const auto numUnits = ct_1ShapeInfo[2];
 
     // input shapes validation
-    const std::vector<Nd4jLong> correctHt_1Shape = {bS, numProj};
-    const std::vector<Nd4jLong> correctCt_1Shape = {bS, numUnits};
-    const std::vector<Nd4jLong> correctWxShape   = {inSize, 4*numUnits};
-    const std::vector<Nd4jLong> correctWhShape   = {numProj, 4*numUnits};
-    const std::vector<Nd4jLong> correctWcShape   = {3*numUnits};
-    const std::vector<Nd4jLong> correctWpShape   = {numUnits, numProj};
-    const std::vector<Nd4jLong> correctBShape    = {4*numUnits};
+    const std::vector<sd::LongType> correctHt_1Shape = {bS, numProj};
+    const std::vector<sd::LongType> correctCt_1Shape = {bS, numUnits};
+    const std::vector<sd::LongType> correctWxShape   = {inSize, 4*numUnits};
+    const std::vector<sd::LongType> correctWhShape   = {numProj, 4*numUnits};
+    const std::vector<sd::LongType> correctWcShape   = {3*numUnits};
+    const std::vector<sd::LongType> correctWpShape   = {numUnits, numProj};
+    const std::vector<sd::LongType> correctBShape    = {4*numUnits};
 
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(ht_1ShapeInfo, correctHt_1Shape), 0, "LSTMCELL operation: wrong shape of initial cell output, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctHt_1Shape).c_str(), ShapeUtils::shapeAsString(ht_1ShapeInfo).c_str());
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(ct_1ShapeInfo, correctCt_1Shape), 0, "LSTMCELL operation: wrong shape of initial cell state,  expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctCt_1Shape).c_str(), ShapeUtils::shapeAsString(ct_1ShapeInfo).c_str());
@@ -126,9 +126,9 @@ DECLARE_SHAPE_FN(lstmCell) {
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(bShapeInfo, correctBShape),  0, "LSTMCELL operation: wrong shape of biases, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctBShape).c_str(), ShapeUtils::shapeAsString(bShapeInfo).c_str());
 
     // evaluate output shapeInfos
-    Nd4jLong *hShapeInfo(nullptr), *cShapeInfo(nullptr);
-    ALLOCATE(hShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);      // [bS x numProj]
-    ALLOCATE(cShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);      // [bS x numUnits]
+    sd::LongType *hShapeInfo(nullptr), *cShapeInfo(nullptr);
+    ALLOCATE(hShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);      // [bS x numProj]
+    ALLOCATE(cShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);      // [bS x numUnits]
 
     hShapeInfo[0] = cShapeInfo[0] = rank;
     hShapeInfo[1] = cShapeInfo[1] = bS;

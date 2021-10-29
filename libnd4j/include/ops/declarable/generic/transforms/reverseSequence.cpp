@@ -46,11 +46,11 @@ CUSTOM_OP_IMPL(reverse_sequence, 2, 1, false, 0, 2) {
     REQUIRE_TRUE(seqDim < input->rankOf(), 0, "REVERSE_SEQUENSE operation: input integer parameter seqDim must be smaller than input array rank, but got %i  and %i correspondingly !", seqDim, input->rankOf());
 
     auto maxElem = seqLengths->reduceNumber(reduce::Max);
-    REQUIRE_TRUE(maxElem.e<Nd4jLong>(0) <= input->sizeAt(seqDim), 0, "REVERSE_SEQUENSE operation: max element in seqLengths array must be not greater than value of seqDim dimension of input array !");
+    REQUIRE_TRUE(maxElem.e<sd::LongType>(0) <= input->sizeAt(seqDim), 0, "REVERSE_SEQUENSE operation: max element in seqLengths array must be not greater than value of seqDim dimension of input array !");
 
     helpers::reverseSequence(block.launchContext(), input, seqLengths, output, seqDim, batchDim);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(reverse_sequence) {
@@ -73,7 +73,7 @@ DECLARE_SHAPE_FN(reverse_sequence) {
     REQUIRE_TRUE(seqLenShapeInfo[0] == 1, 0, "REVERSE_SEQUENSE operation: input array seqLengths must be 1D vector, that is it must have rank == 1, but got %i instead !", seqLenShapeInfo[0]);
     REQUIRE_TRUE(seqLenShapeInfo[1] == inShapeInfo[batchDim+1], 0, "REVERSE_SEQUENSE custom operation: the length of array seqLengths must be equal to the value of batchDim dimension of input array, but got %i and %i correspondingly !", seqLenShapeInfo[1], inShapeInfo[batchDim+1]);
 
-    Nd4jLong* outShapeInfo = nullptr;
+    sd::LongType* outShapeInfo = nullptr;
     COPY_SHAPE(inShapeInfo, outShapeInfo);
 
     return SHAPELIST(CONSTANT(outShapeInfo));

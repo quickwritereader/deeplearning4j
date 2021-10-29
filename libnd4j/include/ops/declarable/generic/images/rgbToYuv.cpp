@@ -37,7 +37,7 @@ CONFIGURABLE_OP_IMPL(rgb_to_yuv, 1, 1, true, 0, 0) {
 
     // just skip op if input is empty
     if (input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     const int rank = input->rankOf();
     const int argSize = block.getIArguments()->size();
@@ -51,7 +51,7 @@ CONFIGURABLE_OP_IMPL(rgb_to_yuv, 1, 1, true, 0, 0) {
 
     helpers::transformRgbYuv(block.launchContext(), *input, *output, dimC);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(rgb_to_yuv) {

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <graph/GraphExecutioner.h>
@@ -41,7 +40,7 @@ TEST_F(ListOperationsTests, BasicTest_Write_1) {
 
     auto result = op.execute(&list, {&x}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_EQ(1, list.elements());
 
@@ -49,8 +48,7 @@ TEST_F(ListOperationsTests, BasicTest_Write_1) {
 
     ASSERT_EQ(2, list.elements());
 
-    
-    
+
 }
 
 TEST_F(ListOperationsTests, BasicTest_Stack_1) {
@@ -68,7 +66,7 @@ TEST_F(ListOperationsTests, BasicTest_Stack_1) {
 
     auto result = op.execute(&list, {}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printShapeInfo();
@@ -95,7 +93,7 @@ TEST_F(ListOperationsTests, BasicTest_UnStackList_1) {
 
     auto result = op.execute(&list, {&x}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     ASSERT_EQ(list.elements(), 10);
 
 //    auto z = result.at(0);
@@ -128,7 +126,7 @@ TEST_F(ListOperationsTests, BasicTest_UnStackList_1) {
 //
 //    auto result = op.execute(nullptr, {&x}, {}, {0});
 //
-//    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+//    ASSERT_EQ(sd::Status::OK, result.status());
 //    ASSERT_EQ(result->size(), 10);
 //
 //    //    auto z = result.at(0);
@@ -162,7 +160,7 @@ TEST_F(ListOperationsTests, BasicTest_Read_1) {
 
     auto result = op.execute(&list, {}, {}, {4});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -194,7 +192,7 @@ TEST_F(ListOperationsTests, BasicTest_Pick_1) {
     sd::ops::pick_list op;
     auto result = op.execute(&list, {}, {}, {1, 1, 3, 3});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -219,7 +217,7 @@ TEST_F(ListOperationsTests, BasicTest_Size_1) {
 
     auto result = op.execute(&list, {}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -237,7 +235,7 @@ TEST_F(ListOperationsTests, BasicTest_Create_1) {
 
     auto result = op.execute(nullptr, {&matrix}, {}, {1, 1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     // we return flow as well
     ASSERT_EQ(1, result.size());
@@ -285,7 +283,7 @@ TEST_F(ListOperationsTests, BasicTest_Split_1) {
 
     sd::ops::split_list op;
     auto result = op.execute(&list, {&matrix, &lengths}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_EQ(3, list.height());
 
@@ -321,7 +319,7 @@ TEST_F(ListOperationsTests, BasicTest_Scatter_1) {
     sd::ops::scatter_list op;
     auto result = op.execute(&list, {&indices, &matrix, &s}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     for (int e = 0; e < 10; e++) {
         auto row = tads.at(9 - e);
@@ -353,7 +351,7 @@ TEST_F(ListOperationsTests, BasicTest_Clone_1) {
 
     auto result = op.execute(&block);
 
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     auto resVar = variableSpace.getVariable(1);
 
@@ -387,7 +385,7 @@ TEST_F(ListOperationsTests, BasicTest_Gather_1) {
     sd::ops::gather_list op;
     auto result = op.execute(&list, {&indices}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     ASSERT_EQ(1, result.size());
 
     auto z = result.at(0);
@@ -509,7 +507,7 @@ TEST_F(ListOperationsTests, GraphTests_Sequential_1) {
     ASSERT_EQ(6, nodeG->getLayer());
 
     auto result = GraphExecutioner::execute(&graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(variableSpace->hasVariable(2));
     auto list = variableSpace->getVariable(2)->getNDArrayList();
@@ -642,7 +640,7 @@ TEST_F(ListOperationsTests, GraphTests_Sequential_2) {
 
 
     auto result = GraphExecutioner::execute(&graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(variableSpace->hasVariable(2));
     auto list = variableSpace->getVariable(2)->getNDArrayList();

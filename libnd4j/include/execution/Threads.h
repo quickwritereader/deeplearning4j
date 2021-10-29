@@ -21,15 +21,15 @@
  //
 #ifndef SAMEDIFF_THREADS_H
 #define SAMEDIFF_THREADS_H
-
 #include <functional>
-#include <system/openmp_pragmas.h>
+
+#include <system/common.h>
 #include <system/op_boilerplate.h>
 #include <system/Environment.h>
 #include <system/op_enums.h>
 
 namespace samediff {
-    class ND4J_EXPORT ThreadsHelper {
+    class SD_LIB_EXPORT ThreadsHelper {
     public:
         static int numberOfThreads(int maxThreads, uint64_t numberOfElements);
         static int numberOfThreads2d(int maxThreads, uint64_t iters_x, uint64_t iters_y);
@@ -38,7 +38,7 @@ namespace samediff {
         static int pickLoop3d(int numThreads, uint64_t iters_x, uint64_t iters_y, uint64_t iters_z);
     };
 
-    class ND4J_EXPORT Span {
+    class SD_LIB_EXPORT Span {
     private:
         int64_t _startX, _stopX, _incX;
     public:
@@ -52,7 +52,7 @@ namespace samediff {
         static Span build(uint64_t thread_id, uint64_t num_threads, int64_t start_x, int64_t stop_x, int64_t inc_x);
     };
 
-    class ND4J_EXPORT Span2 {
+    class SD_LIB_EXPORT Span2 {
     private:
         int64_t _startX, _stopX, _incX;
         int64_t _startY, _stopY, _incY;
@@ -72,7 +72,7 @@ namespace samediff {
         static Span2 build(int loop, uint64_t thread_id, uint64_t num_threads, int64_t start_x, int64_t stop_x, int64_t inc_x, int64_t start_y, int64_t stop_y, int64_t inc_y);
     };
 
-    class ND4J_EXPORT Span3 {
+    class SD_LIB_EXPORT Span3 {
     private:
         int64_t _startX, _stopX, _incX;
         int64_t _startY, _stopY, _incY;
@@ -96,7 +96,7 @@ namespace samediff {
         static Span3 build(int loop, uint64_t thread_id, uint64_t num_threads, int64_t start_x, int64_t stop_x, int64_t inc_x, int64_t start_y, int64_t stop_y, int64_t inc_y, int64_t start_z, int64_t stop_z, int64_t inc_z);
     };
 
-    class ND4J_EXPORT Threads {
+    class SD_LIB_EXPORT Threads {
 
         #ifdef _OPENMP
                     public:

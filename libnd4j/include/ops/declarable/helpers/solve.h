@@ -30,8 +30,9 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    int solveFunctor(sd::LaunchContext* context, NDArray* leftInput, NDArray* rightInput, bool adjoint, NDArray* output);
-    void adjointMatrix(sd::LaunchContext* context, NDArray const* input, NDArray* output);
+SD_LIB_HIDDEN sd::Status solveFunctor(sd::LaunchContext* context, NDArray* leftInput, NDArray* rightInput, bool adjoint, NDArray* output);
+SD_LIB_HIDDEN void adjointMatrix(sd::LaunchContext* context, NDArray const* input, NDArray* output);
+
 }
 }
 }

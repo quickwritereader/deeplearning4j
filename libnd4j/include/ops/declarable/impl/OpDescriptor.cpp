@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.10.2017.
 //
-
 #include <ops/declarable/OpDescriptor.h>
 
 namespace sd {
@@ -67,7 +66,7 @@ namespace sd {
             //
         }
 
-        void OpDescriptor::setHash(Nd4jLong hash) {
+        void OpDescriptor::setHash(sd::LongType hash) {
             _hash = hash;
         }
 
@@ -124,7 +123,7 @@ namespace sd {
             return _numInputs;
         }
 
-        Nd4jLong OpDescriptor::getHash() {
+        sd::LongType OpDescriptor::getHash() {
             return _hash;
         }
 

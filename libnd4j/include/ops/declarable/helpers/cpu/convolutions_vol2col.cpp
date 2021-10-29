@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.09.2018
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <execution/Threads.h>
 
@@ -43,19 +42,19 @@ static void vol2col_(const NDArray& volume, NDArray& columns, const int sD, cons
             const int oD = columns.sizeAt(5);
             const int oH = columns.sizeAt(6);
             const int oW = columns.sizeAt(7);
-            const Nd4jLong colStride0 = columns.stridesOf()[0];
-            const Nd4jLong colStride1 = columns.stridesOf()[1];
-            const Nd4jLong colStride2 = columns.stridesOf()[2];
-            const Nd4jLong colStride3 = columns.stridesOf()[3];
-            const Nd4jLong colStride4 = columns.stridesOf()[4];
-            const Nd4jLong colStride5 = columns.stridesOf()[5];
-            const Nd4jLong colStride6 = columns.stridesOf()[6];
-            const Nd4jLong colStride7 = columns.stridesOf()[7];
-            const Nd4jLong volStride0 = volume.stridesOf()[0];
-            const Nd4jLong volStride1 = volume.stridesOf()[1];
-            const Nd4jLong volStride2 = volume.stridesOf()[2];
-            const Nd4jLong volStride3 = volume.stridesOf()[3];
-            const Nd4jLong volStride4 = volume.stridesOf()[4];
+            const sd::LongType colStride0 = columns.stridesOf()[0];
+            const sd::LongType colStride1 = columns.stridesOf()[1];
+            const sd::LongType colStride2 = columns.stridesOf()[2];
+            const sd::LongType colStride3 = columns.stridesOf()[3];
+            const sd::LongType colStride4 = columns.stridesOf()[4];
+            const sd::LongType colStride5 = columns.stridesOf()[5];
+            const sd::LongType colStride6 = columns.stridesOf()[6];
+            const sd::LongType colStride7 = columns.stridesOf()[7];
+            const sd::LongType volStride0 = volume.stridesOf()[0];
+            const sd::LongType volStride1 = volume.stridesOf()[1];
+            const sd::LongType volStride2 = volume.stridesOf()[2];
+            const sd::LongType volStride3 = volume.stridesOf()[3];
+            const sd::LongType volStride4 = volume.stridesOf()[4];
 
             T* colBuff = columns.bufferAsT<T>();
             T* volBuff = const_cast<NDArray&>(volume).bufferAsT<T>();
@@ -141,8 +140,8 @@ static void vol2col_(const NDArray& volume, NDArray& columns, const int sD, cons
             }
         }
 
-ND4J_LOCAL void ConvolutionUtils::vol2col(sd::graph::Context& block, const NDArray& volume, NDArray& columns, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
-     BUILD_SINGLE_SELECTOR(volume.dataType(), vol2col_, (volume, columns, sD, sH, sW, pD, pH, pW, dD, dH, dW), FLOAT_TYPES);
+void ConvolutionUtils::vol2col(sd::graph::Context& block, const NDArray& volume, NDArray& columns, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+     BUILD_SINGLE_SELECTOR(volume.dataType(), vol2col_, (volume, columns, sD, sH, sW, pD, pH, pW, dD, dH, dW), SD_FLOAT_TYPES);
 }
 
 }

@@ -19,13 +19,12 @@
 //
 // Created by raver119 on 30.01.18.
 //
-
 #include <graph/execution/LogicMerge.h>
-#include <graph/Status.h>
+
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicMerge::processNode(Graph *graph, Node *node) {
+        sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
             // at merge node only one of inputs exist if that's just switch and other node isn't LogicNextItration
             auto __variableSpace = graph->getVariableSpace();
             auto __flowPath = __variableSpace->flowPath();
@@ -59,7 +58,7 @@ namespace sd {
 
                 bool hasVar = __variableSpace->hasVariable(inputAddr1);
                 if ( hasVar && __flowPath->wasExecuted(inputAddr1.first)) {
-                    nd4j_debug("Node_%i: propagating second input\n", node->id());
+                    sd_debug("Node_%i: propagating second input\n", node->id());
                     auto var = __variableSpace->getVariable(inputAddr1);
 
                     Variable *lvar = nullptr;
@@ -82,7 +81,7 @@ namespace sd {
 
 
                 } else {
-                    nd4j_debug("Node_%i: propagating first input\n", node->id());
+                    sd_debug("Node_%i: propagating first input\n", node->id());
                     auto var = __variableSpace->getVariable(inputAddr0);
 
                     Variable *lvar = nullptr;
@@ -130,7 +129,7 @@ namespace sd {
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
     }
 }

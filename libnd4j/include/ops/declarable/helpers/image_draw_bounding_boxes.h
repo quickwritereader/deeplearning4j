@@ -28,7 +28,7 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void drawBoundingBoxesFunctor(sd::LaunchContext * context, NDArray* images, NDArray* boxes, NDArray* colors, NDArray* output);
+SD_LIB_HIDDEN void drawBoundingBoxesFunctor(sd::LaunchContext * context, NDArray* images, NDArray* boxes, NDArray* colors, NDArray* output);
 
 }
 }

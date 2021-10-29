@@ -36,7 +36,7 @@ namespace sd {
             input->applyTransform(sd::transform::Cube, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(cube) {
@@ -53,7 +53,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::CUBEDerivativeE, epsilon, z, nullptr);
             helpers::cubeDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(cube_bp) {

@@ -25,12 +25,11 @@
 #ifndef SD_POINTERDEALLOCATOR_H_
 #define SD_POINTERDEALLOCATOR_H_
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+#include <system/common.h>
 
 namespace sd {
 
-class ND4J_EXPORT PointerDeallocator {
+class SD_LIB_EXPORT PointerDeallocator {
  public:
   PointerDeallocator() = default;
   ~PointerDeallocator() = default;

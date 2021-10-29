@@ -40,7 +40,7 @@ namespace ops {
 
         helpers::weightedCrossEntropyWithLogitsFunctor(block.launchContext(), targets, input, weights, output);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(weighted_cross_entropy_with_logits) {

@@ -20,12 +20,10 @@
 
  // Created by Abdelrauf (rauf@konduit.ai) 2020
 
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h> 
 #include <ops/declarable/helpers/convolutions.h>
-
 
 #include "armcomputeUtils.h"
 
@@ -34,8 +32,6 @@ namespace sd      {
 namespace ops       {
 namespace platforms {
 
-
- 
 
 //////////////////////////////////////////////////////////////////////
 PLATFORM_IMPL(conv2d, ENGINE_CPU) {
@@ -73,17 +69,17 @@ PLATFORM_IMPL(conv2d, ENGINE_CPU) {
     padBottom = (oH - 1) * sH - iH + kH - pH ; 
 
 
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CONV2D ARMCOMPUTE OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if (bias)
         REQUIRE_TRUE(bias->rankOf() <= 2 && oC == bias->lengthOf(), 0, "CONV2D ARMCOMPUTE OP: wrong shape of array with biases, expected rank, length: <=2, %i, but got %i, %i instead !", oC, bias->rankOf(), bias->lengthOf());
 
     //conv2dMKLDNN(input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat);
 #if 0
-        nd4j_printf("conv2d  bS = %d,  iH =%d, iW = %d,  oH=%d, oW=%d  kH=%d, kW=%d wformat=%d, iC =%d, , oC=%d\n",
+        sd_printf("conv2d  bS = %d,  iH =%d, iW = %d,  oH=%d, oW=%d  kH=%d, kW=%d wformat=%d, iC =%d, , oC=%d\n",
        bS, iH, iW, oH, oW, kH, kW, wFormat, iC, oC
      );
-        nd4j_printf("conv2d kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d \n" , kH , kW , sH , sW  , pH 
+        sd_printf("conv2d kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d \n" , kH , kW , sH , sW  , pH 
      , pW , dH , dW , paddingMode,isNCHW?1:0 );
 #endif
 
@@ -96,14 +92,14 @@ PLATFORM_IMPL(conv2d, ENGINE_CPU) {
         if (wFormat == 0) {
             if (isNCHW) {
 #if 0
-        nd4j_printf("perm choise %d\n",0);
+        sd_printf("perm choise %d\n",0);
 #endif                    
                 //reshape
                 permuteVector= arm_compute::PermutationVector(2U, 3U, 1U, 0U);
             }
             else {
 #if 0
-        nd4j_printf("perm choise %d\n",1);
+        sd_printf("perm choise %d\n",1);
 #endif                         
                 //reshape
                 permuteVector = arm_compute::PermutationVector(1U, 2U, 3U, 0U);
@@ -111,20 +107,20 @@ PLATFORM_IMPL(conv2d, ENGINE_CPU) {
         }
         else if (wFormat == 1) {
 #if 0
-        nd4j_printf("perm choise %d\n",2);
+        sd_printf("perm choise %d\n",2);
 #endif                     
             permuteVector = arm_compute::PermutationVector(2U, 0U, 1U, 3U);
         }
         else {
 #if 0
-        nd4j_printf("perm choise %d\n",3);
+        sd_printf("perm choise %d\n",3);
 #endif                     
             permuteVector = arm_compute::PermutationVector(1U, 2U, 0U, 3U);
         }
     }
     else {
 #if 0
-        nd4j_printf("perm choise %d\n",4);
+        sd_printf("perm choise %d\n",4);
 #endif                 
         //set 0
         permuteVector.set_num_dimensions(0);
@@ -136,7 +132,7 @@ PLATFORM_IMPL(conv2d, ENGINE_CPU) {
     ArmFunctionWeighted<arm_compute::NEConvolutionLayer> conv;
     conv.configure( input, weights, bias, output, dataLayout, permuteVector, pad, wInfo, dilation);   
     conv.run(); // run function
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 
@@ -162,7 +158,6 @@ PLATFORM_CHECK(conv2d, ENGINE_CPU) {
     req.logTheSuccess();
     return req;
 }
-
 
 
 }

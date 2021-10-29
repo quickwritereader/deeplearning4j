@@ -43,18 +43,18 @@ namespace sd {
 
             RandomLauncher::fillGaussian(block.launchContext(), rng, OUTPUT_VARIABLE(0), T_ARG(0), T_ARG(1));
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(random_normal) {
             auto in = INPUT_VARIABLE(0);
-            auto shape = in->template asVectorT<Nd4jLong>();
+            auto shape = in->template asVectorT<sd::LongType>();
 
             auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(block.dataType(), 'c', shape);
             return SHAPELIST(newShape);
         }
-		
-		DECLARE_SYN(randomnormal, random_normal);
+        
+        DECLARE_SYN(randomnormal, random_normal);
 
         DECLARE_TYPES(random_normal) {
             getOpDescriptor()

@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 27.11.2018
 //
-
 #include <loops/special_kernels.h>
 #include <ops/declarable/helpers/flatten.h>
 
@@ -28,17 +27,17 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
-__global__ void flattenKernel(
-                    Nd4jPointer *extraPointers,
+SD_KERNEL void flattenKernel(
+                    sd::Pointer *extraPointers,
                     int dOffset,
                     char order,
-                    void *vz, Nd4jLong *zShapeInfo,
-                    void *vy, Nd4jLong *yShapeInfo) {
+                    void *vz, sd::LongType *zShapeInfo,
+                    void *vy, sd::LongType *yShapeInfo) {
 
     auto z = reinterpret_cast<T*>(vz);
     auto y = reinterpret_cast<T*>(vy);
 
-    __shared__ Nd4jLong lenY, yOrder, zEWS, yEWS;
+    __shared__ sd::LongType lenY, yOrder, zEWS, yEWS;
 
     if (threadIdx.x == 0) {
 
@@ -48,7 +47,7 @@ __global__ void flattenKernel(
     }
     __syncthreads();
 
-    Nd4jLong tid = blockIdx.x * blockDim.x + threadIdx.x;
+    sd::LongType tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     for(auto i = tid; i < lenY; i += gridDim.x * blockDim.x)
         z[i * zEWS + dOffset] = y[ops::helpers::getIndexOffsetOrdered(i, yShapeInfo, order)];
@@ -56,18 +55,18 @@ __global__ void flattenKernel(
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
-__host__ void flattenKernelGeneric(dim3& launchDims, cudaStream_t *stream,
-                            Nd4jPointer *extraPointers,
+SD_HOST void flattenKernelGeneric(dim3& launchDims, cudaStream_t *stream,
+                            sd::Pointer *extraPointers,
                             int dOffset,
                             char order,
-                            void *vz, Nd4jLong *zShapeInfo,
-                            void *vy, Nd4jLong *yShapeInfo) {
+                            void *vz, sd::LongType *zShapeInfo,
+                            void *vy, sd::LongType *yShapeInfo) {
 
     flattenKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(extraPointers, dOffset, order, vz, zShapeInfo, vy, yShapeInfo);
     sd::DebugHelper::checkErrorCode(stream, "flattenGeneric(...) failed");
 }
 
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL flattenKernelGeneric, (dim3& launchDims, cudaStream_t *stream, Nd4jPointer *extraPointers, int dOffset, char order, void *vz, Nd4jLong *zShapeInfo, void *vy, Nd4jLong *yShapeInfo), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN flattenKernelGeneric, (dim3& launchDims, cudaStream_t *stream, sd::Pointer *extraPointers, int dOffset, char order, void *vz, sd::LongType *zShapeInfo, void *vy, sd::LongType *yShapeInfo), SD_COMMON_TYPES);
 
 
 }

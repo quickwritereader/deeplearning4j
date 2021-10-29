@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/threshold.h>
 #include <loops/type_conversions.h>
 #include <helpers/PointersManager.h>
@@ -28,12 +27,12 @@
 namespace sd {
     namespace ops {
         namespace helpers {
-            ND4J_LOCAL void prescanArrayRecursive(int** g_scanBlockSums, int *dZ, int *dX, int numElements, int level) {
+            void prescanArrayRecursive(int** g_scanBlockSums, int *dZ, int *dX, int numElements, int level) {
                 auto stream = LaunchContext::defaultContext()->getCudaStream();
 
 
                 int blockSize = 512; // max size of the thread blocks
-                int numBlocks = sd::math::nd4j_max<int>(1, static_cast<int>(ceil(static_cast<float>(numElements) / (2.f * blockSize))));
+                int numBlocks = sd::math::sd_max<int>(1, static_cast<int>(ceil(static_cast<float>(numElements) / (2.f * blockSize))));
                 int numThreads;
 
                 if (numBlocks > 1)
@@ -43,17 +42,16 @@ namespace sd {
                 else
                     numThreads = sd::floorPow2(numElements);
 
-                numThreads = sd::math::nd4j_max<int>(1, numThreads);
+                numThreads = sd::math::sd_max<int>(1, numThreads);
 
                 int numEltsPerBlock = numThreads * 2;
-
 
 
                 // if this is a non-power-of-2 array, the last block will be non-full
                 // compute the smallest power of 2 able to compute its scan.
                 int numEltsLastBlock =
                         numElements - (numBlocks-1) * numEltsPerBlock;
-                int numThreadsLastBlock = sd::math::nd4j_max<int>(1, numEltsLastBlock / 2);
+                int numThreadsLastBlock = sd::math::sd_max<int>(1, numEltsLastBlock / 2);
                 int np2LastBlock = 0;
                 int sharedMemLastBlock = 0;
 
@@ -73,7 +71,7 @@ namespace sd {
 
                 // setup execution parameters
                 // if NP2, we process the last block separately
-                dim3 grid(sd::math::nd4j_max<int>(1, numBlocks - np2LastBlock), 1, 1);
+                dim3 grid(sd::math::sd_max<int>(1, numBlocks - np2LastBlock), 1, 1);
                 dim3 threads(numThreads, 1, 1);
                 dim3 gridOnes(1, 1, 1);
                 dim3 threadsOnes(numThreadsLastBlock, 1, 1);
@@ -110,14 +108,14 @@ namespace sd {
                 }
             }
 
-            static void encodeThresholdP2Int_(void **prs, int *dx, Nd4jLong N, int *dz) {
+            static void encodeThresholdP2Int_(void **prs, int *dx, sd::LongType N, int *dz) {
                 auto stream = LaunchContext::defaultContext()->getCudaStream();
 
                 prescanArrayRecursive(reinterpret_cast<int**>(prs), dz, dx + 1, (int) N, 0);
                 sd::DebugHelper::checkErrorCode(stream, "encodeThresholdP2Int(...) failed");
             }
 
-            static void encodeThresholdP3_(void *dx, const Nd4jLong *hXShapeInfo, int *offsets, Nd4jLong N, int *dz){
+            static void encodeThresholdP3_(void *dx, const sd::LongType *hXShapeInfo, int *offsets, sd::LongType N, int *dz){
                 auto stream = LaunchContext::defaultContext()->getCudaStream();
 
                 int blockSize = 512;
@@ -125,7 +123,7 @@ namespace sd {
 
                 dim3 launchDims(numBlocks, blockSize, 8192);
                 auto xType = sd::ArrayOptions::dataType(hXShapeInfo);
-                BUILD_SINGLE_SELECTOR(xType, encoderKernelP3Generic, (launchDims, stream, dx, offsets, N, dz), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, encoderKernelP3Generic, (launchDims, stream, dx, offsets, N, dz), SD_FLOAT_TYPES);
 
                 sd::DebugHelper::checkErrorCode(stream, "encodeThresholdP3Float(...) failed");
             }
@@ -141,17 +139,17 @@ namespace sd {
                 auto xType = updates.dataType();
 
                 NDArray::prepareSpecialUse({&tmp}, {&updates});
-                BUILD_SINGLE_SELECTOR(xType, encoderKernelP1Generic, (launchDims, LaunchContext::defaultContext()->getCudaStream(), updates.specialBuffer(), updates.lengthOf(), tmp.specialBuffer(), threshold), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, encoderKernelP1Generic, (launchDims, LaunchContext::defaultContext()->getCudaStream(), updates.specialBuffer(), updates.lengthOf(), tmp.specialBuffer(), threshold), SD_FLOAT_TYPES);
                 NDArray::registerSpecialUse({&tmp}, {&updates});
 
                 return std::move(tmp);
             }
 
-            ND4J_LOCAL int32_t thresholdEstimate(const NDArray &updates, const float threshold) {
+            int32_t thresholdEstimate(const NDArray &updates, const float threshold) {
                 return thresholdEstimate_(updates, threshold).e<int>(0);
             }
 
-            ND4J_LOCAL void thresholdEncode(NDArray &updates, NDArray &encoded, float threshold) {
+            void thresholdEncode(NDArray &updates, NDArray &encoded, float threshold) {
                 // we need these blocks in order to know, how many "updates" will be processed by each GPU block
                 auto blocks = thresholdEstimate_(updates, threshold);
 
@@ -164,7 +162,7 @@ namespace sd {
 
                 // here we just calculate number of sumBlock arrays
                 do {
-                    int numPrefixBlocks = sd::math::nd4j_max<int>(1, sd::math::nd4j_ceil<float, int>((float) numElts / (2.0f * prefixThreads)));
+                    int numPrefixBlocks = sd::math::sd_max<int>(1, sd::math::sd_ceil<float, int>((float) numElts / (2.0f * prefixThreads)));
                     if (numPrefixBlocks > 1) {
                         level++;
                     }
@@ -173,13 +171,13 @@ namespace sd {
 
 
                 std::vector<NDArray> tempArrays(level);
-                std::vector<Nd4jPointer> pointers(level);
+                std::vector<sd::Pointer> pointers(level);
 
                 level = 0;
                 numElts = numBlocks;
 
                 do {
-                    int numPrefixBlocks = sd::math::nd4j_max<int>(1, sd::math::nd4j_ceil<float, int>((float) numElts / (2.0f * prefixThreads)));
+                    int numPrefixBlocks = sd::math::sd_max<int>(1, sd::math::sd_ceil<float, int>((float) numElts / (2.0f * prefixThreads)));
                     if (numPrefixBlocks > 1) {
                         tempArrays[level] = std::move(NDArrayFactory::create<int>('c', {numPrefixBlocks}));
                         pointers[level] = tempArrays[level].specialBuffer();;
@@ -221,12 +219,12 @@ namespace sd {
                 NDArray::registerSpecialUse({&encoded, &updates}, {});
             }
 
-            ND4J_LOCAL void thresholdDecode(const NDArray &encoded, NDArray &updates) {
+            void thresholdDecode(const NDArray &encoded, NDArray &updates) {
                 dim3 launchDims(128, 512, 512);
                 auto xType = updates.dataType();
 
                 NDArray::prepareSpecialUse({&updates}, {&encoded});
-                BUILD_SINGLE_SELECTOR(xType, decoderKernelGeneric, (launchDims, LaunchContext::defaultContext()->getCudaStream(), encoded.specialBuffer(), updates.lengthOf(), updates.specialBuffer()), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, decoderKernelGeneric, (launchDims, LaunchContext::defaultContext()->getCudaStream(), encoded.specialBuffer(), updates.lengthOf(), updates.specialBuffer()), SD_FLOAT_TYPES);
                 NDArray::registerSpecialUse({&updates}, {&encoded});
             }
         }

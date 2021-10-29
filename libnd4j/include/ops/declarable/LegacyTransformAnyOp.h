@@ -23,7 +23,6 @@
 #ifndef LIBND4J__LEGACY_TRANSFORM_ANY_OP__H
 #define LIBND4J__LEGACY_TRANSFORM_ANY_OP__H
 
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -31,9 +30,9 @@ namespace sd {
         /**
         *   This class provides wrapper for Transform operations (i.e. Pow or OneMinus)
         */
-        class ND4J_EXPORT LegacyTransformAnyOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyTransformAnyOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context &block) override;
+            sd::Status validateAndExecute(Context &block) override;
         public:
             LegacyTransformAnyOp();
             LegacyTransformAnyOp(int opNum);

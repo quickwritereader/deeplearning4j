@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <execution/LaunchContext.h>
 #include <helpers/logger.h>
 #include <exceptions/cuda_exception.h>
@@ -33,18 +32,18 @@ namespace sd {
 
     std::vector<std::shared_ptr<LaunchContext>> LaunchContext::_contexts = std::vector<std::shared_ptr<LaunchContext>>();
     std::mutex LaunchContext::_mutex;
-    MAP_IMPL<int, std::mutex*> LaunchContext::_deviceMutexes;
+    SD_MAP_IMPL<int, std::mutex*> LaunchContext::_deviceMutexes;
 
 ////////////////////////////////////////////////////////////////////////
 LaunchContext::LaunchContext(cudaStream_t *cudaStream, cudaStream_t& specialCudaStream, void* reductionPointer, void* scalarPointer, int* allocationPointer)  {
 
-	//_cudaStream 	   = cudaStream;
-	//_cudaSpecialStream = &specialCudaStream; // ideal is = new cudaStream_t; *_cudaSpecialStream = specialCudaStream;
-	//_reductionPointer  = reductionPointer;
-	//_scalarPointer     = scalarPointer;
-	//_allocationPointer = allocationPointer;
-	_workspace = nullptr;
-	_isAllocated = false;
+    //_cudaStream        = cudaStream;
+    //_cudaSpecialStream = &specialCudaStream; // ideal is = new cudaStream_t; *_cudaSpecialStream = specialCudaStream;
+    //_reductionPointer  = reductionPointer;
+    //_scalarPointer     = scalarPointer;
+    //_allocationPointer = allocationPointer;
+    _workspace = nullptr;
+    _isAllocated = false;
 }
 
     std::mutex* LaunchContext::deviceMutex() {
@@ -67,7 +66,7 @@ LaunchContext::LaunchContext() {
     _isAllocated = true;
 }
 
-    LaunchContext::LaunchContext(Nd4jPointer cudaStream, Nd4jPointer reductionPointer, Nd4jPointer scalarPointer, Nd4jPointer allocationPointer) {
+    LaunchContext::LaunchContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer scalarPointer, sd::Pointer allocationPointer) {
         _isAllocated = false;
         //_cudaStream = reinterpret_cast<cudaStream_t*>(cudaStream);
        // _cudaSpecialStream = reinterpret_cast<cudaStream_t*>(cudaStream);
@@ -169,7 +168,7 @@ LaunchContext::LaunchContext() {
     };
 
     void LaunchContext::releaseBuffers() {
-        //nd4j_printf("LaunchContext::releaseBuffers() was invoked\n", "");
+        //sd_printf("LaunchContext::releaseBuffers() was invoked\n", "");
         contextBuffers.release();
     }
 

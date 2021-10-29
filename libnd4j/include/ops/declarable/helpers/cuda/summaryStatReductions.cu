@@ -18,7 +18,6 @@
 //
 // @author AbdelRauf (rauf@konduit.ai)
 //
-
 #include <system/op_enums.h>
 #include <ops/declarable/helpers/reductions.h>
 #include <legacy/NativeOpExecutioner.h>
@@ -29,7 +28,7 @@ namespace sd {
         namespace helpers {
 
             //////////////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void  variance(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+            void  variance(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
 
                 // informs and prepares (syncs) specialBuffer of which NDArrays will be used as read, write. 
                 NDArray::prepareSpecialUse({ &output }, { &input });
@@ -50,7 +49,7 @@ namespace sd {
             }
 
             //////////////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void  standardDeviation(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+            void  standardDeviation(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
                 // informs and prepares (syncs) of which NDArrays will be used as read, write
                 NDArray::prepareSpecialUse({ &output }, { &input });
                 if (output.isScalar()) {

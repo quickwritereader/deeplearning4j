@@ -35,7 +35,7 @@ namespace sd {
             input->applyTransform(sd::transform::RectifiedTanh, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rectifiedtanh) {
@@ -52,7 +52,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::RectifiedTanhDerivativeE, epsilon, z, nullptr);
             helpers::rectifiedTanhDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rectifiedtanh_bp) {

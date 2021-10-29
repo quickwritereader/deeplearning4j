@@ -46,11 +46,11 @@ namespace sd {
 
             // if there's no updates to process - just skip execution
             if (encoded->lengthOf() == 4)
-                return Status::OK();
+                return sd::Status::OK;
 
             helpers::thresholdEncode(*x, *encoded, threshold);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(encode_threshold) {
@@ -63,7 +63,7 @@ namespace sd {
             REQUIRE_TRUE(x->lengthOf() <= DataTypeUtils::max<int>(), 0, "encode_threshold: gradients array must have length <= MAX_INT");
 
             // we must calculate number of elements that >= threshold
-            auto elements = sd::math::nd4j_min<int>(helpers::thresholdEstimate(*x, threshold), boundary);
+            auto elements = sd::math::sd_min<int>(helpers::thresholdEstimate(*x, threshold), boundary);
             if (elements < 2)
                 elements = 0;
 
@@ -89,7 +89,7 @@ namespace sd {
 
             helpers::thresholdDecode(*encoded, *updates);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(decode_threshold) {

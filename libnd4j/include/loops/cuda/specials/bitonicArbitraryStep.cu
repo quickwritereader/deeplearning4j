@@ -20,19 +20,18 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 28.11.2018
 //
-
 #include <ops/specials_cuda.h>
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
-__global__ void bitonicArbitraryStepKernelKey(void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int window, int length,  int reverse, bool descending) {
+SD_KERNEL void bitonicArbitraryStepKernelKey(void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int window, int length,  int reverse, bool descending) {
     auto x = static_cast<X*>(vx);
     auto y = static_cast<Y*>(vy);
 
     int tid = threadIdx.x + blockDim.x * blockIdx.x;
     int half = window>>1;
 
-    __shared__ Nd4jLong xLength;
+    __shared__ sd::LongType xLength;
     if (threadIdx.x == 0) {
         xLength = shape::length(xShapeInfo);
     }
@@ -103,14 +102,14 @@ __global__ void bitonicArbitraryStepKernelKey(void *vx, Nd4jLong const* xShapeIn
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ void execBitonicArbitraryStepKernel(void *vx, Nd4jLong const* xShapeInfo, int window, int length,  int reverse, bool descending) {
+SD_KERNEL void execBitonicArbitraryStepKernel(void *vx, sd::LongType const* xShapeInfo, int window, int length,  int reverse, bool descending) {
     auto x = static_cast<T*>(vx);
 
     int tid = threadIdx.x + blockDim.x * blockIdx.x;
     int half = window>>1;
 
     __shared__ T *shmem;
-    __shared__ Nd4jLong xLength;
+    __shared__ sd::LongType xLength;
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shrd[];
         shmem = (T *) shrd;
@@ -179,14 +178,14 @@ __global__ void execBitonicArbitraryStepKernel(void *vx, Nd4jLong const* xShapeI
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void bitonicArbitraryStepGeneric(dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, int window, int length,  int reverse, bool descending) {
+SD_HOST void bitonicArbitraryStepGeneric(dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, int window, int length,  int reverse, bool descending) {
     execBitonicArbitraryStepKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, window, length, reverse, descending);
 }
 
 template <typename X, typename Y>
-__host__ void bitonicArbitraryStepGenericKey(dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int window, int length,  int reverse, bool descending) {
+SD_HOST void bitonicArbitraryStepGenericKey(dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int window, int length,  int reverse, bool descending) {
     bitonicArbitraryStepKernelKey<X,Y><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, window, length, reverse, descending);
 }
 
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL bitonicArbitraryStepGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, int window, int length,  int reverse, bool descending), LIBND4J_TYPES);
-BUILD_DOUBLE_TEMPLATE(template void ND4J_LOCAL bitonicArbitraryStepGenericKey, (dim3 &launchDims, cudaStream_t *stream, void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int window, int length,  int reverse, bool descending), LIBND4J_TYPES, LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN bitonicArbitraryStepGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, int window, int length,  int reverse, bool descending), SD_COMMON_TYPES);
+BUILD_DOUBLE_TEMPLATE(template void SD_LIB_HIDDEN bitonicArbitraryStepGenericKey, (dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int window, int length,  int reverse, bool descending), SD_COMMON_TYPES, SD_COMMON_TYPES);

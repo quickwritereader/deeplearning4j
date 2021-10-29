@@ -25,7 +25,7 @@
 
 #ifndef SCALAR_INT_H_
 #define SCALAR_INT_H_
-#include <system/dll.h>
+
 
 #ifdef __JNI__
 #include <jni.h>
@@ -42,8 +42,7 @@
 #include <cuda_runtime.h>
 #include <types/float16.h>
 #endif
-
-#include "legacy_ops.h"
+#include <loops/legacy_ops.h>
 
 namespace functions {
     namespace scalar {
@@ -59,107 +58,105 @@ namespace functions {
 #ifdef __CUDACC__
                         
             template<typename OpType>
-            __device__
+            SD_DEVICE
             static void transformCuda(const void* scalar,
-                                      const void *vy, const Nd4jLong *shapeInfo,
+                                      const void *vy, const sd::LongType *shapeInfo,
                                       void *vparams,
-                                      void *vresult, const Nd4jLong *resultShapeInfo,
+                                      void *vresult, const sd::LongType *resultShapeInfo,
                                       int *allocationBuffer);
             
             template<typename OpType>
-            __device__
-            static void transformCuda(Nd4jLong n,
-                                      const void* vx, const void *vy, Nd4jLong yEWS,
+            SD_DEVICE
+            static void transformCuda(sd::LongType n,
+                                      const void* vx, const void *vy, sd::LongType yEWS,
                                       void *vparams,
-                                      void *vz, Nd4jLong zEWS,
+                                      void *vz, sd::LongType zEWS,
                                       int *allocationBuffer);
 
             template<typename OpType>
-            __device__
-            static void transformCuda(const void *vx, const Nd4jLong *xShapeInfo,
+            SD_DEVICE
+            static void transformCuda(const void *vx, const sd::LongType *xShapeInfo,
                                       void *vextraParams,
-                                      void *vz, const Nd4jLong *zShapeInfo,
+                                      void *vz, const sd::LongType *zShapeInfo,
                                       const void *vscalars,
                                       int *dimension, int dimensionLength,
-                                      const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets,
-                                      const Nd4jLong *tadShapeInfoZ, const Nd4jLong *tadOffsetsZ);
+                                      const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets,
+                                      const sd::LongType *tadShapeInfoZ, const sd::LongType *tadOffsetsZ);
 
             template <typename OpType>
-            __host__
+            SD_HOST
             static void intermediateAlongDimension(dim3& launchDims, cudaStream_t *stream,
-                                                   const void *x, const Nd4jLong *xShapeInfo,
-                                                   void *z, const Nd4jLong *zShapeInfo,
+                                                   const void *x, const sd::LongType *xShapeInfo,
+                                                   void *z, const sd::LongType *zShapeInfo,
                                                    const void *scalars,
                                                    void *extraParams,
                                                    int *dimension, int dimensionLength,
-                                                   const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets,
-                                                   const Nd4jLong *tadShapeInfoZ, const Nd4jLong *tadOffsetsZ);
+                                                   const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets,
+                                                   const sd::LongType *tadShapeInfoZ, const sd::LongType *tadOffsetsZ);
 
             template <typename OpType>
-            __host__
+            SD_HOST
             static void intermediateShaped(dim3& launchDims, cudaStream_t *stream,
-                                           const void *vx, const Nd4jLong *xShapeInfo,
-                                           void *vz, const Nd4jLong *zShapeInfo,
+                                           const void *vx, const sd::LongType *xShapeInfo,
+                                           void *vz, const sd::LongType *zShapeInfo,
                                            const void* vscalar,
                                            void *vextraParams,
                                            int *allocPointer);
             
-            __host__
+            SD_HOST
             static void executeCudaShaped(dim3& launchDims, cudaStream_t *stream,
                                           int opNum,
-                                          const void *x, const Nd4jLong *xShapeInfo,
-                                          void *result, const Nd4jLong *resultShapeInfo,
+                                          const void *x, const sd::LongType *xShapeInfo,
+                                          void *result, const sd::LongType *resultShapeInfo,
                                           const void* scalar,
                                           void *extraParams);
 
-            __host__
+            SD_HOST
             static void executeCudaAlongDimension(dim3& launchDims, cudaStream_t *stream,
                                                   int opNum,
-                                                  const void *x, const Nd4jLong *xShapeInfo,
-                                                  void *z, const Nd4jLong *zShapeInfo,
+                                                  const void *x, const sd::LongType *xShapeInfo,
+                                                  void *z, const sd::LongType *zShapeInfo,
                                                   const void *scalars,
                                                   void *extraParams,
                                                   int *dimension, int dimensionLength,
-                                                  const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets,
-                                                  const Nd4jLong *tadShapeInfoZ, const Nd4jLong *tadOffsetsZ);
+                                                  const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets,
+                                                  const sd::LongType *tadShapeInfoZ, const sd::LongType *tadOffsetsZ);
 
 #else
             template <typename OpType>
-            static void transform(const void *x, const Nd4jLong *xShapeInfo,
+            static void transform(const void *x, const sd::LongType *xShapeInfo,
                                   void *extraParams,
-                                  void *z, const Nd4jLong *zShapeInfo,
+                                  void *z, const sd::LongType *zShapeInfo,
                                   const void *scalars,
                                   int *dimension, int dimensionLength,
-                                  const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets,
-                                  const Nd4jLong *tadShapeInfoZ, const Nd4jLong *tadOffsetsZ,
+                                  const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets,
+                                  const sd::LongType *tadShapeInfoZ, const sd::LongType *tadOffsetsZ,
                                   uint64_t start, uint64_t stop);
  
            static void transform(int opNum,
-                                 const void *x, const Nd4jLong *xShapeInfo,
+                                 const void *x, const sd::LongType *xShapeInfo,
                                  void *extraParams,
-                                 void *z, const Nd4jLong *zShapeInfo,
+                                 void *z, const sd::LongType *zShapeInfo,
                                  const void *scalars,
                                  int *dimension, int dimensionLength,
-                                 const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets,
-                                 const Nd4jLong *tadShapeInfoZ, const Nd4jLong *tadOffsetsZ,
+                                 const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets,
+                                 const sd::LongType *tadShapeInfoZ, const sd::LongType *tadOffsetsZ,
                                  uint64_t start, uint64_t stop);
 
             static void transform(int opNum,
-                                  const void *x, const Nd4jLong *xShapeInfo,
-                                  void *result, const Nd4jLong *resultShapeInfo,
+                                  const void *x, const sd::LongType *xShapeInfo,
+                                  void *result, const sd::LongType *resultShapeInfo,
                                   const void *scalar,
                                   void *extraParams,
                                   uint64_t start,
                                   uint64_t stop);
 
             static void transform(int opNum,
-                                  const void *x, Nd4jLong xStride,
-                                  void *result, Nd4jLong resultStride,
+                                  const void *x, sd::LongType xStride,
+                                  void *result, sd::LongType resultStride,
                                   const void *scalar,
                                   void *extraParams,
                                   uint64_t n, uint64_t start, uint64_t stop);
-
-
 
 
             /*
@@ -180,8 +177,8 @@ namespace functions {
          */
 
             template<typename OpType>
-            static  void transform(const void *x, const Nd4jLong *xShapeInfo,
-                                   void *result, const Nd4jLong *resultShapeInfo,
+            static  void transform(const void *x, const sd::LongType *xShapeInfo,
+                                   void *result, const sd::LongType *resultShapeInfo,
                                    const void *scalar,
                                    void *extraParams,
                                    uint64_t start, uint64_t stop);
@@ -200,8 +197,8 @@ namespace functions {
              */
 
             template<typename OpType>
-            static void transform(const void *x, Nd4jLong xStride,
-                                  void *result, Nd4jLong resultStride,
+            static void transform(const void *x, sd::LongType xStride,
+                                  void *result, sd::LongType resultStride,
                                   const void *scalar,
                                   void *extraParams,
                                   uint64_t n, uint64_t start, uint64_t stop);

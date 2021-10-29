@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <helpers/ShapeUtils.h>
@@ -37,10 +36,10 @@ namespace sd {
 ///////////////////////////////////////////////////////////////////
 // x - input, y - paddings, z - output
             template<typename X, typename Y>
-            __global__ static void padCuda(const int mode,
-                                           const void *vx, const Nd4jLong *xShapeInfo,
-                                           const void *vy, const Nd4jLong *yShapeInfo,
-                                           void *vz, const Nd4jLong *zShapeInfo,
+            SD_KERNEL static void padCuda(const int mode,
+                                           const void *vx, const sd::LongType *xShapeInfo,
+                                           const void *vy, const sd::LongType *yShapeInfo,
+                                           void *vz, const sd::LongType *zShapeInfo,
                                            const void *vPadVal) {
 
                 const X padVal = *reinterpret_cast<const X*>(vPadVal);
@@ -50,15 +49,15 @@ namespace sd {
                 auto z = reinterpret_cast<X*>(vz);
 
                 __shared__ int rank, rankMinusOne;
-                __shared__ Nd4jLong zLen, totalThreads, *coords, *xShape, *zShape, shift1, shift2, yStride0;
+                __shared__ sd::LongType zLen, totalThreads, *coords, *xShape, *zShape, shift1, shift2, yStride0;
 
                 if (threadIdx.x == 0) {
                     extern __shared__ unsigned char shmem[];
-                    coords    = reinterpret_cast<Nd4jLong*>(shmem);
+                    coords    = reinterpret_cast<sd::LongType*>(shmem);
                     zLen     = shape::length(zShapeInfo);
-                    xShape   = shape::shapeOf(const_cast<Nd4jLong*>(xShapeInfo));
-                    zShape   = shape::shapeOf(const_cast<Nd4jLong*>(zShapeInfo));
-                    yStride0 = shape::stride(const_cast<Nd4jLong*>(yShapeInfo))[0];
+                    xShape   = shape::shapeOf(const_cast<sd::LongType*>(xShapeInfo));
+                    zShape   = shape::shapeOf(const_cast<sd::LongType*>(zShapeInfo));
+                    yStride0 = shape::stride(const_cast<sd::LongType*>(yShapeInfo))[0];
                     rank     = shape::rank(xShapeInfo);
                     zLen     = shape::length(zShapeInfo);
                     rankMinusOne = rank - 1;
@@ -75,7 +74,7 @@ namespace sd {
 
                 if(mode == 0) { // CONSTANT case
 
-                    for (Nd4jLong i = tid; i < zLen; i += totalThreads) {
+                    for (sd::LongType i = tid; i < zLen; i += totalThreads) {
 
                         shape::index2coords(i, zShapeInfo, xzCoord);
                         const auto zOffset = shape::getOffset(zShapeInfo, xzCoord);
@@ -96,7 +95,7 @@ namespace sd {
                 }
                 else {  // REFLECT and SYMMETRIC cases
 
-                    for (Nd4jLong i = tid; i < zLen; i += totalThreads) {
+                    for (sd::LongType i = tid; i < zLen; i += totalThreads) {
 
                         shape::index2coords(i, zShapeInfo, xzCoord);
                         const auto zOffset = shape::getOffset(zShapeInfo, xzCoord);
@@ -119,29 +118,29 @@ namespace sd {
             template<typename X, typename Y>
             static void padCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
                                         const int mode,
-                                        const void *vx, const Nd4jLong *xShapeInfo,
-                                        const void *vy, const Nd4jLong *yShapeInfo,
-                                        void *vz, const Nd4jLong *zShapeInfo,
+                                        const void *vx, const sd::LongType *xShapeInfo,
+                                        const void *vy, const sd::LongType *yShapeInfo,
+                                        void *vz, const sd::LongType *zShapeInfo,
                                         const void* padVal) {
 
                 padCuda<X,Y><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(mode, vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, padVal);
             }
 
 ///////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void pad(sd::LaunchContext * context, const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, const NDArray& padValue) {
+            void pad(sd::LaunchContext * context, const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, const NDArray& padValue) {
 
                 PointersManager manager(context, "pad");
 
                 NDArray::prepareSpecialUse({&output}, {&input, &paddings, &padValue});
 
-                const int threadsPerBlock = MAX_NUM_THREADS / 4;
+                const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
                 const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
                 const int sharedMem = 8 * threadsPerBlock * output.rankOf() + 128;
 
                 const auto xType = input.dataType();
                 const auto yType = paddings.dataType();
 
-                BUILD_DOUBLE_SELECTOR(xType, yType, padCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), mode, input.specialBuffer(), input.specialShapeInfo(), paddings.specialBuffer(), paddings.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), padValue.specialBuffer()), LIBND4J_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(xType, yType, padCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), mode, input.specialBuffer(), input.specialShapeInfo(), paddings.specialBuffer(), paddings.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), padValue.specialBuffer()), SD_COMMON_TYPES, SD_INDEXING_TYPES);
 
                 NDArray::registerSpecialUse({&output}, {&input, &paddings, &padValue});
                 manager.synchronize();
@@ -150,7 +149,7 @@ namespace sd {
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             template <typename T>
-            static __global__ void mirrorPadLinearKernel(void const* vx, const Nd4jLong* xShape, void* vz, const Nd4jLong* zShape, Nd4jLong leftSide, Nd4jLong leftSideCorrected, Nd4jLong xLen, Nd4jLong len, Nd4jLong zLen) {
+            static SD_KERNEL void mirrorPadLinearKernel(void const* vx, const sd::LongType* xShape, void* vz, const sd::LongType* zShape, sd::LongType leftSide, sd::LongType leftSideCorrected, sd::LongType xLen, sd::LongType len, sd::LongType zLen) {
 
                 __shared__ T const* x;
                 __shared__ T* z;
@@ -180,16 +179,16 @@ namespace sd {
             }
 
             template <typename F, typename I>
-            static __global__ void mirrorPadKernel(void const* vx, const Nd4jLong* xShape, void* vz, const Nd4jLong* zShape, Nd4jLong outLen, void const* paddings, const Nd4jLong* paddingShape, int reflBorder) {
+            static SD_KERNEL void mirrorPadKernel(void const* vx, const sd::LongType* xShape, void* vz, const sd::LongType* zShape, sd::LongType outLen, void const* paddings, const sd::LongType* paddingShape, int reflBorder) {
 
                 __shared__ F const* x;
                 __shared__ I const* pads;
                 __shared__ F* z;
-                __shared__ Nd4jLong zRank, rank;
-                __shared__ Nd4jLong* xIdx;
+                __shared__ sd::LongType zRank, rank;
+                __shared__ sd::LongType* xIdx;
                 if (threadIdx.x == 0) {
                     extern __shared__ unsigned char shmem[];
-                    xIdx    = reinterpret_cast<Nd4jLong*>(shmem);
+                    xIdx    = reinterpret_cast<sd::LongType*>(shmem);
                     rank = shape::rank(xShape);
 
                     x = reinterpret_cast<F const*>(vx);//
@@ -200,7 +199,7 @@ namespace sd {
                 auto start = threadIdx.x + blockIdx.x * blockDim.x;
                 auto step = blockDim.x * gridDim.x;
 
-                for(Nd4jLong i = start; i < outLen; i+= step) {
+                for(sd::LongType i = start; i < outLen; i+= step) {
                     auto xzCoord = xIdx + threadIdx.x * rank;
                     //auto zxCoord = xIdx + (threadIdx.x + threadIdx.x % 2 + 1) * rank;
 
@@ -209,12 +208,12 @@ namespace sd {
 //                auto intStep = blockDim.y * gridDim.y;
                     for(int j = 0; j < rank; j++) {
 
-                        const Nd4jLong inLen         = shape::sizeAt(xShape, j);
-                        Nd4jLong coords[2] = {j, 0};
+                        const sd::LongType inLen         = shape::sizeAt(xShape, j);
+                        sd::LongType coords[2] = {j, 0};
                         auto padOffset = shape::getOffset(paddingShape, coords); // padding already has rank 2
                         const auto leftSide          = pads[padOffset];
                         const auto leftSideCorrected = leftSide - reflBorder;
-                        const Nd4jLong len           = 2 * (inLen - 1) + leftSide + reflBorder;
+                        const sd::LongType len           = 2 * (inLen - 1) + leftSide + reflBorder;
 
                         if(xzCoord[j] < leftSide)                                        // left side
                             xzCoord[j] = leftSideCorrected - xzCoord[j];
@@ -238,25 +237,25 @@ namespace sd {
                 // mode:  0 - REFLECT, else - SYMMETRIC
                 const int reflBorder = (bool)mode ? 1 : 0;
                 const int rank        = input.rankOf();
-                const Nd4jLong outLen = output.lengthOf();
+                const sd::LongType outLen = output.lengthOf();
                 auto stream = context->getCudaStream();
                 NDArray::prepareSpecialUse({&output}, {&input, &paddings});
 
                 if(rank <= 1) {
 
-                    const Nd4jLong inLen         = input.lengthOf();
-                    const auto leftSide          = paddings.e<Nd4jLong>(0);
+                    const sd::LongType inLen         = input.lengthOf();
+                    const auto leftSide          = paddings.e<sd::LongType>(0);
                     const auto leftSideCorrected = leftSide - reflBorder;
-                    const Nd4jLong len           = 2*(inLen-1) + leftSide + reflBorder;
+                    const sd::LongType len           = 2*(inLen-1) + leftSide + reflBorder;
 
                     mirrorPadLinearKernel<F><<<256, 512, 256, *stream>>>(input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), leftSide, leftSideCorrected, inLen, len, outLen);
                     sd::DebugHelper::checkErrorCode(stream, "helpers::mirrorPadLinearKernel(...) failed");
                 }
                 else {
 
-                    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+                    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
                     const int blocksPerGrid = (outLen + threadsPerBlock - 1) / threadsPerBlock;
-                    const int sharedMem = threadsPerBlock * sizeof(Nd4jLong) * input.rankOf() + 256;
+                    const int sharedMem = threadsPerBlock * sizeof(sd::LongType) * input.rankOf() + 256;
 
                     mirrorPadKernel<F, I><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), outLen, paddings.specialBuffer(), paddings.specialShapeInfo(), reflBorder);
                     sd::DebugHelper::checkErrorCode(stream, "helpers::mirrorPadKernel(...) failed");
@@ -264,8 +263,8 @@ namespace sd {
                 NDArray::registerSpecialUse({&output}, {&input, &paddings});
             }
 
-            ND4J_LOCAL void mirrorPad(sd::LaunchContext * context, const NDArray& input, const NDArray& paddings, NDArray& output, const int mode) {
-                BUILD_DOUBLE_SELECTOR(input.dataType(), paddings.dataType(), mirrorPad_, (context, input, paddings, output, mode), LIBND4J_TYPES, INDEXING_TYPES);
+            void mirrorPad(sd::LaunchContext * context, const NDArray& input, const NDArray& paddings, NDArray& output, const int mode) {
+                BUILD_DOUBLE_SELECTOR(input.dataType(), paddings.dataType(), mirrorPad_, (context, input, paddings, output, mode), SD_COMMON_TYPES, SD_INDEXING_TYPES);
             }
 
 

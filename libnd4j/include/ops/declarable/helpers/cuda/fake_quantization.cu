@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/fake_quantization.h>
 #include <array/NDArrayFactory.h>
 
@@ -36,7 +35,7 @@ namespace helpers {
 // output - output tensor
 //
     template <typename T>
-    static __host__ __device__ void
+    static SD_HOST_DEVICE void
     nudge(T min, T max, int quantMin, int quantMax, T* scale, T* nudgedMin, T* nudgedMax) {
         T quantMaxF = static_cast<T>(quantMax);
         T quantMinF = static_cast<T>(quantMin);
@@ -49,7 +48,7 @@ namespace helpers {
             if (zeroPointFromMin > quantMaxF) {
                 return static_cast<uint16_t>(quantMax);
             }
-            return sd::math::nd4j_round<T,uint16_t>(zeroPointFromMin);
+            return sd::math::sd_round<T,uint16_t>(zeroPointFromMin);
         }();
         *nudgedMax = (quantMaxF - static_cast<T>(nudgedZeroPoint)) * (*scale);
         *nudgedMin = (quantMinF - static_cast<T>(nudgedZeroPoint)) * (*scale);
@@ -74,18 +73,18 @@ namespace helpers {
             }
             else
                 val = x;
-            return (math::nd4j_floor<T,T>((val - nudgedMin) / scale + T(0.5)) * scale + nudgedMin);
+            return (math::sd_floor<T,T>((val - nudgedMin) / scale + T(0.5)) * scale + nudgedMin);
         };
 
         input->applyLambda(wiseMinMaxAndSoOn, *output);
     }
 
     template <typename T>
-    static __global__ void fakeQuantWithMinMaxKernel(const T* input, const Nd4jLong* inputShape,
+    static SD_KERNEL void fakeQuantWithMinMaxKernel(const T* input, const sd::LongType* inputShape,
                                                      T* min, T* max,
-                                                     int lowIntBound, int upperIntBound, Nd4jLong channels,
-                                                     T* output, const Nd4jLong* outputShape,
-                                                     Nd4jLong length) {
+                                                     int lowIntBound, int upperIntBound, sd::LongType channels,
+                                                     T* output, const sd::LongType* outputShape,
+                                                     sd::LongType length) {
         __shared__ int block;
         if (threadIdx.x == 0) {
             block = length / channels; // to loop with last dimension as block
@@ -104,13 +103,13 @@ namespace helpers {
                     val = nudgedMax;
                 }
                 output[shape::getIndexOffset(b * channels + i, outputShape)] =
-                        (math::nd4j_floor<T, T>((val - nudgedMin) / scale + T(0.5f)) * scale + nudgedMin);
+                        (math::sd_floor<T, T>((val - nudgedMin) / scale + T(0.5f)) * scale + nudgedMin);
             };
         }
     }
 
     template <typename T>
-    ND4J_LOCAL void fakeQuantWithMinMaxVarsPerChannel_(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+    void fakeQuantWithMinMaxVarsPerChannel_(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
         int lowIntBound = narrowed?1:0;
         int upperIntBound = (1 << numBits) - 1;
         auto channels = min->lengthOf();
@@ -127,11 +126,11 @@ namespace helpers {
 
     }
 
-    ND4J_LOCAL void fakeQuantWithMinMaxVars(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVars_, (input, min, max, numBits, narrowed, output), FLOAT_TYPES);
+    void fakeQuantWithMinMaxVars(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVars_, (input, min, max, numBits, narrowed, output), SD_FLOAT_TYPES);
     }
-    ND4J_LOCAL void fakeQuantWithMinMaxVarsPerChannel(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVarsPerChannel_, (context, input, min, max, numBits, narrowed, output), FLOAT_TYPES);
+    void fakeQuantWithMinMaxVarsPerChannel(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVarsPerChannel_, (context, input, min, max, numBits, narrowed, output), SD_FLOAT_TYPES);
     }
 }
 }

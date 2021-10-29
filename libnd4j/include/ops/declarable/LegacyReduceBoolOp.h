@@ -22,14 +22,13 @@
 
 #ifndef LIBND4J_LEGACY_REDUCE_BOOL_OP_H
 #define LIBND4J_LEGACY_REDUCE_BOOL_OP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT LegacyReduceBoolOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyReduceBoolOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override;
+            sd::Status validateAndExecute(Context& block) override;
         public:
             LegacyReduceBoolOp();
             LegacyReduceBoolOp(int opNum);

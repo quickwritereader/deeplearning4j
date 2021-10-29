@@ -29,7 +29,7 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices);
+SD_LIB_HIDDEN void maxPoolingFunctor(sd::LaunchContext * context, sd::graph::Context& block, NDArray* input, NDArray* values, std::vector<int> const& params, NDArray* indices);
 }
 }
 }

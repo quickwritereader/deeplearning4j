@@ -51,8 +51,8 @@ CUSTOM_OP_IMPL(embedding_lookup, 2, 1, false, 0, 1) {
         REQUIRE_TRUE(block.width() > output->sizeAt(0), 0, "embedding_lookup: input list should be greater then %i, but %i given.",
                     output->sizeAt(0), block.width()
                 );
-        for (Nd4jLong e = 0; e < indices->lengthOf(); ++e) {
-            Nd4jLong thisIndex = (*indices).e<Nd4jLong>(e);
+        for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
+            sd::LongType thisIndex = (*indices).e<sd::LongType>(e);
             input   = INPUT_VARIABLE(thisIndex); // lookup param
 
             outputView.at(e)->assign(input);
@@ -69,11 +69,11 @@ CUSTOM_OP_IMPL(embedding_lookup, 2, 1, false, 0, 1) {
         sd::ops::gather op;
 
         auto result(op.evaluate({input, indices}, {0}));
-        REQUIRE_TRUE(result.status() == Status::OK(), 0, "embedding_lookup: cannot retrieve results from gather op.");
+        REQUIRE_TRUE(result.status() == sd::Status::OK, 0, "embedding_lookup: cannot retrieve results from gather op.");
         REQUIRE_TRUE(result.at(0)->isSameShape(output), 0, "embedding_lookup: wrong shape of return from gather op.");
         output->assign(result.at(0));
     }
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(embedding_lookup) {
@@ -90,7 +90,7 @@ DECLARE_SHAPE_FN(embedding_lookup) {
     if (inputShape->size() == 2u) {
         int outRank = inRank;
 
-        std::vector<Nd4jLong> shapeInfo(outRank);
+        std::vector<sd::LongType> shapeInfo(outRank);
 
         shapeInfo[0] = indicesShapeInfo[1]; // vector - how many elements
         for (int e = 1; e < outRank; e++)
@@ -102,7 +102,7 @@ DECLARE_SHAPE_FN(embedding_lookup) {
 
 
     int outRank = inRank + 1;
-    std::vector<Nd4jLong> shapeInfo(outRank);
+    std::vector<sd::LongType> shapeInfo(outRank);
     auto indices = INPUT_VARIABLE(block.width() - 1);
     shapeInfo[0] = indices->lengthOf(); // vector - how many elements
     for (int e = 1; e < outRank; e++)

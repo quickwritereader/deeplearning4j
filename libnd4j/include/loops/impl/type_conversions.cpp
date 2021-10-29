@@ -19,7 +19,6 @@
 //
 // Created by raver on 6/12/2018.
 //
-
 #include <types/types.h>
 #include <system/op_boilerplate.h>
 #include <loops/type_conversions.h>
@@ -29,25 +28,25 @@
 namespace sd {
 
     template <typename T>
-    ND4J_LOCAL _CUDA_H void TypeCast::convertFromQuantized(Nd4jPointer *extras, void *dx, Nd4jLong N, void *dz) {
+    SD_LIB_HIDDEN SD_HOST void TypeCast::convertFromQuantized(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
         //
         auto z = reinterpret_cast<T *>(dz);
 
         auto fx = reinterpret_cast<float *>(dx);
-        auto amin = sd::math::nd4j_abs<float>(fx[0]);
-        auto amax = sd::math::nd4j_abs<float>(fx[1]);
+        auto amin = sd::math::sd_abs<float>(fx[0]);
+        auto amax = sd::math::sd_abs<float>(fx[1]);
 
 
         auto x = reinterpret_cast<char *>(dx) + 8;
 
 
-        for (Nd4jLong e = 0; e < N; e++) {
-            z[e] = static_cast<T>(static_cast<float>(x[e]) / static_cast<float>(DataTypeUtils::max<int8_t>()) * sd::math::nd4j_max<float>(amin, amax));
+        for (sd::LongType e = 0; e < N; e++) {
+            z[e] = static_cast<T>(static_cast<float>(x[e]) / static_cast<float>(DataTypeUtils::max<int8_t>()) * sd::math::sd_max<float>(amin, amax));
         }
     }
 
     template <typename T>
-    ND4J_LOCAL _CUDA_H void TypeCast::convertToQuantized(Nd4jPointer *extras, void *dx, Nd4jLong N, void *dz) {
+    SD_LIB_HIDDEN SD_HOST void TypeCast::convertToQuantized(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
         // find min/max first
 
         auto x = reinterpret_cast<T *>(dx);
@@ -56,7 +55,7 @@ namespace sd {
         T mn = DataTypeUtils::max<T>();
         T mx = -DataTypeUtils::max<T>();
 
-        for (Nd4jLong e = 0; e < N; e++) {
+        for (sd::LongType e = 0; e < N; e++) {
             T v = x[e];
             if (v < mn)
                 mn = v;
@@ -78,13 +77,13 @@ namespace sd {
         fz[0] = min;
         fz[1] = max;
 
-        auto amax = sd::math::nd4j_abs<float>(max);
-        auto amin = sd::math::nd4j_abs<float>(min);
+        auto amax = sd::math::sd_abs<float>(max);
+        auto amin = sd::math::sd_abs<float>(min);
 
         // now we actually apply quantization
         auto func = PRAGMA_THREADS_FOR {
             for (auto e = start; e < stop; e++) {
-                rz[e] = static_cast<char>(sd::math::nd4j_round<float, char>( 1.0f * static_cast<float>(x[e]) / sd::math::nd4j_max<float>(amax, amin) * max_byte));
+                rz[e] = static_cast<char>(sd::math::sd_round<float, char>( 1.0f * static_cast<float>(x[e]) / sd::math::sd_max<float>(amax, amin) * max_byte));
             }
         };
 
@@ -92,7 +91,7 @@ namespace sd {
     }
 
     template <typename T>
-    ND4J_LOCAL void TypeCast::convertToThreshold(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz) {
+    SD_LIB_HIDDEN void TypeCast::convertToThreshold(sd::Pointer * extras, void *dx, sd::LongType N, void *dz) {
         // we suppose that first 4 bytes are integer, second 4 bytes are float
         // integer: enc length
         // integer: dec length
@@ -173,7 +172,7 @@ PRAGMA_OMP_ATOMIC_ARGS(write)
     }
 
     template <typename T>
-    ND4J_LOCAL void TypeCast::convertFromThreshold(Nd4jPointer * extras, const void *dx, Nd4jLong N, void *dz) {
+    SD_LIB_HIDDEN void TypeCast::convertFromThreshold(sd::Pointer * extras, const void *dx, sd::LongType N, void *dz) {
         FloatBits fb;
         auto z = reinterpret_cast<T *>(dz);
         auto x = reinterpret_cast<const int *>(dx);
@@ -187,7 +186,7 @@ PRAGMA_OMP_ATOMIC_ARGS(write)
         auto func = PRAGMA_THREADS_FOR {
             for (auto e = start; e < stop; e++) {
                 int el = x[e];
-                int ael = sd::math::nd4j_abs<int>(el) - 1;
+                int ael = sd::math::sd_abs<int>(el) - 1;
                 z[ael] += el > 0 ? static_cast<T>(threshold) : static_cast<T>(-threshold);
             }
         };
@@ -205,7 +204,7 @@ PRAGMA_OMP_ATOMIC_ARGS(write)
      * @param dz
      */
     template<typename S, typename T>
-    ND4J_LOCAL void TypeCast::convertGeneric(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz) {
+    SD_LIB_HIDDEN void TypeCast::convertGeneric(sd::Pointer * extras, void *dx, sd::LongType N, void *dz) {
         auto x = reinterpret_cast<S *>(dx);
         auto z = reinterpret_cast<T *>(dz);
 
@@ -217,25 +216,25 @@ PRAGMA_OMP_ATOMIC_ARGS(write)
         samediff::Threads::parallel_for(func,  0, N);
     };
 
-    template ND4J_LOCAL void TypeCast::convertFromThreshold<double>(Nd4jPointer * extras, const void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertFromThreshold<float>(Nd4jPointer * extras, const void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertFromThreshold<float16>(Nd4jPointer * extras, const void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertFromThreshold<bfloat16>(Nd4jPointer * extras, const void *dx, Nd4jLong N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromThreshold<double>(sd::Pointer * extras, const void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromThreshold<float>(sd::Pointer * extras, const void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromThreshold<float16>(sd::Pointer * extras, const void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromThreshold<bfloat16>(sd::Pointer * extras, const void *dx, sd::LongType N, void *dz);
 
-    template ND4J_LOCAL void TypeCast::convertToThreshold<double>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertToThreshold<float>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertToThreshold<float16>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertToThreshold<bfloat16>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToThreshold<double>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToThreshold<float>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToThreshold<float16>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToThreshold<bfloat16>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
 
-    template ND4J_LOCAL void TypeCast::convertFromQuantized<double>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertFromQuantized<float>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertFromQuantized<float16>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromQuantized<double>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromQuantized<float>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertFromQuantized<float16>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
 
-    template ND4J_LOCAL void TypeCast::convertToQuantized<double>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertToQuantized<float>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
-    template ND4J_LOCAL void TypeCast::convertToQuantized<float16>(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToQuantized<double>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToQuantized<float>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
+    template SD_LIB_HIDDEN void TypeCast::convertToQuantized<float16>(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
 
 #ifndef __CLION_IDE__
-    BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL void TypeCast::convertGeneric, (Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz), COMMON_TYPES_LIST, COMMON_TYPES_LIST)
+    BUILD_DOUBLE_TEMPLATE(template SD_LIB_HIDDEN void TypeCast::convertGeneric, (sd::Pointer * extras, void *dx, sd::LongType N, void *dz), SD_COMMON_TYPES_ALL, SD_COMMON_TYPES_ALL)
 #endif
 }

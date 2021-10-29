@@ -22,7 +22,6 @@
 //
 // Created by raver on 5/17/2019.
 //
-
 #include <array/DataTypeUtils.h>
 #include <array/ConstantHolder.h>
 #include <helpers/shape.h>
@@ -45,7 +44,7 @@ namespace sd {
     bool ConstantHolder::hasBuffer() {
         return hasBuffer(DataTypeUtils::fromT<T>());
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT bool ConstantHolder::hasBuffer, (void), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT bool ConstantHolder::hasBuffer, (void), SD_COMMON_TYPES);
 
     void ConstantHolder::addBuffer(ConstantDataBuffer &pointer, sd::DataType dataType) {
         _buffers[dataType] = pointer;
@@ -55,7 +54,7 @@ namespace sd {
     void ConstantHolder::addBuffer(ConstantDataBuffer &pointer) {
         addBuffer(pointer, DataTypeUtils::fromT<T>());
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void ConstantHolder::addBuffer, (ConstantDataBuffer& cb), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void ConstantHolder::addBuffer, (ConstantDataBuffer& cb), SD_COMMON_TYPES);
 
     ConstantDataBuffer* ConstantHolder::getConstantDataBuffer(sd::DataType dataType) {
         if (!hasBuffer(dataType))
@@ -68,5 +67,5 @@ namespace sd {
     ConstantDataBuffer* ConstantHolder::getConstantDataBuffer() {
         return getConstantDataBuffer(DataTypeUtils::fromT<T>());
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT ConstantDataBuffer* ConstantHolder::getConstantDataBuffer, (), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT ConstantDataBuffer* ConstantHolder::getConstantDataBuffer, (), SD_COMMON_TYPES);
 }

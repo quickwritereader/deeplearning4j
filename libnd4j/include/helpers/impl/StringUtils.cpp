@@ -22,14 +22,13 @@
 // Created by raver119 on 20/04/18.
 // @author Oleg Semeniv <oleg.semeniv@gmail.com>
 //
-
 #include <helpers/StringUtils.h>
 #include <helpers/BitwiseUtils.h>
 #include <exceptions/datatype_exception.h>
 #include <bitset>
 
 namespace sd {
-    static FORCEINLINE bool match(const uint8_t *haystack, const uint8_t *needle, uint64_t length) {
+    static SD_INLINE bool match(const uint8_t *haystack, const uint8_t *needle, uint64_t length) {
         for (int e = 0; e < length; e++)
             if (haystack[e] != needle[e])
                 return false;
@@ -44,7 +43,7 @@ namespace sd {
 
 template std::string StringUtils::bitsToString(int value);
 template std::string StringUtils::bitsToString(uint32_t value);
-template std::string StringUtils::bitsToString(Nd4jLong value);
+template std::string StringUtils::bitsToString(sd::LongType value);
 template std::string StringUtils::bitsToString(uint64_t value);
 
 
@@ -67,7 +66,7 @@ template std::string StringUtils::bitsToString(uint64_t value);
         if (!array.isS())
             throw sd::datatype_exception::build("StringUtils::byteLength expects one of String types;", array.dataType());
 
-        auto buffer = array.bufferAsT<Nd4jLong>();
+        auto buffer = array.bufferAsT<sd::LongType>();
         return buffer[array.lengthOf()];
     }
 
@@ -181,7 +180,7 @@ template std::string StringUtils::bitsToString(uint64_t value);
   }
 
   template std::string StringUtils::vectorToString(const std::vector<int> &vec);
-  template std::string StringUtils::vectorToString(const std::vector<Nd4jLong> &vec);
+  template std::string StringUtils::vectorToString(const std::vector<sd::LongType> &vec);
   template std::string StringUtils::vectorToString(const std::vector<int16_t> &vec);
   template std::string StringUtils::vectorToString(const std::vector<uint32_t> &vec);
 }

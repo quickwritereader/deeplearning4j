@@ -39,13 +39,13 @@ namespace sd {
 
             sd::ops::xw_plus_b op;
             auto status = op.execute({x, w, b}, {output});
-            REQUIRE_TRUE(Status::OK() == status, 0, "relu_layer: xw_plus_b op failed on input data.");
+            REQUIRE_TRUE(sd::Status::OK == status, 0, "relu_layer: xw_plus_b op failed on input data.");
 
             auto scalar = block.numT() > 0 ? block.getTArguments()->at(0) : 0.0;
 
             output->applyScalar(sd::scalar::RELU, scalar, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(relu_layer) {

@@ -42,14 +42,14 @@ namespace sd {
             if (!input->isEmpty() && !outputQ->isEmpty() && !outputR->isEmpty())
                 helpers::qr(block.launchContext(), input, outputQ, outputR, fullMatricies);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(qr) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong const* shapeQ;
-            Nd4jLong const* shapeR;
+            sd::LongType const* shapeQ;
+            sd::LongType const* shapeR;
             int targetRank = shape::rank(inShape); // last two dimensions will be reduced to scalar
 
             auto fullMatricies = false;

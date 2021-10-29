@@ -21,7 +21,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include "cudnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -251,7 +250,7 @@ PLATFORM_IMPL(conv2d, ENGINE_CUDA) {
 
     ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW, paddingMode);
 
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CUSTOM CONV2D CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if (bias) {
         REQUIRE_TRUE(bias->rankOf() <= 2 && oC == bias->lengthOf(), 0, "CUSTOM CONV2D CUDNN OP: wrong shape of array with biases, expected rank, length: <=2, %i, but got %i, %i instead !", oC, bias->rankOf(), bias->lengthOf());
@@ -260,7 +259,7 @@ PLATFORM_IMPL(conv2d, ENGINE_CUDA) {
     std::unique_ptr<NDArray> tmpWeight = {}, tmpInput = {};
     NDArray* newWeights = weights; // cudnn support only two formats {oC,iC,kH,kW} and {oC,kH,kW,iC}
     if(0 == wFormat) {
-        tmpWeight.reset(new NDArray(weights->ordering(), isNCHW ? std::vector<Nd4jLong>({oC, iC, kH, kW}) : std::vector<Nd4jLong>({oC, kH, kW, iC}), weights->dataType(), weights->getContext()));
+        tmpWeight.reset(new NDArray(weights->ordering(), isNCHW ? std::vector<sd::LongType>({oC, iC, kH, kW}) : std::vector<sd::LongType>({oC, kH, kW, iC}), weights->dataType(), weights->getContext()));
         newWeights = tmpWeight.get();
         newWeights->assign(weights->permute(isNCHW ? std::vector<int>({3,2,0,1}) : std::vector<int>({3,0,1,2}))); // (kH, kW, iC, oC  --> oC, iC, kH, kW) or (kH, kW, iC, oC  --> oC, kH, kW, iC)
     }
@@ -272,7 +271,7 @@ PLATFORM_IMPL(conv2d, ENGINE_CUDA) {
     }
     conv2dCUDNN(block.launchContext(), input, newWeights, bias, output, kH,kW,sH,sW,pH,pW,dH,dW, paddingMode, isNCHW, wFormat);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -337,8 +336,8 @@ PLATFORM_IMPL(conv2d_bp, ENGINE_CUDA) {
 
     ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW, paddingMode);
 
-    std::vector<Nd4jLong> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
+    std::vector<sd::LongType> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoH,trueoW,  0,indIOioC,indOoH,indOoH+1});
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kH, kW, iC, oC);
     REQUIRE_TRUE(gradO->isSameShape(expectedGradOShape), 0,  "CUSTOM CONV2D_BP CUDNN OP: wrong shape of output gradients (next epsilon) array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedGradOShape).c_str(), ShapeUtils::shapeAsString(gradO).c_str());
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CUSTOM CONV2D_BP CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if(bias)
@@ -347,8 +346,8 @@ PLATFORM_IMPL(conv2d_bp, ENGINE_CUDA) {
     std::unique_ptr<NDArray> tmpGradI = {}, tmpInput = {} , tmpWeights = {}, tmpGradW = {};
     NDArray *newWeights = weights, *newGradW = gradW; // cudnn support only two formats {oC,iC,kH,kW} and {oC,kH,kW,iC}
     if(0 == wFormat) {
-        tmpGradW.reset(new NDArray(gradW->ordering(),   isNCHW ? std::vector<Nd4jLong>({oC, iC, kH, kW}) : std::vector<Nd4jLong>({oC, kH, kW, iC}), gradW->dataType(),   gradW->getContext()));
-        tmpWeights.reset(new NDArray(weights->ordering(), isNCHW ? std::vector<Nd4jLong>({oC, iC, kH, kW}) : std::vector<Nd4jLong>({oC, kH, kW, iC}), weights->dataType(), weights->getContext()));
+        tmpGradW.reset(new NDArray(gradW->ordering(),   isNCHW ? std::vector<sd::LongType>({oC, iC, kH, kW}) : std::vector<sd::LongType>({oC, kH, kW, iC}), gradW->dataType(),   gradW->getContext()));
+        tmpWeights.reset(new NDArray(weights->ordering(), isNCHW ? std::vector<sd::LongType>({oC, iC, kH, kW}) : std::vector<sd::LongType>({oC, kH, kW, iC}), weights->dataType(), weights->getContext()));
         newGradW = tmpGradW.get();
         newWeights = tmpWeights.get();
         newWeights->assign(weights->permute(isNCHW ? std::vector<int>({3,2,0,1}) : std::vector<int>({3,0,1,2}))); // (kH, kW, iC, oC  --> oC, iC, kH, kW) or (kH, kW, iC, oC  --> oC, kH, kW, iC)
@@ -378,7 +377,7 @@ PLATFORM_IMPL(conv2d_bp, ENGINE_CUDA) {
             gradI->assign((*newGradI)({0,0,  0,gradI->sizeAt(1),  0,gradI->sizeAt(2),  0,0}));
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 PLATFORM_CHECK(conv2d_bp, ENGINE_CUDA) {

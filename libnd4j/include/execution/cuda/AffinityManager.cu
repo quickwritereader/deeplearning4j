@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/logger.h>
 #include <execution/AffinityManager.h>
 #include <exceptions/cuda_exception.h>
@@ -111,7 +110,7 @@ namespace sd {
 
             if (deviceId != previousDeviceId) {
                 // discard existing stuff
-                //nd4j_printf("AffinityManager::setCurrentDevice() was invoked, releasing buffers\n", "");
+                //sd_printf("AffinityManager::setCurrentDevice() was invoked, releasing buffers\n", "");
                 LaunchContext::releaseBuffers();
             }
         }

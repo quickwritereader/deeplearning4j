@@ -28,7 +28,7 @@
 
 namespace sd {
 namespace ops  {
-		
+        
     OP_IMPL(barnes_gains, 3, 1, true) {
         auto input  = INPUT_VARIABLE(0);
         auto gradX = INPUT_VARIABLE(1);
@@ -37,7 +37,7 @@ namespace ops  {
         auto output = OUTPUT_VARIABLE(0);
 
         helpers::barnes_gains(input, gradX, epsilon, output);
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(barnes_gains) {

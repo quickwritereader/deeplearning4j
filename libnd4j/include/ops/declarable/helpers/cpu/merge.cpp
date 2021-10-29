@@ -22,12 +22,11 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/Loops.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
@@ -35,7 +34,7 @@ namespace helpers {
 template<typename X, typename Z>
 static void mergeMaxIndex_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
 
-    const Nd4jLong numArgs = inArrs.size();
+    const sd::LongType numArgs = inArrs.size();
     auto x = inArrs[0];
 
     auto func = PRAGMA_THREADS_FOR {
@@ -43,7 +42,7 @@ static void mergeMaxIndex_(const std::vector<const NDArray*>& inArrs, NDArray& o
             X max = -DataTypeUtils::max<X>();
             Z idx = static_cast<Z>(0);
 
-            for (Nd4jLong i = 0; i < numArgs; i++) {
+            for (sd::LongType i = 0; i < numArgs; i++) {
                 X v = inArrs[i]->t<X>(e);
                 if (v > max) {
                     max = v;
@@ -58,8 +57,8 @@ static void mergeMaxIndex_(const std::vector<const NDArray*>& inArrs, NDArray& o
     samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-ND4J_LOCAL void mergeMaxIndex(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-    BUILD_DOUBLE_SELECTOR(inArrs[0]->dataType(), output.dataType(), mergeMaxIndex_, (inArrs, output), LIBND4J_TYPES, INDEXING_TYPES);
+void mergeMaxIndex(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+    BUILD_DOUBLE_SELECTOR(inArrs[0]->dataType(), output.dataType(), mergeMaxIndex_, (inArrs, output), SD_COMMON_TYPES, SD_INDEXING_TYPES);
 }
 
 
@@ -67,13 +66,13 @@ ND4J_LOCAL void mergeMaxIndex(sd::LaunchContext * context, const std::vector<con
 template<typename T>
 static void mergeMax_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
 
-    const Nd4jLong numArgs = inArrs.size();
+    const sd::LongType numArgs = inArrs.size();
     auto x = inArrs[0];
 
     auto func = PRAGMA_THREADS_FOR {
         for (auto e = start; e < stop; e++) {
             T max = -DataTypeUtils::max<T>();
-            for (Nd4jLong i = 0; i < numArgs; i++) {
+            for (sd::LongType i = 0; i < numArgs; i++) {
                 T v = inArrs[i]->e<T>(e);
                 if (v > max)
                     max = v;
@@ -85,8 +84,8 @@ static void mergeMax_(const std::vector<const NDArray*>& inArrs, NDArray& output
     samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-ND4J_LOCAL void mergeMax(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-    BUILD_SINGLE_SELECTOR(output.dataType(), mergeMax_, (inArrs, output), LIBND4J_TYPES);
+void mergeMax(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+    BUILD_SINGLE_SELECTOR(output.dataType(), mergeMax_, (inArrs, output), SD_COMMON_TYPES);
 }
 
 
@@ -95,7 +94,7 @@ template<typename T>
 static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
 
     // outArrs.size() == inArrs.size() - 1
-    const Nd4jLong numArgs = outArrs.size();
+    const sd::LongType numArgs = outArrs.size();
     // last array is gradient
     const auto gradient = inArrs[numArgs]->bufferAsT<T>();
     auto length = inArrs[numArgs]->lengthOf();
@@ -118,8 +117,8 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
         auto func = PRAGMA_THREADS_FOR{
             for (auto e = start; e < stop; e++) {
                  T max = -DataTypeUtils::max<T>();
-                 Nd4jLong nMaxIndex = 0;
-                 for (Nd4jLong i = 0; i < numArgs; i++) {
+                 sd::LongType nMaxIndex = 0;
+                 for (sd::LongType i = 0; i < numArgs; i++) {
                      const T* v = inArrs[i]->bufferAsT<T>();
                      if (v[e] > max) {
                          max = v[e];
@@ -143,7 +142,7 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
             for (auto e = start; e < stop; e++) {
 
                  shape::index2coordsCPU(start, e, gradShape, coords);
@@ -151,9 +150,9 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
                  const auto gradOffset =  shape::getOffset(gradShape, coords);
 
                  T max = -DataTypeUtils::max<T>();
-                 Nd4jLong nMaxIndex = 0;
+                 sd::LongType nMaxIndex = 0;
 
-                 for (Nd4jLong i = 0; i < numArgs; i++) {
+                 for (sd::LongType i = 0; i < numArgs; i++) {
 
                      const auto xOffset = vbSameShaepeAndStrides[i] ? gradOffset : shape::getOffset(inArrs[i]->shapeInfo(), coords);
                      const T* v = inArrs[i]->bufferAsT<T>();
@@ -174,21 +173,21 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
     return;
 }
 
-ND4J_LOCAL void mergeMaxBp(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
-    BUILD_SINGLE_SELECTOR(outArrs[0]->dataType(), mergeMaxBp_, (inArrs, outArrs), LIBND4J_TYPES);
+void mergeMaxBp(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
+    BUILD_SINGLE_SELECTOR(outArrs[0]->dataType(), mergeMaxBp_, (inArrs, outArrs), SD_COMMON_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
 static void mergeAvg_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
-    const Nd4jLong numArgs = inArrs.size();
+    const sd::LongType numArgs = inArrs.size();
     const T factor = 1.f / numArgs;
     auto x = inArrs[0];
 
     auto func = PRAGMA_THREADS_FOR {
         for (auto e = start; e < stop; e++) {
             T sum = 0.;
-            for (Nd4jLong i = 0; i < numArgs; i++) {
+            for (sd::LongType i = 0; i < numArgs; i++) {
                 T v = inArrs[i]->e<T>(e);
                 sum += v;
             }
@@ -199,22 +198,22 @@ static void mergeAvg_(const std::vector<const NDArray*>& inArrs, NDArray& output
     samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-ND4J_LOCAL void mergeAvg(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-    BUILD_SINGLE_SELECTOR(output.dataType(), mergeAvg_, (inArrs, output), LIBND4J_TYPES);
+void mergeAvg(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+    BUILD_SINGLE_SELECTOR(output.dataType(), mergeAvg_, (inArrs, output), SD_COMMON_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
 static void mergeAvgBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs) {
 
-    const Nd4jLong numArgs = outArrs.size();
+    const sd::LongType numArgs = outArrs.size();
 
     auto func = PRAGMA_THREADS_FOR{
         for (auto e = start; e < stop; e++) {
 
             T v = gradient.e<T>(e) / numArgs;
 
-            for (Nd4jLong i = 0; i < numArgs; i++) {
+            for (sd::LongType i = 0; i < numArgs; i++) {
                 outArrs[i]->p<T>(e, v);
             }
         }
@@ -223,8 +222,8 @@ static void mergeAvgBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs)
     samediff::Threads::parallel_for(func, 0, gradient.lengthOf());
 }
 
-ND4J_LOCAL void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAvgBp_, (gradient, outArrs), LIBND4J_TYPES);
+void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAvgBp_, (gradient, outArrs), SD_COMMON_TYPES);
 }
 
 
@@ -232,13 +231,13 @@ ND4J_LOCAL void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, 
 template<typename T>
 static void mergeAdd_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
 
-    const Nd4jLong numArgs = inArrs.size();
+    const sd::LongType numArgs = inArrs.size();
     auto x = inArrs[0];
 
     auto func = PRAGMA_THREADS_FOR {
         for (auto e = start; e < stop; e++) {
             T sum = (T) 0.f;
-            for (Nd4jLong i = 0; i < numArgs; i++)
+            for (sd::LongType i = 0; i < numArgs; i++)
                 sum += inArrs[i]->e<T>(e);
 
             output.p(e, sum);
@@ -247,22 +246,22 @@ static void mergeAdd_(const std::vector<const NDArray*>& inArrs, NDArray& output
 
     samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
-    ND4J_LOCAL void mergeAdd(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-        BUILD_SINGLE_SELECTOR(output.dataType(), mergeAdd_, (inArrs, output), LIBND4J_TYPES);
+    void mergeAdd(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+        BUILD_SINGLE_SELECTOR(output.dataType(), mergeAdd_, (inArrs, output), SD_COMMON_TYPES);
     }
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
 static void mergeAddBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs) {
 
-    const Nd4jLong numArgs = outArrs.size();
+    const sd::LongType numArgs = outArrs.size();
 
     auto func = PRAGMA_THREADS_FOR{
         for (auto e = start; e < stop; e++) {
 
             T v = gradient.e<T>(e);
 
-            for (Nd4jLong i = 0; i < numArgs; i++) {
+            for (sd::LongType i = 0; i < numArgs; i++) {
                 outArrs[i]->p<T>(e, v);
             }
         }
@@ -271,8 +270,8 @@ static void mergeAddBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs)
     samediff::Threads::parallel_for(func, 0, gradient.lengthOf());
 }
 
-ND4J_LOCAL void mergeAddBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAddBp_, (gradient, outArrs), LIBND4J_TYPES);
+void mergeAddBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAddBp_, (gradient, outArrs), SD_COMMON_TYPES);
 }
 
 

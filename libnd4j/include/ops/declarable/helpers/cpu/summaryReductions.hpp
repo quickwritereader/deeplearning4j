@@ -25,7 +25,6 @@
 #include <execution/Threads.h>
 #include <execution/ThreadPool.h>
 #include <math/platformmath.h>
-
 #include <math/templatemath.h>
 #include <helpers/LoopsCoordsHelper.h>
 #include <ops/declarable/helpers/reductions.h>
@@ -33,7 +32,7 @@
 #if 1
 #define  LOG_CALLS(X) 
 #else
-#define  LOG_CALLS(X)  nd4j_printf("___%s_________%d+\n", __PRETTY_FUNCTION__, X); 
+#define  LOG_CALLS(X)  sd_printf("___%s_________%d+\n", __PRETTY_FUNCTION__, X); 
 #endif
 #define USE_REDUCED_DIV 1
 namespace sd {
@@ -55,7 +54,7 @@ namespace sd {
                 using aggregate_type = DeviationAggregate;
 
                 template <bool S = Standard>
-                static FORCEINLINE typename std::enable_if<S == true, Z>::type
+                static SD_INLINE typename std::enable_if<S == true, Z>::type
                     getDeviation(const aggregate_type& a, bool biasCorrected) {
                     if (a.n <= 1.0) {
                         return  static_cast<Z>(0.0);
@@ -68,11 +67,11 @@ namespace sd {
                     else {
                         ret = a.M2 / a.n;
                     }
-                    return sd::math::nd4j_sqrt<double, Z>(ret);
+                    return sd::math::sd_sqrt<double, Z>(ret);
                 }
 
                 template <bool S = Standard>
-                static FORCEINLINE typename std::enable_if<S == false, Z>::type
+                static SD_INLINE typename std::enable_if<S == false, Z>::type
                     getDeviation(const aggregate_type& a, bool biasCorrected) {
                     if (a.n <= 1.0) {
                         return  static_cast<Z>(0.0);
@@ -89,11 +88,11 @@ namespace sd {
                 }
 
                 template<bool InitializeFromAggregate = false>
-                static FORCEINLINE void updateInnerLoop1b(const X* buffer, Nd4jLong length, aggregate_type& a) {
+                static SD_INLINE void updateInnerLoop1b(const X* buffer, sd::LongType length, aggregate_type& a) {
                     double xn = InitializeFromAggregate ? a.n : 0;
                     double xmean = InitializeFromAggregate ? a.mean : 0;
                     double xM2 = InitializeFromAggregate ? a.M2 : 0;
-                    for (Nd4jLong i = 0; i < length; i++) {
+                    for (sd::LongType i = 0; i < length; i++) {
                         double n = xn + 1;
                         double delta = buffer[i] - xmean;
                         double delta2 = delta * delta;
@@ -106,11 +105,11 @@ namespace sd {
                 }
 
                 template<bool InitializeFromAggregate = false>
-                static FORCEINLINE void updateInnerLoop1b(const X* buffer, Nd4jLong length, Nd4jLong stride, aggregate_type& a) {
+                static SD_INLINE void updateInnerLoop1b(const X* buffer, sd::LongType length, sd::LongType stride, aggregate_type& a) {
                     double xn = InitializeFromAggregate ? a.n : 0;
                     double xmean = InitializeFromAggregate ? a.mean : 0;
                     double xM2 = InitializeFromAggregate ? a.M2 : 0;
-                    for (Nd4jLong i = 0; i < length; i++) {
+                    for (sd::LongType i = 0; i < length; i++) {
                         double n = xn + 1;
                         double delta = buffer[i * stride] - xmean;
                         double delta2 = delta * delta;
@@ -124,8 +123,8 @@ namespace sd {
 
                 //WARNING: a.n a1.n a2.n a3.n should be equal
                 template<bool InitializeFromAggregate = false>
-                static FORCEINLINE void updateInnerLoop4b(const X* buffer, const X* buffer1, const X* buffer2,
-                    const X* buffer3, Nd4jLong length,
+                static SD_INLINE void updateInnerLoop4b(const X* buffer, const X* buffer1, const X* buffer2,
+                    const X* buffer3, sd::LongType length,
                     aggregate_type& a, aggregate_type& a1, aggregate_type& a2, aggregate_type& a3) {
                     double xn, x0mean, x0M2, x1mean, x1M2, x2mean, x2M2, x3mean, x3M2;
                     xn = InitializeFromAggregate ? a.n : 0;
@@ -137,13 +136,13 @@ namespace sd {
                     x1M2 = InitializeFromAggregate ? a1.M2 : 0;
                     x2M2 = InitializeFromAggregate ? a2.M2 : 0;
                     x3M2 = InitializeFromAggregate ? a3.M2 : 0;
-                    for (Nd4jLong i = 0; i < length; i++) {
+                    for (sd::LongType i = 0; i < length; i++) {
                         double n = xn + 1;
                         double delta0 = buffer[i] - x0mean;
                         double delta1 = buffer1[i] - x1mean;
                         double delta2 = buffer2[i] - x2mean;
                         double delta3 = buffer3[i] - x3mean;
-#if		 defined(USE_REDUCED_DIV)
+#if         defined(USE_REDUCED_DIV)
                         double delta_nj0 = delta0 / n;
                         double delta_nj1 = delta1 / n;
                         double delta_nj2 = delta2 / n;
@@ -180,8 +179,8 @@ namespace sd {
 
                 //WARNING: a.n a1.n a2.n a3.n should be equal
                 template<bool InitializeFromAggregate = false>
-                static FORCEINLINE void updateInnerLoop4b(const X* buffer, const X* buffer1, const X* buffer2,
-                    const X* buffer3, Nd4jLong length, Nd4jLong stride,
+                static SD_INLINE void updateInnerLoop4b(const X* buffer, const X* buffer1, const X* buffer2,
+                    const X* buffer3, sd::LongType length, sd::LongType stride,
                     aggregate_type& a, aggregate_type& a1, aggregate_type& a2, aggregate_type& a3) {
                     double xn, x0mean, x0M2, x1mean, x1M2, x2mean, x2M2, x3mean, x3M2;
                     xn = InitializeFromAggregate ? a.n : 0;
@@ -193,14 +192,14 @@ namespace sd {
                     x1M2 = InitializeFromAggregate ? a1.M2 : 0;
                     x2M2 = InitializeFromAggregate ? a2.M2 : 0;
                     x3M2 = InitializeFromAggregate ? a3.M2 : 0;
-                    //nd4j_printf("++----%f    \n", xn);
-                    for (Nd4jLong i = 0; i < length; i++) {
+                    //sd_printf("++----%f    \n", xn);
+                    for (sd::LongType i = 0; i < length; i++) {
                         double n = xn + 1;
                         double delta0 = buffer[i * stride] - x0mean;
                         double delta1 = buffer1[i * stride] - x1mean;
                         double delta2 = buffer2[i * stride] - x2mean;
                         double delta3 = buffer3[i * stride] - x3mean;
-#if		 defined(USE_REDUCED_DIV)
+#if         defined(USE_REDUCED_DIV)
                         double delta_nj0 = delta0 / n;
                         double delta_nj1 = delta1 / n;
                         double delta_nj2 = delta2 / n;
@@ -236,7 +235,7 @@ namespace sd {
                 }
 
                 //WARNING: length required to to be length/8. 
-                static FORCEINLINE void updateInnerLoop1b_vec8(const X* buffer, Nd4jLong length_8th, double(&xn)[8], double(&xmean)[8], double(&xM2)[8]) {
+                static SD_INLINE void updateInnerLoop1b_vec8(const X* buffer, sd::LongType length_8th, double(&xn)[8], double(&xmean)[8], double(&xM2)[8]) {
                     double n[8] = {};
                     for (int i = 0; i < length_8th; i++) {
                         const X* bufferX = &(buffer[i * 8]);
@@ -261,11 +260,11 @@ namespace sd {
 
                 //WARNING: length required to to be length/8.
                 //WARNING: a.n a1.n a2.n a3.n should be equal
-                static FORCEINLINE void updateInnerLoop4b_vec8(const X* buffer, const X* buffer1, const X* buffer2,
-                    const X* buffer3, Nd4jLong length_8th, double(&xn)[8], double(&x0mean)[8], double(&x1mean)[8],
+                static SD_INLINE void updateInnerLoop4b_vec8(const X* buffer, const X* buffer1, const X* buffer2,
+                    const X* buffer3, sd::LongType length_8th, double(&xn)[8], double(&x0mean)[8], double(&x1mean)[8],
                     double(&x2mean)[8], double(&x3mean)[8], double(&x0M2)[8], double(&x1M2)[8], double(&x2M2)[8], double(&x3M2)[8]) {
                     double n[8] = {};
-                    for (Nd4jLong i = 0; i < length_8th; i++) {
+                    for (sd::LongType i = 0; i < length_8th; i++) {
                         const X* bufferX = &(buffer[i * 8]);
                         const X* buffer1X = &(buffer1[i * 8]);
                         const X* buffer2X = &(buffer2[i * 8]);
@@ -295,9 +294,9 @@ namespace sd {
                 }
 
                 template<size_t constRank, bool LastIndexFaster = true>
-                static FORCEINLINE void reduceConstRankLoop4b(const X* buff, const X* buff1, const X* buff2, const X* buff3,
-                    Z* output0, Z* output1, Z* output2, Z* output3, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopCount, const Nd4jLong& innerLoopCount, bool biasCorrected)
+                static SD_INLINE void reduceConstRankLoop4b(const X* buff, const X* buff1, const X* buff2, const X* buff3,
+                    Z* output0, Z* output1, Z* output2, Z* output3, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopCount, const sd::LongType& innerLoopCount, bool biasCorrected)
                 {
                     //skip 1 from the beginning or end depending the Order 
                     constexpr size_t updated_index = LastIndexFaster ? 0 : 1;
@@ -312,13 +311,13 @@ namespace sd {
                     if (innerLoopCount >= vectorizationThreshold) {
                         LOG_CALLS(0)
                             //use vector
-                        const Nd4jLong loopCount = innerLoopCount & (-8);
-                        const Nd4jLong tail = innerLoopCount & 7;
+                        const sd::LongType loopCount = innerLoopCount & (-8);
+                        const sd::LongType tail = innerLoopCount & 7;
                         const auto loopCount_8th = loopCount / 8;
                         double xn[8] = {};
                         double x0mean[8] = {}; double x1mean[8] = {}; double x2mean[8] = {}; double x3mean[8] = {};
                         double x0M2[8] = {}; double x1M2[8] = {}; double x2M2[8] = {}; double x3M2[8] = {};
-                        for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                        for (sd::LongType i = 0; i < outerLoopCount; i++) {
                             const X* buffPtr0 = &(buff[offset]);
                             const X* buffPtr1 = &(buff1[offset]);
                             const X* buffPtr2 = &(buff2[offset]);
@@ -343,7 +342,7 @@ namespace sd {
                     }
                     else {
                         LOG_CALLS(1)
-                            for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                            for (sd::LongType i = 0; i < outerLoopCount; i++) {
                                 updateInnerLoop4b<true>(&(buff[offset]), &(buff1[offset]), &(buff2[offset]), &(buff3[offset]), innerLoopCount, agg0, agg1, agg2, agg3);
                                 offset = sd::inc_coords<updated_rank, 0, LastIndexFaster>(cst, offset);
                             }
@@ -356,9 +355,9 @@ namespace sd {
                 }
 
                 template<size_t constRank, bool LastIndexFaster = true>
-                static FORCEINLINE void reduceConstRankLoop4b(const X* buff, const X* buff1, const X* buff2, const X* buff3,
-                    Z* output0, Z* output1, Z* output2, Z* output3, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopCount, const Nd4jLong& innerLoopCount, const Nd4jLong& inner_stride, bool biasCorrected)
+                static SD_INLINE void reduceConstRankLoop4b(const X* buff, const X* buff1, const X* buff2, const X* buff3,
+                    Z* output0, Z* output1, Z* output2, Z* output3, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopCount, const sd::LongType& innerLoopCount, const sd::LongType& inner_stride, bool biasCorrected)
                 {
                     LOG_CALLS(2)
                         //skip 1 from the beginning or end depending the Order 
@@ -372,7 +371,7 @@ namespace sd {
                     aggregate_type agg2 = { 0.0, 0.0, 0.0 };
                     aggregate_type agg3 = { 0.0, 0.0, 0.0 };
                     //LOG_CALLS(0)
-                    for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                    for (sd::LongType i = 0; i < outerLoopCount; i++) {
                         updateInnerLoop4b<true>(&(buff[offset]), &(buff1[offset]), &(buff2[offset]), &(buff3[offset]),
                             innerLoopCount, inner_stride, agg, agg1, agg2, agg3);
                         offset = sd::inc_coords<updated_rank, 0, LastIndexFaster>(cst, offset);
@@ -385,8 +384,8 @@ namespace sd {
                 }
 
                 template<size_t constRank, bool LastIndexFaster = true>
-                static FORCEINLINE void reduceConstRankLoop1b(const X* buff, Z* output, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopCount, const Nd4jLong& innerLoopCount, bool biasCorrected)
+                static SD_INLINE void reduceConstRankLoop1b(const X* buff, Z* output, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopCount, const sd::LongType& innerLoopCount, bool biasCorrected)
                 {
                     //skip 1 from the beginning or end depending the Order 
                     constexpr size_t updated_index = LastIndexFaster ? 0 : 1;
@@ -398,13 +397,13 @@ namespace sd {
                     if (innerLoopCount >= vectorizationThreshold) {
                         LOG_CALLS(0)
                             //use vector
-                            const Nd4jLong loopCount = innerLoopCount & (-8);
-                        const Nd4jLong tail = innerLoopCount & 7;
+                            const sd::LongType loopCount = innerLoopCount & (-8);
+                        const sd::LongType tail = innerLoopCount & 7;
                         const auto loopCount_8th = loopCount / 8;
                         double xn[8] = {};
                         double xmean[8] = {};
                         double xM2[8] = {};
-                        for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                        for (sd::LongType i = 0; i < outerLoopCount; i++) {
                             const X* buffPtr0 = &(buff[offset]);
                             updateInnerLoop1b_vec8(buffPtr0, loopCount_8th, xn, xmean, xM2);
                             if (tail > 0) {
@@ -418,7 +417,7 @@ namespace sd {
                     }
                     else {
                         LOG_CALLS(1)
-                            for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                            for (sd::LongType i = 0; i < outerLoopCount; i++) {
                                 updateInnerLoop1b<true>(&(buff[offset]), innerLoopCount, agg);
                                 offset = sd::inc_coords<updated_rank, 0, LastIndexFaster>(cst, offset);
                             }
@@ -428,8 +427,8 @@ namespace sd {
                 }
 
                 template<size_t constRank, bool LastIndexFaster = true>
-                static FORCEINLINE void reduceConstRankLoop1b(const X* buff, Z* output, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopCount, const Nd4jLong& innerLoopCount, const Nd4jLong& inner_stride, bool biasCorrected)
+                static SD_INLINE void reduceConstRankLoop1b(const X* buff, Z* output, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopCount, const sd::LongType& innerLoopCount, const sd::LongType& inner_stride, bool biasCorrected)
                 {
                     LOG_CALLS(2)
                     //skip 1 from the beginning or end depending the Order 
@@ -440,7 +439,7 @@ namespace sd {
                     size_t offset = sd::init_coords<updated_rank, 0, LastIndexFaster>(cst, 0, bases + updated_index, strides + updated_index);
                     aggregate_type agg = { 0.0, 0.0, 0.0 };
                     //LOG_CALLS(0)
-                    for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                    for (sd::LongType i = 0; i < outerLoopCount; i++) {
                         updateInnerLoop1b<true>(&(buff[offset]), innerLoopCount, inner_stride, agg);
                         offset = sd::inc_coords<updated_rank, 0, LastIndexFaster>(cst, offset);
                     }
@@ -449,14 +448,14 @@ namespace sd {
                 }
 
                 template<bool LastIndexFaster = true>
-                static FORCEINLINE void updateGeneralLoop1b(int rank, const X* buff, DeviationAggregate& agg, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopStart, const Nd4jLong& outerLoopStop, const Nd4jLong& innerLoopCount)
+                static SD_INLINE void updateGeneralLoop1b(int rank, const X* buff, DeviationAggregate& agg, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopStart, const sd::LongType& outerLoopStop, const sd::LongType& innerLoopCount)
                 {
                     agg = {};
                     size_t offset = 0;
-                    Nd4jLong outerLoopCount = outerLoopStop - outerLoopStart;
-                    Nd4jLong coords[MAX_RANK] = {};
-                    Nd4jLong* ptr_coords = (Nd4jLong*)&coords;
+                    sd::LongType outerLoopCount = outerLoopStop - outerLoopStart;
+                    sd::LongType coords[SD_MAX_RANK] = {};
+                    sd::LongType* ptr_coords = (sd::LongType*)&coords;
                     if (outerLoopStart > 0) {
                         if (LastIndexFaster) {
                             sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
@@ -470,13 +469,13 @@ namespace sd {
                     if (innerLoopCount >= vectorizationThreshold) {
                         LOG_CALLS(88)
                         //use vector
-                        const Nd4jLong loopCount = innerLoopCount & (-8);
-                        const Nd4jLong tail = innerLoopCount & 7;
+                        const sd::LongType loopCount = innerLoopCount & (-8);
+                        const sd::LongType tail = innerLoopCount & 7;
                         const auto loopCount_8th = loopCount / 8;
                         double xn[8] = {};
                         double x0mean[8] = {};
                         double x0M2[8] = {};
-                        for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                        for (sd::LongType i = 0; i < outerLoopCount; i++) {
                             const X* buffPtr0 = &(buff[offset]);
                             updateInnerLoop1b_vec8(buffPtr0, loopCount_8th, xn, x0mean, x0M2);
                             if (tail > 0) {
@@ -492,7 +491,7 @@ namespace sd {
                     }
                     else {
                         LOG_CALLS(89)
-                        for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                        for (sd::LongType i = 0; i < outerLoopCount; i++) {
                             updateInnerLoop1b<true>(&(buff[offset]), innerLoopCount, agg);
                             offset = inc_coords<LastIndexFaster>(bases, strides, ptr_coords, offset, rank, 1);
                         }
@@ -500,14 +499,14 @@ namespace sd {
                 }
 
                 template< bool LastIndexFaster = true>
-                static FORCEINLINE void updateGeneralLoop1b(int rank, const X* buff, DeviationAggregate& agg, const Nd4jLong* bases, const Nd4jLong* strides,
-                    const Nd4jLong& outerLoopStart, const Nd4jLong& outerLoopStop, const Nd4jLong& innerLoopCount, const Nd4jLong& inner_stride)
+                static SD_INLINE void updateGeneralLoop1b(int rank, const X* buff, DeviationAggregate& agg, const sd::LongType* bases, const sd::LongType* strides,
+                    const sd::LongType& outerLoopStart, const sd::LongType& outerLoopStop, const sd::LongType& innerLoopCount, const sd::LongType& inner_stride)
                 {
                     agg = {};
                     size_t offset = 0;
-                    Nd4jLong outerLoopCount = outerLoopStop - outerLoopStart;
-                    Nd4jLong coords[MAX_RANK] = {};
-                    Nd4jLong* ptr_coords = (Nd4jLong*)&coords;
+                    sd::LongType outerLoopCount = outerLoopStop - outerLoopStart;
+                    sd::LongType coords[SD_MAX_RANK] = {};
+                    sd::LongType* ptr_coords = (sd::LongType*)&coords;
                     if (outerLoopStart > 0) {
                         if (LastIndexFaster) {
                             sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
@@ -519,13 +518,13 @@ namespace sd {
                         offset = sd::offset_from_coords(strides, ptr_coords, rank);
                     }
                     LOG_CALLS(90)
-                    for (Nd4jLong i = 0; i < outerLoopCount; i++) {
+                    for (sd::LongType i = 0; i < outerLoopCount; i++) {
                         updateInnerLoop1b<true>(&(buff[offset]), innerLoopCount, inner_stride, agg);
                         offset = inc_coords<LastIndexFaster>(bases, strides, ptr_coords, offset, rank, 1);
                     }
                 }
 
-                static FORCEINLINE aggregate_type mergeAggregates(const aggregate_type& x, const  aggregate_type& y) {
+                static SD_INLINE aggregate_type mergeAggregates(const aggregate_type& x, const  aggregate_type& y) {
                     if ((long)x.n == 0 && (long)y.n > 0)
                         return y;
                     else if ((long)x.n > 0 && (long)y.n == 0)
@@ -539,7 +538,7 @@ namespace sd {
                     return { n, meanD, M2D };
                 }
 
-                static  FORCEINLINE aggregate_type  mergeAggregates(double xn, double(&xmean)[8], double(&xM2)[8])
+                static  SD_INLINE aggregate_type  mergeAggregates(double xn, double(&xmean)[8], double(&xM2)[8])
                 {
                     auto arg0 = mergeAggregates(xn, xn, xmean[0], xmean[1], xM2[0], xM2[1]);
                     auto arg1 = mergeAggregates(xn, xn, xmean[2], xmean[3], xM2[2], xM2[3]);
@@ -550,7 +549,7 @@ namespace sd {
                     return mergeAggregates(arg01, arg23);
                 }
 
-                static  FORCEINLINE aggregate_type  mergeAggregates(double(&xn)[8], double(&xmean)[8], double(&xM2)[8])
+                static  SD_INLINE aggregate_type  mergeAggregates(double(&xn)[8], double(&xmean)[8], double(&xM2)[8])
                 {
                     auto arg0 = mergeAggregates(xn[0], xn[1], xmean[0], xmean[1], xM2[0], xM2[1]);
                     auto arg1 = mergeAggregates(xn[2], xn[3], xmean[2], xmean[3], xM2[2], xM2[3]);
@@ -561,7 +560,7 @@ namespace sd {
                     return mergeAggregates(arg01, arg23);
                 }
 
-                static FORCEINLINE aggregate_type mergeAggregates(double xn, double yn, double xmean, double ymean, double xM2, double yM2) {
+                static SD_INLINE aggregate_type mergeAggregates(double xn, double yn, double xmean, double ymean, double xM2, double yM2) {
                     double n = xn + yn;
                     double delta = ymean - xmean;
                     double delta2 = delta * delta;
@@ -573,11 +572,11 @@ namespace sd {
             };
 
             template<typename X, typename Z, typename DeviationOp, bool LastIndexFaster = true>
-            static void reductionCase1Scalar(const  int& second_rank, const Nd4jLong* inner_bases, const Nd4jLong* inner_strides, const  X* bufferX, Z* outputZ, bool biasCorrected)
+            static void reductionCase1Scalar(const  int& second_rank, const sd::LongType* inner_bases, const sd::LongType* inner_strides, const  X* bufferX, Z* outputZ, bool biasCorrected)
             {
                 using AggType = typename DeviationOp::aggregate_type;
-                Nd4jLong inner_total;
-                Nd4jLong inner_last = 0;
+                sd::LongType inner_total;
+                sd::LongType inner_last = 0;
                 int maxThreads = sd::Environment::getInstance().maxMasterThreads();
                 if (second_rank == 1) {
                     inner_total = inner_bases[0];
@@ -587,7 +586,7 @@ namespace sd {
                     else {
                         auto gen = inner_total / threadingThreshold + 1;
                         maxThreads = gen > maxThreads ? maxThreads : gen;
-                        //nd4j_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold,  maxThreads, gen);
+                        //sd_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold,  maxThreads, gen);
                     }
                 }
                 else {
@@ -598,7 +597,7 @@ namespace sd {
                     else {
                         auto gen = inner_total * inner_last / threadingThreshold + 1;
                         maxThreads = gen > maxThreads ? maxThreads : gen;
-                        //nd4j_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold, maxThreads, gen);
+                        //sd_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold, maxThreads, gen);
                     }
                 }
 #define BLOCKX4 1
@@ -606,16 +605,16 @@ namespace sd {
                 AggType* ptrAggs = aggs.get();
                 auto func = [ptrAggs, inner_last, second_rank, inner_bases, inner_strides, bufferX](uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
                     //LOG_CALLS(0)
-                    const Nd4jLong inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
+                    const sd::LongType inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
                     Z argCurrent; X current;
                     if (second_rank == 1) {
-                        const Nd4jLong loopTotal = stop - start;
+                        const sd::LongType loopTotal = stop - start;
 #if defined(BLOCKX4)
                         if (loopTotal >= 2048) {
                             AggType agg, agg1, agg2, agg3;
                             if (inner_stride == 1) {
                                 //use vector version
-                                Nd4jLong loopTotal4_32 = loopTotal & (-32);
+                                sd::LongType loopTotal4_32 = loopTotal & (-32);
                                 auto loopCount4 = loopTotal4_32 / 4;
                                 auto loopCount4_8th = loopCount4 / 8;
                                 auto tail = (loopTotal & 31);
@@ -715,22 +714,22 @@ namespace sd {
             }
 
             template<typename X, typename Z, typename DeviationOp, bool LastIndexFaster = true, typename Movement>
-            static void reductionCases(Movement& movement, Nd4jLong loopTotal, const int& second_rank, const Nd4jLong* inner_bases, const Nd4jLong* inner_strides, const X* bufferX, Z* outputZ, bool biasCorrected)
+            static void reductionCases(Movement& movement, sd::LongType loopTotal, const int& second_rank, const sd::LongType* inner_bases, const sd::LongType* inner_strides, const X* bufferX, Z* outputZ, bool biasCorrected)
             {
                 using AggType = typename DeviationOp::aggregate_type;
-                Nd4jLong inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
-                Nd4jLong loopTotal_K = loopTotal / 4;
-                Nd4jLong loopTotalTail = loopTotal & 3;
+                sd::LongType inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
+                sd::LongType loopTotal_K = loopTotal / 4;
+                sd::LongType loopTotalTail = loopTotal & 3;
                 if (inner_stride == 1) {
                     if (second_rank == 1) {
                         LOG_CALLS(0)
-                        Nd4jLong inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
+                        sd::LongType inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
                         auto loopCount4 = inner_total & (-8);
                         auto loopCount4_8th = inner_total / 8;
                         auto tail = inner_total & 7;
                         bool use_vector = loopCount4_8th > 16;
-                        //nd4j_printf("++ %d %d %d \n", loopCount4, loopCount4_8th, tail);
-                        for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                        //sd_printf("++ %d %d %d \n", loopCount4, loopCount4_8th, tail);
+                        for (sd::LongType i = 0; i < loopTotal_K; i++) {
                             AggType agg0, agg1, agg2, agg3;
                             const X* buff0 = &(bufferX[movement.First()]);
                             Z* output0 = &(outputZ[movement.Second()]);
@@ -759,7 +758,7 @@ namespace sd {
 
                                     DeviationOp::template updateInnerLoop4b<true>(&(buff0[loopCount4]), &(buff1[loopCount4]), &(buff2[loopCount4]), &(buff3[loopCount4]), tail, agg0, agg1, agg2, agg3);
                                 }
-                                //nd4j_printf("~~~ %f %f %f \n", agg0.n, agg0.mean, agg0.M2);
+                                //sd_printf("~~~ %f %f %f \n", agg0.n, agg0.mean, agg0.M2);
                             }
                             else {
                                 DeviationOp::updateInnerLoop4b(buff0, buff1, buff2, buff3, inner_total, agg0, agg1, agg2, agg3);
@@ -769,7 +768,7 @@ namespace sd {
                             *output2 = DeviationOp::getDeviation(agg2, biasCorrected);
                             *output3 = DeviationOp::getDeviation(agg3, biasCorrected);
                         }
-                        for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                        for (sd::LongType i = 0; i < loopTotalTail; i++) {
                             AggType agg0;
                             const X* buff0 = &(bufferX[movement.First()]);
                             Z* output0 = &(outputZ[movement.Second()]);
@@ -794,12 +793,12 @@ namespace sd {
                         }
                     }
                     else {
-                        Nd4jLong inner_last;
-                        Nd4jLong inner_loop = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
+                        sd::LongType inner_last;
+                        sd::LongType inner_loop = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
                         if (second_rank == 2) {
                             LOG_CALLS(11)
-                                //nd4j_printf("%d %d %d\n", inner_loop, inner_last, inner_stride);
-                                for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                                //sd_printf("%d %d %d\n", inner_loop, inner_last, inner_stride);
+                                for (sd::LongType i = 0; i < loopTotal_K; i++) {
                                     const X* buffer0 = &(bufferX[movement.First()]);
                                     Z* output0 = &(outputZ[movement.Second()]);
                                     movement.increment();
@@ -816,7 +815,7 @@ namespace sd {
                                     DeviationOp::template reduceConstRankLoop4b<2, LastIndexFaster>(buffer0, buffer1, buffer2, buffer3, output0, output1, output2, output3, inner_bases, inner_strides,
                                         inner_loop, inner_last, biasCorrected);
                                 }
-                            for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                            for (sd::LongType i = 0; i < loopTotalTail; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template reduceConstRankLoop1b < 2, LastIndexFaster >(buffer0, &(outputZ[movement.Second()]), inner_bases, inner_strides,
@@ -826,7 +825,7 @@ namespace sd {
                         }
                         else if (second_rank == 3) {
                             LOG_CALLS(12)
-                                for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                                for (sd::LongType i = 0; i < loopTotal_K; i++) {
                                     const X* buffer0 = &(bufferX[movement.First()]);
                                     Z* output0 = &(outputZ[movement.Second()]);
                                     movement.increment();
@@ -843,7 +842,7 @@ namespace sd {
                                     DeviationOp::template reduceConstRankLoop4b<3, LastIndexFaster>(buffer0, buffer1, buffer2, buffer3, output0, output1, output2, output3, inner_bases, inner_strides,
                                         inner_loop, inner_last, biasCorrected);
                                 }
-                            for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                            for (sd::LongType i = 0; i < loopTotalTail; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template reduceConstRankLoop1b<3, LastIndexFaster>(buffer0, &(outputZ[movement.Second()]), inner_bases, inner_strides,
@@ -854,7 +853,7 @@ namespace sd {
                         else {
                             LOG_CALLS(13)
                             AggType agg;
-                            for (Nd4jLong i = 0; i < loopTotal; i++) {
+                            for (sd::LongType i = 0; i < loopTotal; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template updateGeneralLoop1b<LastIndexFaster>(second_rank, buffer0, agg, inner_bases, inner_strides, 0,
@@ -868,8 +867,8 @@ namespace sd {
                 else {
                     if (second_rank == 1) {
                         LOG_CALLS(20)
-                        Nd4jLong inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
-                        for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                        sd::LongType inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
+                        for (sd::LongType i = 0; i < loopTotal_K; i++) {
                             AggType agg, agg1, agg2, agg3;
                             const X* buffer0 = &(bufferX[movement.First()]);
                             Z* output0 = &(outputZ[movement.Second()]);
@@ -889,7 +888,7 @@ namespace sd {
                             *output2 = DeviationOp::getDeviation(agg2, biasCorrected);
                             *output3 = DeviationOp::getDeviation(agg3, biasCorrected);
                         }
-                        for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                        for (sd::LongType i = 0; i < loopTotalTail; i++) {
                             AggType agg;
                             const X* buffer0 = &(bufferX[movement.First()]);
                             Z* output0 = &(outputZ[movement.Second()]);
@@ -899,11 +898,11 @@ namespace sd {
                         }
                     }
                     else {
-                        Nd4jLong inner_last;
-                        Nd4jLong inner_loop = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
+                        sd::LongType inner_last;
+                        sd::LongType inner_loop = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
                         if (second_rank == 2) {
                             LOG_CALLS(21)
-                            for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                            for (sd::LongType i = 0; i < loopTotal_K; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
                                 Z* output0 = &(outputZ[movement.Second()]);
                                 movement.increment();
@@ -920,7 +919,7 @@ namespace sd {
                                 DeviationOp::template reduceConstRankLoop4b<2, LastIndexFaster>(buffer0, buffer1, buffer2, buffer3, output0, output1, output2, output3, inner_bases, inner_strides,
                                         inner_loop, inner_last, inner_stride, biasCorrected);
                             }
-                            for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                            for (sd::LongType i = 0; i < loopTotalTail; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template reduceConstRankLoop1b < 2, LastIndexFaster >(buffer0, &(outputZ[movement.Second()]), inner_bases, inner_strides,
@@ -930,7 +929,7 @@ namespace sd {
                         }
                         else if (second_rank == 3) {
                             LOG_CALLS(22)
-                            for (Nd4jLong i = 0; i < loopTotal_K; i++) {
+                            for (sd::LongType i = 0; i < loopTotal_K; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
                                 Z* output0 = &(outputZ[movement.Second()]);
                                 movement.increment();
@@ -947,7 +946,7 @@ namespace sd {
                                 DeviationOp::template reduceConstRankLoop4b<3, LastIndexFaster>(buffer0, buffer1, buffer2, buffer3, output0, output1, output2, output3, inner_bases, inner_strides,
                                         inner_loop, inner_last, inner_stride, biasCorrected);
                             }
-                            for (Nd4jLong i = 0; i < loopTotalTail; i++) {
+                            for (sd::LongType i = 0; i < loopTotalTail; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template reduceConstRankLoop1b<3, LastIndexFaster>(buffer0, &(outputZ[movement.Second()]), inner_bases, inner_strides,
@@ -958,7 +957,7 @@ namespace sd {
                         else {
                             LOG_CALLS(23)
                             AggType agg;
-                            for (Nd4jLong i = 0; i < loopTotal; i++) {
+                            for (sd::LongType i = 0; i < loopTotal; i++) {
                                 const X* buffer0 = &(bufferX[movement.First()]);
 
                                 DeviationOp::template updateGeneralLoop1b<LastIndexFaster>(second_rank, buffer0, agg, inner_bases, inner_strides, 0,
@@ -973,15 +972,15 @@ namespace sd {
 
             template<typename X, typename Z, typename DeviationOp, bool LastIndexFaster = true>
             static void reductionCaseNonScalar(const  int& first_rank, const int& output_rank, bool squashed, const  int& second_rank,
-                const Nd4jLong*& outer_bases, const Nd4jLong* outer_strides, const Nd4jLong* output_strides, const Nd4jLong& output_stride,
-                const Nd4jLong*& inner_bases, const Nd4jLong* inner_strides, const X* bufferX, Z* outputZ, bool biasCorrected)
+                const sd::LongType*& outer_bases, const sd::LongType* outer_strides, const sd::LongType* output_strides, const sd::LongType& output_stride,
+                const sd::LongType*& inner_bases, const sd::LongType* inner_strides, const X* bufferX, Z* outputZ, bool biasCorrected)
             {
-                Nd4jLong total = getLength<LastIndexFaster>(outer_bases, first_rank);
-                Nd4jLong inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
-                Nd4jLong outer_stride = LastIndexFaster ? outer_strides[second_rank - 1] : outer_strides[0];
+                sd::LongType total = getLength<LastIndexFaster>(outer_bases, first_rank);
+                sd::LongType inner_stride = LastIndexFaster ? inner_strides[second_rank - 1] : inner_strides[0];
+                sd::LongType outer_stride = LastIndexFaster ? outer_strides[second_rank - 1] : outer_strides[0];
                 auto func = [first_rank, output_rank, squashed, outer_bases, outer_strides, output_strides, output_stride, second_rank, inner_bases, inner_strides, bufferX, outputZ, biasCorrected](uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
-                    Nd4jLong loopTotal = stop - start;
-                    Nd4jLong stride = LastIndexFaster ? outer_strides[first_rank - 1] : outer_strides[0];
+                    sd::LongType loopTotal = stop - start;
+                    sd::LongType stride = LastIndexFaster ? outer_strides[first_rank - 1] : outer_strides[0];
                     if (first_rank == 1) {
                         if (stride == 1) {
                             ZipGenericCoordsRank1Stride1 movement;
@@ -1036,7 +1035,7 @@ namespace sd {
 #else
                 //
                 uint32_t numThreads = sd::Environment::getInstance().maxMasterThreads();
-                Nd4jLong inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
+                sd::LongType inner_total = getLength<LastIndexFaster>(inner_bases, second_rank);
                 if (total * inner_total <= threadingThreshold) {
                     numThreads = 1;
                 }
@@ -1052,18 +1051,18 @@ namespace sd {
 
             template<typename X, typename Z, typename DeviationOp>
             static void  reduction_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
-                //nd4j_printf("___%s_________%d+\n", __PRETTY_FUNCTION__, 0);
+                //sd_printf("___%s_________%d+\n", __PRETTY_FUNCTION__, 0);
                 char input_order = input.ordering();
                 bool try_squash_outer = (input_order == output.ordering()) && output.ews() != 0;
                 auto input_shapeInfo = input.shapeInfo();
                 auto output_shapeInfo = output.shapeInfo();
-                const Nd4jLong  rank = input_shapeInfo[0];
-                const Nd4jLong* input_bases = &(input_shapeInfo[1]);
-                const Nd4jLong* input_strides = &(input_shapeInfo[rank + 1]);
-                const Nd4jLong  output_rank = output_shapeInfo[0];
-                const Nd4jLong* output_strides = &(output_shapeInfo[output_rank + 1]);
-                Nd4jLong new_bases[MAX_RANK];
-                Nd4jLong new_strides[MAX_RANK];
+                const sd::LongType  rank = input_shapeInfo[0];
+                const sd::LongType* input_bases = &(input_shapeInfo[1]);
+                const sd::LongType* input_strides = &(input_shapeInfo[rank + 1]);
+                const sd::LongType  output_rank = output_shapeInfo[0];
+                const sd::LongType* output_strides = &(output_shapeInfo[output_rank + 1]);
+                sd::LongType new_bases[SD_MAX_RANK];
+                sd::LongType new_strides[SD_MAX_RANK];
                 int first_begin, first_end, second_begin, second_end;
                 //rePartition into two parts based on the selection
                 rePartition(input_order, dimensions, rank, input_bases, input_strides, new_bases, new_strides, first_begin, first_end, second_begin, second_end, try_squash_outer, true);
@@ -1071,11 +1070,11 @@ namespace sd {
                 int second_rank = second_end - second_begin;
                 auto bufferX = input.bufferAsT<X>();
                 auto outputZ = output.bufferAsT<Z>();
-                const Nd4jLong* outer_bases = &(new_bases[first_begin]);
-                const Nd4jLong* outer_strides = &(new_strides[first_begin]);
-                const Nd4jLong* inner_bases = &(new_bases[second_begin]);
-                const Nd4jLong* inner_strides = &(new_strides[second_begin]);
-                const Nd4jLong output_stride = output.ordering() == 'c' ? output_strides[output_rank - 1] : output_strides[0];
+                const sd::LongType* outer_bases = &(new_bases[first_begin]);
+                const sd::LongType* outer_strides = &(new_strides[first_begin]);
+                const sd::LongType* inner_bases = &(new_bases[second_begin]);
+                const sd::LongType* inner_strides = &(new_strides[second_begin]);
+                const sd::LongType output_stride = output.ordering() == 'c' ? output_strides[output_rank - 1] : output_strides[0];
                 if (input_order == 'c') {
                     if (first_rank == 0) {
                         reductionCase1Scalar<X, Z, DeviationOp>(second_rank, inner_bases, inner_strides, bufferX, outputZ, biasCorrected);
@@ -1100,12 +1099,12 @@ namespace sd {
 
 
             template<typename X, typename Z>
-             void  variance_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+            SD_LIB_HIDDEN void  variance_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
                 return reduction_<X, Z, Deviation<X, Z>>(input, output, dimensions, biasCorrected);
             }
 
             template<typename X, typename Z>
-             void  standardDeviation_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+            SD_LIB_HIDDEN void  standardDeviation_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
                 return  reduction_<X, Z, Deviation<X, Z, true>>(input, output, dimensions, biasCorrected);
             }
         }

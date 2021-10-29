@@ -21,7 +21,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <exceptions/cuda_exception.h>
 #include <helpers/PointersManager.h>
@@ -33,7 +32,7 @@ namespace ops  {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static __global__ void avgPooling2dCuda(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static SD_KERNEL void avgPooling2dCuda(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
 
     // input is  [bS, iC, iH, iW]
     // output is [bS, iC, oH, oW]
@@ -84,24 +83,24 @@ static __global__ void avgPooling2dCuda(const void *vx, const Nd4jLong *xShapeIn
         int wend = wstart + kWEff;
 
         if(hstart < 0){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) -hstart / (Z)dH);
+            int f = sd::math::sd_ceil<Z,int>((Z) -hstart / (Z)dH);
             hstart += f * dH;
         }
         if(wstart < 0){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) -wstart / (Z) dW);
+            int f = sd::math::sd_ceil<Z,int>((Z) -wstart / (Z) dW);
             wstart += f * dW;
         }
         if(hend > iH){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) (hend-iH) / (Z) dH);
+            int f = sd::math::sd_ceil<Z,int>((Z) (hend-iH) / (Z) dH);
             hend -= f * dH;
         }
         if(wend > iW){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) (wend-iW) / (Z) dW);
+            int f = sd::math::sd_ceil<Z,int>((Z) (wend-iW) / (Z) dW);
             wend -= f * dW;
         }
 
         //Accounts for dilation
-        int pool_size = sd::math::nd4j_ceil<double,int>((double) (hend-hstart) / (double) dH) * sd::math::nd4j_ceil<double,int>((double) (wend-wstart) / (double) dW);
+        int pool_size = sd::math::sd_ceil<double,int>((double) (hend-hstart) / (double) dH) * sd::math::sd_ceil<double,int>((double) (wend-wstart) / (double) dW);
 
         Z sum = 0.0f;
 
@@ -121,13 +120,13 @@ static __global__ void avgPooling2dCuda(const void *vx, const Nd4jLong *xShapeIn
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static void avgPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const Nd4jLong *vxShapeInfo, void *vz, const Nd4jLong *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static void avgPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const sd::LongType *vxShapeInfo, void *vz, const sd::LongType *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
     avgPooling2dCuda<X, Z><<<512, 512, 4192, *block.getCudaStream()>>>(vx, vxShapeInfo, vz, vzShapeInfo, kH, kW, sH, sW, pH, pW, dH, dW, extraParam0);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static __global__ void pnormPooling2dCuda(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static SD_KERNEL void pnormPooling2dCuda(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
 
     // input is  [bS, iC, iH, iW]
     // output is [bS, iC, oH, oW]
@@ -179,24 +178,24 @@ static __global__ void pnormPooling2dCuda(const void *vx, const Nd4jLong *xShape
         int wend = wstart + kWEff;
 
         if (hstart < 0) {
-            int f = sd::math::nd4j_ceil<Z, int>((Z) -hstart / (Z) dH);
+            int f = sd::math::sd_ceil<Z, int>((Z) -hstart / (Z) dH);
             hstart += f * dH;
         }
         if (wstart < 0) {
-            int f = sd::math::nd4j_ceil<Z, int>((Z) -wstart / (Z) dW);
+            int f = sd::math::sd_ceil<Z, int>((Z) -wstart / (Z) dW);
             wstart += f * dW;
         }
         if (hend > iH) {
-            int f = sd::math::nd4j_ceil<Z, int>((Z) (hend - iH) / (Z) dH);
+            int f = sd::math::sd_ceil<Z, int>((Z) (hend - iH) / (Z) dH);
             hend -= f * dH;
         }
         if (wend > iW) {
-            int f = sd::math::nd4j_ceil<Z, int>((Z) (wend - iW) / (Z) dW);
+            int f = sd::math::sd_ceil<Z, int>((Z) (wend - iW) / (Z) dW);
             wend -= f * dW;
         }
         //Accounts for dilation
-        int pool_size = sd::math::nd4j_ceil<double, int>((double) (hend - hstart) / (double) dH) *
-                        sd::math::nd4j_ceil<double, int>((double) (wend - wstart) / (double) dW);
+        int pool_size = sd::math::sd_ceil<double, int>((double) (hend - hstart) / (double) dH) *
+                        sd::math::sd_ceil<double, int>((double) (wend - wstart) / (double) dW);
 
         Z sum = 0.f;
 
@@ -204,21 +203,21 @@ static __global__ void pnormPooling2dCuda(const void *vx, const Nd4jLong *xShape
 
         for (int h = hstart; h < hend; h += dH)
             for (int w = wstart; w < wend; w += dW)
-                sum += sd::math::nd4j_pow<Z, Z, Z>(static_cast<Z>(sd::math::nd4j_abs<X>(inSlice[h * strideY + w * strideX])), extraParam0);
+                sum += sd::math::sd_pow<Z, Z, Z>(static_cast<Z>(sd::math::sd_abs<X>(inSlice[h * strideY + w * strideX])), extraParam0);
 
-        z[n * strideOB + c * strideOC + pw * strideOX + ph * strideOY] = sd::math::nd4j_pow<Z, Z, Z>(sum, (Z) 1.0f / extraParam0);
+        z[n * strideOB + c * strideOC + pw * strideOX + ph * strideOY] = sd::math::sd_pow<Z, Z, Z>(sum, (Z) 1.0f / extraParam0);
     }
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static void pnormPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const Nd4jLong *vxShapeInfo, void *vz, const Nd4jLong *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static void pnormPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const sd::LongType *vxShapeInfo, void *vz, const sd::LongType *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
     pnormPooling2dCuda<X, Z><<<512, 512, 4192, *block.getCudaStream()>>>(vx, vxShapeInfo, vz, vzShapeInfo, kH, kW, sH, sW, pH, pW, dH, dW, extraParam0);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static __global__ void maxPooling2dCuda(const void *vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static SD_KERNEL void maxPooling2dCuda(const void *vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
 
     // input is  [bS, iC, iH, iW]
     // output is [bS, iC, oH, oW]
@@ -270,23 +269,23 @@ static __global__ void maxPooling2dCuda(const void *vx, const Nd4jLong *xShapeIn
         int wend = wstart + kWEff;
 
         if(hstart < 0){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) -hstart / (Z)dH);
+            int f = sd::math::sd_ceil<Z,int>((Z) -hstart / (Z)dH);
             hstart += f * dH;
         }
         if(wstart < 0){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) -wstart / (Z) dW);
+            int f = sd::math::sd_ceil<Z,int>((Z) -wstart / (Z) dW);
             wstart += f * dW;
         }
         if(hend > iH){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) (hend-iH) / (Z) dH);
+            int f = sd::math::sd_ceil<Z,int>((Z) (hend-iH) / (Z) dH);
             hend -= f * dH;
         }
         if(wend > iW){
-            int f = sd::math::nd4j_ceil<Z,int>((Z) (wend-iW) / (Z) dW);
+            int f = sd::math::sd_ceil<Z,int>((Z) (wend-iW) / (Z) dW);
             wend -= f * dW;
         }
         //Accounts for dilation
-        int pool_size = sd::math::nd4j_ceil<double,int>((double) (hend-hstart) / (double) dH) * sd::math::nd4j_ceil<double,int>((double) (wend-wstart) / (double) dW);
+        int pool_size = sd::math::sd_ceil<double,int>((double) (hend-hstart) / (double) dH) * sd::math::sd_ceil<double,int>((double) (wend-wstart) / (double) dW);
 
         Z max = -sd::DataTypeUtils::max<Z>();
 
@@ -306,27 +305,27 @@ static __global__ void maxPooling2dCuda(const void *vx, const Nd4jLong *xShapeIn
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static void maxPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const Nd4jLong *vxShapeInfo, void *vz, const Nd4jLong *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
+static void maxPooling2dCudaLauncher(sd::LaunchContext & block, const void *vx, const sd::LongType *vxShapeInfo, void *vz, const sd::LongType *vzShapeInfo, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int extraParam0) {
     maxPooling2dCuda<X,Z><<<512, 512, 4192, *block.getCudaStream()>>>(vx, vxShapeInfo, vz, vzShapeInfo, kH, kW, sH, sW, pH, pW, dH, dW, extraParam0);
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void ConvolutionUtils::pooling2d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const PoolingType poolingMode, const int extraParam0) {
+void ConvolutionUtils::pooling2d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const PoolingType poolingMode, const int extraParam0) {
 
     if(!input.isActualOnDeviceSide()) input.syncToDevice();
 
     switch (poolingMode) {
 
         case MAX_POOL: {
-                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), maxPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), NUMERIC_TYPES);
+                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), maxPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), SD_NUMERIC_TYPES);
             }
             break;
         case AVG_POOL: {
-                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), avgPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), NUMERIC_TYPES);
+                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), avgPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), SD_NUMERIC_TYPES);
             }
             break;
         case PNORM_POOL: {
-                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), pnormPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR_TWICE(input.dataType(), pnormPooling2dCudaLauncher, (*block.launchContext(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), kH, kW, sH, sW, pH, pW, dH, dW, extraParam0), SD_FLOAT_TYPES);
             }
             break;
         default:

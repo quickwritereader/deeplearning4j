@@ -22,9 +22,7 @@
 
 #ifndef LIBND4J_GNODE_H
 #define LIBND4J_GNODE_H
-
 #include <atomic>
-#include <system/pointercast.h>
 #include <string>
 #include <array/NDArray.h>
 #include "Context.h"
@@ -38,14 +36,14 @@ namespace sd {
 
         class Graph;
 
-        class ND4J_EXPORT Node {
+        class SD_LIB_EXPORT Node {
         protected:
             // TODO: this field must be removed
             sd::DataType _dataType;
 
             OpType _opType;
             ContextPrototype* _protoContext = nullptr;
-            Nd4jLong _opNum;
+            sd::LongType _opNum;
             int _id;
             std::vector<std::pair<int, int>> _input;
             std::vector<std::pair<int, int>> _output;
@@ -95,7 +93,7 @@ namespace sd {
             // TODO: these 3 fields should be removed
             int _rewindNode = -1;
             std::pair<int, int> _rewindLayer = {-1, -1};
-            Nd4jLong _frameId = -1;
+            sd::LongType _frameId = -1;
 
         public:
             explicit Node(sd::ops::DeclarableOp *customOp, int id = 0, std::initializer_list<int> input = {}, std::initializer_list<int> output = {},  std::initializer_list<int> dimensions = {}, float scalar = 0.0f, std::initializer_list<double> tArgs = {}, std::initializer_list<int> iArgs = {});
@@ -108,13 +106,13 @@ namespace sd {
             sd::DataType dataType();
             ContextPrototype *protoContext();
             OpType opType();
-            Nd4jLong opNum();
+            sd::LongType opNum();
             int id();
             std::vector<std::pair<int,int>> *input();
             std::vector<std::pair<int, int>> *output();
 
-            Nd4jLong getFrameId();
-            void setFrameId(Nd4jLong frameId);
+            sd::LongType getFrameId();
+            void setFrameId(sd::LongType frameId);
 
             int getRewindNode();
             void setRewindNode(int nodeId);
@@ -185,8 +183,8 @@ namespace sd {
             OpClass getOpClass();
 
             // these methods are used for internal profiling
-            void setOuterTime(Nd4jLong time);
-            void setInnerTime(Nd4jLong time);
+            void setOuterTime(sd::LongType time);
+            void setInnerTime(sd::LongType time);
 
             // methods related to scopes
             bool isScoped();
@@ -202,7 +200,7 @@ namespace sd {
             template <typename T>
             Node* asT();
 
-            FORCEINLINE void pullValues(Node *other) {
+            SD_INLINE void pullValues(Node *other) {
 
                 if (this->_protoContext != nullptr)
                     delete _protoContext;

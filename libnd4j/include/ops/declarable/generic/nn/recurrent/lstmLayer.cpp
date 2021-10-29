@@ -149,7 +149,7 @@ CUSTOM_OP_IMPL(lstmLayer, 3, 1, false, 1, 5) {
     const auto cellActHasBeta  = cellAct == 3 || cellAct == 6;
     const auto outActHasBeta   = outAct  == 3 || outAct  == 6;
 
-    uint count = 1;
+    sd::Unsigned count = 1;
     const auto cellClip = T_ARG(0);                                     // cell clipping value, if it = 0 then do not apply clipping
     const auto gateAlpha = gateActHasAlpha ? T_ARG(count++) : 0;
     const auto gateBeta  = gateActHasBeta  ? T_ARG(count++) : 0;
@@ -179,10 +179,10 @@ CUSTOM_OP_IMPL(lstmLayer, 3, 1, false, 1, 5) {
     auto cL = retLastC   ? OUTPUT_VARIABLE(count++) : nullptr;           // cell state at last step
 
     // evaluate dimensions
-    const Nd4jLong sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-    const Nd4jLong nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+    const sd::LongType nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     // inputs validations
     if(directionMode < 2) {     // no bidirectional
@@ -303,7 +303,7 @@ CUSTOM_OP_IMPL(lstmLayer, 3, 1, false, 1, 5) {
             delete hFwd;
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmLayer) {
@@ -327,10 +327,10 @@ DECLARE_SHAPE_FN(lstmLayer) {
     const auto Wr = INPUT_VARIABLE(2);          // recurrent weights
 
     // evaluate dimensions
-    const Nd4jLong sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-    const Nd4jLong nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+    const sd::LongType nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     DataType type;
     if(x->isR())
@@ -343,7 +343,7 @@ DECLARE_SHAPE_FN(lstmLayer) {
     // evaluate h shape (output)
     if(retFullSeq) {
 
-        std::vector<Nd4jLong> hShape;
+        std::vector<sd::LongType> hShape;
 
         if(directionMode <= 2) {                // single direction or bidirectional with sum
             if(dataFormat == 0)
@@ -372,7 +372,7 @@ DECLARE_SHAPE_FN(lstmLayer) {
     // evaluate hL shape (output at last step)
     if(retLastH) {
 
-        std::vector<Nd4jLong> hLShape;
+        std::vector<sd::LongType> hLShape;
 
         if(directionMode < 2)
             hLShape = {bS, nOut};
@@ -388,7 +388,7 @@ DECLARE_SHAPE_FN(lstmLayer) {
     // evaluate cL shape (cell state at last step)
     if(retLastC && !retLastH) {
 
-        std::vector<Nd4jLong> cLShape;
+        std::vector<sd::LongType> cLShape;
 
         if(directionMode < 2)
             cLShape = {bS, nOut};
@@ -559,7 +559,7 @@ CUSTOM_OP_IMPL(lstmLayer_bp, 4, 1, false, 1, 5) {
     const auto cellActHasBeta  = cellAct == 3 || cellAct == 6;
     const auto outActHasBeta   = outAct  == 3 || outAct  == 6;
 
-    uint count = 1;
+    sd::Unsigned count = 1;
     const auto cellClip = T_ARG(0);                                     // cell clipping value, if it = 0 then do not apply clipping
     const auto gateAlpha = gateActHasAlpha ? T_ARG(count++) : 0;
     const auto gateBeta  = gateActHasBeta  ? T_ARG(count++) : 0;
@@ -597,10 +597,10 @@ CUSTOM_OP_IMPL(lstmLayer_bp, 4, 1, false, 1, 5) {
     auto dLdWp = hasPH     ? OUTPUT_NULLIFIED(count)   : nullptr;    // gradient vs. peephole weights
 
     // evaluate dimensions
-    const Nd4jLong sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-    const Nd4jLong nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+    const sd::LongType nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     // inputs validations
     if(directionMode < 2) {     // no bidirectional
@@ -660,11 +660,11 @@ CUSTOM_OP_IMPL(lstmLayer_bp, 4, 1, false, 1, 5) {
     // gradient vs. output  validation
     if(dLdh) {
         int factor = directionMode <= 2 ? 1 : 2;
-        std::vector<Nd4jLong> expdLdhShape;
-        if(dataFormat == 0)      expdLdhShape = std::vector<Nd4jLong>{sL, bS, factor*nOut};
-        else if(dataFormat == 1) expdLdhShape = std::vector<Nd4jLong>{bS, sL, factor*nOut};
-        else if(dataFormat == 2) expdLdhShape = std::vector<Nd4jLong>{bS, factor*nOut, sL};
-        else                     expdLdhShape = std::vector<Nd4jLong>{sL, 2, bS, nOut};
+        std::vector<sd::LongType> expdLdhShape;
+        if(dataFormat == 0)      expdLdhShape = std::vector<sd::LongType>{sL, bS, factor*nOut};
+        else if(dataFormat == 1) expdLdhShape = std::vector<sd::LongType>{bS, sL, factor*nOut};
+        else if(dataFormat == 2) expdLdhShape = std::vector<sd::LongType>{bS, factor*nOut, sL};
+        else                     expdLdhShape = std::vector<sd::LongType>{sL, 2, bS, nOut};
         REQUIRE_TRUE(dLdh->isSameShape(expdLdhShape), 0, "LSTM_LAYER_CELL_BP operation: wrong shape of gradient vs. output, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expdLdhShape).c_str(), ShapeUtils::shapeAsString(dLdh).c_str());
     }
 
@@ -762,7 +762,7 @@ CUSTOM_OP_IMPL(lstmLayer_bp, 4, 1, false, 1, 5) {
         if(!(dLdh && directionMode == 2)) { delete dLdhFwd; delete dLdhBwd; }
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmLayer_bp) {

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyReduceOp.h>
 #include <helpers/TAD.h>
 #include <helpers/ShapeUtils.h>
@@ -38,12 +37,12 @@ namespace sd {
             return new LegacyReduceOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyReduceOp::validateAndExecute(Context &block) {
+        sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
 
 
             int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
-            nd4j_debug("Executing LegacyReduceOp: [%i]\n", opNum);
+            sd_debug("Executing LegacyReduceOp: [%i]\n", opNum);
 
             bool allAxes = false;
 
@@ -122,7 +121,7 @@ namespace sd {
                     // keepDims processing, for TF compatibility
                     if (block.getIArguments()->size() > 0 && block.getIArguments()->at(0) == 1) {
                         // z->printShapeInfo("z shape before");
-                        std::vector<Nd4jLong> newshape(z->getShapeAsVector());
+                        std::vector<sd::LongType> newshape(z->getShapeAsVector());
                         for (int e = 0; e < axis.size(); e++) {
                             auto a = axis.at(e);
                             newshape.insert(newshape.begin() + a, 1);
@@ -135,7 +134,7 @@ namespace sd {
                 }
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         /**
@@ -145,7 +144,7 @@ namespace sd {
         ShapeList *LegacyReduceOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
 
             bool allAxes = false;
 
@@ -155,7 +154,7 @@ namespace sd {
             if (block.getIArguments()->size() == 0 || (block.getIArguments()->size() == 1 && INT_ARG(0) == MAX_INT) || allAxes) {
                 if (block.getIArguments()->size() > 0 && block.getIArguments()->at(0) == 1) {
                     // in this case we just return legacy scalar
-                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
                     newShape[0] = 2;
                     newShape[1] = 1;
                     newShape[2] = 1;
@@ -166,7 +165,7 @@ namespace sd {
                     newShape[7] = 99;
                     //ArrayOptions::setDataType(newShape, block.dataType() == DataType::BOOL?block.dataType():ArrayOptions::dataType(inShape));
                 } else {
-                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(0), Nd4jLong);
+                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(0), sd::LongType);
                     newShape[0] = 0;
                     newShape[1] = 0;
                     newShape[2] = 1;

@@ -19,13 +19,12 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <graph/execution/LogicLoopCond.h>
 
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicLoopCond::processNode(Graph *graph, Node *node) {
+        sd::Status LogicLoopCond::processNode(Graph *graph, Node *node) {
             auto __variableSpace = graph->getVariableSpace();
             auto __flowPath = __variableSpace->flowPath();
 
@@ -50,7 +49,7 @@ namespace sd {
      //           __flowPath->markFrameActive(node->getFrameId(), false);
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
     }
 }

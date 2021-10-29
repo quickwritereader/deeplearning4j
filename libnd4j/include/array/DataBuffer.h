@@ -25,16 +25,15 @@
 #define DEV_TESTS_DATABUFFER_H
 
 #include <cstring>
+#include <system/common.h>
 #include <system/op_boilerplate.h>
-#include <system/dll.h>
-#include <system/pointercast.h>
 #include <array/DataType.h>
 #include <memory/Workspace.h>
 #include <execution/LaunchContext.h>
 
 namespace sd {
 
-class ND4J_EXPORT DataBuffer {
+class SD_LIB_EXPORT DataBuffer {
 
     private:
 
@@ -48,11 +47,11 @@ class ND4J_EXPORT DataBuffer {
         std::atomic<int> _deviceId;
 
     #ifdef __CUDABLAS__
-        mutable std::atomic<Nd4jLong> _counter;
-        mutable std::atomic<Nd4jLong> _writePrimary;
-        mutable std::atomic<Nd4jLong> _writeSpecial;
-        mutable std::atomic<Nd4jLong> _readPrimary;
-        mutable std::atomic<Nd4jLong> _readSpecial;
+        mutable std::atomic<sd::LongType> _counter;
+        mutable std::atomic<sd::LongType> _writePrimary;
+        mutable std::atomic<sd::LongType> _writeSpecial;
+        mutable std::atomic<sd::LongType> _readPrimary;
+        mutable std::atomic<sd::LongType> _readSpecial;
     #endif
 
         void setCountersToZero();
@@ -63,7 +62,7 @@ class ND4J_EXPORT DataBuffer {
         void setAllocFlags(const bool isOwnerPrimary, const bool isOwnerSpecial = false);
         void allocateBuffers(const bool allocBoth = false);
         void setSpecial(void* special, const bool isOwnerSpecial);
-        void copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes = 0, const Nd4jLong offsetThis = 0, const Nd4jLong offsetHostBuffer = 0);
+        void copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes = 0, const sd::LongType offsetThis = 0, const sd::LongType offsetHostBuffer = 0);
 
 
     public:
@@ -115,15 +114,15 @@ class ND4J_EXPORT DataBuffer {
         void setDeviceId(int deviceId);
         void migrate();
 
-        template <typename T> FORCEINLINE T* primaryAsT();
-        template <typename T> FORCEINLINE T* specialAsT();
+        template <typename T> SD_INLINE T* primaryAsT();
+        template <typename T> SD_INLINE T* specialAsT();
 
         void syncToPrimary(const LaunchContext* context, const bool forceSync = false);
         void syncToSpecial(const bool forceSync = false);
 
         void setToZeroBuffers(const bool both = false);
 
-        void copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes = 0, const Nd4jLong offsetThis = 0, const Nd4jLong offsetOther = 0);
+        void copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes = 0, const sd::LongType offsetThis = 0, const sd::LongType offsetOther = 0);
 
         static void memcpy(const DataBuffer &dst, const DataBuffer &src);
 

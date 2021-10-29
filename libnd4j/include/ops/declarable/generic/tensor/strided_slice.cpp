@@ -75,7 +75,7 @@ namespace sd {
 
                         for (int e = 0; e < sparse_spec.dims; e++) {
                             if ((1 << e) & sparse_spec.ellipsis_mask) {
-                                int next_index = sd::math::nd4j_min<int>(this->dims - (sparse_spec.dims - e) + 1 + sparse_spec.num_add_axis_after_ellipsis, this->dims);
+                                int next_index = sd::math::sd_min<int>(this->dims - (sparse_spec.dims - e) + 1 + sparse_spec.num_add_axis_after_ellipsis, this->dims);
                             
                                 for (; full_index < next_index; full_index++) {
                                     // new_axis' aren't real axis so you have to skip
@@ -89,7 +89,7 @@ namespace sd {
                                 this->final_shape_gather_indices.emplace_back(kNewAxis);
                             } else {
                                 if (full_index == this->begin.size()) {
-                                    nd4j_printf("Index out of range: %i out of %i\n", full_index, this->dims);
+                                    sd_printf("Index out of range: %i out of %i\n", full_index, this->dims);
                                     return false;
                                 }
 
@@ -128,7 +128,7 @@ namespace sd {
                 }
         };
 
-        void vectorize(std::vector<Nd4jLong>& input_shape) {
+        void vectorize(std::vector<sd::LongType>& input_shape) {
             if (input_shape.size() == 2 && input_shape[0] == 1) {
                 int v = input_shape[1];
                 input_shape.clear();
@@ -136,7 +136,7 @@ namespace sd {
             }
         }
 
-        bool _preprocess_strided_slice(std::vector<Nd4jLong>* indicesList, std::vector<Nd4jLong>* final_shape, std::vector<Nd4jLong>& input_shape, std::vector<int>& begin, std::vector<int>& end, std::vector<int>& strides, int begin_mask, int ellipsis_mask, int end_mask, int new_axis_mask, int shrink_axis_mask, bool* is_identity, bool* is_simple_slice, bool* slice_dim0) {
+        bool _preprocess_strided_slice(std::vector<sd::LongType>* indicesList, std::vector<sd::LongType>* final_shape, std::vector<sd::LongType>& input_shape, std::vector<int>& begin, std::vector<int>& end, std::vector<int>& strides, int begin_mask, int ellipsis_mask, int end_mask, int new_axis_mask, int shrink_axis_mask, bool* is_identity, bool* is_simple_slice, bool* slice_dim0) {
             std::vector<int> preshape;
 
             bool ellipsis_seen = false;
@@ -170,7 +170,7 @@ namespace sd {
             if (!dense_spec.buildDenseSpec(sparse_spec))
                 return false;
 
-            //nd4j_printv("Input shape: ", input_shape);
+            //sd_printv("Input shape: ", input_shape);
 
             for (int e = 0; e < (int) input_shape.size(); e++) {
                 int begin_idx = begin[e];
@@ -181,7 +181,7 @@ namespace sd {
                 bool shrink_i = (dense_spec.shrink_axis_mask & (1 << e));
 
                 if (stride_idx == 0) {
-                    nd4j_printf("Stride is 0 at index %i\n", e);
+                    sd_printf("Stride is 0 at index %i\n", e);
                     return false;
                 }
                 if (size_idx == -1) {
@@ -202,7 +202,7 @@ namespace sd {
                 };
 
                 if (shrink_i && stride_idx <= 0) {
-                    nd4j_printf("StridedSlice: only stride 1 allowed on non-range indexing\n", e);
+                    sd_printf("StridedSlice: only stride 1 allowed on non-range indexing\n", e);
                     return false;
                 }
 
@@ -216,7 +216,7 @@ namespace sd {
                         begin_idx = x_fwd;
                         end_idx = begin_idx + 1;
                         if (x_fwd < 0 || x_fwd >= size_idx) {
-                            nd4j_printf("slice index %i of dimension %i out of bounds.\n", begin_idx, e);
+                            sd_printf("slice index %i of dimension %i out of bounds.\n", begin_idx, e);
                             return false;
                         }
                     } else {
@@ -283,7 +283,7 @@ namespace sd {
 
 
             std::vector<int> postshape;
-            //nd4j_printv("Preshape: ", preshape);
+            //sd_printv("Preshape: ", preshape);
 
             final_shape->clear();
             for (auto gather_index : dense_spec.final_shape_gather_indices) {
@@ -297,8 +297,8 @@ namespace sd {
                 }
             }
 
-            //nd4j_printv("Preshape: ", preshape);
-            //nd4j_printv("Postshape: ", *final_shape);
+            //sd_printv("Preshape: ", preshape);
+            //sd_printv("Postshape: ", *final_shape);
 
             return true;
         }
@@ -308,7 +308,7 @@ namespace sd {
             auto x = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
             if (z->isEmpty() || z->lengthOf() == 0) {
-                return ND4J_STATUS_OK;
+                return sd::Status::OK;
             }
 
             int begin_mask = INT_ARG(0);
@@ -389,11 +389,11 @@ namespace sd {
                     continue;
 
                 if(b < begin.size() && !ignoreBegin[b] && !addAxes[dim]) {
-                    int first = strides[b] > 0 ? begin[b] : math::nd4j_abs<int>(begin[b]) - 1;
+                    int first = strides[b] > 0 ? begin[b] : math::sd_abs<int>(begin[b]) - 1;
                     REQUIRE_TRUE(first <= x->sizeAt(dim), 0, "StridedSlice: begin index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", begin[b], dim);
                 }
                 if(e < end.size() && !ignoreEnd[e] && !addAxes[dim]) {
-                   int last  = strides[e] > 0 ? end[e] : math::nd4j_abs<int>(end[e])   - 1;
+                   int last  = strides[e] > 0 ? end[e] : math::sd_abs<int>(end[e])   - 1;
                    REQUIRE_TRUE(last <= x->sizeAt(dim), 0, "StridedSlice: end index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", end[e], dim);
                 }
                 ++b;
@@ -401,9 +401,9 @@ namespace sd {
             }
 
             
-            std::vector<Nd4jLong> indices;
+            std::vector<sd::LongType> indices;
             auto input_shape = x->getShapeAsVector();            
-            std::vector<Nd4jLong> final_shape;
+            std::vector<sd::LongType> final_shape;
             bool is_identity;
             bool is_simple_slice;
             bool is_dim0;
@@ -416,9 +416,9 @@ namespace sd {
 //            }
 //            else {
             if (indices.size()) {
-                Nd4jLong* subArrShapeInfo = nullptr;
-                ALLOCATE(subArrShapeInfo, block.getWorkspace(), shape::shapeInfoLength(x->rankOf()), Nd4jLong);
-                Nd4jLong offset;
+                sd::LongType* subArrShapeInfo = nullptr;
+                ALLOCATE(subArrShapeInfo, block.getWorkspace(), shape::shapeInfoLength(x->rankOf()), sd::LongType);
+                sd::LongType offset;
 
                 shape::calcSubArrShapeInfoAndOffset(indices.data(), x->shapeInfo(), subArrShapeInfo, offset, true, true);
                 auto subArrShapeInfoPack = ConstantShapeHelper::getInstance().bufferForShapeInfo(subArrShapeInfo);
@@ -438,7 +438,7 @@ namespace sd {
             else if (!z->isEmpty()) {
                 z->assign(x->e(0));
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(stridedslice, strided_slice);
 
@@ -496,20 +496,20 @@ namespace sd {
                     continue;
 
                 if(b < begin.size() && !ignoreBegin[b] && !addAxes[dim]) {
-                    int first = strides[b] > 0 ? begin[b] : math::nd4j_abs<int>(begin[b]) - 1;
+                    int first = strides[b] > 0 ? begin[b] : math::sd_abs<int>(begin[b]) - 1;
                     REQUIRE_TRUE(first <= inShape[dim + 1], 0, "StridedSlice: begin index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", begin[b], dim);
                 }
                 if(e < end.size() && !ignoreEnd[e] && !addAxes[dim]) {
-                   int last  = strides[e] > 0 ? end[e] : math::nd4j_abs<int>(end[e])   - 1;
+                   int last  = strides[e] > 0 ? end[e] : math::sd_abs<int>(end[e])   - 1;
                    REQUIRE_TRUE(last <= inShape[dim + 1], 0, "StridedSlice: end index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", end[e], dim);
                 }
                 ++b;
                 ++e;
             }
 
-            std::vector<Nd4jLong> input_shape; //(shape::rank(inShape));
+            std::vector<sd::LongType> input_shape; //(shape::rank(inShape));
             auto inputLen = shape::length(inShape);
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
 
             auto rank = shape::rank(inShape);
             auto shortShape = shape::shapeOf(inShape);
@@ -520,7 +520,7 @@ namespace sd {
             bool is_simple_slice;
             bool is_dim0;
 
-            std::vector<Nd4jLong> indices;
+            std::vector<sd::LongType> indices;
             bool result = _preprocess_strided_slice(&indices, &shape, input_shape, begin, end, strides, begin_mask, ellipsis_mask, end_mask, new_axis_mask, shrink_axis_mask, &is_identity, &is_simple_slice, &is_dim0);
             if (indices.size()) {
                 auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShape), 'c',
@@ -619,11 +619,11 @@ namespace sd {
                     continue;                            
                 
                 if(b < begin.size() && !ignoreBegin[b] && !addAxes[dim]) {
-                    int first = strides[b] > 0 ? begin[b] : math::nd4j_abs<int>(begin[b]) - 1;
+                    int first = strides[b] > 0 ? begin[b] : math::sd_abs<int>(begin[b]) - 1;
                     REQUIRE_TRUE(first <= x->sizeAt(dim), 0, "StridedSlice: begin index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", begin[b], dim);
                 }
                 if(e < end.size() && !ignoreEnd[e] && !addAxes[dim]) {
-                   int last  = strides[e] > 0 ? end[e] : math::nd4j_abs<int>(end[e])   - 1;
+                   int last  = strides[e] > 0 ? end[e] : math::sd_abs<int>(end[e])   - 1;
                    REQUIRE_TRUE(last <= x->sizeAt(dim), 0, "StridedSlice: end index should be <= corresponding dimension of input array, but got end_index = %i for dimension %i!", end[e], dim);
                 }                
                 ++b;
@@ -631,8 +631,8 @@ namespace sd {
             }
     
             auto input_shape = x->getShapeAsVector();
-            std::vector<Nd4jLong> indices;
-            std::vector<Nd4jLong> final_shape;
+            std::vector<sd::LongType> indices;
+            std::vector<sd::LongType> final_shape;
             bool is_identity;
             bool is_simple_slice;
             bool is_dim0;
@@ -653,12 +653,12 @@ namespace sd {
                 sub.assign(epsNext);
             }           
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(strided_slice_bp) {
             auto inShape = inputShape->at(0);
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));

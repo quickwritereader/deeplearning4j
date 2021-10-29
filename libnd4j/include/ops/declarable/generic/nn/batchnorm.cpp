@@ -64,17 +64,17 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
     else
         axes.push_back(inRank-1);               // default dimension to reduce along is last dimension
 
-    const uint numOfAxes = axes.size();
+    const sd::Unsigned numOfAxes = axes.size();
     REQUIRE_TRUE(numOfAxes <= inRank, 0, "BATCHNORM op: too big number of input axes to normalize over, expected number should be less or equal to rank of input array, but got %i and %i correspondingly !", numOfAxes, inRank);
 
     // evaluate expected shape for mean, variance and gamma. These 3 arrays should have identical shapes
     // for example if input shape is {2,3,4,5,6} and axes = {1,3}, then expected shape would be {1,3,1,5,1}, and if axes = {3}, then expected shape would be {5}
-    std::vector<Nd4jLong> expShape;
+    std::vector<sd::LongType> expShape;
     if(numOfAxes == 1)
         expShape.push_back(input->sizeAt(axes[0]));
     else {      // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
-        expShape = std::vector<Nd4jLong>(inRank, 1);
-        for(uint i = 0; i < numOfAxes; ++i)
+        expShape = std::vector<sd::LongType>(inRank, 1);
+        for(sd::Unsigned i = 0; i < numOfAxes; ++i)
             expShape[axes[i]] = input->sizeAt(axes[i]);
     }
 
@@ -89,7 +89,7 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
     for(unsigned long i = 1; i < block.width(); ++i)
         REQUIRE_TRUE(INPUT_VARIABLE(0)->dataType() == INPUT_VARIABLE(i)->dataType(), 0, "BATCHNORM op: types of all input arrays should be the same !");
 
-    nd4j_debug("MKL-DNN is not used for batchnorm!\n", 0);
+    sd_debug("MKL-DNN is not used for batchnorm!\n", 0);
 
     // formula: output = gamma * ((input - mean) / sqrt(variance + epsilon)) + beta
     // auto v = input->varianceAlongDimension(variance::SummaryStatsVariance, false, ShapeUtils::evalDimsToExclude(input->rankOf(), axes));
@@ -113,7 +113,7 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
     // delete v;
     // delete m;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(batchnorm) {
@@ -170,17 +170,17 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
     else
         axes.push_back(inRank-1);               // default dimension to reduce along is last dimension
 
-    const uint numOfAxes = axes.size();
+    const sd::Unsigned numOfAxes = axes.size();
     REQUIRE_TRUE(numOfAxes <= inRank, 0, "BATCHNORM_BP op: too big number of input axes to normalize over, expected number should be less or equal to rank of input array, but got %i and %i correspondingly !", numOfAxes, inRank);
 
     // evaluate expected shape for mean, variance and gamma. These 3 arrays should have identical shapes
     // for example if input shape is {2,3,4,5,6} and axes = {1,3}, then expected shape would be {1,3,1,5,1}, and if axes = {3}, then expected shape would be {5}
-    std::vector<Nd4jLong> expShape;
+    std::vector<sd::LongType> expShape;
     if(numOfAxes == 1)
         expShape.push_back(input->sizeAt(axes[0]));
     else {      // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
-        expShape = std::vector<Nd4jLong>(inRank, 1);
-        for(uint i = 0; i < numOfAxes; ++i)
+        expShape = std::vector<sd::LongType>(inRank, 1);
+        for(sd::Unsigned i = 0; i < numOfAxes; ++i)
             expShape[axes[i]] = input->sizeAt(axes[i]);
     }
 
@@ -307,7 +307,7 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
     // xHat *= *dLdO;
     // xHat.reduceAlongDimension(reduce::Sum, dLdG, excludedAxes, keepUnitiesInShape);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(batchnorm_bp) {
@@ -325,8 +325,8 @@ DECLARE_TYPES(batchnorm_bp) {
 
 DECLARE_SHAPE_FN(batchnorm_bp) {
 
-    Nd4jLong const* inShapeInfo   = inputShape->at(0);
-    Nd4jLong const* meanShapeInfo = inputShape->at(1);
+    sd::LongType const* inShapeInfo   = inputShape->at(0);
+    sd::LongType const* meanShapeInfo = inputShape->at(1);
 
     const bool applyScale  = (bool)INT_ARG(0);
     const bool applyOffset = (bool)INT_ARG(1);

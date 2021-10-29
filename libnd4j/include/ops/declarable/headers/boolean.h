@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HEADERS_BOOLEAN_H
 #define LIBND4J_HEADERS_BOOLEAN_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

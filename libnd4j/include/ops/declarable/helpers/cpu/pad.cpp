@@ -20,24 +20,23 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/Loops.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
- void pad_(const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, const NDArray& padValue) {
+void pad_(const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, const NDArray& padValue) {
 
     const T* x = input.bufferAsT<T>();
           T* z = output.bufferAsT<T>();
 
-    const Nd4jLong* xShape  = input.shapeOf();
-    const Nd4jLong* zShape  = output.shapeOf();
+    const sd::LongType* xShape  = input.shapeOf();
+    const sd::LongType* zShape  = output.shapeOf();
 
     const int rank = input.rankOf();  // both input and output have the same rank
     const int rankMinusOne = rank - 1;
@@ -50,7 +49,7 @@ template<typename T>
 
         auto func = PRAGMA_THREADS_FOR {
 
-            int zCoords[MAX_RANK], xCoords[MAX_RANK];
+            int zCoords[SD_MAX_RANK], xCoords[SD_MAX_RANK];
 
             for (auto i = start; i < stop; i++) {
 
@@ -66,7 +65,7 @@ template<typename T>
                     if (xShape[j] == zShape[j])
                         continue;
 
-                    const auto left = paddings.e<Nd4jLong>(j, 0);
+                    const auto left = paddings.e<sd::LongType>(j, 0);
 
                     if (zCoords[j] < left || zCoords[j] >= left + xShape[j]) {
                         within = false;
@@ -87,12 +86,12 @@ template<typename T>
     }
     else {  // REFLECT and SYMMETRIC cases
 
-        const Nd4jLong shift1 = mode == 1 ? 0 : 1;         // REFLECT : SYMMETRIC
-        const Nd4jLong shift2 = mode == 1 ? 2 : 1;         // REFLECT : SYMMETRIC
+        const sd::LongType shift1 = mode == 1 ? 0 : 1;         // REFLECT : SYMMETRIC
+        const sd::LongType shift2 = mode == 1 ? 2 : 1;         // REFLECT : SYMMETRIC
 
         auto func = PRAGMA_THREADS_FOR {
 
-            int zCoords[MAX_RANK], xCoords[MAX_RANK];
+            int zCoords[SD_MAX_RANK], xCoords[SD_MAX_RANK];
 
             for (auto i = start; i < stop; i++) {
 
@@ -106,7 +105,7 @@ template<typename T>
                     if (xShape[j] == zShape[j])
                         continue;
 
-                    xCoords[j] = zCoords[j] - paddings.e<Nd4jLong>(j, 0);                             // are ready to fill middle (within input dimension range)
+                    xCoords[j] = zCoords[j] - paddings.e<sd::LongType>(j, 0);                             // are ready to fill middle (within input dimension range)
 
                     if (xCoords[j] < 0)
                         xCoords[j] = -xCoords[j] - shift1;                // means fill from left
@@ -131,15 +130,15 @@ template<typename T>
 //     std::vector<int> dimsToExclude(rank);
 //     std::iota(dimsToExclude.begin(), dimsToExclude.end(), 0);             // fill with 0, 1, ... rank-1
 
-//     Nd4jLong numLeft    = paddings.e<Nd4jLong>(rank-1,0);
-//     Nd4jLong numRight   = paddings.e<Nd4jLong>(rank-1,1);
-//     Nd4jLong inDimSize  = input.sizeAt(rank-1);
-//     Nd4jLong outDimSize = output.sizeAt(rank-1);
+//     sd::LongType numLeft    = paddings.e<sd::LongType>(rank-1,0);
+//     sd::LongType numRight   = paddings.e<sd::LongType>(rank-1,1);
+//     sd::LongType inDimSize  = input.sizeAt(rank-1);
+//     sd::LongType outDimSize = output.sizeAt(rank-1);
 
-//     std::vector<std::vector<Nd4jLong>> outIdx = { std::vector<Nd4jLong>(2*rank), {numLeft, numLeft + inDimSize}, {0, numLeft}, {numLeft + inDimSize, outDimSize} };
+//     std::vector<std::vector<sd::LongType>> outIdx = { std::vector<sd::LongType>(2*rank), {numLeft, numLeft + inDimSize}, {0, numLeft}, {numLeft + inDimSize, outDimSize} };
 
 //     for(int i = 0; i < rank-1; ++i) {
-//         outIdx[0][2*i]     = paddings.e<Nd4jLong>(i, 0);
+//         outIdx[0][2*i]     = paddings.e<sd::LongType>(i, 0);
 //         outIdx[0][2*i + 1] = outIdx[0][2*i] + input.sizeAt(i);
 //     }
 //     outIdx[0][2*rank-1] = outIdx[0][2*rank-2] = 0;
@@ -147,15 +146,15 @@ template<typename T>
 //     // ***** populate innermost sub-arrays firstly ***** //
 //     dimsToExclude.pop_back();
 
-//     Nd4jLong startL = mode == 1 ? 1 : 0;                            // REFLECT or SYMMETRIC
-//     Nd4jLong startR = mode == 1 ? inDimSize-2 : inDimSize-1;        // REFLECT or SYMMETRIC
+//     sd::LongType startL = mode == 1 ? 1 : 0;                            // REFLECT or SYMMETRIC
+//     sd::LongType startR = mode == 1 ? inDimSize-2 : inDimSize-1;        // REFLECT or SYMMETRIC
 
-//     Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(input.shapeInfo(), dimsToExclude);
+//     sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(input.shapeInfo(), dimsToExclude);
 
 //     NDArray outSubArr0 = output(outIdx[0], true);
 
 //     PRAGMA_OMP_PARALLEL_FOR
-//     for(Nd4jLong j = 0; j < numOfSubArrs; ++j) {
+//     for(sd::LongType j = 0; j < numOfSubArrs; ++j) {
 
 //         NDArray outSubArr1   = outSubArr0(j, dimsToExclude);
 //         NDArray inSubArr     = input(j, dimsToExclude);
@@ -175,17 +174,17 @@ template<typename T>
 //         }
 //         else {                                                              // REFLECT or SYMMETRIC
 
-//             for(Nd4jLong k = numLeft-1, e = startL; k >= 0; --k, ++e)     // fill left side
+//             for(sd::LongType k = numLeft-1, e = startL; k >= 0; --k, ++e)     // fill left side
 //                 outSubArr1.t<T>(k) = inSubArr.t<T>(e);
 
-//             for(Nd4jLong k = numLeft + inDimSize, e = startR; k < outDimSize; ++k, --e)     // fill right side
+//             for(sd::LongType k = numLeft + inDimSize, e = startR; k < outDimSize; ++k, --e)     // fill right side
 //                 outSubArr1.t<T>(k) = inSubArr.t<T>(e);
 //         }
 //     }
 
 //     // ***** fill rest of outer sub-arrays ***** //
-//     std::vector<Nd4jLong> outIdxInner(2, 0);
-//     std::vector<Nd4jLong> outIdxOuter(2, 0);
+//     std::vector<sd::LongType> outIdxInner(2, 0);
+//     std::vector<sd::LongType> outIdxOuter(2, 0);
 
 //     for(int i = rankBorder - 1; i >= 0; --i) {
 
@@ -194,14 +193,14 @@ template<typename T>
 //         outIdxInner.push_back(0), outIdxInner.push_back(0);
 //         outIdxOuter.push_back(0), outIdxOuter.push_back(0);
 
-//         Nd4jLong numLeft  = paddings.e<Nd4jLong>(i, 0);
-//         Nd4jLong numRight = paddings.e<Nd4jLong>(i, 1);
+//         sd::LongType numLeft  = paddings.e<sd::LongType>(i, 0);
+//         sd::LongType numRight = paddings.e<sd::LongType>(i, 1);
 
 //         if(numLeft == 0 && numRight == 0)
 //             continue;
 
-//         Nd4jLong inDimSize  = input.sizeAt(i);
-//         Nd4jLong outDimSize = output.sizeAt(i);
+//         sd::LongType inDimSize  = input.sizeAt(i);
+//         sd::LongType outDimSize = output.sizeAt(i);
 
 //         if(mode == 0) {
 //             outIdxOuter[0] = 0;                   outIdxOuter[1] = numLeft;
@@ -214,7 +213,7 @@ template<typename T>
 //         numOfSubArrs = ShapeUtils::getNumOfSubArrs(output.shapeInfo(), dimsToExclude);
 
 //         PRAGMA_OMP_PARALLEL_FOR_ARGS(firstprivate(outIdxOuter, outIdxInner))
-//         for(Nd4jLong j = 0; j < numOfSubArrs; ++j) {
+//         for(sd::LongType j = 0; j < numOfSubArrs; ++j) {
 
 //             NDArray outSubArr = output(j, dimsToExclude);
 
@@ -232,7 +231,7 @@ template<typename T>
 //             }
 //             else {                                                              // REFLECT or SYMMETRIC
 
-//                 for(Nd4jLong k = numLeft-1, e = startL; k >= 0; --k, ++e) {    // fill left side
+//                 for(sd::LongType k = numLeft-1, e = startL; k >= 0; --k, ++e) {    // fill left side
 //                     outIdxOuter[0] = k;
 //                     outIdxOuter[1] = k+1;
 //                     outIdxInner[0] = e;
@@ -242,7 +241,7 @@ template<typename T>
 //                     outSubArrOuter.assign(outSubArrInner);
 //                 }
 
-//                 for(Nd4jLong k = numLeft + inDimSize, e = startR; k < outDimSize; ++k, --e) {    // fill right side
+//                 for(sd::LongType k = numLeft + inDimSize, e = startR; k < outDimSize; ++k, --e) {    // fill right side
 //                     outIdxOuter[0] = k;
 //                     outIdxOuter[1] = k+1;
 //                     outIdxInner[0] = e;
@@ -256,8 +255,8 @@ template<typename T>
 //     }
 // }
 
- void pad(sd::LaunchContext * context, const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, NDArray const& padValue) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), pad_, (mode, input, paddings, output, padValue), LIBND4J_TYPES);
+void pad(sd::LaunchContext * context, const int mode, const NDArray& input, const NDArray& paddings, NDArray& output, NDArray const& padValue) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), pad_, (mode, input, paddings, output, padValue), SD_COMMON_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -267,14 +266,14 @@ static void mirrorPad_(const NDArray& input, const NDArray& paddings, NDArray& o
     // mode:  0 - REFLECT, else - SYMMETRIC
     const int reflBorder = (bool)mode ? 1 : 0;
     const int rank        = input.rankOf();
-    const Nd4jLong outLen = output.lengthOf();
+    const sd::LongType outLen = output.lengthOf();
 
     if(rank <= 1) {
 
-        const Nd4jLong inLen         = input.lengthOf();
-        const auto leftSide          = paddings.e<Nd4jLong>(0);
+        const sd::LongType inLen         = input.lengthOf();
+        const auto leftSide          = paddings.e<sd::LongType>(0);
         const auto leftSideCorrected = leftSide - reflBorder;
-        const Nd4jLong len           = 2*(inLen-1) + leftSide + reflBorder;
+        const sd::LongType len           = 2*(inLen-1) + leftSide + reflBorder;
 
         for(int i = 0; i < outLen; ++i) {
 
@@ -292,17 +291,17 @@ static void mirrorPad_(const NDArray& input, const NDArray& paddings, NDArray& o
 
         auto func = PRAGMA_THREADS_FOR {
 
-            int inIdx[MAX_RANK], outIdx[MAX_RANK];
+            int inIdx[SD_MAX_RANK], outIdx[SD_MAX_RANK];
 
             for (auto i = start; i < stop; i++) {
 
                 shape::index2coordsCPU(start, i, output.shapeInfo(), outIdx);
 
                 for (int j = 0; j < rank; ++j) {
-                    const Nd4jLong inLen = input.sizeAt(j);
+                    const sd::LongType inLen = input.sizeAt(j);
                     const auto leftSide = paddings.e<T>(j, 0);
                     const auto leftSideCorrected = leftSide - reflBorder;
-                    const Nd4jLong len = 2 * (inLen - 1) + leftSide + reflBorder;
+                    const sd::LongType len = 2 * (inLen - 1) + leftSide + reflBorder;
 
                     if (outIdx[j] < leftSide)                                        // left side
                         inIdx[j] = leftSideCorrected - outIdx[j];
@@ -324,11 +323,11 @@ static void mirrorPad_(const NDArray& input, const NDArray& paddings, NDArray& o
     }
 }
 
-     void mirrorPad(sd::LaunchContext * context, const NDArray& input, const NDArray& paddings, NDArray& output, const int mode) {
-        BUILD_SINGLE_SELECTOR(input.dataType(), mirrorPad_, (input, paddings, output, mode), LIBND4J_TYPES);
+    void mirrorPad(sd::LaunchContext * context, const NDArray& input, const NDArray& paddings, NDArray& output, const int mode) {
+        BUILD_SINGLE_SELECTOR(input.dataType(), mirrorPad_, (input, paddings, output, mode), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL mirrorPad_, (const NDArray& input, const NDArray& paddings, NDArray& output, const int mode), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void mirrorPad_, (const NDArray& input, const NDArray& paddings, NDArray& output, const int mode), SD_COMMON_TYPES);
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -473,10 +472,10 @@ static void recursiveLoopForPad_(const int mode, NDArray& input, const NDArray& 
  */
 /*
     void recursiveLoopForPad(const int mode, NDArray& input, const NDArray& paddings, NDArray& output, std::vector<int> dimensions, int dim, int inIdx, int outIdx, NDArray& padValue ) {
-        BUILD_SINGLE_SELECTOR(input.dataType(), recursiveLoopForPad_, (mode, input, paddings, output, dimensions, dim, inIdx, outIdx, padValue), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input.dataType(), recursiveLoopForPad_, (mode, input, paddings, output, dimensions, dim, inIdx, outIdx, padValue), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template void recursiveLoopForPad_, (const int mode, NDArray& input, const NDArray& paddings, NDArray& output, std::vector<int> dimensions, int dim, int inIdx, int outIdx, NDArray& padValue), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void recursiveLoopForPad_, (const int mode, NDArray& input, const NDArray& paddings, NDArray& output, std::vector<int> dimensions, int dim, int inIdx, int outIdx, NDArray& padValue), SD_COMMON_TYPES);
 
 */
 

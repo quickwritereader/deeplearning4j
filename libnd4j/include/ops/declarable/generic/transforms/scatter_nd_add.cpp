@@ -43,21 +43,21 @@ OP_IMPL(scatter_nd_add, 3, 1, true) {
     const int indRank = indices->rankOf();
     const int updRank = updates->rankOf();
 
-    const Nd4jLong indLastDim = indices->sizeAt(-1);
+    const sd::LongType indLastDim = indices->sizeAt(-1);
 
     REQUIRE_TRUE(indLastDim <= inRank, 0, "SCATTER_ND_ADD OP: the last dimension of indices array must be <= input_array_rank, but got %i instead !", indLastDim);
     REQUIRE_TRUE(updRank == (indRank - 1 + inRank - indLastDim), 0, "SCATTER_ND_ADD OP: the equality updates_rank = (indices_rank - 1 + input_rank - last_indices_dimension) must be true for input arrays, but got instead: updates_rank = %i, indices_rank = %i, last_indices_dimension = %i !", updRank, indRank, indLastDim);
 
-    std::vector<Nd4jLong> inShape  = input->getShapeAsVector();
-    std::vector<Nd4jLong> updShape = updates->getShapeAsVector();
-    std::vector<Nd4jLong> indShape = indices->getShapeAsVector();
-    std::vector<Nd4jLong> expectedUpdShape(std::begin(indShape), std::end(indShape) - 1);
+    std::vector<sd::LongType> inShape  = input->getShapeAsVector();
+    std::vector<sd::LongType> updShape = updates->getShapeAsVector();
+    std::vector<sd::LongType> indShape = indices->getShapeAsVector();
+    std::vector<sd::LongType> expectedUpdShape(std::begin(indShape), std::end(indShape) - 1);
     if(inRank > indLastDim)
         std::move(std::begin(inShape) + indLastDim, std::end(inShape), std::back_inserter(expectedUpdShape));
     REQUIRE_TRUE(expectedUpdShape == updShape, 0, "SCATTER_ND_ADD OP: wrong shape of updates array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedUpdShape).c_str(), ShapeUtils::shapeAsString(updShape).c_str());
 
     if(checkIndices) {
-        const Nd4jLong numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *output);
+        const sd::LongType numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *output);
         REQUIRE_TRUE(numOfBadIndx == 0, 0, "SCATTER_ND_ADD OP: please check elements of indices-array, total number of wrong elements is %lld!", numOfBadIndx);
     }
 
@@ -66,7 +66,7 @@ OP_IMPL(scatter_nd_add, 3, 1, true) {
 
     helpers::scatterND(block.launchContext(), pairwise::Add, *indices, *updates, *output, lock);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(scatter_nd_add) {

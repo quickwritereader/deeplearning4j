@@ -130,10 +130,10 @@ EXECUTE_NOE((x, y, extras), OPS_A(PAIRWISE_TRANSFORM_OPS))
                                                 public:\
                                                 NAME() : sd::ops::DeclarableOp<T>(NIN, NOUT, #NAME) { } \
                                                 protected: \
-                                                    Nd4jStatus validateAndExecute(Block<T>& block); \
+                                                    sd::Status validateAndExecute(Block<T>& block); \
                                                 };\
                                                 template <typename T> \
-                                                Nd4jStatus sd::ops::NAME<T>::validateAndExecute(Block<T>& block)
+                                                sd::Status sd::ops::NAME<T>::validateAndExecute(Block<T>& block)
 */
 //#define END_OP(NAME) }; static sd::ops::__registrator<NAME<float>> register_op##Name;
 
@@ -162,11 +162,10 @@ DISPATCH_METAOP(invertedMetaPairwiseShaped_Pairwise_Scalar, PARAMS(opTypeA, opTy
 //_EXPAND_KERNEL_CALL(invertedMetaPairwiseShaped_Pairwise_Scalar_, invertedMetaPairwiseShapedGeneric, float, simdOps::InvertedMetaOp, INPUT(const int opTypeA, const int opTypeB, long N, float *dx, int *xShapeInfo, float *dy, int *yShapeInfo, float *dz, int *zShapeInfo, float *extraA, float *extraB, float scalarA, float scalarB), PARAMS(N, dx, dy, xStride, yStride, paramsPtr, dz, zStride, nullptr, nullptr, nullptr), 66, simdOps::SomeOpA, 99, simdOps::SomeOpB)
 
 /*
- extern "C" __global__ void invertedMetaOpKernel_Pairwise_Scalar_16_1_float(const int opTypeA, const int opTypeB, long N, float *dx, int *xShapeInfo, float *dy, int *yShapeInfo, float *dz, int *zShapeInfo, float *extraA, float *extraB, float scalarA, float scalarB) {
+ extern "C" SD_KERNEL void invertedMetaOpKernel_Pairwise_Scalar_16_1_float(const int opTypeA, const int opTypeB, long N, float *dx, int *xShapeInfo, float *dy, int *yShapeInfo, float *dz, int *zShapeInfo, float *extraA, float *extraB, float scalarA, float scalarB) {
     invertedMetaPairwiseShapedGeneric<float, simdOps::InvertedMetaOp<float, simdOps::Copy<float>, simdOps::Multiply<float>>>(opTypeA, opTypeB, N, dx, xShapeInfo, dy, yShapeInfo, dz, zShapeInfo, extraA, extraB, scalarA, scalarB);
  }
  */
-
 
 
 #endif //LIBND4J_PLAY_H

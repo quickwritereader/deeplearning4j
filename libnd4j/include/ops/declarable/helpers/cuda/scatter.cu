@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/scatter.h>
 #include <numeric>
 #include <helpers/ShapeUtils.h>
@@ -37,12 +36,12 @@ namespace helpers {
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - contains number of bad indices, z - input/output
 template<typename X>
-__global__ static void checkIndicesCuda(const void *vx, const Nd4jLong *xShapeInfo, Nd4jLong* y, const Nd4jLong *zShapeInfo, const int axis) {
+SD_KERNEL static void checkIndicesCuda(const void *vx, const sd::LongType *xShapeInfo, sd::LongType* y, const sd::LongType *zShapeInfo, const int axis) {
 
     const auto x = reinterpret_cast<const X*>(vx);
 
     __shared__ int xRank, *coords, xLastDim;
-    __shared__ Nd4jLong xLen, numOfBadIndxPerBlock;
+    __shared__ sd::LongType xLen, numOfBadIndxPerBlock;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
@@ -57,36 +56,36 @@ __global__ static void checkIndicesCuda(const void *vx, const Nd4jLong *xShapeIn
 
     auto xCoords = coords + threadIdx.x * xRank;
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, xShapeInfo, xCoords);
 
-        const Nd4jLong currentInd = x[shape::getOffset(xShapeInfo, xCoords)];
+        const sd::LongType currentInd = x[shape::getOffset(xShapeInfo, xCoords)];
 
         if(currentInd >= shape::sizeAt(zShapeInfo, axis == -1 ? xCoords[xRank-1] : axis)) {
             printf("checkIndices cuda: out of range element %lld at index %lld \n", currentInd,  i);
-            sd::math::atomics::nd4j_atomicAdd<Nd4jLong>(&numOfBadIndxPerBlock, 1);
+            sd::math::atomics::sd_atomicAdd<sd::LongType>(&numOfBadIndxPerBlock, 1);
         }
     }
     __syncthreads();
 
     if (threadIdx.x == 0 && numOfBadIndxPerBlock != 0)
-        sd::math::atomics::nd4j_atomicAdd<Nd4jLong>(y, numOfBadIndxPerBlock);
+        sd::math::atomics::sd_atomicAdd<sd::LongType>(y, numOfBadIndxPerBlock);
 }
 
 ///////////////////////////////////////////////////////////////////
 template<typename X>
 static void checkIndicesCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                              const void *vx, const Nd4jLong *xShapeInfo, Nd4jLong* y, const Nd4jLong *zShapeInfo, const int axis) {
+                                              const void *vx, const sd::LongType *xShapeInfo, sd::LongType* y, const sd::LongType *zShapeInfo, const int axis) {
 
     checkIndicesCuda<X><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, y, zShapeInfo, axis);
 }
 
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL Nd4jLong checkIndices(sd::LaunchContext *context, const NDArray& indices, const NDArray& output, const int axis) {
+sd::LongType checkIndices(sd::LaunchContext *context, const NDArray& indices, const NDArray& output, const int axis) {
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (indices.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = threadsPerBlock * sizeof(int) * indices.rankOf() + 256;
 
@@ -98,28 +97,28 @@ ND4J_LOCAL Nd4jLong checkIndices(sd::LaunchContext *context, const NDArray& indi
     NDArray numOfBadIndx(sd::DataType::INT64, context, true);
 
     NDArray::prepareSpecialUse({&numOfBadIndx}, {&indices});
-    BUILD_SINGLE_SELECTOR(xType, checkIndicesCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), reinterpret_cast<Nd4jLong*>(numOfBadIndx.specialBuffer()), output.specialShapeInfo(), axis), INDEXING_TYPES);
+    BUILD_SINGLE_SELECTOR(xType, checkIndicesCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), reinterpret_cast<sd::LongType*>(numOfBadIndx.specialBuffer()), output.specialShapeInfo(), axis), SD_INDEXING_TYPES);
     NDArray::registerSpecialUse({&numOfBadIndx}, {&indices});
 
     manager.synchronize();
 
-    return numOfBadIndx.t<Nd4jLong>(0);
+    return numOfBadIndx.t<sd::LongType>(0);
 }
 
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - input/output
 template<typename X, typename Y>
-__global__ static void scatterLockCuda(const int opCode,
-                                        const void *vx, const Nd4jLong *xShapeInfo,
-                                        const void *vy, const Nd4jLong *yShapeInfo,
-                                              void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void scatterLockCuda(const int opCode,
+                                        const void *vx, const sd::LongType *xShapeInfo,
+                                        const void *vy, const sd::LongType *yShapeInfo,
+                                              void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const X*>(vx);
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<Y*>(vz);
 
     __shared__ int xRank, yRank, zRank, xNonUnitDim, yNonUnitDim, zNonUnitDim, *coords;
-    __shared__ Nd4jLong xLen, zLen;
+    __shared__ sd::LongType xLen, zLen;
     __shared__ bool is1Dcase, xySameStride;
 
     if (threadIdx.x == 0) {
@@ -143,10 +142,10 @@ __global__ static void scatterLockCuda(const int opCode,
     __syncthreads();
 
 
-    Nd4jLong yOffset, zOffset;
+    sd::LongType yOffset, zOffset;
     int zFirstCoord, *yCoords, *zCoords;
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x) {
 
         if(!is1Dcase) {
 
@@ -155,7 +154,7 @@ __global__ static void scatterLockCuda(const int opCode,
             shape::index2coords(i, zShapeInfo, zCoords);
         }
 
-        for (Nd4jLong j = 0; j < xLen; ++j) {
+        for (sd::LongType j = 0; j < xLen; ++j) {
 
             if(is1Dcase) {
 
@@ -177,7 +176,7 @@ __global__ static void scatterLockCuda(const int opCode,
                 if(zCoords[0] != zFirstCoord)
                     continue;
 
-                for (uint k = 0; k < yRank - xRank; ++k)
+                for (sd::Unsigned k = 0; k < yRank - xRank; ++k)
                     yCoords[xRank + k] = zCoords[k + 1];
 
                 yOffset = shape::getOffset(yShapeInfo, yCoords);
@@ -223,17 +222,17 @@ __global__ static void scatterLockCuda(const int opCode,
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - input/output
 template<typename X, typename Y>
-__global__ static void scatterCuda(const int opCode,
-                                   const void *vx, const Nd4jLong *xShapeInfo,
-                                   const void *vy, const Nd4jLong *yShapeInfo,
-                                         void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void scatterCuda(const int opCode,
+                                   const void *vx, const sd::LongType *xShapeInfo,
+                                   const void *vy, const sd::LongType *yShapeInfo,
+                                         void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const X*>(vx);
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<Y*>(vz);
 
     __shared__ int xRank, yRank, zRank, xNonUnitDim, yNonUnitDim, zNonUnitDim, *coords;
-    __shared__ Nd4jLong yLen;
+    __shared__ sd::LongType yLen;
     __shared__ bool is1Dcase, xySameStride;
 
     if (threadIdx.x == 0) {
@@ -256,7 +255,7 @@ __global__ static void scatterCuda(const int opCode,
     __syncthreads();
 
 
-    Nd4jLong xOffset, yOffset, zOffset;
+    sd::LongType xOffset, yOffset, zOffset;
     int *yCoords, *zCoords;
 
     if(!is1Dcase) {
@@ -264,7 +263,7 @@ __global__ static void scatterCuda(const int opCode,
         zCoords = yCoords + yRank;
     }
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < yLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < yLen; i += gridDim.x * blockDim.x) {
 
         if(is1Dcase) {
 
@@ -275,11 +274,11 @@ __global__ static void scatterCuda(const int opCode,
             shape::index2coords(i, yShapeInfo, yCoords);
 
             yOffset = shape::getOffset(yShapeInfo, yCoords);
-            xOffset = shape::getOffset(xShapeInfo, yCoords);                // first xRank coordinates in yCoords are the same for y and x -> for (uint j = 0; j < xRank; ++j) xCoords[j] = yCoords[j];
+            xOffset = shape::getOffset(xShapeInfo, yCoords);                // first xRank coordinates in yCoords are the same for y and x -> for (sd::Unsigned j = 0; j < xRank; ++j) xCoords[j] = yCoords[j];
 
             zCoords[0] = x[xOffset];
 
-            for (uint j = 0; j < yRank - xRank; ++j)
+            for (sd::Unsigned j = 0; j < yRank - xRank; ++j)
                 zCoords[j + 1] = yCoords[xRank + j];
 
             zOffset = shape::getOffset(zShapeInfo, zCoords);
@@ -323,9 +322,9 @@ __global__ static void scatterCuda(const int opCode,
 template<typename X, typename Y>
 static void scatterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
                                 const int opCode,
-                                const void *vx, const Nd4jLong *xShapeInfo,
-                                const void *vy, const Nd4jLong *yShapeInfo,
-                                      void *vz, const Nd4jLong *zShapeInfo,
+                                const void *vx, const sd::LongType *xShapeInfo,
+                                const void *vy, const sd::LongType *yShapeInfo,
+                                      void *vz, const sd::LongType *zShapeInfo,
                                 const bool lock) {
 
     if(lock)
@@ -336,19 +335,19 @@ static void scatterCudaLauncher(const int blocksPerGrid, const int threadsPerBlo
 
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void scatter(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
+void scatter(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
 
     const auto xType = indices.dataType();
     const auto yType = updates.dataType();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = ((lock ? output.lengthOf() : updates.lengthOf()) + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = sizeof(int) * threadsPerBlock * (updates.rankOf() + output.rankOf()) + 256;
 
     PointersManager manager(context, "scatter");
 
     NDArray::prepareSpecialUse({&output}, {&updates, &indices});
-    BUILD_DOUBLE_SELECTOR(xType, yType, scatterCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), lock), INDEXING_TYPES, GENERIC_NUMERIC_TYPES);
+    BUILD_DOUBLE_SELECTOR(xType, yType, scatterCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), lock), SD_INDEXING_TYPES, SD_GENERIC_NUMERIC_TYPES);
     NDArray::registerSpecialUse({&output}, {&updates, &indices});
 
     manager.synchronize();
@@ -357,17 +356,17 @@ ND4J_LOCAL void scatter(sd::LaunchContext  *context, pairwise::Ops op, const NDA
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - output
 template<typename X, typename Y>
-__global__ static void scatterNDLockCuda(const int opCode,
-                                        const void *vx, const Nd4jLong *xShapeInfo,
-                                        const void *vy, const Nd4jLong *yShapeInfo,
-                                              void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void scatterNDLockCuda(const int opCode,
+                                        const void *vx, const sd::LongType *xShapeInfo,
+                                        const void *vy, const sd::LongType *yShapeInfo,
+                                              void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const X*>(vx);
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<Y*>(vz);
 
     __shared__ int xRank, yRank, zRank, biggerXYRank, xLastDim, *coords, xNonUnitDim, yNonUnitDim, zNonUnitDim;
-    __shared__ Nd4jLong zLen, len;
+    __shared__ sd::LongType zLen, len;
     __shared__ bool is1Dcase;
 
     if (threadIdx.x == 0) {
@@ -390,7 +389,7 @@ __global__ static void scatterNDLockCuda(const int opCode,
     }
     __syncthreads();
 
-    Nd4jLong yOffset, zOffset, xOffset;
+    sd::LongType yOffset, zOffset, xOffset;
     int *yCoords, *zCoords;
 
     if(!is1Dcase) {
@@ -398,12 +397,12 @@ __global__ static void scatterNDLockCuda(const int opCode,
         zCoords = yCoords + biggerXYRank;
     }
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < zLen; i += gridDim.x * blockDim.x) {
 
         if(!is1Dcase)
             shape::index2coords(i, zShapeInfo, zCoords);
 
-        for (Nd4jLong j = 0; j < len; ++j) {        // if !is1Dcase then we loop through first xRank-1 dimensions of x, that is we exclude last x dimension
+        for (sd::LongType j = 0; j < len; ++j) {        // if !is1Dcase then we loop through first xRank-1 dimensions of x, that is we exclude last x dimension
 
             if(is1Dcase) {
 
@@ -415,7 +414,7 @@ __global__ static void scatterNDLockCuda(const int opCode,
             }
             else {
 
-                shape::index2coords(j, xRank-1, shape::shapeOf(const_cast<Nd4jLong*>(xShapeInfo)), yCoords);        // first xRank-1 coordinates in yCoords are the same for y and x
+                shape::index2coords(j, xRank-1, shape::shapeOf(const_cast<sd::LongType*>(xShapeInfo)), yCoords);        // first xRank-1 coordinates in yCoords are the same for y and x
 
                 // first iteration
                 yCoords[xRank - 1] = 0;
@@ -425,7 +424,7 @@ __global__ static void scatterNDLockCuda(const int opCode,
 
                 // rest iterations
                 bool matched = true;
-                for (uint k = 1; k < xLastDim; ++k) {
+                for (sd::Unsigned k = 1; k < xLastDim; ++k) {
                     yCoords[xRank - 1] = k;
                     xOffset += shape::stride(xShapeInfo)[xRank-1];
                     if(zCoords[k] != x[xOffset]) {
@@ -437,7 +436,7 @@ __global__ static void scatterNDLockCuda(const int opCode,
                 if(!matched)
                     continue;
 
-                for (uint k = xLastDim; k < zRank; ++k)
+                for (sd::Unsigned k = xLastDim; k < zRank; ++k)
                     yCoords[yRank - zRank + k] = zCoords[k];
 
                 yOffset = shape::getOffset(yShapeInfo, yCoords);
@@ -482,17 +481,17 @@ __global__ static void scatterNDLockCuda(const int opCode,
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - output
 template<typename X, typename Y>
-__global__ static void scatterNDCuda(const int opCode,
-                                     const void *vx, const Nd4jLong *xShapeInfo,
-                                     const void *vy, const Nd4jLong *yShapeInfo,
-                                           void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL static void scatterNDCuda(const int opCode,
+                                     const void *vx, const sd::LongType *xShapeInfo,
+                                     const void *vy, const sd::LongType *yShapeInfo,
+                                           void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const X*>(vx);
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<Y*>(vz);
 
     __shared__ int xRank, yRank, zRank, biggerXYRank, xLastDim, *coords, xNonUnitDim, yNonUnitDim, zNonUnitDim;
-    __shared__ Nd4jLong yLen;
+    __shared__ sd::LongType yLen;
     __shared__ bool is1Dcase;
 
     if (threadIdx.x == 0) {
@@ -513,7 +512,7 @@ __global__ static void scatterNDCuda(const int opCode,
     }
     __syncthreads();
 
-    Nd4jLong yOffset, zOffset;
+    sd::LongType yOffset, zOffset;
     int *yCoords, *zCoords;
 
     if(!is1Dcase) {
@@ -521,7 +520,7 @@ __global__ static void scatterNDCuda(const int opCode,
         zCoords = yCoords + biggerXYRank;
     }
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < yLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < yLen; i += gridDim.x * blockDim.x) {
 
         if(is1Dcase) {
 
@@ -537,12 +536,12 @@ __global__ static void scatterNDCuda(const int opCode,
             if(yRank >= xRank)
                 zCoords[xLastDim] = yCoords[xRank - 1];                // saving y coordinate, since it might be changed in next instructions
 
-            for (uint j = 0; j < xLastDim; ++j) {                      // first xRank-1 coordinates in yCoords are the same for y and x
+            for (sd::Unsigned j = 0; j < xLastDim; ++j) {                      // first xRank-1 coordinates in yCoords are the same for y and x
                 yCoords[xRank - 1] = j;
                 zCoords[j] = x[shape::getOffset(xShapeInfo, yCoords)];
             }
 
-            for (uint j = xLastDim + 1; j < zRank; ++j)
+            for (sd::Unsigned j = xLastDim + 1; j < zRank; ++j)
                 zCoords[j] = yCoords[yRank - zRank + j];
 
             zOffset = shape::getOffset(zShapeInfo, zCoords);
@@ -586,9 +585,9 @@ __global__ static void scatterNDCuda(const int opCode,
 template<typename X, typename Y>
 static void scatterNDCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
                                   const int opCode,
-                                  const void *vx, const Nd4jLong *xShapeInfo,
-                                  const void *vy, const Nd4jLong *yShapeInfo,
-                                        void *vz, const Nd4jLong *zShapeInfo,
+                                  const void *vx, const sd::LongType *xShapeInfo,
+                                  const void *vy, const sd::LongType *yShapeInfo,
+                                        void *vz, const sd::LongType *zShapeInfo,
                                   const bool lock) {
 
     if(lock)
@@ -598,13 +597,13 @@ static void scatterNDCudaLauncher(const int blocksPerGrid, const int threadsPerB
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
+void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
 
     const int xRank = indices.rankOf();
     const int yRank = updates.rankOf();
     const int zRank = output.rankOf();
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = ((lock ? output.lengthOf() : updates.lengthOf()) + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = threadsPerBlock * sizeof(int) * ((yRank > xRank ? yRank : xRank) + zRank) + 256;
 
@@ -614,7 +613,7 @@ ND4J_LOCAL void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const N
     PointersManager manager(context, "scatterND");
 
     NDArray::prepareSpecialUse({&output}, {&updates, &indices});
-    BUILD_DOUBLE_SELECTOR(xType, yType, scatterNDCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), lock), INDEXING_TYPES, GENERIC_NUMERIC_TYPES);
+    BUILD_DOUBLE_SELECTOR(xType, yType, scatterNDCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), lock), SD_INDEXING_TYPES, SD_GENERIC_NUMERIC_TYPES);
     NDArray::registerSpecialUse({&output}, {&updates, &indices});
 
     manager.synchronize();
@@ -622,15 +621,15 @@ ND4J_LOCAL void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const N
 
 ///////////////////////////////////////////////////////////////////
 template<typename X, typename Z>
-__global__ void scatterForLossCuda(const void *vx, const Nd4jLong *xShapeInfo,
-                                         void *vy, const Nd4jLong *yShapeInfo,
-                                         void *vz, const Nd4jLong *zShapeInfo) {
+SD_KERNEL void scatterForLossCuda(const void *vx, const sd::LongType *xShapeInfo,
+                                         void *vy, const sd::LongType *yShapeInfo,
+                                         void *vz, const sd::LongType *zShapeInfo) {
 
     const auto x = reinterpret_cast<const X*>(vx);
           auto y = reinterpret_cast<Z*>(vy);
           auto z = reinterpret_cast<Z*>(vz);
 
-    __shared__ Nd4jLong xLen;
+    __shared__ sd::LongType xLen;
     __shared__ int xRank, *sharedMem;   // xRank = zRank, yRank = xRank + 1
 
     if (threadIdx.x == 0) {
@@ -666,30 +665,30 @@ __global__ void scatterForLossCuda(const void *vx, const Nd4jLong *xShapeInfo,
 
 ///////////////////////////////////////////////////////////////////
 template<typename X, typename Z>
-static void scatterForLossCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream, const void *vx, const Nd4jLong* xShapeInfo, void *vy, const Nd4jLong* yShapeInfo, void *vz, const Nd4jLong* zShapeInfo) {
+static void scatterForLossCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream, const void *vx, const sd::LongType* xShapeInfo, void *vy, const sd::LongType* yShapeInfo, void *vz, const sd::LongType* zShapeInfo) {
 
     scatterForLossCuda<X, Z><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void scatterForLoss(sd::LaunchContext* context, const NDArray& indices, NDArray& updates, NDArray& output, const bool calcGrad) {
+void scatterForLoss(sd::LaunchContext* context, const NDArray& indices, NDArray& updates, NDArray& output, const bool calcGrad) {
     // shapes of indices and output must be the same
     // shape of indices should be the same as updates shape with last dimension excluded, for example if updates is {a,b,c} then indices should be {a,b}
 
     PointersManager manager(context, "scatterForLoss");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (indices.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = updates.rankOf() * sizeof(int) * threadsPerBlock  + 128;
 
     if(calcGrad) {
         NDArray::prepareSpecialUse({&updates}, {&indices});
-        BUILD_DOUBLE_SELECTOR(indices.dataType(), updates.dataType(), scatterForLossCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), nullptr, nullptr), INDEXING_TYPES, FLOAT_TYPES);
+        BUILD_DOUBLE_SELECTOR(indices.dataType(), updates.dataType(), scatterForLossCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), nullptr, nullptr), SD_INDEXING_TYPES, SD_FLOAT_TYPES);
         NDArray::registerSpecialUse({&updates}, {&indices});
     }
     else {
         NDArray::prepareSpecialUse({&output}, {&indices, &updates});
-        BUILD_DOUBLE_SELECTOR(indices.dataType(), updates.dataType(), scatterForLossCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo()), INDEXING_TYPES, FLOAT_TYPES);
+        BUILD_DOUBLE_SELECTOR(indices.dataType(), updates.dataType(), scatterForLossCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), updates.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo()), SD_INDEXING_TYPES, SD_FLOAT_TYPES);
         NDArray::registerSpecialUse({&output}, {&indices, &updates});
     }
 
@@ -707,10 +706,10 @@ ND4J_LOCAL void scatterForLoss(sd::LaunchContext* context, const NDArray& indice
 template<typename X, typename Y>
 static void scatterLockCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
                                     const int opCode,
-                                    const void* vx, const Nd4jLong *xShapeInfo,
-                                    const void* vy, const Nd4jLong *yTadShapeInfo, const Nd4jLong *yOffsets,
-                                          void* vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zOffsets,
-                                    const Nd4jLong xLen, const Nd4jLong yTadLen, const Nd4jLong zTadLen) {
+                                    const void* vx, const sd::LongType *xShapeInfo,
+                                    const void* vy, const sd::LongType *yTadShapeInfo, const sd::LongType *yOffsets,
+                                          void* vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zOffsets,
+                                    const sd::LongType xLen, const sd::LongType yTadLen, const sd::LongType zTadLen) {
 
     scatterLockCuda<X,Y><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(opCode, vx, xShapeInfo, vy, yTadShapeInfo, yOffsets, vz, zTadShapeInfo, zOffsets, xLen, yTadLen, zTadLen);
 }
@@ -719,12 +718,11 @@ static void scatterLockCudaLauncher(const int blocksPerGrid, const int threadsPe
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - input/output
 template<typename X, typename Y>
-__global__ static void scatterLockCuda(const int opCode,
-                                       const void* vx, const Nd4jLong *xShapeInfo,
-                                       const void* vy, const Nd4jLong *yTadShapeInfo, const Nd4jLong *yOffsets,
-                                             void* vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zOffsets,
-                                       const Nd4jLong xLen, const Nd4jLong yTadLen, const Nd4jLong zTadLen) {
-
+SD_KERNEL static void scatterLockCuda(const int opCode,
+                                       const void* vx, const sd::LongType *xShapeInfo,
+                                       const void* vy, const sd::LongType *yTadShapeInfo, const sd::LongType *yOffsets,
+                                             void* vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zOffsets,
+                                       const sd::LongType xLen, const sd::LongType yTadLen, const sd::LongType zTadLen) {
 
 
  const int xRank = indices.rankOf();
@@ -741,17 +739,16 @@ __global__ static void scatterLockCuda(const int opCode,
         auto packY = sd::ConstantTadHelper::getInstance().tadForDimensions(updates.shapeInfo(), ShapeUtils::evalDimsToExclude(updates.rankOf(), yTadDims));
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), zTadDims);
 
-        const Nd4jLong zTadLen = shape::length(packZ.primaryShapeInfo());
-        const Nd4jLong yTadLen = shape::length(packY.primaryShapeInfo());
+        const sd::LongType zTadLen = shape::length(packZ.primaryShapeInfo());
+        const sd::LongType yTadLen = shape::length(packY.primaryShapeInfo());
 
-        const auto threadsPerBlock = sd::math::nd4j_max<int>(32, sd::math::nd4j_min<int>(zTadLen, 1024));
+        const auto threadsPerBlock = sd::math::sd_max<int>(32, sd::math::sd_min<int>(zTadLen, 1024));
         const auto blocksPerGrid = indices.lengthOf();
 
         const auto xType = indices.dataType();
         const auto yType = updates.dataType();
 
-        BUILD_DOUBLE_SELECTOR(xType, yType, scatterLockCudaLauncher, (blocksPerGrid, threadsPerBlock, 1024, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), packY.specialShapeInfo(), packY.specialOffsets(), output.specialBuffer(), packZ.specialShapeInfo(), packZ.specialOffsets(), indices.lengthOf(), yTadLen, zTadLen), INDEXING_TYPES, GENERIC_NUMERIC_TYPES);
-
+        BUILD_DOUBLE_SELECTOR(xType, yType, scatterLockCudaLauncher, (blocksPerGrid, threadsPerBlock, 1024, context->getCudaStream(), op, indices.specialBuffer(), indices.specialShapeInfo(), updates.specialBuffer(), packY.specialShapeInfo(), packY.specialOffsets(), output.specialBuffer(), packZ.specialShapeInfo(), packZ.specialOffsets(), indices.lengthOf(), yTadLen, zTadLen), SD_INDEXING_TYPES, SD_GENERIC_NUMERIC_TYPES);
 
 
     const auto x = reinterpret_cast<const X*>(vx);
@@ -765,7 +762,7 @@ __global__ static void scatterLockCuda(const int opCode,
 
     for (int e = 0; e < xLen; e++) {
 
-        const Nd4jLong zIndex = x[shape::getIndexOffset(e, xShapeInfo)];
+        const sd::LongType zIndex = x[shape::getIndexOffset(e, xShapeInfo)];
         const bool isOwner = zIndex < gridDim.x ? blockIdx.x == zIndex : blockIdx.x == zIndex % gridDim.x;
 
         if (!isOwner)
@@ -816,7 +813,7 @@ __global__ static void scatterLockCuda(const int opCode,
             const Y* yTad = y + yOffsets[e];
                   Y* zTad = z + zOffsets[zIndex];
 
-            for (Nd4jLong i = threadIdx.x; i < zTadLen; i += blockDim.x) {
+            for (sd::LongType i = threadIdx.x; i < zTadLen; i += blockDim.x) {
 
                 const auto yOffset = shape::getIndexOffset(i, yTadShapeInfo);
                 const auto zOffset = shape::getIndexOffset(i, zTadShapeInfo);
@@ -858,9 +855,9 @@ __global__ static void scatterLockCuda(const int opCode,
 }
 
             template<typename T, bool locking>
-            __global__ static void scatterCuda(const int opCode, const int numOfSubArrs,
-                                                     void* vx, const Nd4jLong *xShapeInfo, const Nd4jLong *xOffsets,
-                                                     void* vy, const Nd4jLong *yShapeInfo, const Nd4jLong *yOffsets,
+            SD_KERNEL static void scatterCuda(const int opCode, const int numOfSubArrs,
+                                                     void* vx, const sd::LongType *xShapeInfo, const sd::LongType *xOffsets,
+                                                     void* vy, const sd::LongType *yShapeInfo, const sd::LongType *yOffsets,
                                                      const int* indexes, unsigned int arrLenX, unsigned int arrLenY) {
 
                 __shared__ T *x, *y;
@@ -881,7 +878,7 @@ __global__ static void scatterLockCuda(const int opCode,
                         }
                         __syncthreads();
 
-                        for (Nd4jLong i = threadIdx.x; i < arrLenX; i += blockDim.x) {
+                        for (sd::LongType i = threadIdx.x; i < arrLenX; i += blockDim.x) {
 
                             const auto xOffset = shape::getIndexOffset(i, xShapeInfo);
                             const auto yOffset = shape::getIndexOffset(i, yShapeInfo);
@@ -924,7 +921,7 @@ __global__ static void scatterLockCuda(const int opCode,
                         }
                         __syncthreads();
 
-                        for (Nd4jLong i = threadIdx.x; i < arrLenX; i += blockDim.x) {
+                        for (sd::LongType i = threadIdx.x; i < arrLenX; i += blockDim.x) {
                             const auto xOffset = shape::getIndexOffset(i, xShapeInfo);
                             const auto yOffset = shape::getIndexOffset(i, yShapeInfo);
 
@@ -983,7 +980,7 @@ __global__ static void scatterLockCuda(const int opCode,
                 if (tadLengthX != tadLengthY)
                     throw std::runtime_error("scatter: Lengths of TADs must be equal");
 
-                auto blockSize = sd::math::nd4j_max<int>(32, sd::math::nd4j_min<int>(tadLengthX, 1024));
+                auto blockSize = sd::math::sd_max<int>(32, sd::math::sd_min<int>(tadLengthX, 1024));
 
                 if (lock)
                     scatterCuda<T, true><<<512, blockSize, 1024, *context->getCudaStream()>>>(op, indices.lengthOf(), output.specialBuffer(), psX, poX, updates.specialBuffer(), psY, poY, reinterpret_cast<int *>(indices.specialBuffer()), tadLengthX, tadLengthY);
@@ -995,17 +992,15 @@ __global__ static void scatterLockCuda(const int opCode,
             }
 
 
-
 ///////////////////////////////////////////////////////////////////
 // x - indices, y - updates, z - output
 template<typename X, typename Y>
-__global__ static void scatterNDLockCuda(const int opCode,
-                                         const void* vx, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xOffsets,
-                                         const void* vy, const Nd4jLong *yTadShapeInfo, const Nd4jLong *yOffsets,
-                                               void* vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zOffsets,
-                                         const Nd4jLong *zShapeInfo,
-                                         const Nd4jLong numOfXTads, const Nd4jLong numOfZTads, const Nd4jLong yTadLen) {
-
+SD_KERNEL static void scatterNDLockCuda(const int opCode,
+                                         const void* vx, const sd::LongType *xTadShapeInfo, const sd::LongType *xOffsets,
+                                         const void* vy, const sd::LongType *yTadShapeInfo, const sd::LongType *yOffsets,
+                                               void* vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zOffsets,
+                                         const sd::LongType *zShapeInfo,
+                                         const sd::LongType numOfXTads, const sd::LongType numOfZTads, const sd::LongType yTadLen) {
 
 
 ---------------------------------------------------------------------------
@@ -1022,7 +1017,7 @@ const int xLastDim = indices.sizeAt(-1);
         auto packY = sd::ConstantTadHelper::getInstance().tadForDimensions(updates.shapeInfo(), yTadDims);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), zTadDims);
 
-        const int threadsPerBlock = MAX_NUM_THREADS / 4;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
         const int blocksPerGrid = packZ.numberOfTads();
         const int sharedMem = 8 * threadsPerBlock * xLastDim + 128;
 ---------------------------------------------------------------------------
@@ -1034,23 +1029,23 @@ const int xLastDim = indices.sizeAt(-1);
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<Y*>(vz);
 
-    __shared__ Nd4jLong *zTadCoords;
+    __shared__ sd::LongType *zTadCoords;
     __shared__ int xLastDim;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        zTadCoords = reinterpret_cast<Nd4jLong*>(shmem);
+        zTadCoords = reinterpret_cast<sd::LongType*>(shmem);
         xLastDim = xTadShapeInfo[1];   // xTad has rank = 1 always
     }
     __syncthreads();
 
-    Nd4jLong* zTadCoordsPerThread = zTadCoords + threadIdx.x * xLastDim;
+    sd::LongType* zTadCoordsPerThread = zTadCoords + threadIdx.x * xLastDim;
 
-    for (Nd4jLong i = 0; i < numOfXTads; ++i) {
+    for (sd::LongType i = 0; i < numOfXTads; ++i) {
 
         const X* xTad = x + xOffsets[i];
 
-        for (uint k = 0; k < xLastDim; ++k)
+        for (sd::Unsigned k = 0; k < xLastDim; ++k)
             zTadCoordsPerThread[k] = xTad[shape::getIndexOffset(k, xTadShapeInfo)];
 
         const auto zTadIndex = shape::coords2index(xLastDim, zShapeInfo + 1, zTadCoordsPerThread);
@@ -1104,7 +1099,7 @@ const int xLastDim = indices.sizeAt(-1);
             const auto yTad = y + yOffsets[i];
             const auto zTad = z + zOffsets[zTadIndex];
 
-            for (Nd4jLong j = threadIdx.x; j < yTadLen; j += blockDim.x) {
+            for (sd::LongType j = threadIdx.x; j < yTadLen; j += blockDim.x) {
 
                 const auto yOffset = shape::getIndexOffset(j, yTadShapeInfo);
                 const auto zOffset = shape::getIndexOffset(j, zTadShapeInfo);
@@ -1148,22 +1143,22 @@ const int xLastDim = indices.sizeAt(-1);
 */
         // PointersManager manager(&context, "NativeOps::concat");
         // PointersManager::printDevContentOnDev<int>(vx, 2);
-        // PointersManager::printDevContentOnDev<Nd4jLong>(xShapeInfo, 8);
+        // PointersManager::printDevContentOnDev<sd::LongType>(xShapeInfo, 8);
         // PointersManager::printDevContentOnDev<float>(vy, 8);
-        // PointersManager::printDevContentOnDev<Nd4jLong>(yShapeInfo, 8);
-        // PointersManager::printDevContentOnDev<Nd4jLong>(zShapeInfo, 8);
+        // PointersManager::printDevContentOnDev<sd::LongType>(yShapeInfo, 8);
+        // PointersManager::printDevContentOnDev<sd::LongType>(zShapeInfo, 8);
 
         // manager.printDevContentOnHost<int>(indices.specialBuffer(), indices.lengthOf());
-        // manager.printDevContentOnHost<Nd4jLong>(indices.special(), shape::shapeInfoLength(indices.rankOf()));
+        // manager.printDevContentOnHost<sd::LongType>(indices.special(), shape::shapeInfoLength(indices.rankOf()));
         // manager.printDevContentOnHost<float>(updates.specialBuffer(), updates.lengthOf());
-        // manager.printDevContentOnHost<Nd4jLong>(updates.special(), shape::shapeInfoLength(updates.rankOf()));
-        // manager.printDevContentOnHost<Nd4jLong>(output.special(), shape::shapeInfoLength(output.rankOf()));
+        // manager.printDevContentOnHost<sd::LongType>(updates.special(), shape::shapeInfoLength(updates.rankOf()));
+        // manager.printDevContentOnHost<sd::LongType>(output.special(), shape::shapeInfoLength(output.rankOf()));
         // printf("!!!!!!!\n");
-        // manager.printDevContentOnHost<Nd4jLong>(packX.special(), 2*shape::rank(packX.primary()) + 4);
-        // manager.printDevContentOnHost<Nd4jLong>(packX.special(), packX.numberOfTads());
-        // manager.printDevContentOnHost<Nd4jLong>(packY.special(), 2*shape::rank(packY.primary()) + 4);
-        // manager.printDevContentOnHost<Nd4jLong>(packY.special(), packY.numberOfTads());
-        // manager.printDevContentOnHost<Nd4jLong>(packZ.special(), 2*shape::rank(packZ.primary()) + 4);
-        // manager.printDevContentOnHost<Nd4jLong>(packZ.special(), packZ.numberOfTads());
+        // manager.printDevContentOnHost<sd::LongType>(packX.special(), 2*shape::rank(packX.primary()) + 4);
+        // manager.printDevContentOnHost<sd::LongType>(packX.special(), packX.numberOfTads());
+        // manager.printDevContentOnHost<sd::LongType>(packY.special(), 2*shape::rank(packY.primary()) + 4);
+        // manager.printDevContentOnHost<sd::LongType>(packY.special(), packY.numberOfTads());
+        // manager.printDevContentOnHost<sd::LongType>(packZ.special(), 2*shape::rank(packZ.primary()) + 4);
+        // manager.printDevContentOnHost<sd::LongType>(packZ.special(), packZ.numberOfTads());
         // printf("dddddddd\n");
         // shape::printShapeInfoLinear(packY.primary());

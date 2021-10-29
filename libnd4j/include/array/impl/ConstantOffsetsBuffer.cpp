@@ -21,7 +21,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/ConstantOffsetsBuffer.h>
 
 namespace sd {
@@ -36,15 +35,15 @@ ConstantOffsetsBuffer::ConstantOffsetsBuffer(const std::shared_ptr<PointerWrappe
   _specialOffsets = special;
 }
 
-const Nd4jLong *ConstantOffsetsBuffer::primary() const {
-  return reinterpret_cast<Nd4jLong*>(_primaryOffsets->pointer());
+const sd::LongType *ConstantOffsetsBuffer::primary() const {
+  return reinterpret_cast<sd::LongType*>(_primaryOffsets->pointer());
 }
 
-const Nd4jLong *ConstantOffsetsBuffer::special() const {
-  return _specialOffsets ? reinterpret_cast<Nd4jLong*>(_specialOffsets->pointer()) : nullptr;
+const sd::LongType *ConstantOffsetsBuffer::special() const {
+  return _specialOffsets ? reinterpret_cast<sd::LongType*>(_specialOffsets->pointer()) : nullptr;
 }
 
-const Nd4jLong *ConstantOffsetsBuffer::platform() const {
+const sd::LongType *ConstantOffsetsBuffer::platform() const {
 #ifdef __CUDABLAS__
   return special();
 #else

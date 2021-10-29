@@ -24,7 +24,6 @@
 
 #ifndef DEV_TESTS_SHIFT_H
 #define DEV_TESTS_SHIFT_H
-
 #include <system/op_boilerplate.h>
 #include <types/types.h>
 #include <array/NDArray.h>
@@ -32,13 +31,13 @@
 namespace sd {
     namespace ops {
         namespace helpers {
-            void rshift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
+        SD_LIB_HIDDEN void rshift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
 
-            void shift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
+        SD_LIB_HIDDEN void shift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
 
-            void cyclic_rshift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
+        SD_LIB_HIDDEN void cyclic_rshift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
 
-            void cyclic_shift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
+        SD_LIB_HIDDEN void cyclic_shift_bits(LaunchContext* launchContext, NDArray &x, NDArray &z, uint32_t shift);
         }
     }
 }

@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/dropout.h>
 #include <legacy/NativeOps.h>
 #include <vector>
@@ -47,12 +46,12 @@ namespace helpers {
 
         samediff::Threads::parallel_for(func, 0, inLen);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void dropoutSimple, (NDArray const* input, NDArray* output, double probValue, int seed), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void dropoutSimple, (NDArray const* input, NDArray* output, double probValue, int seed), SD_FLOAT_TYPES);
 
     template <typename T>
-    ND4J_LOCAL int dropOutFunctor_(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
+    sd::Status dropOutFunctor_(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
         //NativeOps native;
-        //sd::graph::RandomGenerator nodeRng(seed);   //static int dropOutFunctor_(sd::random::RandomBuffer* rng, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
+        //sd::graph::RandomGenerator nodeRng(seed);   //static sd::Status dropOutFunctor_(sd::random::RandomBuffer* rng, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
         //NativeOps native;
         //native.reSeedBuffer(nullptr, (long)seed, rng);
         //if (newRng )
@@ -62,12 +61,12 @@ namespace helpers {
         else {
             REQUIRE_TRUE(reduceShape->lengthOf() <= input->rankOf(), 0, "dropout: Noise shape should be fittable to input");
 
-            std::vector<Nd4jLong> dims(reduceShape->lengthOf());
+            std::vector<sd::LongType> dims(reduceShape->lengthOf());
 
             bool fit = true;
             for(auto i = 0; i < dims.size(); i++ ) {
                 if (fit) {
-                    dims[i] = reduceShape->e<Nd4jLong>(i);
+                    dims[i] = reduceShape->e<sd::LongType>(i);
                     for (int e = 0; e < input->rankOf(); ++e)
                         if (fit)
                         if (input->sizeAt(e) % dims[i]) {
@@ -92,25 +91,25 @@ namespace helpers {
              output->assign(*input * *dropOutMultiplier); //input->applyPairwiseTransform(pairwise::Multiply, dropOutMultiplier.get(), output, nullptr);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
-    ND4J_LOCAL int dropOutFunctor(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
+    sd::Status dropOutFunctor(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
         auto xType = input->dataType();
 
-        BUILD_SINGLE_SELECTOR(xType, return dropOutFunctor_, (context, input, output, reduceShape, seed, probValue), FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, return dropOutFunctor_, (context, input, output, reduceShape, seed, probValue), SD_FLOAT_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int dropOutFunctor_, (graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue);, FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status dropOutFunctor_, (graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue);, SD_FLOAT_TYPES);
 
 /////////////////////////////////// backrpopagations ///////////////////////////////////////////////
     template <typename T>
-    static int dropOutFunctorBP_(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
+    static sd::Status dropOutFunctorBP_(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
 
-        int res = dropOutFunctor(context, input, output, reduceShape, seed, probValue);
+        auto res = dropOutFunctor(context, input, output, reduceShape, seed, probValue);
 
-        if (ND4J_STATUS_OK == res)
-            for (Nd4jLong e = 0; e < output->lengthOf(); e++) {
+        if (sd::Status::OK == res)
+            for (sd::LongType e = 0; e < output->lengthOf(); e++) {
                 if (output->e<float>(e) != 0.f) output->p<T>(e, gradOut->e<double>(e) / probValue);
 //            else (*output)(e) = T(0.f);
             }
@@ -119,14 +118,14 @@ namespace helpers {
     }
 
     template <typename T>
-    static int alphaDropOutFunctor_(graph::Context& context, NDArray* input, NDArray* output,
+    static sd::Status alphaDropOutFunctor_(graph::Context& context, NDArray* input, NDArray* output,
                             NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
 
         //NativeOps native;
         //auto rng = context.getRNG();
         //native.reSeedBuffer(nullptr, (long)seed, rng);
         //if (rng == nullptr)
-        //    return ND4J_STATUS_BAD_RNG;
+        //    return sd::Status::BAD_RNG;
         //T probValueArr[] = {probValue, alpha, alpha1, beta};
         //input->template applyRandom<randomOps::AlphaDropOut<T>>(rng, nullptr, output, probValueArr);
         sd::graph::RandomGenerator nodeRng(3019L, seed);
@@ -141,35 +140,35 @@ namespace helpers {
 
         samediff::Threads::parallel_for(func, 0, input->lengthOf());
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     template <typename T>
-    ND4J_LOCAL int alphaDropOutFunctorBP_(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output,
+    sd::Status alphaDropOutFunctorBP_(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output,
                               NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
 
-        int res = alphaDropOutFunctor(context, input, output, reduceShape, seed, probValue, alpha, alpha1, beta);
-        if (res == ND4J_STATUS_OK) {
+        auto res = alphaDropOutFunctor(context, input, output, reduceShape, seed, probValue, alpha, alpha1, beta);
+        if (res == sd::Status::OK) {
             (*output) *= alpha;
             (*output) *= (*gradOut); //->applyPairwiseTransform<transform::Multiply>(gradOut, output, nullptr);
         }
         return res;
     }
 
-    ND4J_LOCAL int dropOutFunctorBP(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
-        BUILD_SINGLE_SELECTOR(context.dataType(), return dropOutFunctorBP_, (context, input, gradOut, output, reduceShape, seed, probValue), FLOAT_TYPES);
+    sd::Status dropOutFunctorBP(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue) {
+        BUILD_SINGLE_SELECTOR(context.dataType(), return dropOutFunctorBP_, (context, input, gradOut, output, reduceShape, seed, probValue), SD_FLOAT_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int dropOutFunctorBP_, (graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status dropOutFunctorBP_, (graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue), SD_FLOAT_TYPES);
 
-    ND4J_LOCAL int alphaDropOutFunctor(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
-        BUILD_SINGLE_SELECTOR(context.dataType(), return alphaDropOutFunctor_, (context, input, output, reduceShape, seed, probValue, alpha, alpha1, beta), FLOAT_TYPES);
+    sd::Status alphaDropOutFunctor(graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
+        BUILD_SINGLE_SELECTOR(context.dataType(), return alphaDropOutFunctor_, (context, input, output, reduceShape, seed, probValue, alpha, alpha1, beta), SD_FLOAT_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int alphaDropOutFunctor_, (graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status alphaDropOutFunctor_, (graph::Context& context, NDArray* input, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta), SD_FLOAT_TYPES);
 
-    ND4J_LOCAL int alphaDropOutFunctorBP(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
-        BUILD_SINGLE_SELECTOR(context.dataType(), return alphaDropOutFunctorBP_, (context, input, gradOut, output, reduceShape, seed, probValue, alpha, alpha1, beta), FLOAT_TYPES);
+    sd::Status alphaDropOutFunctorBP(graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta) {
+        BUILD_SINGLE_SELECTOR(context.dataType(), return alphaDropOutFunctorBP_, (context, input, gradOut, output, reduceShape, seed, probValue, alpha, alpha1, beta), SD_FLOAT_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int alphaDropOutFunctorBP_, (graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status alphaDropOutFunctorBP_, (graph::Context& context, NDArray* input, NDArray* gradOut, NDArray* output, NDArray* reduceShape, int seed, double probValue, double alpha, double alpha1, double beta), SD_FLOAT_TYPES);
 
 }
 }

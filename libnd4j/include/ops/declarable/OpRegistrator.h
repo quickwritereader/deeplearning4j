@@ -23,7 +23,6 @@
 #ifndef LIBND4J_OPREGISTRATOR_H
 #define LIBND4J_OPREGISTRATOR_H
 
-#include <system/pointercast.h>
 #include <vector>
 #include <unordered_map>
 #include <mutex>
@@ -40,9 +39,9 @@
 namespace std {
 
     template <>
-    class hash<std::pair<Nd4jLong, samediff::Engine>> {
+    class hash<std::pair<sd::LongType, samediff::Engine>> {
     public:
-        size_t operator()(const std::pair<Nd4jLong, samediff::Engine>& k) const;
+        size_t operator()(const std::pair<sd::LongType, samediff::Engine>& k) const;
     };
 
     template <>
@@ -64,11 +63,11 @@ namespace sd {
         *   available at runtime via this singleton.
         *
         */
-        class ND4J_EXPORT OpRegistrator {
+        class SD_LIB_EXPORT OpRegistrator {
         private:
             static OpRegistrator* _INSTANCE;
             OpRegistrator() {
-                nd4j_debug("OpRegistrator started\n","");
+                sd_debug("OpRegistrator started\n","");
 
 #ifndef _RELEASE
                 std::signal(SIGSEGV, &OpRegistrator::sigSegVHandler);
@@ -81,16 +80,16 @@ namespace sd {
 #endif
             };
 
-            MAP_IMPL<Nd4jLong, std::string> _msvc;
+            SD_MAP_IMPL<sd::LongType, std::string> _msvc;
 
             // pointers to our operations
-            MAP_IMPL<Nd4jLong, sd::ops::DeclarableOp*> _declarablesLD;
-            MAP_IMPL<std::string, sd::ops::DeclarableOp*> _declarablesD;
+            SD_MAP_IMPL<sd::LongType, sd::ops::DeclarableOp*> _declarablesLD;
+            SD_MAP_IMPL<std::string, sd::ops::DeclarableOp*> _declarablesD;
             std::vector<sd::ops::DeclarableOp *> _uniqueD;
 
             // pointers to platform-specific helpers
-            MAP_IMPL<std::pair<Nd4jLong, samediff::Engine>, sd::ops::platforms::PlatformHelper*> _helpersLH;
-            MAP_IMPL<std::pair<std::string, samediff::Engine>, sd::ops::platforms::PlatformHelper*> _helpersH;
+            SD_MAP_IMPL<std::pair<sd::LongType, samediff::Engine>, sd::ops::platforms::PlatformHelper*> _helpersLH;
+            SD_MAP_IMPL<std::pair<std::string, samediff::Engine>, sd::ops::platforms::PlatformHelper*> _helpersH;
             std::vector<sd::ops::platforms::PlatformHelper*> _uniqueH;
 
             std::mutex _locker;
@@ -105,7 +104,7 @@ namespace sd {
             static void sigIntHandler(int sig);
             static void sigSegVHandler(int sig);
 
-            void updateMSVC(Nd4jLong newHash, std::string& oldName);
+            void updateMSVC(sd::LongType newHash, std::string& oldName);
 
             template <typename T>
             std::string local_to_string(T value);
@@ -121,15 +120,15 @@ namespace sd {
 
             void registerHelper(sd::ops::platforms::PlatformHelper* op);
 
-            bool hasHelper(Nd4jLong hash, samediff::Engine engine);
+            bool hasHelper(sd::LongType hash, samediff::Engine engine);
 
             sd::ops::DeclarableOp* getOperation(const char *name);
-            sd::ops::DeclarableOp* getOperation(Nd4jLong hash);
+            sd::ops::DeclarableOp* getOperation(sd::LongType hash);
             sd::ops::DeclarableOp* getOperation(std::string &name);
 
-            sd::ops::platforms::PlatformHelper* getPlatformHelper(Nd4jLong hash, samediff::Engine engine);
+            sd::ops::platforms::PlatformHelper* getPlatformHelper(sd::LongType hash, samediff::Engine engine);
 
-            std::vector<Nd4jLong> getAllHashes();
+            std::vector<sd::LongType> getAllHashes();
 
             int numberOfOperations();
     };

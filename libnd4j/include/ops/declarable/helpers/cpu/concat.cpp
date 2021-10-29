@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include <ops/declarable/helpers/transforms.h>
 #include <ops/specials.h>
 
@@ -33,11 +32,11 @@ namespace sd {
                 sd::SpecialMethods<T>::concatCpuGeneric(inArrs, output, axis);
             }
 
-            ND4J_LOCAL void concat(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis) {
-                BUILD_SINGLE_SELECTOR(output.dataType(), concat_,(inArrs, output, axis), LIBND4J_TYPES);
+            void concat(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis) {
+                BUILD_SINGLE_SELECTOR(output.dataType(), concat_,(inArrs, output, axis), SD_COMMON_TYPES);
             }
 
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void concat_, (const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis), LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void concat_, (const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis), SD_COMMON_TYPES);
         }
     }
 }

@@ -25,13 +25,11 @@
 #ifndef LIBND4J_SPECIALS_SPARSE_H
 #define LIBND4J_SPECIALS_SPARSE_H
 
+#include <system/common.h>
+
 #define ND4J_CLIPMODE_THROW 0
 #define ND4J_CLIPMODE_WRAP 1
 #define ND4J_CLIPMODE_CLIP 2
-
-#include <system/pointercast.h>
-#include <system/dll.h>
-
 
 namespace sd {
     namespace sparse {
@@ -46,8 +44,8 @@ namespace sd {
         * @param rank
         * @param x
         */
-            static void printIndex(Nd4jLong *indices, int rank, int x);
-            static bool ltIndices(Nd4jLong *indices, int rank, Nd4jLong x, Nd4jLong y);
+            static void printIndex(sd::LongType *indices, int rank, int x);
+            static bool ltIndices(sd::LongType *indices, int rank, sd::LongType x, sd::LongType y);
 
             /**
             * Returns true, if x > y, false otherwise
@@ -57,37 +55,37 @@ namespace sd {
             * @param y
             * @return
             */
-            static bool gtIndices(Nd4jLong *indices, int rank, Nd4jLong x, Nd4jLong y);
+            static bool gtIndices(sd::LongType *indices, int rank, sd::LongType x, sd::LongType y);
 
-            static void swapEverything(Nd4jLong *indices, T *array, int rank, Nd4jLong x, Nd4jLong y);
+            static void swapEverything(sd::LongType *indices, T *array, int rank, sd::LongType x, sd::LongType y);
 
-            static void coo_quickSort_parallel_internal(Nd4jLong *indices, T* array, Nd4jLong left, Nd4jLong right, int cutoff, int rank);
+            static void coo_quickSort_parallel_internal(sd::LongType *indices, T* array, sd::LongType left, sd::LongType right, int cutoff, int rank);
 
-            static void coo_quickSort_parallel(Nd4jLong *indices, T* array, Nd4jLong lenArray, int numThreads, int rank);
+            static void coo_quickSort_parallel(sd::LongType *indices, T* array, sd::LongType lenArray, int numThreads, int rank);
 
-            static Nd4jLong coo_quickSort_findPivot(Nd4jLong *indices, T *array, Nd4jLong left, Nd4jLong right,
+            static sd::LongType coo_quickSort_findPivot(sd::LongType *indices, T *array, sd::LongType left, sd::LongType right,
                                                     int rank);
 
-            static void sortCooIndicesGeneric(Nd4jLong *indices, void *vx, Nd4jLong length, int rank);
+            static void sortCooIndicesGeneric(sd::LongType *indices, void *vx, sd::LongType length, int rank);
 
 
         };
 
-        class ND4J_EXPORT IndexUtils {
+        class SD_LIB_EXPORT IndexUtils {
             public:
             /**
              * Converts indices in COO format into an array of flat indices
              *
              * based on numpy.ravel_multi_index
              */
-            static void ravelMultiIndex(Nd4jLong *indices, Nd4jLong *flatIndices, Nd4jLong length,  Nd4jLong *shapeInfo, int mode);
+            static void ravelMultiIndex(sd::LongType *indices, sd::LongType *flatIndices, sd::LongType length,  sd::LongType *shapeInfo, int mode);
 
             /**
              * Converts flat indices to index matrix in COO format
              *
              * based on numpy.unravel_index
              */
-            static void unravelIndex(Nd4jLong *indices, Nd4jLong *flatIndices, Nd4jLong length,  Nd4jLong *shapeInfo);
+            static void unravelIndex(sd::LongType *indices, sd::LongType *flatIndices, sd::LongType length,  sd::LongType *shapeInfo);
         };
     }
 }

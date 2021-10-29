@@ -35,7 +35,7 @@ CONFIGURABLE_OP_IMPL(hsv_to_rgb, 1, 1, true, 0, 0) {
     auto output = OUTPUT_VARIABLE(0);
 
     if (input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     const int rank = input->rankOf();
     const int argSize = block.getIArguments()->size();
@@ -49,7 +49,7 @@ CONFIGURABLE_OP_IMPL(hsv_to_rgb, 1, 1, true, 0, 0) {
 
     helpers::transformHsvRgb(block.launchContext(), input, output, dimC);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(hsv_to_rgb) {

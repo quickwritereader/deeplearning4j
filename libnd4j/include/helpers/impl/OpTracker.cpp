@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <helpers/OpTracker.h>
 #include <sstream>
 #include <helpers/logger.h>
@@ -45,15 +44,15 @@ namespace sd {
 
             switch (binaryLevel) {
                 case 3: {
-                        nd4j_printf("libnd4j binary was built with AVX512 support, but current CPU doesn't have this instruction set. Exiting now...","");
+                        sd_printf("libnd4j binary was built with AVX512 support, but current CPU doesn't have this instruction set. Exiting now...","");
                     }
                     break;
                 case 2: {
-                        nd4j_printf("libnd4j binary was built with AVX/AVX2 support, but current CPU doesn't have this instruction set. Exiting now...","");
+                        sd_printf("libnd4j binary was built with AVX/AVX2 support, but current CPU doesn't have this instruction set. Exiting now...","");
                     }
                     break;
                 default:  {
-                    nd4j_printf("Unknown binary validation error. Exiting now...","");
+                    sd_printf("Unknown binary validation error. Exiting now...","");
                     }
                     break;
             }
@@ -75,7 +74,7 @@ namespace sd {
             _map[opType].emplace_back(descriptor);
     }
 
-    void OpTracker::storeOperation(sd::graph::OpType opType, const char* opName, const Nd4jLong opNum) {
+    void OpTracker::storeOperation(sd::graph::OpType opType, const char* opName, const sd::LongType opNum) {
         OpDescriptor descriptor(0, opName, false);
         descriptor.setOpNum((int) opNum);
         descriptor.setHash(-1);

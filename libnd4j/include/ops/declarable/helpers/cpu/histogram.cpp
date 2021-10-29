@@ -19,14 +19,13 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/histogram.h>
 
 namespace sd {
     namespace ops {
         namespace helpers {
             template <typename X, typename Z>
-            static void histogram_(void const* xBuffer, Nd4jLong const* xShapeInfo, void *zBuffer, Nd4jLong const* zShapeInfo, Nd4jLong numBins, double min_val, double max_val) {
+            static void histogram_(void const* xBuffer, sd::LongType const* xShapeInfo, void *zBuffer, sd::LongType const* zShapeInfo, sd::LongType numBins, double min_val, double max_val) {
                 auto dx = reinterpret_cast<X const*>(xBuffer);
                 auto result = reinterpret_cast<Z*>(zBuffer);
 
@@ -51,7 +50,7 @@ namespace sd {
                     }
 
                     PRAGMA_OMP_SIMD
-                    for (Nd4jLong x = 0; x < numBins; x++) {
+                    for (sd::LongType x = 0; x < numBins; x++) {
                         result[x] += bins[x];
                     }
 
@@ -60,12 +59,12 @@ namespace sd {
                 }
             }
 
-             void histogramHelper(sd::LaunchContext *context, NDArray &input, NDArray &output) {
-                Nd4jLong numBins = output.lengthOf();
+            void histogramHelper(sd::LaunchContext *context, NDArray &input, NDArray &output) {
+                sd::LongType numBins = output.lengthOf();
                 double min_val = input.reduceNumber(reduce::SameOps::Min).e<double>(0);
                 double max_val = input.reduceNumber(reduce::SameOps::Max).e<double>(0);
 
-                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), histogram_, (input.buffer(), input.shapeInfo(), output.buffer(), output.shapeInfo(), numBins, min_val, max_val), LIBND4J_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), histogram_, (input.buffer(), input.shapeInfo(), output.buffer(), output.shapeInfo(), numBins, min_val, max_val), SD_COMMON_TYPES, SD_INDEXING_TYPES);
             }
         }
     }

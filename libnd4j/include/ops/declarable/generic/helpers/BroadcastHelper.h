@@ -33,7 +33,7 @@ namespace sd {
     namespace ops {
         class BroadcastHelper {
         public:
-            static FORCEINLINE NDArray* broadcastApply(sd::BroadcastOpsTuple op, NDArray* x, NDArray* y, NDArray* z, ExtraArguments *extraArgs = nullptr) {
+            static SD_INLINE NDArray* broadcastApply(sd::BroadcastOpsTuple op, NDArray* x, NDArray* y, NDArray* z, ExtraArguments *extraArgs = nullptr) {
 
                 if(x->isEmpty() || y->isEmpty()) {
                     if(!z->isEmpty())
@@ -51,7 +51,7 @@ namespace sd {
                 }
 
                 if (!x->isScalar() && !y->isScalar() && x->isSameShape(y)) {
-				    x->applyPairwiseTransform(op.p, *y, *z);
+                    x->applyPairwiseTransform(op.p, *y, *z);
                 } else if (!x->isScalar() && y->isScalar()) {
                     x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
                 } else if (x->isScalar() && !y->isScalar()) {
@@ -86,21 +86,21 @@ namespace sd {
                         return tZ;
                     }
                 } else if (x->isScalar() && y->isScalar()) { // x->isScalar() && y->isScalar()
-				    x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
-			    } else if (ShapeUtils::areShapesBroadcastable(*x, *y)) {
+                    x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
+                } else if (ShapeUtils::areShapesBroadcastable(*x, *y)) {
                     x->applyTrueBroadcast(op, *y, *z, true, extraArgs);
                     return z;
                 } else {
                     auto sx = ShapeUtils::shapeAsString(x);
                     auto sy = ShapeUtils::shapeAsString(y);
-                    nd4j_printf("Broadcast: shapes should be equal, or broadcastable. But got %s vs %s instead\n", sx.c_str(), sy.c_str());
+                    sd_printf("Broadcast: shapes should be equal, or broadcastable. But got %s vs %s instead\n", sx.c_str(), sy.c_str());
                     return nullptr;
                 }
 
                 return z;
             }
 
-            static FORCEINLINE NDArray* broadcastApply(sd::BroadcastBoolOpsTuple op, NDArray* x, NDArray* y, NDArray* z, ExtraArguments *extraArgs = nullptr) {
+            static SD_INLINE NDArray* broadcastApply(sd::BroadcastBoolOpsTuple op, NDArray* x, NDArray* y, NDArray* z, ExtraArguments *extraArgs = nullptr) {
 
                 if(x->isEmpty() || y->isEmpty()) {
                     if(!z->isEmpty())
@@ -134,7 +134,7 @@ namespace sd {
                 } else {
                     auto sx = ShapeUtils::shapeAsString(x);
                     auto sy = ShapeUtils::shapeAsString(y);
-                    nd4j_printf("Broadcast: shapes should be equal, or broadcastable. But got %s vs %s instead\n", sx.c_str(), sy.c_str());
+                    sd_printf("Broadcast: shapes should be equal, or broadcastable. But got %s vs %s instead\n", sx.c_str(), sy.c_str());
                     return nullptr;
                 }
 

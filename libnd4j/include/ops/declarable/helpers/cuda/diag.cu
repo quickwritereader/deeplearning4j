@@ -19,7 +19,6 @@
 //
 // Created by GS <sgazeos@gmail.com> on 4/6/2018.
 //
-
 #include <array/ResultSet.h>
 #include <ops/declarable/helpers/diag.h>
 
@@ -35,10 +34,10 @@ namespace helpers {
 // inputLength - length for input tensor
 //
 template <typename T>
-static __global__ void diagFunctorKernel(void* outputBuffer, const Nd4jLong* outputShape, void const* inputBuffer, const Nd4jLong* inputShape, Nd4jLong inputLength) {
+static SD_KERNEL void diagFunctorKernel(void* outputBuffer, const sd::LongType* outputShape, void const* inputBuffer, const sd::LongType* inputShape, sd::LongType inputLength) {
     __shared__ T *z;
     __shared__ T const* x;
-    __shared__ Nd4jLong outputLength;
+    __shared__ sd::LongType outputLength;
 
     if (threadIdx.x == 0) {
         z = reinterpret_cast<T*>(outputBuffer);
@@ -67,7 +66,7 @@ static __global__ void diagFunctorKernel(void* outputBuffer, const Nd4jLong* out
 // inputLength - given length for input tensor
 //
     template <typename T>
-    static __global__ void diagPartFunctorKernel(void* outputBuffer, const Nd4jLong* outputShape, void const* inputBuffer, const Nd4jLong* inputShape, Nd4jLong outputLength, Nd4jLong inputLength) {
+    static SD_KERNEL void diagPartFunctorKernel(void* outputBuffer, const sd::LongType* outputShape, void const* inputBuffer, const sd::LongType* inputShape, sd::LongType outputLength, sd::LongType inputLength) {
         __shared__ T *z;
         __shared__ T const* x;
 
@@ -80,7 +79,7 @@ static __global__ void diagFunctorKernel(void* outputBuffer, const Nd4jLong* out
 
         const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
         const auto step = gridDim.x * blockDim.x;
-        Nd4jLong i = threadIdx.x * (outputLength + 1); // pos to diagonal value
+        sd::LongType i = threadIdx.x * (outputLength + 1); // pos to diagonal value
         for (int t = tid; t < outputLength && i < inputLength; t += step) { // loop by output, but input matrix may not be square
             // put diagonal val from input onto output
             z[shape::getIndexOffset(t, outputShape)] = x[shape::getIndexOffset(i, inputShape)]; 
@@ -103,18 +102,18 @@ static __global__ void diagFunctorKernel(void* outputBuffer, const Nd4jLong* out
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // diagFunctor - caller for diag functor processor
-ND4J_LOCAL void diagFunctor(sd::LaunchContext * context, const NDArray* input, NDArray* output) {
+void diagFunctor(sd::LaunchContext * context, const NDArray* input, NDArray* output) {
         auto xType = input->dataType();
 
-        BUILD_SINGLE_SELECTOR(xType, _diagFunctor, (context, input, output), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _diagFunctor, (context, input, output), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _diagFunctor, (sd::LaunchContext * context, const NDArray* input, NDArray* output);, LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void _diagFunctor, (sd::LaunchContext * context, const NDArray* input, NDArray* output);, SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // diagPartFunctor - caller for diag part functor kernel
     template <typename T>
-    ND4J_LOCAL void _diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
+    void _diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
         const int outLen = output->lengthOf();
         const int inLen = input->lengthOf();
         auto stream = context->getCudaStream();
@@ -128,9 +127,9 @@ ND4J_LOCAL void diagFunctor(sd::LaunchContext * context, const NDArray* input, N
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // diagPartFunctor - caller for diag part functor processor
-    ND4J_LOCAL void diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
+    void diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
         auto zType = output->dataType();
-        BUILD_SINGLE_SELECTOR(zType, _diagPartFunctor, (context, input, output), NUMERIC_TYPES);
+        BUILD_SINGLE_SELECTOR(zType, _diagPartFunctor, (context, input, output), SD_NUMERIC_TYPES);
 
     }
 

@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_INTPARAMETERS_H
 #define DEV_TESTS_INTPARAMETERS_H
-
 #include <map>
 #include <vector>
 #include <string>

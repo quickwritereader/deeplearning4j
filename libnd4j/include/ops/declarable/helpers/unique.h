@@ -29,9 +29,9 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    Nd4jLong uniqueCount(sd::LaunchContext * context, NDArray* input);
+SD_LIB_HIDDEN sd::LongType uniqueCount(sd::LaunchContext * context, NDArray* input);
 
-    Nd4jStatus uniqueFunctor(sd::LaunchContext * context, NDArray* input, NDArray* values, NDArray* indices, NDArray* counts);
+SD_LIB_HIDDEN sd::Status uniqueFunctor(sd::LaunchContext * context, NDArray* input, NDArray* values, NDArray* indices, NDArray* counts);
 
 }
 }

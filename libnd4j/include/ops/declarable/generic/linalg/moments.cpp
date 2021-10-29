@@ -54,7 +54,7 @@ namespace sd {
             input->varianceAlongDimension(variance::SummaryStatsVariance, *variances, false, axis);
             input->reduceAlongDimension(reduce::Mean, *means, axis, keepDims);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(moments) {

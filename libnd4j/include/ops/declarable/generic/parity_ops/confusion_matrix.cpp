@@ -60,7 +60,7 @@ namespace sd {
 
             helpers::confusionFunctor(block.launchContext(), labels, predictions, weights, output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(confusion_matrix) {
@@ -78,7 +78,7 @@ namespace sd {
                 numClasses = (maxPrediction >= maxLabel) ?  maxPrediction+1 : maxLabel+1;
             }
             
-            std::array<Nd4jLong, 2> shape = {{numClasses,numClasses}};
+            std::array<sd::LongType, 2> shape = {{numClasses,numClasses}};
             auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', 2, shape.data());
             return SHAPELIST(newShape);
         }

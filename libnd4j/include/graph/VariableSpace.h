@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_VARIABLESPACE_H
 #define LIBND4J_VARIABLESPACE_H
-
 #include <helpers/logger.h>
 #include <helpers/helper_random.h>
 #include <string>
@@ -40,16 +39,16 @@
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT VariableSpace {
+        class SD_LIB_EXPORT VariableSpace {
         protected:
             sd::memory::Workspace *_workspace;
 
             // stash is NOT cloned
             sd::graph::Stash _stash;
 
-            MAP_IMPL<std::pair<int, int>, Variable*> _paired;
-            MAP_IMPL<std::string, Variable*> _symbolic;
-            MAP_IMPL<int, Variable*> _variables;
+            SD_MAP_IMPL<std::pair<int, int>, Variable*> _paired;
+            SD_MAP_IMPL<std::string, Variable*> _symbolic;
+            SD_MAP_IMPL<int, Variable*> _variables;
             std::vector<Variable*> _external;
             std::vector<Variable*> _internal;
 
@@ -63,7 +62,7 @@ namespace sd {
 
             std::mutex _varmap;
 
-            MAP_IMPL<int, sd::graph::Variable*> _temporary;
+            SD_MAP_IMPL<int, sd::graph::Variable*> _temporary;
 
             std::vector<sd::graph::Variable*> *_handles;
 
@@ -115,9 +114,9 @@ namespace sd {
             virtual void replaceVariable(Variable *variable);
 
             // memory-related statistics
-            virtual Nd4jLong externalMemory();
-            virtual Nd4jLong internalMemory();
-            virtual Nd4jLong totalMemory();
+            virtual sd::LongType externalMemory();
+            virtual sd::LongType internalMemory();
+            virtual sd::LongType totalMemory();
 
             virtual int externalEntries();
             virtual int internalEntries();

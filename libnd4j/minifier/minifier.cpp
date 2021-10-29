@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
         arch_arg = opt.arch();
     
     std::vector<OpDescriptor> descriptors;
-    nd4j_printf("Total available operations: %i\n", OpRegistrator::getInstance().numberOfOperations());
+    sd_printf("Total available operations: %i\n", OpRegistrator::getInstance().numberOfOperations());
 
     for (auto file: opt.files()) {
         // all files will be checked for accessibility & size
@@ -132,27 +132,27 @@ main(int argc, char *argv[]) {
     if (!descriptors.empty()) {
         GraphUtils::filterOperations(descriptors);
 
-        nd4j_printf("Operations found so far:\n","");
+        sd_printf("Operations found so far:\n","");
         for (auto &v: descriptors) {
-            nd4j_printf("%s\n", v.getOpName()->c_str());
+            sd_printf("%s\n", v.getOpName()->c_str());
         }
 
         // building list of operations
         opts_arg = GraphUtils::makeCommandLine(descriptors);
     }
-    nd4j_printf("\n","");
+    sd_printf("\n","");
 
     std::string output(opt.outputName());
 
     std::string input("../include/ops/declarable/CustomOperations.h");
 
     if (0 == GraphUtils::runPreprocessor(input.c_str(), output.c_str())) {
-        nd4j_printf("All done successfully.\n", "");
+        sd_printf("All done successfully.\n", "");
     }
 
-    //nd4j_printf("Command line: %s\n", cmdline.c_str());
+    //sd_printf("Command line: %s\n", cmdline.c_str());
     // FIXME: do this in cross-platform way
-    nd4j_printf("Building minified library...\n", "");
+    sd_printf("Building minified library...\n", "");
 
     return EXIT_SUCCESS;
 }

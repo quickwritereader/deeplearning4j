@@ -40,7 +40,7 @@ namespace sd {
 
             x->applyTrueBroadcast(BroadcastIntOpsTuple::custom(scalar::ShiftRight, pairwise::ShiftRight, broadcast::ShiftRight), *y, *z, false);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rshift_bits) {

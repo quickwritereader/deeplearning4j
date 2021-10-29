@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/image_suppression.h>
 #include <array/NDArrayFactory.h>
 #include <algorithm>
@@ -48,26 +47,26 @@ namespace helpers {
         std::vector<int> selectedIndices(output->lengthOf(), 0);
         auto needToSuppressWithThreshold = [] (NDArray& boxes, int previousIndex, int nextIndex, T threshold) -> bool {
             if (previousIndex < 0 || nextIndex < 0) return true;
-            T minYPrev = sd::math::nd4j_min(boxes.t<T>(previousIndex, 0), boxes.t<T>(previousIndex, 2));
-            T minXPrev = sd::math::nd4j_min(boxes.t<T>(previousIndex, 1), boxes.t<T>(previousIndex, 3));
-            T maxYPrev = sd::math::nd4j_max(boxes.t<T>(previousIndex, 0), boxes.t<T>(previousIndex, 2));
-            T maxXPrev = sd::math::nd4j_max(boxes.t<T>(previousIndex, 1), boxes.t<T>(previousIndex, 3));
-            T minYNext = sd::math::nd4j_min(boxes.t<T>(nextIndex, 0), boxes.t<T>(nextIndex, 2));
-            T minXNext = sd::math::nd4j_min(boxes.t<T>(nextIndex, 1), boxes.t<T>(nextIndex, 3));
-            T maxYNext = sd::math::nd4j_max(boxes.t<T>(nextIndex, 0), boxes.t<T>(nextIndex, 2));
-            T maxXNext = sd::math::nd4j_max(boxes.t<T>(nextIndex, 1), boxes.t<T>(nextIndex, 3));
+            T minYPrev = sd::math::sd_min(boxes.t<T>(previousIndex, 0), boxes.t<T>(previousIndex, 2));
+            T minXPrev = sd::math::sd_min(boxes.t<T>(previousIndex, 1), boxes.t<T>(previousIndex, 3));
+            T maxYPrev = sd::math::sd_max(boxes.t<T>(previousIndex, 0), boxes.t<T>(previousIndex, 2));
+            T maxXPrev = sd::math::sd_max(boxes.t<T>(previousIndex, 1), boxes.t<T>(previousIndex, 3));
+            T minYNext = sd::math::sd_min(boxes.t<T>(nextIndex, 0), boxes.t<T>(nextIndex, 2));
+            T minXNext = sd::math::sd_min(boxes.t<T>(nextIndex, 1), boxes.t<T>(nextIndex, 3));
+            T maxYNext = sd::math::sd_max(boxes.t<T>(nextIndex, 0), boxes.t<T>(nextIndex, 2));
+            T maxXNext = sd::math::sd_max(boxes.t<T>(nextIndex, 1), boxes.t<T>(nextIndex, 3));
             T areaPrev = (maxYPrev - minYPrev) * (maxXPrev - minXPrev);
             T areaNext = (maxYNext - minYNext) * (maxXNext - minXNext);
 
             if (areaNext <= T(0.f) || areaPrev <= T(0.f)) return false;
 
-            T minIntersectionY = sd::math::nd4j_max(minYPrev, minYNext);
-            T minIntersectionX = sd::math::nd4j_max(minXPrev, minXNext);
-            T maxIntersectionY = sd::math::nd4j_min(maxYPrev, maxYNext);
-            T maxIntersectionX = sd::math::nd4j_min(maxXPrev, maxXNext);
+            T minIntersectionY = sd::math::sd_max(minYPrev, minYNext);
+            T minIntersectionX = sd::math::sd_max(minXPrev, minXNext);
+            T maxIntersectionY = sd::math::sd_min(maxYPrev, maxYNext);
+            T maxIntersectionX = sd::math::sd_min(maxXPrev, maxXNext);
             T intersectionArea =
-                    sd::math::nd4j_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
-                            sd::math::nd4j_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
+                    sd::math::sd_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
+                            sd::math::sd_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
             T intersectionValue = intersectionArea / (areaPrev + areaNext - intersectionArea);
             return intersectionValue > threshold;
 
@@ -95,53 +94,53 @@ namespace helpers {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Return intersection-over-union overlap between boxes i and j
     template <typename T>
-    static inline T similirityV3_(NDArray const& boxes, Nd4jLong i, Nd4jLong j) {
+    static inline T similirityV3_(NDArray const& boxes, sd::LongType i, sd::LongType j) {
         const T zero = static_cast<T>(0.f);
-        const T yminI = math::nd4j_min(boxes.t<T>(i, 0), boxes.t<T>(i, 2));
-        const T xminI = math::nd4j_min(boxes.t<T>(i, 1), boxes.t<T>(i, 3));
-        const T ymaxI = math::nd4j_max(boxes.t<T>(i, 0), boxes.t<T>(i, 2));
-        const T xmaxI = math::nd4j_max(boxes.t<T>(i, 1), boxes.t<T>(i, 3));
-        const T yminJ = math::nd4j_min(boxes.t<T>(j, 0), boxes.t<T>(j, 2));
-        const T xminJ = math::nd4j_min(boxes.t<T>(j, 1), boxes.t<T>(j, 3));
-        const T ymaxJ = math::nd4j_max(boxes.t<T>(j, 0), boxes.t<T>(j, 2));
-        const T xmaxJ = math::nd4j_max(boxes.t<T>(j, 1), boxes.t<T>(j, 3));
+        const T yminI = math::sd_min(boxes.t<T>(i, 0), boxes.t<T>(i, 2));
+        const T xminI = math::sd_min(boxes.t<T>(i, 1), boxes.t<T>(i, 3));
+        const T ymaxI = math::sd_max(boxes.t<T>(i, 0), boxes.t<T>(i, 2));
+        const T xmaxI = math::sd_max(boxes.t<T>(i, 1), boxes.t<T>(i, 3));
+        const T yminJ = math::sd_min(boxes.t<T>(j, 0), boxes.t<T>(j, 2));
+        const T xminJ = math::sd_min(boxes.t<T>(j, 1), boxes.t<T>(j, 3));
+        const T ymaxJ = math::sd_max(boxes.t<T>(j, 0), boxes.t<T>(j, 2));
+        const T xmaxJ = math::sd_max(boxes.t<T>(j, 1), boxes.t<T>(j, 3));
         const T areaI = (ymaxI - yminI) * (xmaxI - xminI);
         const T areaJ = (ymaxJ - yminJ) * (xmaxJ - xminJ);
         if (areaI <= zero || areaJ <= zero) {
             return zero;
         }
-        const T intersectionYmin = math::nd4j_max(yminI, yminJ);
-        const T intersectionXmin = math::nd4j_max(xminI, xminJ);
-        const T intersectionYmax = math::nd4j_min(ymaxI, ymaxJ);
-        const T intersectionXmax = math::nd4j_min(xmaxI, xmaxJ);
+        const T intersectionYmin = math::sd_max(yminI, yminJ);
+        const T intersectionXmin = math::sd_max(xminI, xminJ);
+        const T intersectionYmax = math::sd_min(ymaxI, ymaxJ);
+        const T intersectionXmax = math::sd_min(xmaxI, xmaxJ);
         const T intersectionY = intersectionYmax - intersectionYmin;
         const T intersectionX = intersectionXmax - intersectionXmin;
-        const T intersectionArea = math::nd4j_max(intersectionY, zero) *  math::nd4j_max(intersectionX, zero);
+        const T intersectionArea = math::sd_max(intersectionY, zero) *  math::sd_max(intersectionX, zero);
         return intersectionArea / (areaI + areaJ - intersectionArea);
     }
 
     template <typename T>
-    static inline T similiratyOverlaps_(NDArray const& boxes, Nd4jLong i, Nd4jLong j) {
+    static inline T similiratyOverlaps_(NDArray const& boxes, sd::LongType i, sd::LongType j) {
         return boxes.t<T>(i, j);
     }
 
-    typedef NDArray (*SimiliratyFunc)(NDArray const& boxes, Nd4jLong i, Nd4jLong j);
+    typedef NDArray (*SimiliratyFunc)(NDArray const& boxes, sd::LongType i, sd::LongType j);
 
-    static NDArray similiratyOverlaps(NDArray const& boxes, Nd4jLong i, Nd4jLong j) {
+    static NDArray similiratyOverlaps(NDArray const& boxes, sd::LongType i, sd::LongType j) {
         NDArray res(boxes.dataType(), boxes.getContext()); // = NDArrayFactory::create(0.);
-        BUILD_SINGLE_SELECTOR(boxes.dataType(), res = similiratyOverlaps_, (boxes, i, j) , FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(boxes.dataType(), res = similiratyOverlaps_, (boxes, i, j) , SD_FLOAT_TYPES);
         return res;
     }
 
-    static NDArray similiratyV3(NDArray const& boxes, Nd4jLong i, Nd4jLong j) {
+    static NDArray similiratyV3(NDArray const& boxes, sd::LongType i, sd::LongType j) {
         NDArray res(boxes.dataType(), boxes.getContext()); // = NDArrayFactory::create(0.);
-        BUILD_SINGLE_SELECTOR(boxes.dataType(), res = similirityV3_, (boxes, i, j) , FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(boxes.dataType(), res = similirityV3_, (boxes, i, j) , SD_FLOAT_TYPES);
         return res;
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T, typename I>
-    static Nd4jLong
+    static sd::LongType
     nonMaxSuppressionGeneric_(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int outputSize,
             float overlapThreshold, float scoreThreshold, NDArray* output,  SimiliratyFunc f) {
 
@@ -230,34 +229,34 @@ namespace helpers {
             output->dataBuffer()->copyBufferFrom(buf, buf.getLenInBytes());
         }
 
-        return (Nd4jLong)selected.size();
+        return (sd::LongType)selected.size();
     }
 
-    ND4J_LOCAL Nd4jLong
+    sd::LongType
     nonMaxSuppressionGeneric(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
                               double overlapThreshold, double scoreThreshold, NDArray* output) {
-        BUILD_DOUBLE_SELECTOR(boxes->dataType(), output == nullptr?DataType::INT32:output->dataType(), return nonMaxSuppressionGeneric_, (context, boxes, scores, maxSize, overlapThreshold, scoreThreshold, output, similiratyOverlaps), FLOAT_TYPES, INTEGER_TYPES);
+        BUILD_DOUBLE_SELECTOR(boxes->dataType(), output == nullptr?DataType::INT32:output->dataType(), return nonMaxSuppressionGeneric_, (context, boxes, scores, maxSize, overlapThreshold, scoreThreshold, output, similiratyOverlaps), SD_FLOAT_TYPES, SD_INTEGER_TYPES);
         return 0;
     }
 
-    ND4J_LOCAL Nd4jLong
+    sd::LongType
     nonMaxSuppressionV3(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
                              double overlapThreshold, double scoreThreshold, NDArray* output) {
-        BUILD_DOUBLE_SELECTOR(boxes->dataType(), output == nullptr?DataType::INT32:output->dataType(), return nonMaxSuppressionGeneric_, (context, boxes, scores, maxSize, overlapThreshold, scoreThreshold, output, similiratyV3), FLOAT_TYPES, INTEGER_TYPES);
+        BUILD_DOUBLE_SELECTOR(boxes->dataType(), output == nullptr?DataType::INT32:output->dataType(), return nonMaxSuppressionGeneric_, (context, boxes, scores, maxSize, overlapThreshold, scoreThreshold, output, similiratyV3), SD_FLOAT_TYPES, SD_INTEGER_TYPES);
         return 0;
     }
 
-    BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL Nd4jLong nonMaxSuppressionGeneric_, (sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
-            float overlapThreshold, float scoreThreshold, NDArray* output, SimiliratyFunc similiratyFunc), FLOAT_TYPES, INTEGER_TYPES);
+    BUILD_DOUBLE_TEMPLATE(template sd::LongType nonMaxSuppressionGeneric_, (sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
+            float overlapThreshold, float scoreThreshold, NDArray* output, SimiliratyFunc similiratyFunc), SD_FLOAT_TYPES, SD_INTEGER_TYPES);
 
-    ND4J_LOCAL void
+    void
     nonMaxSuppression(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize,
             double overlapThreshold, double scoreThreshold, NDArray* output) {
         BUILD_SINGLE_SELECTOR(boxes->dataType(), nonMaxSuppressionV2_, (boxes, scales, maxSize,
-                overlapThreshold, scoreThreshold, output), NUMERIC_TYPES);
+                overlapThreshold, scoreThreshold, output), SD_NUMERIC_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void nonMaxSuppressionV2_, (NDArray* boxes, NDArray* scales, int maxSize,
-            double overlapThreshold, double scoreThreshold, NDArray* output), NUMERIC_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void nonMaxSuppressionV2_, (NDArray* boxes, NDArray* scales, int maxSize,
+            double overlapThreshold, double scoreThreshold, NDArray* output), SD_NUMERIC_TYPES);
 
 }
 }

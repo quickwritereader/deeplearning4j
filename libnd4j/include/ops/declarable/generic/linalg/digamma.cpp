@@ -38,7 +38,7 @@ CONFIGURABLE_OP_IMPL(digamma, 1, 1, false, 0, 0) {
 
     helpers::diGamma(block.launchContext(), *x, *z);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(digamma) {

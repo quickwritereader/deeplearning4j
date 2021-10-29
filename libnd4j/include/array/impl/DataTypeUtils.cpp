@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/DataType.h>
 #include <array/DataTypeUtils.h>
 #include <types/float16.h>

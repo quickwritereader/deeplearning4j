@@ -44,19 +44,9 @@
 #endif
 */
 
-#include <system/pointercast.h>
 #include <types/float16.h>
 #include <cnpy/cnpy.h>
 
-//DO NOT REMOVE: THIS IS AN EDITOR SEMANTICS THING FOR CLION
-//IT DEFINES THE EXPORT MACRO FOR THE EDITOR AND THEN
-//RE ADDS THE DEFINITION VIA dll.h
-#ifdef  _WIN32
-#define ND4J_EXPORT __declspec(dllexport)
-#else
-#define ND4J_EXPORT
-#endif
-#include <system/dll.h>
 
 /*
 int tad_threshold = 1;
@@ -65,7 +55,6 @@ int element_threshold = 32;
 bool debug = false;
 bool verbose = false;
 */
-
 #include <array/ShapeList.h>
 #include <array/ConstantDescriptor.h>
 #include <helpers/ConstantShapeHelper.h>
@@ -88,32 +77,32 @@ extern "C" {
  * This function returns last error code stored,
  * @return non-zero if something bad happened
  */
-ND4J_EXPORT int lastErrorCode();
+SD_LIB_EXPORT int lastErrorCode();
 
 /**
  * This function returns last error message, if last error code > 0
  * @return
  */
-ND4J_EXPORT const char* lastErrorMessage();
+SD_LIB_EXPORT const char* lastErrorMessage();
 
 /**
  *
  * @param p
  * @param len
  */
-ND4J_EXPORT void tryPointer(Nd4jPointer extra, Nd4jPointer p, int len);
+SD_LIB_EXPORT void tryPointer(sd::Pointer extra, sd::Pointer p, int len);
 
 /**
  *
  * @param num
  */
-ND4J_EXPORT void setElementThreshold(int num);
+SD_LIB_EXPORT void setElementThreshold(int num);
 
 /**
  *
  * @param num
  */
-ND4J_EXPORT void setTADThreshold(int num);
+SD_LIB_EXPORT void setTADThreshold(int num);
 
 /**
    *
@@ -122,11 +111,11 @@ ND4J_EXPORT void setTADThreshold(int num);
    * @param xShapeInfo
    * @param extraParams
    */
-ND4J_EXPORT void execIndexReduceScalar(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execIndexReduceScalar(sd::Pointer *extraPointers,
                                        int opNum,
-                                       OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                       OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                        void *extraParams,
-                                       OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong  const* dZShapeInfo);
+                                       OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType  const* dZShapeInfo);
 
 /**
  *
@@ -139,12 +128,12 @@ ND4J_EXPORT void execIndexReduceScalar(Nd4jPointer *extraPointers,
  * @param dimension
  * @param dimensionLength
  */
-ND4J_EXPORT void   execIndexReduce(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execIndexReduce(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong  const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType  const* dXShapeInfo,
                                    void *extraParams,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                   OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 /**
  *
@@ -158,23 +147,23 @@ ND4J_EXPORT void   execIndexReduce(Nd4jPointer *extraPointers,
  * @param dimension
  * @param dimensionLength
  */
-ND4J_EXPORT void   execBroadcast(
-        Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execBroadcast(
+        sd::Pointer *extraPointers,
         int opNum,
-        OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-        OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-        OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-        OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+        OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+        OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+        OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+        OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 
-ND4J_EXPORT void   execBroadcastBool(
-        Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execBroadcastBool(
+        sd::Pointer *extraPointers,
         int opNum,
-        OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-        OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-        OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+        OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+        OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+        OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
         void *extraParams,
-        OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+        OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 /**
  *
@@ -188,20 +177,20 @@ ND4J_EXPORT void   execBroadcastBool(
  * @param extraParams
  * @param n
  */
-ND4J_EXPORT void execPairwiseTransform(
-        Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execPairwiseTransform(
+        sd::Pointer *extraPointers,
         int opNum,
-        OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-        OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-        OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+        OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+        OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+        OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
         void *extraParams);
 
-ND4J_EXPORT void execPairwiseTransformBool(
-        Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execPairwiseTransformBool(
+        sd::Pointer *extraPointers,
         int opNum,
-        OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-        OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-        OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+        OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+        OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+        OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
         void *extraParams);
 
 /**
@@ -213,30 +202,30 @@ ND4J_EXPORT void execPairwiseTransformBool(
  * @param result
  * @param resultShapeInfo
  */
-ND4J_EXPORT void  execReduceFloat(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void  execReduceFloat(sd::Pointer *extraPointers,
                                   int opNum,
-                                  OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                  OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                   void *extraParams,
-                                  OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                                  OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 
-ND4J_EXPORT void  execReduceSame(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void  execReduceSame(sd::Pointer *extraPointers,
                                  int opNum,
-                                 OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                 OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                  void *extraParams,
-                                 OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                                 OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 
-ND4J_EXPORT void  execReduceBool(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void  execReduceBool(sd::Pointer *extraPointers,
                                  int opNum,
-                                 OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                 OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                  void *extraParams,
-                                 OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                                 OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 
 
-ND4J_EXPORT void  execReduceLong(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void  execReduceLong(sd::Pointer *extraPointers,
                                  int opNum,
-                                 OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                 OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                  void *extraParams,
-                                 OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                                 OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 
 /**
  *
@@ -247,36 +236,36 @@ ND4J_EXPORT void  execReduceLong(Nd4jPointer *extraPointers,
  * @param result
  * @param resultShapeInfo
  */
-ND4J_EXPORT void   execReduceFloat2(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execReduceFloat2(sd::Pointer *extraPointers,
                                     int opNum,
-                                    OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                    OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                     void *extraParams,
-                                    OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                    OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+                                    OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                    OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 
-ND4J_EXPORT void   execReduceSame2(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execReduceSame2(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                    void *extraParams,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                   OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 
-ND4J_EXPORT void   execReduceBool2(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execReduceBool2(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                    void *extraParams,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                   OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 
-ND4J_EXPORT void   execReduceLong2(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void   execReduceLong2(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                    void *extraParams,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                   OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape);
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape);
 
 /**
  *
@@ -289,12 +278,12 @@ ND4J_EXPORT void   execReduceLong2(Nd4jPointer *extraPointers,
  * @param result
  * @param resultShapeInfo
  */
-ND4J_EXPORT void  execReduce3(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void  execReduce3(sd::Pointer *extraPointers,
                               int opNum,
-                              OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                              OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                               void *extraParamsVals,
-                              OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-                              OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                              OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+                              OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 
 /**
  *
@@ -305,12 +294,12 @@ ND4J_EXPORT void  execReduce3(Nd4jPointer *extraPointers,
  * @param y
  * @param yShapeInfo
  */
-ND4J_EXPORT void execReduce3Scalar(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execReduce3Scalar(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                    void *extraParamsVals,
-                                   OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo);
+                                   OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo);
 /**
  *
  * @param opNum
@@ -324,26 +313,26 @@ ND4J_EXPORT void execReduce3Scalar(Nd4jPointer *extraPointers,
  * @param dimension
  * @param dimensionLength
  */
-ND4J_EXPORT void execReduce3Tad(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execReduce3Tad(sd::Pointer *extraPointers,
                                 int opNum,
-                                OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                 void *extraParamsVals,
-                                OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-                                OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape,
-                                Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets,
-                                Nd4jLong const* yTadOnlyShapeInfo, Nd4jLong const* yTadOffsets);
+                                OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+                                OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape,
+                                sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets,
+                                sd::LongType const* yTadOnlyShapeInfo, sd::LongType const* yTadOffsets);
 
 
-ND4J_EXPORT void execReduce3All(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execReduce3All(sd::Pointer *extraPointers,
                                 int opNum,
-                                OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                 void *extraParamsVals,
-                                OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeInfo, Nd4jLong const* dYShapeInfo,
-                                OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape,
-                                Nd4jLong const* xTadShapeInfo, Nd4jLong const* xOffsets,
-                                Nd4jLong const* yTadShapeInfo, Nd4jLong const* yOffsets);
+                                OpaqueDataBuffer *dbY, sd::LongType const* hYShapeInfo, sd::LongType const* dYShapeInfo,
+                                OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape,
+                                sd::LongType const* xTadShapeInfo, sd::LongType const* xOffsets,
+                                sd::LongType const* yTadShapeInfo, sd::LongType const* yOffsets);
 
 /**
  *
@@ -356,18 +345,18 @@ ND4J_EXPORT void execReduce3All(Nd4jPointer *extraPointers,
  * @param extraParams
  * @param n
  */
-ND4J_EXPORT void execScalar(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execScalar(sd::Pointer *extraPointers,
                             int opNum,
-                            OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                            OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                            OpaqueDataBuffer *dbScalar, Nd4jLong const* hSscalarShapeInfo, Nd4jLong const* dSscalarShapeInfo,
+                            OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                            OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                            OpaqueDataBuffer *dbScalar, sd::LongType const* hSscalarShapeInfo, sd::LongType const* dSscalarShapeInfo,
                             void *extraParams);
 
-ND4J_EXPORT void execScalarBool(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execScalarBool(sd::Pointer *extraPointers,
                                 int opNum,
-                                OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                OpaqueDataBuffer *dbScalar, Nd4jLong const* hSscalarShapeInfo, Nd4jLong const* dSscalarShapeInfo,
+                                OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                OpaqueDataBuffer *dbScalar, sd::LongType const* hSscalarShapeInfo, sd::LongType const* dSscalarShapeInfo,
                                 void *extraParams);
 
 /**
@@ -377,11 +366,11 @@ ND4J_EXPORT void execScalarBool(Nd4jPointer *extraPointers,
  * @param xShapeInfo
  * @param extraParams
  */
-ND4J_EXPORT void execSummaryStatsScalar(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execSummaryStatsScalar(sd::Pointer *extraPointers,
                                         int opNum,
-                                        OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                        OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                         void *extraParams,
-                                        OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                        OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                         bool biasCorrected);
 /**
  *
@@ -392,11 +381,11 @@ ND4J_EXPORT void execSummaryStatsScalar(Nd4jPointer *extraPointers,
  * @param result
  * @param resultShapeInfo
  */
-ND4J_EXPORT void execSummaryStats(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execSummaryStats(sd::Pointer *extraPointers,
                                   int opNum,
-                                  OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo,  Nd4jLong const* dXShapeInfo,
+                                  OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo,  sd::LongType const* dXShapeInfo,
                                   void *extraParams,
-                                  OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                  OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                   bool biasCorrected);
 /**
  *
@@ -409,14 +398,14 @@ ND4J_EXPORT void execSummaryStats(Nd4jPointer *extraPointers,
  * @param dimension
  * @param dimensionLength
  */
-ND4J_EXPORT void execSummaryStatsTad(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execSummaryStatsTad(sd::Pointer *extraPointers,
                                      int opNum,
-                                     OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
+                                     OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
                                      void *extraParams,
-                                     OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                     OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape,
+                                     OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                     OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape,
                                      bool biasCorrected,
-                                     Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets);
+                                     sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets);
 
 /**
  *
@@ -428,34 +417,34 @@ ND4J_EXPORT void execSummaryStatsTad(Nd4jPointer *extraPointers,
  * @param extraParams
  * @param n
  */
-ND4J_EXPORT void execTransformFloat(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execTransformFloat(sd::Pointer *extraPointers,
                                     int opNum,
-                                    OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                    OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                    OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                    OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                     void *extraParams);
 
-ND4J_EXPORT void execTransformSame(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execTransformSame(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                    void *extraParams);
 
-ND4J_EXPORT void execTransformBool(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execTransformBool(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                    void *extraParams);
 
-ND4J_EXPORT void execTransformAny(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execTransformAny(sd::Pointer *extraPointers,
                                   int opNum,
-                                  OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                  OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                  OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                  OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                   void *extraParams);
 
-ND4J_EXPORT void execTransformStrict(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execTransformStrict(sd::Pointer *extraPointers,
                                      int opNum,
-                                     OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                     OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
+                                     OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                     OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
                                      void *extraParams);
 
 /**
@@ -471,44 +460,44 @@ ND4J_EXPORT void execTransformStrict(Nd4jPointer *extraPointers,
  * @param dimension
  * @param dimensionLength
  */
-ND4J_EXPORT void execScalarTad(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execScalarTad(sd::Pointer *extraPointers,
                                int opNum,
-                               OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                               OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                               OpaqueDataBuffer *dbScalars, Nd4jLong const* hScalarShapeInfo, Nd4jLong const* dScalarShapeInfo,
+                               OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                               OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                               OpaqueDataBuffer *dbScalars, sd::LongType const* hScalarShapeInfo, sd::LongType const* dScalarShapeInfo,
                                void *extraParams,
-                               OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape,
-                               Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
-                               Nd4jLong const* tadShapeInfoZ, Nd4jLong const* tadOffsetsZ);
+                               OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape,
+                               sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
+                               sd::LongType const* tadShapeInfoZ, sd::LongType const* tadOffsetsZ);
 
-ND4J_EXPORT void execScalarBoolTad(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execScalarBoolTad(sd::Pointer *extraPointers,
                                    int opNum,
-                                   OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeInfo, Nd4jLong const* dXShapeInfo,
-                                   OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeInfo, Nd4jLong const* dZShapeInfo,
-                                   OpaqueDataBuffer *dbScalars, Nd4jLong const* hScalarShapeInfo, Nd4jLong const* dScalarShapeInfo,
+                                   OpaqueDataBuffer *dbX, sd::LongType const* hXShapeInfo, sd::LongType const* dXShapeInfo,
+                                   OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeInfo, sd::LongType const* dZShapeInfo,
+                                   OpaqueDataBuffer *dbScalars, sd::LongType const* hScalarShapeInfo, sd::LongType const* dScalarShapeInfo,
                                    void *extraParams,
-                                   OpaqueDataBuffer *dbDimension, Nd4jLong const* hDimensionShape, Nd4jLong const* dDimensionShape,
-                                   Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
-                                   Nd4jLong const* tadShapeInfoZ, Nd4jLong const* tadOffsetsZ);
+                                   OpaqueDataBuffer *dbDimension, sd::LongType const* hDimensionShape, sd::LongType const* dDimensionShape,
+                                   sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
+                                   sd::LongType const* tadShapeInfoZ, sd::LongType const* tadOffsetsZ);
 
-ND4J_EXPORT void specialConcat (
-        Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void specialConcat (
+        sd::Pointer *extraPointers,
         int dimension,
         int numArrays,
-        Nd4jPointer *data,
-        Nd4jPointer *inputShapeInfo,
+        sd::Pointer *data,
+        sd::Pointer *inputShapeInfo,
         void *result,
-        Nd4jLong const* resultShapeInfo,
-        Nd4jPointer *tadPointers,
-        Nd4jPointer *offsetPointers);
+        sd::LongType const* resultShapeInfo,
+        sd::Pointer *tadPointers,
+        sd::Pointer *offsetPointers);
 
 /**
  * This method implementation exists only for cuda.
  * The other backends should have dummy method for JNI compatibility reasons.
  */
-ND4J_EXPORT void initializeDevicesAndFunctions();
+SD_LIB_EXPORT void initializeDevicesAndFunctions();
 
-ND4J_EXPORT void initializeFunctions(Nd4jPointer *functions);
+SD_LIB_EXPORT void initializeFunctions(sd::Pointer *functions);
 
 /**
  * This method acquires memory chunk of requested size on host side
@@ -517,7 +506,7 @@ ND4J_EXPORT void initializeFunctions(Nd4jPointer *functions);
  * @param memorySize memory size, in bytes
  * @param flags optional parameter
  */
-ND4J_EXPORT Nd4jPointer mallocHost(Nd4jLong memorySize, int flags);
+SD_LIB_EXPORT sd::Pointer mallocHost(sd::LongType memorySize, int flags);
 
 /**
  * This method acquires memory chunk of requested size on specified device
@@ -527,14 +516,14 @@ ND4J_EXPORT Nd4jPointer mallocHost(Nd4jLong memorySize, int flags);
  * @param ptrToDeviceId pointer to deviceId. For cuda that's just and int, for OpenCL that's pointer to device_id, etc
  * @param flags optional parameter
  */
-ND4J_EXPORT Nd4jPointer mallocDevice(Nd4jLong memorySize, int deviceId, int flags);
+SD_LIB_EXPORT sd::Pointer mallocDevice(sd::LongType memorySize, int deviceId, int flags);
 
 /**
  * This method releases previously allocated host memory space
  *
  * @param pointer pointer that'll be freed
  */
-ND4J_EXPORT int freeHost(Nd4jPointer pointer);
+SD_LIB_EXPORT int freeHost(sd::Pointer pointer);
 
 /**
  * This method releases previously allocated memory space on device
@@ -542,52 +531,52 @@ ND4J_EXPORT int freeHost(Nd4jPointer pointer);
  * @param pointer pointer that'll be freed
  * @param ptrToDeviceId pointer to deviceId.
  */
-ND4J_EXPORT int freeDevice(Nd4jPointer pointer, int deviceId);
+SD_LIB_EXPORT int freeDevice(sd::Pointer pointer, int deviceId);
 
 /**
  *
  * @return
  */
-ND4J_EXPORT int ompGetMaxThreads();
+SD_LIB_EXPORT int ompGetMaxThreads();
 
 /**
  *
  * @return
  */
-ND4J_EXPORT int ompGetNumThreads();
+SD_LIB_EXPORT int ompGetNumThreads();
 
 /**
  *
  * @param threads
  */
-ND4J_EXPORT void setOmpNumThreads(int threads);
+SD_LIB_EXPORT void setOmpNumThreads(int threads);
 
 /**
  *
  * @param threads
  */
-ND4J_EXPORT void setOmpMinThreads(int threads);
+SD_LIB_EXPORT void setOmpMinThreads(int threads);
 
 
-ND4J_EXPORT bool isBlasVersionMatches(int major, int minor, int build);
-
-/**
- *
- * @return
- */
-ND4J_EXPORT Nd4jPointer createContext();
+SD_LIB_EXPORT bool isBlasVersionMatches(int major, int minor, int build);
 
 /**
  *
  * @return
  */
-ND4J_EXPORT Nd4jPointer createStream();
+SD_LIB_EXPORT sd::Pointer createContext();
 
 /**
  *
  * @return
  */
-ND4J_EXPORT Nd4jPointer createEvent();
+SD_LIB_EXPORT sd::Pointer createStream();
+
+/**
+ *
+ * @return
+ */
+SD_LIB_EXPORT sd::Pointer createEvent();
 
 /**
  *
@@ -595,89 +584,89 @@ ND4J_EXPORT Nd4jPointer createEvent();
  * @param stream
  * @return
  */
-ND4J_EXPORT int registerEvent(Nd4jPointer event, Nd4jPointer stream);
+SD_LIB_EXPORT int registerEvent(sd::Pointer event, sd::Pointer stream);
 
 /**
  *
  * @param event
  * @return
  */
-ND4J_EXPORT int destroyEvent(Nd4jPointer event);
+SD_LIB_EXPORT int destroyEvent(sd::Pointer event);
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT int setDevice(int deviceId);
+SD_LIB_EXPORT int setDevice(int deviceId);
 
 /**
  *
  * @return
  */
-ND4J_EXPORT int getDevice();
+SD_LIB_EXPORT int getDevice();
 
 /**
  *
  * @param stream
  * @return
  */
-ND4J_EXPORT int streamSynchronize(Nd4jPointer stream);
+SD_LIB_EXPORT int streamSynchronize(sd::Pointer stream);
 
 /**
  *
  * @param event
  * @return
  */
-ND4J_EXPORT int eventSynchronize(Nd4jPointer event);
+SD_LIB_EXPORT int eventSynchronize(sd::Pointer event);
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT Nd4jLong getDeviceFreeMemory(int deviceId);
+SD_LIB_EXPORT sd::LongType getDeviceFreeMemory(int deviceId);
 
 /**
  * Returns amount of free memory for current device
  * @return
  */
-ND4J_EXPORT Nd4jLong getDeviceFreeMemoryDefault();
+SD_LIB_EXPORT sd::LongType getDeviceFreeMemoryDefault();
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT Nd4jLong getDeviceTotalMemory(int deviceId);
+SD_LIB_EXPORT sd::LongType getDeviceTotalMemory(int deviceId);
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT int getDeviceMajor(int deviceId);
+SD_LIB_EXPORT int getDeviceMajor(int deviceId);
 
 /**
  * This method returns amount of cached memory
  * @param deviceId
  * @return
  */
-ND4J_EXPORT Nd4jLong getCachedMemory(int deviceId);
+SD_LIB_EXPORT sd::LongType getCachedMemory(int deviceId);
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT int getDeviceMinor(int deviceId);
+SD_LIB_EXPORT int getDeviceMinor(int deviceId);
 
 /**
  *
  * @param ptrToDeviceId
  * @return
  */
-ND4J_EXPORT const char * getDeviceName(int deviceId);
+SD_LIB_EXPORT const char * getDeviceName(int deviceId);
 
 /**
  *
@@ -688,11 +677,11 @@ ND4J_EXPORT const char * getDeviceName(int deviceId);
  * @param reserved
  * @return
  */
-ND4J_EXPORT int memcpySync(Nd4jPointer dst,
-                           Nd4jPointer src,
-                           Nd4jLong size,
+SD_LIB_EXPORT int memcpySync(sd::Pointer dst,
+                           sd::Pointer src,
+                           sd::LongType size,
                            int flags,
-                           Nd4jPointer reserved);
+                           sd::Pointer reserved);
 
 /**
  *
@@ -703,11 +692,11 @@ ND4J_EXPORT int memcpySync(Nd4jPointer dst,
  * @param reserved
  * @return
  */
-ND4J_EXPORT int memcpyAsync(Nd4jPointer dst,
-                            Nd4jPointer src,
-                            Nd4jLong size,
+SD_LIB_EXPORT int memcpyAsync(sd::Pointer dst,
+                            sd::Pointer src,
+                            sd::LongType size,
                             int flags,
-                            Nd4jPointer reserved);
+                            sd::Pointer reserved);
 
 /**
  *
@@ -718,11 +707,11 @@ ND4J_EXPORT int memcpyAsync(Nd4jPointer dst,
  * @param reserved
  * @return
  */
-ND4J_EXPORT int memsetSync(Nd4jPointer dst,
+SD_LIB_EXPORT int memsetSync(sd::Pointer dst,
                            int value,
-                           Nd4jLong size,
+                           sd::LongType size,
                            int flags,
-                           Nd4jPointer reserved);
+                           sd::Pointer reserved);
 
 /**
  *
@@ -733,11 +722,11 @@ ND4J_EXPORT int memsetSync(Nd4jPointer dst,
  * @param reserved
  * @return
  */
-ND4J_EXPORT int memsetAsync(Nd4jPointer dst,
+SD_LIB_EXPORT int memsetAsync(sd::Pointer dst,
                             int value,
-                            Nd4jLong size,
+                            sd::LongType size,
                             int flags,
-                            Nd4jPointer reserved);
+                            sd::Pointer reserved);
 
 /**
  *
@@ -748,41 +737,41 @@ ND4J_EXPORT int memsetAsync(Nd4jPointer dst,
  * @param reserved
  * @return
  */
-ND4J_EXPORT int memcpyConstantAsync(Nd4jLong dst,
-                                    Nd4jPointer src,
-                                    Nd4jLong size,
+SD_LIB_EXPORT int memcpyConstantAsync(sd::LongType dst,
+                                    sd::Pointer src,
+                                    sd::LongType size,
                                     int flags,
-                                    Nd4jPointer reserved);
+                                    sd::Pointer reserved);
 
 /**
  *
  * @return
  */
-ND4J_EXPORT Nd4jPointer getConstantSpace();
+SD_LIB_EXPORT sd::Pointer getConstantSpace();
 
 /**
  *
  * @return
  */
-ND4J_EXPORT int getAvailableDevices();
+SD_LIB_EXPORT int getAvailableDevices();
 
 /**
  *
  * @param reallyEnable
  */
-ND4J_EXPORT void enableDebugMode(bool reallyEnable);
+SD_LIB_EXPORT void enableDebugMode(bool reallyEnable);
 
 /**
  *
  * @param reallyEnable
  */
-ND4J_EXPORT void enableVerboseMode(bool reallyEnable);
+SD_LIB_EXPORT void enableVerboseMode(bool reallyEnable);
 
 /**
  *
  * @param gridSize
  */
-ND4J_EXPORT void setGridLimit(int gridSize);
+SD_LIB_EXPORT void setGridLimit(int gridSize);
 
 typedef sd::TadPack OpaqueTadPack;
 
@@ -794,18 +783,18 @@ typedef sd::TadPack OpaqueTadPack;
  * @param targetBuffer
  * @param offsetsBuffer
  */
-ND4J_EXPORT OpaqueTadPack* tadOnlyShapeInfo(Nd4jLong const*xShapeInfo,
+SD_LIB_EXPORT OpaqueTadPack* tadOnlyShapeInfo(sd::LongType const*xShapeInfo,
                                             int *dimension,
                                             int dimensionLength);
 
-ND4J_EXPORT Nd4jLong const* getPrimaryShapeInfo(OpaqueTadPack* pack);
-ND4J_EXPORT Nd4jLong const* getPrimaryOffsets(OpaqueTadPack* pack);
-ND4J_EXPORT Nd4jLong const* getSpecialShapeInfo(OpaqueTadPack* pack);
-ND4J_EXPORT Nd4jLong const* getSpecialOffsets(OpaqueTadPack* pack);
-ND4J_EXPORT Nd4jLong getNumberOfTads(OpaqueTadPack* pack);
-ND4J_EXPORT int getShapeInfoLength(OpaqueTadPack* pack);
+SD_LIB_EXPORT sd::LongType const* getPrimaryShapeInfo(OpaqueTadPack* pack);
+SD_LIB_EXPORT sd::LongType const* getPrimaryOffsets(OpaqueTadPack* pack);
+SD_LIB_EXPORT sd::LongType const* getSpecialShapeInfo(OpaqueTadPack* pack);
+SD_LIB_EXPORT sd::LongType const* getSpecialOffsets(OpaqueTadPack* pack);
+SD_LIB_EXPORT sd::LongType getNumberOfTads(OpaqueTadPack* pack);
+SD_LIB_EXPORT int getShapeInfoLength(OpaqueTadPack* pack);
 
-ND4J_EXPORT void deleteTadPack(OpaqueTadPack* ptr);
+SD_LIB_EXPORT void deleteTadPack(OpaqueTadPack* ptr);
 
 /*
  * PullRow special op
@@ -825,15 +814,15 @@ ND4J_EXPORT void deleteTadPack(OpaqueTadPack* ptr);
  * @param zTadShapeInfo
  * @param zTadOffsets
  */
-ND4J_EXPORT void pullRows(Nd4jPointer *extraPointers,
-                          OpaqueDataBuffer *dbX, Nd4jLong const* xShapeInfo, Nd4jLong const* dxShapeInfo,
-                          OpaqueDataBuffer *dbZ, Nd4jLong const* zShapeInfo, Nd4jLong const* dzShapeInfo,
-                          Nd4jLong n,
-                          Nd4jLong *indexes,
-                          Nd4jLong const* tadShapeInfo,
-                          Nd4jLong const* tadOffsets,
-                          Nd4jLong const* zTadShapeInfo,
-                          Nd4jLong const* zTadOffsets);
+SD_LIB_EXPORT void pullRows(sd::Pointer *extraPointers,
+                          OpaqueDataBuffer *dbX, sd::LongType const* xShapeInfo, sd::LongType const* dxShapeInfo,
+                          OpaqueDataBuffer *dbZ, sd::LongType const* zShapeInfo, sd::LongType const* dzShapeInfo,
+                          sd::LongType n,
+                          sd::LongType *indexes,
+                          sd::LongType const* tadShapeInfo,
+                          sd::LongType const* tadOffsets,
+                          sd::LongType const* zTadShapeInfo,
+                          sd::LongType const* zTadOffsets);
 
 /**
  *
@@ -844,23 +833,23 @@ ND4J_EXPORT void pullRows(Nd4jPointer *extraPointers,
  * @param length
  * @param propagate
  */
-ND4J_EXPORT void average(Nd4jPointer *extras,
-                         Nd4jPointer *x, Nd4jLong const* xShapeInfo,
-                         Nd4jPointer *dx, Nd4jLong const* dxShapeInfo,
-                         void *z, Nd4jLong const* zShapeInfo,
-                         void *dz, Nd4jLong const* dzShapeInfo,
+SD_LIB_EXPORT void average(sd::Pointer *extras,
+                         sd::Pointer *x, sd::LongType const* xShapeInfo,
+                         sd::Pointer *dx, sd::LongType const* dxShapeInfo,
+                         void *z, sd::LongType const* zShapeInfo,
+                         void *dz, sd::LongType const* dzShapeInfo,
                          int n,
-                         Nd4jLong length,
+                         sd::LongType length,
                          bool propagate);
 
 
-ND4J_EXPORT void accumulate(Nd4jPointer *extras,
-                            Nd4jPointer *x, Nd4jLong const* xShapeInfo,
-                            Nd4jPointer *dx, Nd4jLong const* dxShapeInfo,
-                            void *z, Nd4jLong const* zShapeInfo,
-                            void *dz, Nd4jLong const* dzShapeInfo,
+SD_LIB_EXPORT void accumulate(sd::Pointer *extras,
+                            sd::Pointer *x, sd::LongType const* xShapeInfo,
+                            sd::Pointer *dx, sd::LongType const* dxShapeInfo,
+                            void *z, sd::LongType const* zShapeInfo,
+                            void *dz, sd::LongType const* dzShapeInfo,
                             int n,
-                            Nd4jLong length);
+                            sd::LongType length);
 
 
 /**
@@ -870,18 +859,18 @@ ND4J_EXPORT void accumulate(Nd4jPointer *extras,
  *
  * @param enable
  */
-ND4J_EXPORT void enableP2P(bool enable);
+SD_LIB_EXPORT void enableP2P(bool enable);
 
 /**
  *
  */
-ND4J_EXPORT void checkP2P();
+SD_LIB_EXPORT void checkP2P();
 
 /**
  *
  * @return
  */
-ND4J_EXPORT bool isP2PAvailable();
+SD_LIB_EXPORT bool isP2PAvailable();
 
 /**
  * Shuffle methods
@@ -899,15 +888,15 @@ ND4J_EXPORT bool isP2PAvailable();
  * @param tadShapeInfo
  * @param tadOffsets
  */
-ND4J_EXPORT void shuffle(Nd4jPointer *extras,
-                         Nd4jPointer *x, Nd4jPointer *xShapeInfo,
-                         Nd4jPointer *dx, Nd4jPointer *dxShapeInfo,
-                         Nd4jPointer *z, Nd4jPointer *zShapeInfo,
-                         Nd4jPointer *dz, Nd4jPointer *dzShapeInfo,
+SD_LIB_EXPORT void shuffle(sd::Pointer *extras,
+                         sd::Pointer *x, sd::Pointer *xShapeInfo,
+                         sd::Pointer *dx, sd::Pointer *dxShapeInfo,
+                         sd::Pointer *z, sd::Pointer *zShapeInfo,
+                         sd::Pointer *dz, sd::Pointer *dzShapeInfo,
                          int N,
                          int *shuffleMap,
-                         Nd4jPointer *tadShapeInfo,
-                         Nd4jPointer *tadOffsets);
+                         sd::Pointer *tadShapeInfo,
+                         sd::Pointer *tadOffsets);
 
 
 /**
@@ -923,14 +912,14 @@ ND4J_EXPORT void shuffle(Nd4jPointer *extras,
  * @param dstType
  * @param z
  */
-ND4J_EXPORT void convertTypes(Nd4jPointer *extras, int srcType, Nd4jPointer x, Nd4jLong N, int dstType, Nd4jPointer z);
+SD_LIB_EXPORT void convertTypes(sd::Pointer *extras, int srcType, sd::Pointer x, sd::LongType N, int dstType, sd::Pointer z);
 
 
 /**
  *
  * @return
  */
-ND4J_EXPORT bool isExperimentalEnabled();
+SD_LIB_EXPORT bool isExperimentalEnabled();
 
 /**
  * Aggregate
@@ -951,11 +940,11 @@ ND4J_EXPORT bool isExperimentalEnabled();
  * @param realArguments
  * @param numRealArguments
  */
-ND4J_EXPORT void execAggregate(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execAggregate(sd::Pointer *extraPointers,
                                int opNum,
                                void **arguments,
                                int numArguments,
-                               Nd4jLong **shapeArguments,
+                               sd::LongType **shapeArguments,
                                int numShapeArguments,
                                int *indexArguments,
                                int numIndexArguments,
@@ -966,7 +955,7 @@ ND4J_EXPORT void execAggregate(Nd4jPointer *extraPointers,
                                sd::DataType dtype);
 
 
-ND4J_EXPORT void batchExecutor(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void batchExecutor(sd::Pointer *extraPointers,
                                int numAggregates,
                                int opNum,
                                int maxArgs,
@@ -978,7 +967,7 @@ ND4J_EXPORT void batchExecutor(Nd4jPointer *extraPointers,
                                void *ptrToArguments,
                                sd::DataType dtype);
 
-ND4J_EXPORT void execAggregateBatch(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execAggregateBatch(sd::Pointer *extraPointers,
                                     int numAggregates,
                                     int opNum,
                                     int maxArgs,
@@ -1003,10 +992,10 @@ ND4J_EXPORT void execAggregateBatch(Nd4jPointer *extraPointers,
  * @param zShapeBuffer
  * @param extraArguments
  */
-ND4J_EXPORT void execRandom(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execRandom(sd::Pointer *extraPointers,
                             int opNum,
-                            Nd4jPointer state,
-                            OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeBuffer, Nd4jLong const* dZShapeBuffer,
+                            sd::Pointer state,
+                            OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeBuffer, sd::LongType const* dZShapeBuffer,
                             void *extraArguments);
 
 /**
@@ -1022,12 +1011,12 @@ ND4J_EXPORT void execRandom(Nd4jPointer *extraPointers,
  * @param zShapeBuffer
  * @param extraArguments
  */
-ND4J_EXPORT void execRandom3(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execRandom3(sd::Pointer *extraPointers,
                              int opNum,
-                             Nd4jPointer state,
-                             OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeBuffer, Nd4jLong const* dXShapeBuffer,
-                             OpaqueDataBuffer *dbY, Nd4jLong const* hYShapeBuffer, Nd4jLong const* dYShapeBuffer,
-                             OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeBuffer, Nd4jLong const* dZShapeBuffer,
+                             sd::Pointer state,
+                             OpaqueDataBuffer *dbX, sd::LongType const* hXShapeBuffer, sd::LongType const* dXShapeBuffer,
+                             OpaqueDataBuffer *dbY, sd::LongType const* hYShapeBuffer, sd::LongType const* dYShapeBuffer,
+                             OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeBuffer, sd::LongType const* dZShapeBuffer,
                              void *extraArguments);
 
 /**
@@ -1041,11 +1030,11 @@ ND4J_EXPORT void execRandom3(Nd4jPointer *extraPointers,
  * @param zShapeBuffer
  * @param extraArguments
  */
-ND4J_EXPORT void execRandom2(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void execRandom2(sd::Pointer *extraPointers,
                              int opNum,
-                             Nd4jPointer state,
-                             OpaqueDataBuffer *dbX, Nd4jLong const* hXShapeBuffer, Nd4jLong const* dXShapeBuffer,
-                             OpaqueDataBuffer *dbZ, Nd4jLong const* hZShapeBuffer, Nd4jLong const* dZShapeBuffer,
+                             sd::Pointer state,
+                             OpaqueDataBuffer *dbX, sd::LongType const* hXShapeBuffer, sd::LongType const* dXShapeBuffer,
+                             OpaqueDataBuffer *dbZ, sd::LongType const* hZShapeBuffer, sd::LongType const* dZShapeBuffer,
                              void *extraArguments);
 
 
@@ -1057,10 +1046,10 @@ ND4J_EXPORT void execRandom2(Nd4jPointer *extraPointers,
  * @param ptrToBuffer
  * @return
  */
-ND4J_EXPORT Nd4jPointer initRandom(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT sd::Pointer initRandom(sd::Pointer *extraPointers,
                                    long seed,
                                    long bufferSize,
-                                   Nd4jPointer ptrToBuffer);
+                                   sd::Pointer ptrToBuffer);
 
 /**
  *
@@ -1068,9 +1057,9 @@ ND4J_EXPORT Nd4jPointer initRandom(Nd4jPointer *extraPointers,
  * @param seed
  * @param ptrRandom
  */
-ND4J_EXPORT void refreshBuffer(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void refreshBuffer(sd::Pointer *extraPointers,
                                long seed,
-                               Nd4jPointer ptrRandom);
+                               sd::Pointer ptrRandom);
 
 /**
  *
@@ -1078,15 +1067,15 @@ ND4J_EXPORT void refreshBuffer(Nd4jPointer *extraPointers,
  * @param seed
  * @param ptrRandom
  */
-ND4J_EXPORT void reSeedBuffer(Nd4jPointer *extraPointers,
+SD_LIB_EXPORT void reSeedBuffer(sd::Pointer *extraPointers,
                               long seed,
-                              Nd4jPointer ptrRandom);
+                              sd::Pointer ptrRandom);
 
 /**
  *
  * @param ptrRandom
  */
-ND4J_EXPORT void destroyRandom(Nd4jPointer ptrRandom);
+SD_LIB_EXPORT void destroyRandom(sd::Pointer ptrRandom);
 
 }
 
@@ -1100,16 +1089,16 @@ ND4J_EXPORT void destroyRandom(Nd4jPointer ptrRandom);
 */
 
 template <typename T>
-static Nd4jPointer _numpyHeaderForNd4j(Nd4jPointer data,const Nd4jPointer shapeBuffer,Nd4jLong wordSize,Nd4jLong* headerSize) {
-    Nd4jLong const* shapeBufferCast = reinterpret_cast<const Nd4jLong *>(shapeBuffer);
+static sd::Pointer _numpyHeaderForNd4j(sd::Pointer data,const sd::Pointer shapeBuffer,sd::LongType wordSize,sd::LongType* headerSize) {
+    sd::LongType const* shapeBufferCast = reinterpret_cast<const sd::LongType *>(shapeBuffer);
     int  rank = shape::rank(shapeBufferCast);
-    const Nd4jLong* shape = shape::shapeOf(shapeBufferCast);
+    const sd::LongType* shape = shape::shapeOf(shapeBufferCast);
     unsigned int* npShape = new unsigned int[rank];
     for(int i = 0; i < rank; i++) {
         npShape[i] = shape[i];
     }
 
-    Nd4jLong length = shape::prodLong(shape,rank);
+    sd::LongType length = shape::prodLong(shape,rank);
     auto npHeader = cnpy::createNpyHeader<T>(data,npShape,rank,wordSize);
     char *ret = new char[npHeader.size() + 1];
     int count = 0;
@@ -1122,15 +1111,15 @@ static Nd4jPointer _numpyHeaderForNd4j(Nd4jPointer data,const Nd4jPointer shapeB
     count++;
 
     *headerSize = count;
-    return reinterpret_cast<Nd4jPointer>(ret);
+    return reinterpret_cast<sd::Pointer>(ret);
 }
 
 extern "C" {
 
-static Nd4jPointer numpyHeaderForNd4j(Nd4jPointer data,Nd4jPointer shapeBuffer,Nd4jLong wordSize,Nd4jLong* headerSize) {
-    auto shapeBufferCast = reinterpret_cast<Nd4jLong *>(shapeBuffer);
+static sd::Pointer numpyHeaderForNd4j(sd::Pointer data,sd::Pointer shapeBuffer,sd::LongType wordSize,sd::LongType* headerSize) {
+    auto shapeBufferCast = reinterpret_cast<sd::LongType *>(shapeBuffer);
     auto type = sd::ArrayOptions::dataType(shapeBufferCast);
-    BUILD_SINGLE_SELECTOR(type, return _numpyHeaderForNd4j, (data, shapeBuffer, wordSize, headerSize), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(type, return _numpyHeaderForNd4j, (data, shapeBuffer, wordSize, headerSize), SD_COMMON_TYPES);
 }
 
 /**
@@ -1139,7 +1128,7 @@ static Nd4jPointer numpyHeaderForNd4j(Nd4jPointer data,Nd4jPointer shapeBuffer,N
 * @param data the header data to parse
 * @return a pointer to a numpy cnpy:NpyArray struct
 */
-static Nd4jPointer loadNpyFromHeader(Nd4jPointer data) {
+static sd::Pointer loadNpyFromHeader(sd::Pointer data) {
     char *header = reinterpret_cast<char *>(data);
 
     cnpy::NpyArray arr = cnpy::loadNpyFromHeader(header);
@@ -1152,7 +1141,7 @@ static Nd4jPointer loadNpyFromHeader(Nd4jPointer data) {
     ret->data = arr.data;
     ret->wordSize = arr.wordSize;
     ret->shape = arr.shape;
-    return reinterpret_cast<Nd4jPointer>(ret);
+    return reinterpret_cast<sd::Pointer>(ret);
 }
 
 }
@@ -1167,35 +1156,35 @@ static Nd4jPointer loadNpyFromHeader(Nd4jPointer data) {
 */
 
 template <typename T>
-static Nd4jPointer _numpyFromNd4j(Nd4jPointer data,Nd4jPointer shapeBuffer,Nd4jLong wordSize) {
-    Nd4jLong *shapeBufferCast = reinterpret_cast<Nd4jLong *>(shapeBuffer);
+static sd::Pointer _numpyFromNd4j(sd::Pointer data,sd::Pointer shapeBuffer,sd::LongType wordSize) {
+    sd::LongType *shapeBufferCast = reinterpret_cast<sd::LongType *>(shapeBuffer);
     int  rank = shape::rank(shapeBufferCast);
-    Nd4jLong *shape = shape::shapeOf(shapeBufferCast);
+    sd::LongType *shape = shape::shapeOf(shapeBufferCast);
     unsigned int *npShape = new unsigned int[rank];
     for(int i = 0; i < rank; i++) {
         npShape[i] = shape[i];
     }
 
-    Nd4jLong length = shape::prodLong(shape,rank);
+    sd::LongType length = shape::prodLong(shape,rank);
     auto npHeader = cnpy::createNpyHeader<T>(data,npShape,rank,wordSize);
     char *dataChar = reinterpret_cast<char *>(data);
     char *npHeaderData = npHeader.data();
     char *ret = new char[(wordSize * length) +  npHeader.size()];
     char *cursorStart = ret;
-    std::memcpy(reinterpret_cast<void *>(ret), reinterpret_cast<void *>(npHeaderData), npHeader.size() * sizeof(Nd4jLong));
+    std::memcpy(reinterpret_cast<void *>(ret), reinterpret_cast<void *>(npHeaderData), npHeader.size() * sizeof(sd::LongType));
     //move to next
     cursorStart += npHeader.size();
-    std::memcpy(reinterpret_cast<void *>(ret), reinterpret_cast<void *>(dataChar), length * wordSize * sizeof(Nd4jLong));
-    Nd4jPointer  rettPointer = reinterpret_cast<Nd4jPointer>(ret);
+    std::memcpy(reinterpret_cast<void *>(ret), reinterpret_cast<void *>(dataChar), length * wordSize * sizeof(sd::LongType));
+    sd::Pointer  rettPointer = reinterpret_cast<sd::Pointer>(ret);
     return rettPointer;
 }
 
 extern "C" {
 
-static Nd4jPointer numpyFromNd4j(Nd4jPointer data,Nd4jPointer shapeBuffer,Nd4jLong wordSize) {
-    auto shapeBufferCast = reinterpret_cast<Nd4jLong *>(shapeBuffer);
+static sd::Pointer numpyFromNd4j(sd::Pointer data,sd::Pointer shapeBuffer,sd::LongType wordSize) {
+    auto shapeBufferCast = reinterpret_cast<sd::LongType *>(shapeBuffer);
     auto type = sd::ArrayOptions::dataType(shapeBufferCast);
-    BUILD_SINGLE_SELECTOR(type, return _numpyFromNd4j, (data, shapeBuffer, wordSize), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(type, return _numpyFromNd4j, (data, shapeBuffer, wordSize), SD_COMMON_TYPES);
 }
 
 
@@ -1204,7 +1193,7 @@ static Nd4jPointer numpyFromNd4j(Nd4jPointer data,Nd4jPointer shapeBuffer,Nd4jLo
 * @param npyArray
 * @return
 */
-ND4J_EXPORT Nd4jPointer shapeBufferForNumpy(Nd4jPointer npyArray);
+SD_LIB_EXPORT sd::Pointer shapeBufferForNumpy(sd::Pointer npyArray);
 
 
 /**
@@ -1214,7 +1203,7 @@ ND4J_EXPORT Nd4jPointer shapeBufferForNumpy(Nd4jPointer npyArray);
 * @param npyArray
 * @return
 */
-static Nd4jPointer shapeBufferForNumpyHeader(Nd4jPointer npyArray) {
+static sd::Pointer shapeBufferForNumpyHeader(sd::Pointer npyArray) {
     cnpy::NpyArray arr = cnpy::loadNpyFromHeader(reinterpret_cast<char *>(npyArray));
     auto shape = new unsigned int[arr.shape.size()];
     for(unsigned int i = 0; i < arr.shape.size(); i++) {
@@ -1223,9 +1212,8 @@ static Nd4jPointer shapeBufferForNumpyHeader(Nd4jPointer npyArray) {
 
     auto shapeBuffer = shape::shapeBufferOfNpy(arr.shape.size(), shape, arr.fortranOrder);
     delete[] shape;
-    return reinterpret_cast<Nd4jPointer>(shapeBuffer);
+    return reinterpret_cast<sd::Pointer>(shapeBuffer);
 }
-
 
 
 /**
@@ -1233,7 +1221,7 @@ static Nd4jPointer shapeBufferForNumpyHeader(Nd4jPointer npyArray) {
 * @param npyArray
 * @return
 */
-static Nd4jPointer dataPointForNumpyHeader(Nd4jPointer npyArray) {
+static sd::Pointer dataPointForNumpyHeader(sd::Pointer npyArray) {
     cnpy::NpyArray arr = cnpy::loadNpyFromHeader(reinterpret_cast<char *>(npyArray));
     unsigned  char *dataToPrint = reinterpret_cast<unsigned  char *>(arr.data);
     return dataToPrint;
@@ -1244,10 +1232,10 @@ static Nd4jPointer dataPointForNumpyHeader(Nd4jPointer npyArray) {
 * @param npyArray
 * @return
 */
-static Nd4jPointer dataPointForNumpyStruct(Nd4jPointer npyArrayStruct) {
+static sd::Pointer dataPointForNumpyStruct(sd::Pointer npyArrayStruct) {
     cnpy::NpyArray *arrPointer = reinterpret_cast<cnpy::NpyArray *>(npyArrayStruct);
     unsigned  char *dataToPrint = reinterpret_cast<unsigned  char *>(arrPointer->data);
-    return reinterpret_cast<Nd4jPointer>(dataToPrint);
+    return reinterpret_cast<sd::Pointer>(dataToPrint);
 }
 
 /**
@@ -1256,21 +1244,21 @@ static Nd4jPointer dataPointForNumpyStruct(Nd4jPointer npyArrayStruct) {
 * @param fromFile
 * @return
 */
-static Nd4jPointer dataPointForNumpy(Nd4jPointer npyArray) {
+static sd::Pointer dataPointForNumpy(sd::Pointer npyArray) {
     char *npyArrayBuffer = reinterpret_cast<  char *>(npyArray);
     cnpy::NpyArray arr = cnpy::loadNpyFromPointer(npyArrayBuffer);
-    return dataPointForNumpyStruct(reinterpret_cast<Nd4jPointer>(&arr));
+    return dataPointForNumpyStruct(reinterpret_cast<sd::Pointer>(&arr));
 }
 
 /**
 * Load a numpy array from a file
-* and return it as an Nd4jPointer
+* and return it as an sd::Pointer
 * @param path
 * @return
 */
-static Nd4jPointer numpyFromFile(std::string path) {
+static sd::Pointer numpyFromFile(std::string path) {
     char *numpyBuffer = cnpy::loadFile(path.data());
-    return reinterpret_cast<Nd4jPointer >(numpyBuffer);
+    return reinterpret_cast<sd::Pointer >(numpyBuffer);
 }
 
 
@@ -1319,7 +1307,7 @@ static void* getNpyArrayFromMap(void *map, int index){
     throw std::runtime_error("No array at index.");
 }
 
-ND4J_EXPORT int dataTypeFromNpyHeader(void *header);
+SD_LIB_EXPORT int dataTypeFromNpyHeader(void *header);
 
 static void* getNpyArrayData(void *npArray){
     cnpy::NpyArray* npyArray2 = reinterpret_cast<cnpy::NpyArray*>(npArray);
@@ -1332,10 +1320,10 @@ static int getNpyArrayRank(void *npArray){
     return rank;
 }
 
-static Nd4jLong* getNpyArrayShape(void *npArray){
+static sd::LongType* getNpyArrayShape(void *npArray){
     cnpy::NpyArray* arr = reinterpret_cast<cnpy::NpyArray*>(npArray);
     int ndim = arr->shape.size();
-    Nd4jLong* shape = new Nd4jLong[ndim];
+    sd::LongType* shape = new sd::LongType[ndim];
     for (int i=0; i<ndim; i++){
         shape[i] = arr->shape.at(i);
     }
@@ -1369,7 +1357,7 @@ static void deleteNPArrayMap(void *map){
 * to get the length for
 * @return
 */
-static int elementSizeForNpyArray(Nd4jPointer npyArray) {
+static int elementSizeForNpyArray(sd::Pointer npyArray) {
     cnpy::NpyArray arr = cnpy::loadNpyFromPointer(reinterpret_cast<char *>(npyArray));
     cnpy::NpyArray *arrPointer = &arr;
     int size = arrPointer->wordSize;
@@ -1384,7 +1372,7 @@ static int elementSizeForNpyArray(Nd4jPointer npyArray) {
 * to get the length for
 * @return
 */
-static int elementSizeForNpyArrayHeader(Nd4jPointer npyArray) {
+static int elementSizeForNpyArrayHeader(sd::Pointer npyArray) {
     cnpy::NpyArray arr = cnpy::loadNpyFromHeader(reinterpret_cast<char *>(npyArray));
     cnpy::NpyArray *arrPointer = &arr;
     int size = arrPointer->wordSize;
@@ -1392,7 +1380,7 @@ static int elementSizeForNpyArrayHeader(Nd4jPointer npyArray) {
 }
 
 
-static void releaseNumpy(Nd4jPointer npyArray) {
+static void releaseNumpy(sd::Pointer npyArray) {
     free(reinterpret_cast<void *>(npyArray));
 }
 
@@ -1403,7 +1391,7 @@ static void releaseNumpy(Nd4jPointer npyArray) {
  * @param buffer  the buffer pointer to check
  * @return
  */
-ND4J_EXPORT int lengthForShapeBufferPointer(Nd4jPointer buffer);
+SD_LIB_EXPORT int lengthForShapeBufferPointer(sd::Pointer buffer);
 
 
 /**
@@ -1413,7 +1401,7 @@ ND4J_EXPORT int lengthForShapeBufferPointer(Nd4jPointer buffer);
 * @return the pointer for the given address
 */
 
-ND4J_EXPORT Nd4jPointer pointerForAddress(Nd4jLong address);
+SD_LIB_EXPORT sd::Pointer pointerForAddress(sd::LongType address);
 
 /**
  * This method takes single N-dimensional tensor, and copies its TADs to target arrays
@@ -1424,65 +1412,65 @@ ND4J_EXPORT Nd4jPointer pointerForAddress(Nd4jLong address);
  * @param zShapeInfo
  * @return
  */
-ND4J_EXPORT void tear(Nd4jPointer *extraPointers,
-                      OpaqueDataBuffer *dbX, Nd4jLong const* xShapeInfo, Nd4jLong const* dxShapeInfo,
-                      Nd4jPointer *targets, Nd4jLong const* zShapeInfo,
-                      Nd4jLong const* tadShapeInfo,
-                      Nd4jLong const* tadOffsets);
+SD_LIB_EXPORT void tear(sd::Pointer *extraPointers,
+                      OpaqueDataBuffer *dbX, sd::LongType const* xShapeInfo, sd::LongType const* dxShapeInfo,
+                      sd::Pointer *targets, sd::LongType const* zShapeInfo,
+                      sd::LongType const* tadShapeInfo,
+                      sd::LongType const* tadOffsets);
 
-ND4J_EXPORT void sort(Nd4jPointer *extraPointers,
-                      void *x, Nd4jLong const* xShapeInfo,
-                      void *dx, Nd4jLong const* dxShapeInfo,
+SD_LIB_EXPORT void sort(sd::Pointer *extraPointers,
+                      void *x, sd::LongType const* xShapeInfo,
+                      void *dx, sd::LongType const* dxShapeInfo,
                       bool descending);
 
-ND4J_EXPORT void sortByKey(Nd4jPointer *extraPointers,
-                           void *x, Nd4jLong const* xShapeInfo,
-                           void *dx, Nd4jLong const* dxShapeInfo,
-                           void *y, Nd4jLong const* yShapeInfo,
-                           void *dy, Nd4jLong const* dyShapeInfo,
+SD_LIB_EXPORT void sortByKey(sd::Pointer *extraPointers,
+                           void *x, sd::LongType const* xShapeInfo,
+                           void *dx, sd::LongType const* dxShapeInfo,
+                           void *y, sd::LongType const* yShapeInfo,
+                           void *dy, sd::LongType const* dyShapeInfo,
                            bool descending);
 
-ND4J_EXPORT void sortByValue(Nd4jPointer *extraPointers,
-                             void *x, Nd4jLong const* xShapeInfo,
-                             void *dx, Nd4jLong const* dxShapeInfo,
-                             void *y, Nd4jLong const* yShapeInfo,
-                             void *dy, Nd4jLong const* dyShapeInfo,
+SD_LIB_EXPORT void sortByValue(sd::Pointer *extraPointers,
+                             void *x, sd::LongType const* xShapeInfo,
+                             void *dx, sd::LongType const* dxShapeInfo,
+                             void *y, sd::LongType const* yShapeInfo,
+                             void *dy, sd::LongType const* dyShapeInfo,
                              bool descending);
 
-ND4J_EXPORT void sortTad(Nd4jPointer *extraPointers,
-                         void *x, Nd4jLong const* xShapeInfo,
-                         void *dx, Nd4jLong const* dxShapeInfo,
+SD_LIB_EXPORT void sortTad(sd::Pointer *extraPointers,
+                         void *x, sd::LongType const* xShapeInfo,
+                         void *dx, sd::LongType const* dxShapeInfo,
                          int *dimension,
                          int dimensionLength,
-                         Nd4jLong const* tadShapeInfo,
-                         Nd4jLong const* tadOffsets,
+                         sd::LongType const* tadShapeInfo,
+                         sd::LongType const* tadOffsets,
                          bool descending);
 
-ND4J_EXPORT void sortTadByKey(Nd4jPointer *extraPointers,
-                              void *x, Nd4jLong const* xShapeInfo,
-                              void *dx, Nd4jLong const* dxShapeInfo,
-                              void *y, Nd4jLong const* yShapeInfo,
-                              void *dy, Nd4jLong const* dyShapeInfo,
+SD_LIB_EXPORT void sortTadByKey(sd::Pointer *extraPointers,
+                              void *x, sd::LongType const* xShapeInfo,
+                              void *dx, sd::LongType const* dxShapeInfo,
+                              void *y, sd::LongType const* yShapeInfo,
+                              void *dy, sd::LongType const* dyShapeInfo,
                               int *dimension,
                               int dimensionLength,
                               bool descending);
 
-ND4J_EXPORT void sortTadByValue(Nd4jPointer *extraPointers,
-                                void *x, Nd4jLong const* xShapeInfo,
-                                void *dx, Nd4jLong const* dxShapeInfo,
-                                void *y, Nd4jLong const* yShapeInfo,
-                                void *dy, Nd4jLong const* dyShapeInfo,
+SD_LIB_EXPORT void sortTadByValue(sd::Pointer *extraPointers,
+                                void *x, sd::LongType const* xShapeInfo,
+                                void *dx, sd::LongType const* dxShapeInfo,
+                                void *y, sd::LongType const* yShapeInfo,
+                                void *dy, sd::LongType const* dyShapeInfo,
                                 int *dimension,
                                 int dimensionLength,
                                 bool descending);
 
 
 // special sort impl for sorting out COO indices and values
-ND4J_EXPORT void sortCooIndices(Nd4jPointer *extraPointers,
-                                Nd4jLong *indices,
+SD_LIB_EXPORT void sortCooIndices(sd::Pointer *extraPointers,
+                                sd::LongType *indices,
                                 void *x,
-                                Nd4jLong length,
-                                const Nd4jLong *xShapeInfo);
+                                sd::LongType length,
+                                const sd::LongType *xShapeInfo);
 
 /**
  *
@@ -1497,7 +1485,7 @@ ND4J_EXPORT void sortCooIndices(Nd4jPointer *extraPointers,
  *                              1   wrap around shape
  *                              2   clip to shape
  */
-ND4J_EXPORT void ravelMultiIndex(Nd4jPointer *extraPointers, Nd4jLong *indices, Nd4jLong *flatIndices, Nd4jLong length,  Nd4jLong *shapeInfo, int mode);
+SD_LIB_EXPORT void ravelMultiIndex(sd::Pointer *extraPointers, sd::LongType *indices, sd::LongType *flatIndices, sd::LongType length,  sd::LongType *shapeInfo, int mode);
 
 /**
  *
@@ -1507,189 +1495,187 @@ ND4J_EXPORT void ravelMultiIndex(Nd4jPointer *extraPointers, Nd4jLong *indices, 
  * @param length            number of non-zero entries (length of flatIndices)
  * @param fullShapeBuffer   DataBuffer with ShapeInfo for the full matrix to be unraveled
  */
-ND4J_EXPORT void unravelIndex(Nd4jPointer *extraPointers, Nd4jLong *indices, Nd4jLong *flatIndices, Nd4jLong length,  Nd4jLong *shapeInfo);
+SD_LIB_EXPORT void unravelIndex(sd::Pointer *extraPointers, sd::LongType *indices, sd::LongType *flatIndices, sd::LongType length,  sd::LongType *shapeInfo);
 
-ND4J_EXPORT Nd4jLong* mmapFile(Nd4jPointer *extraPointers, const char *fileName, Nd4jLong length);
+SD_LIB_EXPORT sd::LongType* mmapFile(sd::Pointer *extraPointers, const char *fileName, sd::LongType length);
 
-ND4J_EXPORT void munmapFile(Nd4jPointer *extraPointers, Nd4jLong* ptrMap, Nd4jLong length);
+SD_LIB_EXPORT void munmapFile(sd::Pointer *extraPointers, sd::LongType* ptrMap, sd::LongType length);
 
 typedef sd::graph::ResultWrapper OpaqueResultWrapper;
 
 // flatbuffers execution
-ND4J_EXPORT OpaqueResultWrapper* executeFlatGraph(Nd4jPointer *extraPointers, Nd4jPointer flatBufferPointer);
+SD_LIB_EXPORT OpaqueResultWrapper* executeFlatGraph(sd::Pointer *extraPointers, sd::Pointer flatBufferPointer);
 
-ND4J_EXPORT Nd4jLong getResultWrapperSize(OpaqueResultWrapper* ptr);
-ND4J_EXPORT Nd4jPointer getResultWrapperPointer(OpaqueResultWrapper* ptr);
+SD_LIB_EXPORT sd::LongType getResultWrapperSize(OpaqueResultWrapper* ptr);
+SD_LIB_EXPORT sd::Pointer getResultWrapperPointer(OpaqueResultWrapper* ptr);
 
-ND4J_EXPORT const char* getAllCustomOps();
+SD_LIB_EXPORT const char* getAllCustomOps();
 
-ND4J_EXPORT const char* getAllOperations();
+SD_LIB_EXPORT const char* getAllOperations();
 
 // customOp executioner
-ND4J_EXPORT int execCustomOp(Nd4jPointer* extraPointers, Nd4jLong hash, Nd4jPointer* inputBuffers, Nd4jPointer* inputShapes, int numInputs, Nd4jPointer* outputBuffers, Nd4jPointer* outputShapes, int numOutputs, double* tArgs, int numTArgs, Nd4jLong *iArgs, int numIArgs, bool* bArgs, int numBArgs, bool isInplace);
-ND4J_EXPORT int execCustomOp2(Nd4jPointer* extraPointers, Nd4jLong hash, Nd4jPointer opContext);
+SD_LIB_EXPORT sd::Status execCustomOp(sd::Pointer* extraPointers, sd::LongType hash, sd::Pointer* inputBuffers, sd::Pointer* inputShapes, int numInputs, sd::Pointer* outputBuffers, sd::Pointer* outputShapes, int numOutputs, double* tArgs, int numTArgs, sd::LongType *iArgs, int numIArgs, bool* bArgs, int numBArgs, bool isInplace);
+SD_LIB_EXPORT sd::Status execCustomOp2(sd::Pointer* extraPointers, sd::LongType hash, sd::Pointer opContext);
 
 typedef sd::ShapeList OpaqueShapeList;
 
-ND4J_EXPORT OpaqueShapeList* calculateOutputShapes(Nd4jPointer* extraPointers, Nd4jLong hash, Nd4jPointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, Nd4jLong *iArgs, int numIArgs);
-ND4J_EXPORT OpaqueShapeList* calculateOutputShapes2(Nd4jPointer* extraPointers, Nd4jLong hash, Nd4jPointer* inputBuffers, Nd4jPointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, Nd4jLong *iArgs, int numIArgs, bool *bArgs, int numBArgs, int *dArgs, int numDArgs);
+SD_LIB_EXPORT OpaqueShapeList* calculateOutputShapes(sd::Pointer* extraPointers, sd::LongType hash, sd::Pointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, sd::LongType *iArgs, int numIArgs);
+SD_LIB_EXPORT OpaqueShapeList* calculateOutputShapes2(sd::Pointer* extraPointers, sd::LongType hash, sd::Pointer* inputBuffers, sd::Pointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, sd::LongType *iArgs, int numIArgs, bool *bArgs, int numBArgs, int *dArgs, int numDArgs);
 
-ND4J_EXPORT Nd4jLong getShapeListSize(OpaqueShapeList* list);
-ND4J_EXPORT Nd4jLong const* getShape(OpaqueShapeList* list, Nd4jLong i);
+SD_LIB_EXPORT sd::LongType getShapeListSize(OpaqueShapeList* list);
+SD_LIB_EXPORT sd::LongType const* getShape(OpaqueShapeList* list, sd::LongType i);
 
-ND4J_EXPORT void deleteShapeList(Nd4jPointer shapeList);
+SD_LIB_EXPORT void deleteShapeList(sd::Pointer shapeList);
 
-ND4J_EXPORT int registerGraph(Nd4jPointer *extraPointers, Nd4jLong graphId, Nd4jPointer flatBufferPointer);
+SD_LIB_EXPORT sd::Status registerGraph(sd::Pointer *extraPointers, sd::LongType graphId, sd::Pointer flatBufferPointer);
 
 typedef sd::graph::VariablesSet OpaqueVariablesSet;
 typedef sd::graph::Variable OpaqueVariable;
 
-ND4J_EXPORT OpaqueVariablesSet *executeStoredGraph(Nd4jPointer *extraPointers, Nd4jLong graphId, Nd4jPointer *inputBuffers, Nd4jPointer *inputShapes, int* inputIndices, int numInputs);
+SD_LIB_EXPORT OpaqueVariablesSet *executeStoredGraph(sd::Pointer *extraPointers, sd::LongType graphId, sd::Pointer *inputBuffers, sd::Pointer *inputShapes, int* inputIndices, int numInputs);
 
-ND4J_EXPORT Nd4jLong getVariablesSetSize(OpaqueVariablesSet* set);
-ND4J_EXPORT Nd4jStatus getVariablesSetStatus(OpaqueVariablesSet* set);
-ND4J_EXPORT OpaqueVariable* getVariable(OpaqueVariablesSet* set, Nd4jLong i);
-ND4J_EXPORT int getVariableId(OpaqueVariable* variable);
-ND4J_EXPORT int getVariableIndex(OpaqueVariable* variable);
-ND4J_EXPORT const char* getVariableName(OpaqueVariable* variable);
-ND4J_EXPORT Nd4jLong const* getVariableShape(OpaqueVariable* variable);
-ND4J_EXPORT void* getVariableBuffer(OpaqueVariable* variable);
+SD_LIB_EXPORT sd::LongType getVariablesSetSize(OpaqueVariablesSet* set);
+SD_LIB_EXPORT sd::Status getVariablesSetStatus(OpaqueVariablesSet* set);
+SD_LIB_EXPORT OpaqueVariable* getVariable(OpaqueVariablesSet* set, sd::LongType i);
+SD_LIB_EXPORT int getVariableId(OpaqueVariable* variable);
+SD_LIB_EXPORT int getVariableIndex(OpaqueVariable* variable);
+SD_LIB_EXPORT const char* getVariableName(OpaqueVariable* variable);
+SD_LIB_EXPORT sd::LongType const* getVariableShape(OpaqueVariable* variable);
+SD_LIB_EXPORT void* getVariableBuffer(OpaqueVariable* variable);
 
-ND4J_EXPORT int unregisterGraph(Nd4jPointer *extraPointers, Nd4jLong graphId);
+SD_LIB_EXPORT sd::Status unregisterGraph(sd::Pointer *extraPointers, sd::LongType graphId);
 
-ND4J_EXPORT void deleteCharArray(Nd4jPointer pointer);
-ND4J_EXPORT void deleteIntArray(Nd4jPointer pointer);
-ND4J_EXPORT void deleteLongArray(Nd4jPointer pointer);
-ND4J_EXPORT void deletePointerArray(Nd4jPointer pointer);
+SD_LIB_EXPORT void deleteCharArray(sd::Pointer pointer);
+SD_LIB_EXPORT void deleteIntArray(sd::Pointer pointer);
+SD_LIB_EXPORT void deleteLongArray(sd::Pointer pointer);
+SD_LIB_EXPORT void deletePointerArray(sd::Pointer pointer);
 
-ND4J_EXPORT void deleteVariablesSet(OpaqueVariablesSet* pointer);
+SD_LIB_EXPORT void deleteVariablesSet(OpaqueVariablesSet* pointer);
 
 // GraphState creation
-ND4J_EXPORT Nd4jPointer getGraphState(Nd4jLong id);
+SD_LIB_EXPORT sd::Pointer getGraphState(sd::LongType id);
 
-ND4J_EXPORT void deleteGraphState(Nd4jPointer state);
+SD_LIB_EXPORT void deleteGraphState(sd::Pointer state);
 
-ND4J_EXPORT void deleteResultWrapper(Nd4jPointer ptr);
+SD_LIB_EXPORT void deleteResultWrapper(sd::Pointer ptr);
 
-ND4J_EXPORT int estimateThreshold(Nd4jPointer *extraPointers, Nd4jPointer x, Nd4jLong const* xShapeInfo, int N, float threshold);
+SD_LIB_EXPORT int estimateThreshold(sd::Pointer *extraPointers, sd::Pointer x, sd::LongType const* xShapeInfo, int N, float threshold);
 
 // this method executes op that requires scope to be present: if/while/cond/whatever
-ND4J_EXPORT Nd4jStatus execCustomOpWithScope(Nd4jPointer *extraPointers, Nd4jPointer state, Nd4jLong opHash, Nd4jLong *scopes, int numScopes, Nd4jPointer *inputBuffers, Nd4jPointer *inputShapes, int numInputs, Nd4jPointer *outputBuffers, Nd4jPointer *outputShapes, int numOutputs);
+SD_LIB_EXPORT sd::Status execCustomOpWithScope(sd::Pointer *extraPointers, sd::Pointer state, sd::LongType opHash, sd::LongType *scopes, int numScopes, sd::Pointer *inputBuffers, sd::Pointer *inputShapes, int numInputs, sd::Pointer *outputBuffers, sd::Pointer *outputShapes, int numOutputs);
 
-//void fillUtf8String(Nd4jPointer *extraPointers, const char **string, int numStrings, Nd4jPointer buffer);
-ND4J_EXPORT Nd4jPointer createUtf8String(Nd4jPointer *extraPointers, const char *string, int length);
-ND4J_EXPORT Nd4jLong getUtf8StringLength(Nd4jPointer *extraPointers, Nd4jPointer ptr);
-ND4J_EXPORT char* getUtf8StringBuffer(Nd4jPointer *extraPointers, Nd4jPointer ptr);
-ND4J_EXPORT void deleteUtf8String(Nd4jPointer *extraPointers, Nd4jPointer ptr);
+//void fillUtf8String(sd::Pointer *extraPointers, const char **string, int numStrings, sd::Pointer buffer);
+SD_LIB_EXPORT sd::Pointer createUtf8String(sd::Pointer *extraPointers, const char *string, int length);
+SD_LIB_EXPORT sd::LongType getUtf8StringLength(sd::Pointer *extraPointers, sd::Pointer ptr);
+SD_LIB_EXPORT char* getUtf8StringBuffer(sd::Pointer *extraPointers, sd::Pointer ptr);
+SD_LIB_EXPORT void deleteUtf8String(sd::Pointer *extraPointers, sd::Pointer ptr);
 
-ND4J_EXPORT void scatterUpdate(Nd4jPointer *extraPointers, int opCode, int numOfSubArrs,
-                               void* hX, Nd4jLong const* hXShapeInfo, Nd4jLong const* hXOffsets,
-                               void* dX, Nd4jLong const* dXShapeInfo, Nd4jLong const* dXOffsets,
-                               void* hY, Nd4jLong const* hYShapeInfo, Nd4jLong const* hYOffsets,
-                               void* dY, Nd4jLong const* dYShapeInfo, Nd4jLong const* dYOffsets,
-                               void* hIindexes, Nd4jLong const* hIndicesShapeInfo, void* dIindexes, Nd4jLong const* dIndicesShapeInfo);
+SD_LIB_EXPORT void scatterUpdate(sd::Pointer *extraPointers, int opCode, int numOfSubArrs,
+                               void* hX, sd::LongType const* hXShapeInfo, sd::LongType const* hXOffsets,
+                               void* dX, sd::LongType const* dXShapeInfo, sd::LongType const* dXOffsets,
+                               void* hY, sd::LongType const* hYShapeInfo, sd::LongType const* hYOffsets,
+                               void* dY, sd::LongType const* dYShapeInfo, sd::LongType const* dYOffsets,
+                               void* hIindexes, sd::LongType const* hIndicesShapeInfo, void* dIindexes, sd::LongType const* dIndicesShapeInfo);
 
-ND4J_EXPORT void inspectArray(Nd4jPointer *extraPointers, Nd4jPointer buffer, Nd4jLong *shapeInfo, Nd4jPointer specialBuffer, Nd4jLong *specialShapeInfo, Nd4jPointer debugInfo);
+SD_LIB_EXPORT void inspectArray(sd::Pointer *extraPointers, sd::Pointer buffer, sd::LongType *shapeInfo, sd::Pointer specialBuffer, sd::LongType *specialShapeInfo, sd::Pointer debugInfo);
 
 
 typedef sd::ConstantDataBuffer OpaqueConstantDataBuffer;
 typedef sd::ConstantShapeBuffer OpaqueConstantShapeBuffer;
 
-ND4J_EXPORT OpaqueConstantShapeBuffer* shapeBuffer(int rank, Nd4jLong *shape, Nd4jLong *strides, sd::DataType dtype, char order, Nd4jLong ews, bool empty);
-ND4J_EXPORT OpaqueConstantShapeBuffer* shapeBufferEx(int rank, Nd4jLong *shape, Nd4jLong *strides, sd::DataType dtype, char order, Nd4jLong ews, Nd4jLong extras);
+SD_LIB_EXPORT OpaqueConstantShapeBuffer* shapeBuffer(int rank, sd::LongType *shape, sd::LongType *strides, sd::DataType dtype, char order, sd::LongType ews, bool empty);
+SD_LIB_EXPORT OpaqueConstantShapeBuffer* shapeBufferEx(int rank, sd::LongType *shape, sd::LongType *strides, sd::DataType dtype, char order, sd::LongType ews, sd::LongType extras);
 
-ND4J_EXPORT OpaqueConstantDataBuffer* constantBufferLong(sd::DataType dtype, Nd4jLong const* data, int length);
-ND4J_EXPORT OpaqueConstantDataBuffer* constantBufferDouble(sd::DataType dtype, double *data, int length);
-ND4J_EXPORT OpaqueConstantDataBuffer* constantBuffer(sd::DataType dtype, sd::ConstantDescriptor *descriptor);
+SD_LIB_EXPORT OpaqueConstantDataBuffer* constantBufferLong(sd::DataType dtype, sd::LongType const* data, int length);
+SD_LIB_EXPORT OpaqueConstantDataBuffer* constantBufferDouble(sd::DataType dtype, double *data, int length);
+SD_LIB_EXPORT OpaqueConstantDataBuffer* constantBuffer(sd::DataType dtype, sd::ConstantDescriptor *descriptor);
 
-ND4J_EXPORT Nd4jPointer getConstantDataBufferPrimary(OpaqueConstantDataBuffer* dbf);
-ND4J_EXPORT Nd4jPointer getConstantDataBufferSpecial(OpaqueConstantDataBuffer* dbf);
-ND4J_EXPORT Nd4jLong getConstantDataBufferLength(OpaqueConstantDataBuffer* dbf);
+SD_LIB_EXPORT sd::Pointer getConstantDataBufferPrimary(OpaqueConstantDataBuffer* dbf);
+SD_LIB_EXPORT sd::Pointer getConstantDataBufferSpecial(OpaqueConstantDataBuffer* dbf);
+SD_LIB_EXPORT sd::LongType getConstantDataBufferLength(OpaqueConstantDataBuffer* dbf);
 
-ND4J_EXPORT Nd4jPointer getConstantShapeBufferPrimary(OpaqueConstantShapeBuffer* dbf);
-ND4J_EXPORT Nd4jPointer getConstantShapeBufferSpecial(OpaqueConstantShapeBuffer* dbf);
+SD_LIB_EXPORT sd::Pointer getConstantShapeBufferPrimary(OpaqueConstantShapeBuffer* dbf);
+SD_LIB_EXPORT sd::Pointer getConstantShapeBufferSpecial(OpaqueConstantShapeBuffer* dbf);
 
-ND4J_EXPORT void deleteConstantShapeBuffer(OpaqueConstantShapeBuffer* ptr);
-ND4J_EXPORT void deleteConstantDataBuffer(OpaqueConstantDataBuffer* ptr);
+SD_LIB_EXPORT void deleteConstantShapeBuffer(OpaqueConstantShapeBuffer* ptr);
+SD_LIB_EXPORT void deleteConstantDataBuffer(OpaqueConstantDataBuffer* ptr);
 
 typedef sd::graph::Context OpaqueContext;
 typedef sd::graph::RandomGenerator OpaqueRandomGenerator;
 
-ND4J_EXPORT OpaqueContext* createGraphContext(int nodeId);
-ND4J_EXPORT OpaqueRandomGenerator* getGraphContextRandomGenerator(OpaqueContext* ptr);
-ND4J_EXPORT void ctxAllowHelpers(OpaqueContext* ptr, bool reallyAllow);
-ND4J_EXPORT void ctxShapeFunctionOverride(OpaqueContext* ptr, bool reallyOverride);
-ND4J_EXPORT void ctxSetExecutionMode(OpaqueContext* ptr, int execMode);
-ND4J_EXPORT void ctxPurge(OpaqueContext* ptr);
-ND4J_EXPORT void markGraphContextInplace(OpaqueContext* ptr, bool reallyInplace);
-ND4J_EXPORT void setGraphContextCudaContext(OpaqueContext* ptr, void *stream, void *reductionPointer, void *allocationPointer);
-ND4J_EXPORT void setGraphContextInputArray(OpaqueContext* ptr, int index, void *buffer, void *shapeInfo, void *specialBuffer, void *specialShapeInfo);
-ND4J_EXPORT void setGraphContextOutputArray(OpaqueContext* ptr, int index, void *buffer, void *shapeInfo, void *specialBuffer, void *specialShapeInfo);
-ND4J_EXPORT void setGraphContextInputBuffer(OpaqueContext* ptr, int index, OpaqueDataBuffer *buffer, void *shapeInfo, void *specialShapeInfo);
-ND4J_EXPORT void setGraphContextOutputBuffer(OpaqueContext* ptr, int index, OpaqueDataBuffer *buffer, void *shapeInfo, void *specialShapeInfo);
-ND4J_EXPORT void setGraphContextDArguments(OpaqueContext* ptr, int *arguments, int numberOfArguments);
-ND4J_EXPORT void setGraphContextTArguments(OpaqueContext* ptr, double *arguments, int numberOfArguments);
-ND4J_EXPORT void setGraphContextIArguments(OpaqueContext* ptr, Nd4jLong *arguments, int numberOfArguments);
-ND4J_EXPORT void setGraphContextBArguments(OpaqueContext* ptr, bool *arguments, int numberOfArguments);
-ND4J_EXPORT void deleteGraphContext(OpaqueContext* ptr);
+SD_LIB_EXPORT OpaqueContext* createGraphContext(int nodeId);
+SD_LIB_EXPORT OpaqueRandomGenerator* getGraphContextRandomGenerator(OpaqueContext* ptr);
+SD_LIB_EXPORT void ctxAllowHelpers(OpaqueContext* ptr, bool reallyAllow);
+SD_LIB_EXPORT void ctxShapeFunctionOverride(OpaqueContext* ptr, bool reallyOverride);
+SD_LIB_EXPORT void ctxSetExecutionMode(OpaqueContext* ptr, int execMode);
+SD_LIB_EXPORT void ctxPurge(OpaqueContext* ptr);
+SD_LIB_EXPORT void markGraphContextInplace(OpaqueContext* ptr, bool reallyInplace);
+SD_LIB_EXPORT void setGraphContextCudaContext(OpaqueContext* ptr, void *stream, void *reductionPointer, void *allocationPointer);
+SD_LIB_EXPORT void setGraphContextInputArray(OpaqueContext* ptr, int index, void *buffer, void *shapeInfo, void *specialBuffer, void *specialShapeInfo);
+SD_LIB_EXPORT void setGraphContextOutputArray(OpaqueContext* ptr, int index, void *buffer, void *shapeInfo, void *specialBuffer, void *specialShapeInfo);
+SD_LIB_EXPORT void setGraphContextInputBuffer(OpaqueContext* ptr, int index, OpaqueDataBuffer *buffer, void *shapeInfo, void *specialShapeInfo);
+SD_LIB_EXPORT void setGraphContextOutputBuffer(OpaqueContext* ptr, int index, OpaqueDataBuffer *buffer, void *shapeInfo, void *specialShapeInfo);
+SD_LIB_EXPORT void setGraphContextDArguments(OpaqueContext* ptr, int *arguments, int numberOfArguments);
+SD_LIB_EXPORT void setGraphContextTArguments(OpaqueContext* ptr, double *arguments, int numberOfArguments);
+SD_LIB_EXPORT void setGraphContextIArguments(OpaqueContext* ptr, sd::LongType *arguments, int numberOfArguments);
+SD_LIB_EXPORT void setGraphContextBArguments(OpaqueContext* ptr, bool *arguments, int numberOfArguments);
+SD_LIB_EXPORT void deleteGraphContext(OpaqueContext* ptr);
 
-ND4J_EXPORT OpaqueRandomGenerator* createRandomGenerator(Nd4jLong rootSeed = 0, Nd4jLong nodeSeed = 0);
-ND4J_EXPORT Nd4jLong getRandomGeneratorRootState(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT Nd4jLong getRandomGeneratorNodeState(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT void setRandomGeneratorStates(OpaqueRandomGenerator* ptr, Nd4jLong rootSeed = 0, Nd4jLong nodeSeed = 0);
-ND4J_EXPORT float getRandomGeneratorRelativeFloat(OpaqueRandomGenerator* ptr, Nd4jLong index);
-ND4J_EXPORT double getRandomGeneratorRelativeDouble(OpaqueRandomGenerator* ptr, Nd4jLong index);
-ND4J_EXPORT int getRandomGeneratorRelativeInt(OpaqueRandomGenerator* ptr, Nd4jLong index);
-ND4J_EXPORT Nd4jLong getRandomGeneratorRelativeLong(OpaqueRandomGenerator* ptr, Nd4jLong index);
-ND4J_EXPORT float getRandomGeneratorNextFloat(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT double getRandomGeneratorNextDouble(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT int getRandomGeneratorNextInt(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT Nd4jLong getRandomGeneratorNextLong(OpaqueRandomGenerator* ptr);
-ND4J_EXPORT void deleteRandomGenerator(OpaqueRandomGenerator* ptr);
-
-
+SD_LIB_EXPORT OpaqueRandomGenerator* createRandomGenerator(sd::LongType rootSeed = 0, sd::LongType nodeSeed = 0);
+SD_LIB_EXPORT sd::LongType getRandomGeneratorRootState(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT sd::LongType getRandomGeneratorNodeState(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT void setRandomGeneratorStates(OpaqueRandomGenerator* ptr, sd::LongType rootSeed = 0, sd::LongType nodeSeed = 0);
+SD_LIB_EXPORT float getRandomGeneratorRelativeFloat(OpaqueRandomGenerator* ptr, sd::LongType index);
+SD_LIB_EXPORT double getRandomGeneratorRelativeDouble(OpaqueRandomGenerator* ptr, sd::LongType index);
+SD_LIB_EXPORT int getRandomGeneratorRelativeInt(OpaqueRandomGenerator* ptr, sd::LongType index);
+SD_LIB_EXPORT sd::LongType getRandomGeneratorRelativeLong(OpaqueRandomGenerator* ptr, sd::LongType index);
+SD_LIB_EXPORT float getRandomGeneratorNextFloat(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT double getRandomGeneratorNextDouble(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT int getRandomGeneratorNextInt(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT sd::LongType getRandomGeneratorNextLong(OpaqueRandomGenerator* ptr);
+SD_LIB_EXPORT void deleteRandomGenerator(OpaqueRandomGenerator* ptr);
 
 typedef sd::LaunchContext OpaqueLaunchContext;
 
-ND4J_EXPORT OpaqueLaunchContext* defaultLaunchContext();
-ND4J_EXPORT Nd4jPointer lcScalarPointer(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcReductionPointer(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcAllocationPointer(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcExecutionStream(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcCopyStream(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcBlasHandle(OpaqueLaunchContext* lc);
-ND4J_EXPORT Nd4jPointer lcSolverHandle(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT OpaqueLaunchContext* defaultLaunchContext();
+SD_LIB_EXPORT sd::Pointer lcScalarPointer(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcReductionPointer(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcAllocationPointer(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcExecutionStream(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcCopyStream(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcBlasHandle(OpaqueLaunchContext* lc);
+SD_LIB_EXPORT sd::Pointer lcSolverHandle(OpaqueLaunchContext* lc);
 
-ND4J_EXPORT OpaqueDataBuffer* allocateDataBuffer(Nd4jLong elements, int dataType, bool allocateBoth);
-ND4J_EXPORT OpaqueDataBuffer* dbAllocateDataBuffer(Nd4jLong elements, int dataType, bool allocateBoth);
-ND4J_EXPORT OpaqueDataBuffer* dbCreateExternalDataBuffer(Nd4jLong elements, int dataType, Nd4jPointer primary, Nd4jPointer special);
-ND4J_EXPORT OpaqueDataBuffer* dbCreateView(OpaqueDataBuffer *dataBuffer, Nd4jLong length, Nd4jLong offset);
-ND4J_EXPORT Nd4jPointer dbPrimaryBuffer(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT Nd4jPointer dbSpecialBuffer(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbExpandBuffer(OpaqueDataBuffer *dataBuffer, Nd4jLong elements);
-ND4J_EXPORT void dbAllocatePrimaryBuffer(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbAllocateSpecialBuffer(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbSetPrimaryBuffer(OpaqueDataBuffer *dataBuffer, Nd4jPointer primaryBuffer, Nd4jLong numBytes);
-ND4J_EXPORT void dbSetSpecialBuffer(OpaqueDataBuffer *dataBuffer, Nd4jPointer specialBuffer, Nd4jLong numBytes);
-ND4J_EXPORT void dbSyncToSpecial(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbSyncToPrimary(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT int dbLocality(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT int dbDeviceId(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbSetDeviceId(OpaqueDataBuffer *dataBuffer, int deviceId);
-ND4J_EXPORT void dbTickHostRead(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbTickHostWrite(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbTickDeviceRead(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbTickDeviceWrite(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbClose(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void deleteDataBuffer(OpaqueDataBuffer *dataBuffer);
-ND4J_EXPORT void dbExpand(OpaqueDataBuffer *dataBuffer, Nd4jLong elements);
+SD_LIB_EXPORT OpaqueDataBuffer* allocateDataBuffer(sd::LongType elements, int dataType, bool allocateBoth);
+SD_LIB_EXPORT OpaqueDataBuffer* dbAllocateDataBuffer(sd::LongType elements, int dataType, bool allocateBoth);
+SD_LIB_EXPORT OpaqueDataBuffer* dbCreateExternalDataBuffer(sd::LongType elements, int dataType, sd::Pointer primary, sd::Pointer special);
+SD_LIB_EXPORT OpaqueDataBuffer* dbCreateView(OpaqueDataBuffer *dataBuffer, sd::LongType length, sd::LongType offset);
+SD_LIB_EXPORT sd::Pointer dbPrimaryBuffer(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT sd::Pointer dbSpecialBuffer(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbExpandBuffer(OpaqueDataBuffer *dataBuffer, sd::LongType elements);
+SD_LIB_EXPORT void dbAllocatePrimaryBuffer(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbAllocateSpecialBuffer(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbSetPrimaryBuffer(OpaqueDataBuffer *dataBuffer, sd::Pointer primaryBuffer, sd::LongType numBytes);
+SD_LIB_EXPORT void dbSetSpecialBuffer(OpaqueDataBuffer *dataBuffer, sd::Pointer specialBuffer, sd::LongType numBytes);
+SD_LIB_EXPORT void dbSyncToSpecial(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbSyncToPrimary(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT int dbLocality(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT int dbDeviceId(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbSetDeviceId(OpaqueDataBuffer *dataBuffer, int deviceId);
+SD_LIB_EXPORT void dbTickHostRead(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbTickHostWrite(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbTickDeviceRead(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbTickDeviceWrite(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbClose(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void deleteDataBuffer(OpaqueDataBuffer *dataBuffer);
+SD_LIB_EXPORT void dbExpand(OpaqueDataBuffer *dataBuffer, sd::LongType elements);
 
 
-ND4J_EXPORT int  binaryLevel();
-ND4J_EXPORT int optimalLevel();
+SD_LIB_EXPORT int  binaryLevel();
+SD_LIB_EXPORT int optimalLevel();
 
-ND4J_EXPORT bool isMinimalRequirementsMet();
-ND4J_EXPORT bool isOptimalRequirementsMet();
+SD_LIB_EXPORT bool isMinimalRequirementsMet();
+SD_LIB_EXPORT bool isOptimalRequirementsMet();
 
 }
 

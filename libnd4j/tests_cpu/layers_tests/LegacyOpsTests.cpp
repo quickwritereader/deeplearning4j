@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <helpers/ShapeUtils.h>
@@ -51,7 +50,7 @@ TEST_F(LegacyOpsTests, TransformTests_1) {
 
     sd::ops::LegacyTransformSameOp op(transform::Neg); // Neg
     auto status = op.execute({&x}, {&z}, {}, {}, {});
-    ASSERT_EQ(status, ND4J_STATUS_OK);
+    ASSERT_EQ(status, sd::Status::OK);
     //z.printIndexedBuffer("Output NEG");
     ASSERT_TRUE(z.equalsTo(&exp));
 }
@@ -83,9 +82,9 @@ TEST_F(LegacyOpsTests,  Reciprocal_1) {
     ethalon.assign(0.5f);
 
     sd::ops::LegacyTransformSameOp op(transform::Reciprocal); // Reciprocal
-    Nd4jStatus status = op.execute({&x}, {&x}, {}, {}, {});
+    sd::Status status = op.execute({&x}, {&x}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(ethalon.equalsTo(&x));
 
 }
@@ -101,9 +100,9 @@ TEST_F(LegacyOpsTests,  PWT_Tests_1) {
     exp.assign(6.0);
 
     sd::ops::LegacyPairwiseTransformOp op(pairwise::Multiply); // Multiply
-    Nd4jStatus status = op.execute({&x, &y}, {&x}, {}, {}, {});
+    sd::Status status = op.execute({&x, &y}, {&x}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(exp.equalsTo(&x));
 
@@ -187,7 +186,7 @@ TEST_F(LegacyOpsTests, ReduceTests_2) {
     x.assign(1.0);
 
     sd::ops::LegacyReduceSameOp op(reduce::Sum);
-    auto axis = NDArrayFactory::create<Nd4jLong>('c', {1}, {1});
+    auto axis = NDArrayFactory::create<sd::LongType>('c', {1}, {1});
     auto result = op.evaluate({&x, &axis}, {}, {});
 
     ASSERT_EQ(1, result.size());
@@ -214,7 +213,7 @@ TEST_F(LegacyOpsTests, ReduceTests_3) {
     auto z = result.at(0);
     auto exp = x.reduceAlongDimension(reduce::Sum,{1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_TRUE(exp.isSameShape(z));
     ASSERT_TRUE(exp.equalsTo(z));
@@ -234,7 +233,7 @@ TEST_F(LegacyOpsTests, ReduceTests_4) {
     auto z = result.at(0);
     auto exp = x.reduceAlongDimension(reduce::Sum, {1}, true);
     // indices.printShapeInfo("Indices shape");
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     // z->printIndexedBuffer("Output reduce 4");
     // exp.printIndexedBuffer("Expected reduce 4");
     ASSERT_TRUE(exp.isSameShape(z));
@@ -294,7 +293,7 @@ TEST_F(LegacyOpsTests, ReduceTests_7) {
     auto z = result.at(0);
     auto exp = x.reduceAlongDimension(reduce::Mean,{1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_TRUE(exp.isSameShape(z));
     ASSERT_TRUE(exp.equalsTo(z));
@@ -314,7 +313,7 @@ TEST_F(LegacyOpsTests, ReduceTests_8) {
     auto z = result.at(0);
     auto exp = x.reduceAlongDimension(reduce::Mean, {1}, true);
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     // z->printIndexedBuffer("Reduce8 output");
     // z->printShapeInfo("Reduce8 shape");
     // exp.printShapeInfo("Reduce8 expected shape");
@@ -348,7 +347,7 @@ TEST_F(LegacyOpsTests, IndexReduceTests_2) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
     auto indices = NDArrayFactory::create<int>('c', {1}, {1});
     x.linspace(1);
-    auto exp = NDArrayFactory::create<Nd4jLong>({4,4,4,4,4});
+    auto exp = NDArrayFactory::create<sd::LongType>({4,4,4,4,4});
     sd::ops::LegacyIndexReduceOp op(indexreduce::IndexMax);
 
     auto result = op.evaluate({&x, &indices}, {}, {});
@@ -375,9 +374,9 @@ TEST_F(LegacyOpsTests, BroadcastingTests_1) {
     row.linspace(1);
     auto axis = NDArrayFactory::create<int>('c', {1}, {1});
     sd::ops::LegacyBroadcastOp op(broadcast::Add);
-    Nd4jStatus status = op.execute({&x, &row, &axis}, {&x}, {}, {}, {});
+    sd::Status status = op.execute({&x, &row, &axis}, {&x}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto list = x.allTensorsAlongDimension({1});
     // x.printIndexedBuffer("Output broadcast");
@@ -423,8 +422,8 @@ TEST_F(LegacyOpsTests, PowDerivative_1) {
 #ifndef __CUDABLAS__
 TEST_F(LegacyOpsTests, reduce3_1) {
 
-    Nd4jLong yShape[2] = {4,4};
-    Nd4jLong xShape[1] = {4};
+    sd::LongType yShape[2] = {4,4};
+    sd::LongType xShape[1] = {4};
     float y[16] ={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
     float x[4] = {1,2,3,4};
     int dimension[1] = {1};
@@ -463,9 +462,9 @@ TEST_F(LegacyOpsTests, Reduce3_2) {
 
     sd::LaunchContext* context = sd::LaunchContext::defaultContext();
 
-    Nd4jPointer* extraPointers = nullptr;
+    sd::Pointer* extraPointers = nullptr;
     #ifdef __CUDABLAS__
-        extraPointers = new Nd4jPointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
+        extraPointers = new sd::Pointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
     #endif
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), {1});
@@ -503,9 +502,9 @@ TEST_F(LegacyOpsTests, Reduce3_3) {
 
     sd::LaunchContext* context = sd::LaunchContext::defaultContext();
 
-    Nd4jPointer* extraPointers = nullptr;
+    sd::Pointer* extraPointers = nullptr;
     #ifdef __CUDABLAS__
-        extraPointers = new Nd4jPointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
+        extraPointers = new sd::Pointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
     #endif
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), {1});
@@ -543,9 +542,9 @@ TEST_F(LegacyOpsTests, Reduce3_4) {
 
     sd::LaunchContext* context = sd::LaunchContext::defaultContext();
 
-    Nd4jPointer* extraPointers = nullptr;
+    sd::Pointer* extraPointers = nullptr;
     #ifdef __CUDABLAS__
-        extraPointers = new Nd4jPointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
+        extraPointers = new sd::Pointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
     #endif
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), {1});
@@ -585,9 +584,9 @@ TEST_F(LegacyOpsTests, Reduce3_5) {
 
     sd::LaunchContext* context = sd::LaunchContext::defaultContext();
 
-    Nd4jPointer* extraPointers = nullptr;
+    sd::Pointer* extraPointers = nullptr;
     #ifdef __CUDABLAS__
-        extraPointers = new Nd4jPointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
+        extraPointers = new sd::Pointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
     #endif
 
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), {1});
@@ -623,9 +622,9 @@ TEST_F(LegacyOpsTests, test_Reduce3_All_1) {
 
     sd::LaunchContext* context = sd::LaunchContext::defaultContext();
 
-    Nd4jPointer* extraPointers = nullptr;
+    sd::Pointer* extraPointers = nullptr;
     #ifdef __CUDABLAS__
-        extraPointers = new Nd4jPointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
+        extraPointers = new sd::Pointer[7] {nullptr, context->getCudaStream(), context->getScalarPointer(), nullptr, context->getCudaSpecialStream(), context->getReductionPointer(), context->getAllocationPointer()};
     #endif
 
     NDArray::prepareSpecialUse({&z}, {&x, &y});

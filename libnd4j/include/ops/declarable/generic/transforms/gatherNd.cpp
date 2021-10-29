@@ -34,7 +34,7 @@ namespace ops {
 //////////////////////////////////////////////////////////////////////////
 CUSTOM_OP_IMPL(gather_nd, 2, 1, false, 0, 0) {
 
-	auto input   = INPUT_VARIABLE(0);
+    auto input   = INPUT_VARIABLE(0);
     auto indices = INPUT_VARIABLE(1);
     auto output  = OUTPUT_VARIABLE(0);
 
@@ -48,13 +48,13 @@ CUSTOM_OP_IMPL(gather_nd, 2, 1, false, 0, 0) {
     REQUIRE_TRUE(lastIndDim <= rankIn, 0, "GATHER_ND op: the last dimension of indices array must be <= rank of input array but got %i and %i correspondingly!", lastIndDim, rankIn);
 
     if(checkIndices) {
-        const Nd4jLong numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *input);
+        const sd::LongType numOfBadIndx = helpers::checkIndices(block.launchContext(), *indices, *input);
         REQUIRE_TRUE(numOfBadIndx == 0, 0, "GATHER_ND OP: please check elements of indices-array, total number of wrong elements is %lld!", numOfBadIndx);
     }
 
     helpers::gatherND(block.launchContext(), *input, *indices, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(gather_nd) {
@@ -66,7 +66,7 @@ DECLARE_TYPES(gather_nd) {
 
 DECLARE_SHAPE_FN(gather_nd) {
 
-	auto inShapeInfoIn = inputShape->at(0);
+    auto inShapeInfoIn = inputShape->at(0);
     auto inShapeInfoInd = inputShape->at(1);
 
     const int rankIn = inShapeInfoIn[0];
@@ -75,10 +75,10 @@ DECLARE_SHAPE_FN(gather_nd) {
     const int lastIndDim = inShapeInfoInd[rankInd];
     REQUIRE_TRUE(lastIndDim <= rankIn, 0, "GATHER_ND op: the last dimension of indices array must be <= rank of input array but got %i and %i correspondingly!", lastIndDim, rankIn);
 
-	int outRank = (rankInd - 1) + (rankIn - lastIndDim);
+    int outRank = (rankInd - 1) + (rankIn - lastIndDim);
 
-    Nd4jLong* outShapeInfo = nullptr;
-	ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+    sd::LongType* outShapeInfo = nullptr;
+    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
 
     outShapeInfo[0] = outRank;
 
@@ -88,7 +88,7 @@ DECLARE_SHAPE_FN(gather_nd) {
     for(int i = 0; i < rankIn-lastIndDim; ++i)
         outShapeInfo[rankInd + i] = inShapeInfoIn[lastIndDim + i + 1];
 
-	ShapeUtils::updateStridesAndType(outShapeInfo, inShapeInfoIn, 'c');
+    ShapeUtils::updateStridesAndType(outShapeInfo, inShapeInfoIn, 'c');
     //ArrayOptions::setDataType(outShapeInfo, ArrayOptions::dataType(inShapeInfoIn));
     return SHAPELIST(CONSTANT(outShapeInfo));
 }

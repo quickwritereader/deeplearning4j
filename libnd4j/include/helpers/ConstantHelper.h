@@ -22,10 +22,7 @@
 
 #ifndef DEV_TESTS_CONSTANTHELPER_H
 #define DEV_TESTS_CONSTANTHELPER_H
-
 #include <system/op_boilerplate.h>
-#include <system/dll.h>
-#include <system/pointercast.h>
 #include <memory/Workspace.h>
 #include <vector>
 #include <map>
@@ -35,19 +32,19 @@
 #include <array/ConstantHolder.h>
 
 namespace sd {
-    class ND4J_EXPORT ConstantHelper {
+    class SD_LIB_EXPORT ConstantHelper {
     private:
         ConstantHelper();
 
-        std::vector<MAP_IMPL<ConstantDescriptor, ConstantHolder*>> _cache;
+        std::vector<SD_MAP_IMPL<ConstantDescriptor, ConstantHolder*>> _cache;
 
         // tracking of per-device constant memory buffers (CUDA only atm)
-        std::vector<Nd4jPointer> _devicePointers;
-        std::vector<Nd4jLong> _deviceOffsets;
+        std::vector<sd::Pointer> _devicePointers;
+        std::vector<sd::LongType> _deviceOffsets;
         std::mutex _mutex;
         std::mutex _mutexHolder;
 
-        std::vector<Nd4jLong> _counters;
+        std::vector<sd::LongType> _counters;
     public:
         ~ConstantHelper();
 
@@ -58,7 +55,7 @@ namespace sd {
 
         ConstantDataBuffer* constantBuffer(const ConstantDescriptor &descriptor, sd::DataType dataType);
 
-        Nd4jLong getCachedAmount(int deviceId);
+        sd::LongType getCachedAmount(int deviceId);
     };
 }
 

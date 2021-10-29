@@ -22,7 +22,6 @@
 //
 
 #ifdef HAVE_ONEDNN
-
 #include "testlayers.h"
 #include <initializer_list>
 #include <ops/declarable/PlatformHelper.h>
@@ -41,7 +40,7 @@ public:
 static void printer(std::initializer_list<sd::ops::platforms::PlatformHelper*> helpers) {
 
     for (auto v:helpers) {
-        nd4j_printf("Initialized [%s]\n", v->name().c_str());
+        sd_printf("Initialized [%s]\n", v->name().c_str());
     }
 }
 
@@ -95,7 +94,7 @@ TEST_F(MklDnnTests, test_tanh_1) {
     sd::ops::tanh op;
     auto status = op.execute({&x}, {&z});
 
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 }
 
 TEST_F(MklDnnTests, test_tanh_2) {
@@ -105,7 +104,7 @@ TEST_F(MklDnnTests, test_tanh_2) {
     sd::ops::tanh op;
     auto status = op.execute({&x}, {&z});
 
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 }
 
 #endif

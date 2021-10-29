@@ -44,7 +44,7 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
     auto output = OUTPUT_VARIABLE(0);
 
 
-    const uint blockSize = INT_ARG(0);
+    const sd::Unsigned blockSize = INT_ARG(0);
     REQUIRE_TRUE(blockSize >= 2, 0, "SpaceToBatch: integer parameter block_size must be >= 2, but got %i instead", blockSize);
 
     REQUIRE_TRUE(input->rankOf() == 4,  0, "SpaceToBatch: rank of input array must be equal 4, but got %i instead",  input->rankOf());
@@ -53,10 +53,10 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
     if(padding->sizeAt(0) != 2 || padding->sizeAt(1) != 2)
         REQUIRE_TRUE(false, 0, "SpaceToBatch: operation expects padding shape to be {2, 2}, but got %s instead", ShapeUtils::shapeAsString(padding).c_str());
 
-    const uint padBottom = padding->e<uint>(0,0);
-    const uint padTop    = padding->e<uint>(0,1);
-    const uint padLeft   = padding->e<uint>(1,0);
-    const uint padRight  = padding->e<uint>(1,1);
+    const sd::Unsigned padBottom = padding->e<sd::Unsigned>(0,0);
+    const sd::Unsigned padTop    = padding->e<sd::Unsigned>(0,1);
+    const sd::Unsigned padLeft   = padding->e<sd::Unsigned>(1,0);
+    const sd::Unsigned padRight  = padding->e<sd::Unsigned>(1,1);
 
     REQUIRE_TRUE((input->sizeAt(1) + padBottom + padTop) % blockSize == 0 && (input->sizeAt(2) + padLeft + padRight) % blockSize == 0, 0, "SpaceToBatch: after padding, second and third dimensions of input array must be divisible by blockSize !");
 
@@ -65,7 +65,7 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
     else
         helpers::spaceToBatch(block.launchContext(), input->dup(), *output, padBottom, padTop, padLeft, padRight, blockSize);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ DECLARE_SHAPE_FN(space_to_batch) {
     auto inputShapeInfo   = inputShape->at(0);
     auto paddingShapeInfo = inputShape->at(1);
 
-    const uint blockSize = INT_ARG(0);
+    const sd::Unsigned blockSize = INT_ARG(0);
     REQUIRE_TRUE(blockSize >= 2, 0, "SpaceToBatch: integer parameter block_size must be >= 2, but got %i instead", blockSize);
 
     const int rank = inputShapeInfo[0];
@@ -91,10 +91,10 @@ DECLARE_SHAPE_FN(space_to_batch) {
     if(paddingShapeInfo[1] != 2 || paddingShapeInfo[1] != 2)
         REQUIRE_TRUE(false, 0, "SpaceToBatch: operation expects padding shape to be {2, 2}, but got %s instead", ShapeUtils::shapeAsString(paddingShapeInfo).c_str());
 
-    const uint padBottom = INPUT_VARIABLE(1)->e<Nd4jLong>(0,0);
-    const uint padTop    = INPUT_VARIABLE(1)->e<Nd4jLong>(0,1);
-    const uint padLeft   = INPUT_VARIABLE(1)->e<Nd4jLong>(1,0);
-    const uint padRight  = INPUT_VARIABLE(1)->e<Nd4jLong>(1,1);
+    const sd::Unsigned padBottom = INPUT_VARIABLE(1)->e<sd::LongType>(0,0);
+    const sd::Unsigned padTop    = INPUT_VARIABLE(1)->e<sd::LongType>(0,1);
+    const sd::Unsigned padLeft   = INPUT_VARIABLE(1)->e<sd::LongType>(1,0);
+    const sd::Unsigned padRight  = INPUT_VARIABLE(1)->e<sd::LongType>(1,1);
 
     REQUIRE_TRUE((inputShapeInfo[2] + padBottom + padTop) % blockSize == 0 && (inputShapeInfo[3] + padLeft + padRight) % blockSize == 0, 0, "SpaceToBatch: after padding, second and third dimensions of input array must be divisible by blockSize !");
 

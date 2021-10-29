@@ -20,11 +20,9 @@
 // @author saudet
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
-
 #include <helpers/MKLDNNStream.h>
 #include "mkldnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
@@ -81,7 +79,7 @@ namespace sd {
 
                 stream.wait();
 
-                return Status::OK();
+                return sd::Status::OK;
             };
 
             PLATFORM_CHECK(lrn, ENGINE_CPU) {

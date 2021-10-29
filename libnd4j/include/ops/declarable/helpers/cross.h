@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/helpers.h>
 #include <execution/Threads.h>
 
@@ -27,9 +26,9 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-void crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o);
+SD_LIB_HIDDEN void crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o);
 
-void FORCEINLINE cross(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
+void SD_INLINE cross(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
 
     if (a->isR()) {
         auto a0 = a->e<double>(0);
@@ -40,25 +39,25 @@ void FORCEINLINE cross(sd::LaunchContext * context, NDArray *a, NDArray *b, NDAr
         auto b1 = b->e<double>(1);
         auto b2 = b->e<double>(2);
 
-        o->p(Nd4jLong(0L), a1 * b2 - a2 * b1);
+        o->p(sd::LongType(0L), a1 * b2 - a2 * b1);
         o->p(1L, a2 * b0 - a0 * b2);
         o->p(2L, a0 * b1 - a1 * b0);
     } else {
-        auto a0 = a->e<Nd4jLong>(0);
-        auto a1 = a->e<Nd4jLong>(1);
-        auto a2 = a->e<Nd4jLong>(2);
+        auto a0 = a->e<sd::LongType>(0);
+        auto a1 = a->e<sd::LongType>(1);
+        auto a2 = a->e<sd::LongType>(2);
 
-        auto b0 = b->e<Nd4jLong>(0);
-        auto b1 = b->e<Nd4jLong>(1);
-        auto b2 = b->e<Nd4jLong>(2);
+        auto b0 = b->e<sd::LongType>(0);
+        auto b1 = b->e<sd::LongType>(1);
+        auto b2 = b->e<sd::LongType>(2);
 
-        o->p(Nd4jLong(0L), a1 * b2 - a2 * b1);
+        o->p(sd::LongType(0L), a1 * b2 - a2 * b1);
         o->p(1L, a2 * b0 - a0 * b2);
         o->p(2L, a0 * b1 - a1 * b0);
     }
 }
 
-    void FORCEINLINE _crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
+    void SD_INLINE _crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
         auto a_ = a->reshape(a->ordering(), {-1, 3});
         auto b_ = b->reshape(b->ordering(), {-1, 3});
         auto o_ = o->reshape(o->ordering(), {-1, 3}, false);

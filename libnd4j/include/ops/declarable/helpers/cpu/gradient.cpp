@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/axis.h>
 #include <system/op_boilerplate.h>
 
@@ -35,10 +34,10 @@ static void applyGradientDescent_(NDArray* input, NDArray* step, double weight, 
     input->applyPairwiseLambda<T>(*step, lambda, *output);
 }
 
- void applyGradientDescent(sd::LaunchContext* context, NDArray* input, NDArray* step, double weight, NDArray* output) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), applyGradientDescent_, (input, step, weight, output), FLOAT_TYPES);
+void applyGradientDescent(sd::LaunchContext* context, NDArray* input, NDArray* step, double weight, NDArray* output) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), applyGradientDescent_, (input, step, weight, output), SD_FLOAT_TYPES);
 }
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void applyGradientDescent_, (NDArray* input, NDArray* step, double weight, NDArray* output), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void applyGradientDescent_, (NDArray* input, NDArray* step, double weight, NDArray* output), SD_FLOAT_TYPES);
 }
 }
 }

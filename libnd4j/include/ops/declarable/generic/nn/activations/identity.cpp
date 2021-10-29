@@ -37,7 +37,7 @@ namespace sd {
                 z->assign(first);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(linear, identity);
 
@@ -55,7 +55,7 @@ namespace sd {
 
             z->assign(epsilon);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(LinearGrad, identity_bp);
 

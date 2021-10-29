@@ -34,7 +34,7 @@ namespace sd {
 
             //OVERWRITE_RESULT(newList);
             setupResultList(newList, block);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArrayIdentityV3, clone_list);
         DECLARE_SYN(tensorarrayidentityv3, clone_list);

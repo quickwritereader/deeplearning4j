@@ -23,7 +23,6 @@
 #ifndef LIBND4J_PREFIX_HELPER_H
 #define LIBND4J_PREFIX_HELPER_H
 
-#include <system/pointercast.h>
 #include <types/float16.h>
 #include <vector>
 #include <array/NDArray.h>
@@ -32,11 +31,11 @@ namespace sd {
     namespace ops {
         namespace helpers {
             // template <typename T>
-            // void prefix(sd::LaunchContext * context, sd::scalar::Ops op, void* x, Nd4jLong *xShapeInfo, void* z, Nd4jLong* zShapeInfo, bool exclusive, bool reverse);
+            // void prefix(sd::LaunchContext * context, sd::scalar::Ops op, void* x, sd::LongType *xShapeInfo, void* z, sd::LongType* zShapeInfo, bool exclusive, bool reverse);
 
-            void prefix(sd::LaunchContext* context, sd::scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse);
+        SD_LIB_HIDDEN void prefix(sd::LaunchContext* context, sd::scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse);
 
-            void prefix(sd::LaunchContext* context, sd::scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse);
+        SD_LIB_HIDDEN void prefix(sd::LaunchContext* context, sd::scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims, bool exclusive, bool reverse);
         }
     }
 }

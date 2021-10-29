@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/ExtraArguments.h>
 #include <array/DataType.h>
 #include <array/DataTypeUtils.h>
@@ -36,7 +35,7 @@ namespace sd {
         _fpArgs = arguments;
     }
 
-    ExtraArguments::ExtraArguments(std::initializer_list<Nd4jLong> arguments) {
+    ExtraArguments::ExtraArguments(std::initializer_list<sd::LongType> arguments) {
         _intArgs = arguments;
     }
 
@@ -44,13 +43,13 @@ namespace sd {
         _fpArgs = arguments;
     }
 
-    ExtraArguments::ExtraArguments(const std::vector<Nd4jLong> &arguments) {
+    ExtraArguments::ExtraArguments(const std::vector<sd::LongType> &arguments) {
         _intArgs = arguments;
     }
 
     ExtraArguments::ExtraArguments(const std::vector<int> &arguments) {
         for (const auto &v:arguments)
-            _intArgs.emplace_back(static_cast<Nd4jLong>(v));
+            _intArgs.emplace_back(static_cast<sd::LongType>(v));
     }
 
     ExtraArguments::ExtraArguments() {
@@ -68,7 +67,7 @@ namespace sd {
     }
 
     template <typename T>
-    void ExtraArguments::convertAndCopy(Nd4jPointer pointer, Nd4jLong offset) {
+    void ExtraArguments::convertAndCopy(sd::Pointer pointer, sd::LongType offset) {
         auto length = this->length();
         auto target = reinterpret_cast<T*>(pointer);
 #ifdef __CUDABLAS__
@@ -91,14 +90,14 @@ namespace sd {
         delete[] target;
 #endif
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void ExtraArguments::convertAndCopy, (Nd4jPointer pointer, Nd4jLong offset), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void ExtraArguments::convertAndCopy, (sd::Pointer pointer, sd::LongType offset), SD_COMMON_TYPES);
 
     void* ExtraArguments::allocate(size_t length, size_t elementSize) {
 #ifdef __CUDABLAS__
-        Nd4jPointer ptr;
-	    auto res = cudaMalloc(reinterpret_cast<void **>(&ptr), length * elementSize);
-	    if (res != 0)
-		    throw std::runtime_error("Can't allocate CUDA memory");
+        sd::Pointer ptr;
+        auto res = cudaMalloc(reinterpret_cast<void **>(&ptr), length * elementSize);
+        if (res != 0)
+            throw std::runtime_error("Can't allocate CUDA memory");
 #else // CPU branch
         auto ptr = new int8_t[length * elementSize];
         if (!ptr)
@@ -118,13 +117,13 @@ namespace sd {
     }
 
     template <typename T>
-    void* ExtraArguments::argumentsAsT(Nd4jLong offset) {
+    void* ExtraArguments::argumentsAsT(sd::LongType offset) {
         return argumentsAsT(DataTypeUtils::fromT<T>(), offset);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT void *ExtraArguments::argumentsAsT, (Nd4jLong offset), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void *ExtraArguments::argumentsAsT, (sd::LongType offset), SD_COMMON_TYPES);
 
 
-    void* ExtraArguments::argumentsAsT(sd::DataType dataType, Nd4jLong offset) {
+    void* ExtraArguments::argumentsAsT(sd::DataType dataType, sd::LongType offset) {
         if (_fpArgs.empty() && _intArgs.empty())
             return nullptr;
 
@@ -132,7 +131,7 @@ namespace sd {
         auto ptr = allocate(length() - offset, DataTypeUtils::sizeOf(dataType));
 
         // fill it with data
-        BUILD_SINGLE_SELECTOR(dataType, convertAndCopy, (ptr, offset), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(dataType, convertAndCopy, (ptr, offset), SD_COMMON_TYPES);
 
         // store it internally for future release
         _pointers.emplace_back(ptr);

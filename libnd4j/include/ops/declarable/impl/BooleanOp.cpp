@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.10.2017.
 //
-
 #include "ops/declarable/BooleanOp.h"
 #include <vector>
 #include <initializer_list>
@@ -43,19 +42,19 @@ namespace sd {
 
             // validation?
 
-            Nd4jStatus status = this->validateNonEmptyInput(block);
-            if (status != ND4J_STATUS_OK) {
-                nd4j_printf("Inputs should be not empty for BooleanOps","");
+            sd::Status status = this->validateNonEmptyInput(block);
+            if (status != sd::Status::OK) {
+                sd_printf("Inputs should be not empty for BooleanOps","");
                 throw std::runtime_error("Bad inputs");
             }
 
             status = this->validateAndExecute(block);
-            if (status == ND4J_STATUS_TRUE)
+            if (status == sd::Status::TRUE)
                 return true;
-            else if (status == ND4J_STATUS_FALSE)
+            else if (status == sd::Status::FALSE)
                 return false;
             else {
-                nd4j_printf("Got error %i during [%s] evaluation: ", (int) status, this->getOpDescriptor()->getOpName()->c_str());
+                sd_printf("Got error %i during [%s] evaluation: ", (int) status, this->getOpDescriptor()->getOpName()->c_str());
                 throw std::runtime_error("Internal error");
             }
         }
@@ -83,7 +82,7 @@ namespace sd {
             return true;
         }
 
-        Nd4jStatus sd::ops::BooleanOp::execute(Context* block)  {
+        sd::Status sd::ops::BooleanOp::execute(Context* block)  {
 
             // basic validation: ensure inputs are set
             REQUIRE_OK(this->validateNonEmptyInput(*block));
@@ -96,7 +95,7 @@ namespace sd {
 
             auto timeStart = std::chrono::system_clock::now();
 
-            Nd4jStatus status = this->validateAndExecute(*block);
+            sd::Status status = this->validateAndExecute(*block);
 
             auto timeEnd = std::chrono::system_clock::now();
             auto outerTime = std::chrono::duration_cast<std::chrono::nanoseconds> (timeEnd - timeStart).count();
@@ -105,16 +104,16 @@ namespace sd {
             // basically we're should be putting 0.0 as FALSE, and any non-0.0 value will be treated as TRUE
             std::pair<int,int> p(block->nodeId(), 0);
             auto var = block->isFastPath() ? block->fastpath_out()[0] : block->variable(p)->getNDArray();
-            var->p(Nd4jLong(0), status == ND4J_STATUS_TRUE ?  1.0f : 0.0f);
+            var->p(sd::LongType(0), status == sd::Status::TRUE ?  1.0f : 0.0f);
 
             // for CPU backend that's nop, but for CUDA-like archs this will update special buffer
             var->syncToDevice();
 
-            if (status == ND4J_STATUS_FALSE || status == ND4J_STATUS_TRUE)
-                return ND4J_STATUS_OK;
+            if (status == sd::Status::FALSE || status == sd::Status::TRUE)
+                return sd::Status::OK;
             
-            nd4j_printf("%s: node_%i got unexpected result instead of boolean: [%i]\n", this->getOpName()->c_str(), block->nodeId(), status);
-            return ND4J_STATUS_KERNEL_FAILURE;
+            sd_printf("%s: node_%i got unexpected result instead of boolean: [%i]\n", this->getOpName()->c_str(), block->nodeId(), status);
+            return sd::Status::KERNEL_FAILURE;
         }
 
         bool BooleanOp::verify(const std::vector<sd::NDArray *> &args) {

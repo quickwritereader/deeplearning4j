@@ -19,12 +19,11 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <memory/ExternalWorkspace.h>
 
 namespace sd {
     namespace memory {
-        ExternalWorkspace::ExternalWorkspace(Nd4jPointer ptrH, Nd4jLong sizeH, Nd4jPointer ptrD, Nd4jLong sizeD) {
+        ExternalWorkspace::ExternalWorkspace(sd::Pointer ptrH, sd::LongType sizeH, sd::Pointer ptrD, sd::LongType sizeD) {
             _ptrH = ptrH;
             _sizeH = sizeH;
 
@@ -40,11 +39,11 @@ namespace sd {
             return _ptrD;
         }
 
-        Nd4jLong ExternalWorkspace::sizeHost() {
+        sd::LongType ExternalWorkspace::sizeHost() {
             return _sizeH;
         }
         
-        Nd4jLong ExternalWorkspace::sizeDevice() {
+        sd::LongType ExternalWorkspace::sizeDevice() {
             return _sizeD;
         }
     }

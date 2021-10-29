@@ -23,12 +23,11 @@
 #ifndef LIBND4J_CONTEXTBUFFERS_H
 #define LIBND4J_CONTEXTBUFFERS_H
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+#include <system/common.h>
 #include <execution/ErrorReference.h>
 
 namespace sd {
-    class ND4J_EXPORT ContextBuffers {
+    class SD_LIB_EXPORT ContextBuffers {
     private:
         void* _reductionPointer = nullptr;
         void* _scalarPointer = nullptr;

@@ -39,7 +39,7 @@ namespace sd {
 
             helpers::hashCode(block.launchContext(), *input, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_SHAPE_FN(hashcode) {

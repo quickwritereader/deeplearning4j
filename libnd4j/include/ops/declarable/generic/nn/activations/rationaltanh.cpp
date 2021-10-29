@@ -35,7 +35,7 @@ namespace sd {
             input->applyTransform(sd::transform::RationalTanh, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rationaltanh) {
@@ -52,7 +52,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::RationalTanhDerivativeE, epsilon, z, nullptr);
             helpers::rationalTanhDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(rationaltanh_bp) {

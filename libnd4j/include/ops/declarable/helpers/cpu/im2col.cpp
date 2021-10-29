@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 19.09.2018
 //
-
 #include <ops/declarable/helpers/im2col.h>
 #include <execution/Threads.h>
 
@@ -34,10 +33,10 @@ static void im2col_(sd::LaunchContext & context, const NDArray& input,  NDArray&
 
     // input [bS, iC, iH, iW] is convoluted to output [bS, iC, kH, kW, oH, oW]
 
-	auto imBuff         = static_cast<T const*>(input.buffer());
-	auto colBuff        = static_cast<T*>(output.buffer());
-	auto imShapeBuffer  = input.shapeInfo();
-	auto colShapeBuffer = output.shapeInfo();
+    auto imBuff         = static_cast<T const*>(input.buffer());
+    auto colBuff        = static_cast<T*>(output.buffer());
+    auto imShapeBuffer  = input.shapeInfo();
+    auto colShapeBuffer = output.shapeInfo();
     auto colShape       = shape::shapeOf(colShapeBuffer);
     auto colStride      = shape::stride(colShapeBuffer);
     auto imShape        = shape::shapeOf(imShapeBuffer);
@@ -51,16 +50,16 @@ static void im2col_(sd::LaunchContext & context, const NDArray& input,  NDArray&
     const int iW = imShape[3];
     const int oH = colShape[4];
     const int oW = colShape[5];
-    const Nd4jLong colStride0 = colStride[0];
-    const Nd4jLong colStride1 = colStride[1];
-    const Nd4jLong colStride2 = colStride[2];
-    const Nd4jLong colStride3 = colStride[3];
-    const Nd4jLong colStride4 = colStride[4];
-    const Nd4jLong colStride5 = colStride[5];
-    const Nd4jLong imStride0  = imStride[0];
-    const Nd4jLong imStride1  = imStride[1];
-    const Nd4jLong imStride2  = imStride[2];
-    const Nd4jLong imStride3  = imStride[3];
+    const sd::LongType colStride0 = colStride[0];
+    const sd::LongType colStride1 = colStride[1];
+    const sd::LongType colStride2 = colStride[2];
+    const sd::LongType colStride3 = colStride[3];
+    const sd::LongType colStride4 = colStride[4];
+    const sd::LongType colStride5 = colStride[5];
+    const sd::LongType imStride0  = imStride[0];
+    const sd::LongType imStride1  = imStride[1];
+    const sd::LongType imStride2  = imStride[2];
+    const sd::LongType imStride3  = imStride[3];
 
 
     if (shape::order(imShapeBuffer) == 'c' &&  shape::order(colShapeBuffer) == 'c' && shape::strideDescendingCAscendingF(imShapeBuffer) && shape::strideDescendingCAscendingF(colShapeBuffer)) {
@@ -132,8 +131,8 @@ static void im2col_(sd::LaunchContext & context, const NDArray& input,  NDArray&
 }
 
 
- void im2col(sd::LaunchContext & context, const NDArray& im,  NDArray& col, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const NDArray& arrZeroPadVal) {
-	BUILD_SINGLE_SELECTOR(im.dataType(), im2col_, (context, im, col, kH, kW, sH, sW, pH, pW, dH, dW, arrZeroPadVal), FLOAT_TYPES);
+void im2col(sd::LaunchContext & context, const NDArray& im,  NDArray& col, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const NDArray& arrZeroPadVal) {
+    BUILD_SINGLE_SELECTOR(im.dataType(), im2col_, (context, im, col, kH, kW, sH, sW, pH, pW, dH, dW, arrZeroPadVal), SD_FLOAT_TYPES);
 }
 
 

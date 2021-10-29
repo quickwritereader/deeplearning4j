@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/sg_cb.h>
 #include <ops/specials.h>
 #include <execution/Threads.h>
@@ -30,7 +29,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename T>
-            ND4J_LOCAL void hSoftmax_(void *vsyn0, void *vsyn1, void *vexpTable, void *vneu1e, double alpha, int vectorLength, int code, int expLength, bool isInference) {
+            void hSoftmax_(void *vsyn0, void *vsyn1, void *vexpTable, void *vneu1e, double alpha, int vectorLength, int code, int expLength, bool isInference) {
                 auto syn0 = reinterpret_cast<T*>(vsyn0);
                 auto syn1 = reinterpret_cast<T*>(vsyn1);
                 auto expTable = reinterpret_cast<T*>(vexpTable);
@@ -73,7 +72,7 @@ namespace sd {
             }
 
             template <typename T>
-            ND4J_LOCAL void nSampling_(void *vsyn0, void *vsyn1Neg, void *vexpTable, void *vneu1e, double alpha, int vectorLength, int code, int expLength, bool isInference) {
+            void nSampling_(void *vsyn0, void *vsyn1Neg, void *vexpTable, void *vneu1e, double alpha, int vectorLength, int code, int expLength, bool isInference) {
                 auto syn0 = reinterpret_cast<T*>(vsyn0);
                 auto syn1Neg = reinterpret_cast<T*>(vsyn1Neg);
                 auto expTable = reinterpret_cast<T*>(vexpTable);
@@ -115,7 +114,7 @@ namespace sd {
             }
 
             template <typename T>
-            ND4J_LOCAL void cbow_(void *vsyn0, void *vsyn1, void *vsyn1Neg, void *vexpTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *context, int *lockedWords, int *indices, int8_t *codes, double alpha, Nd4jLong randomValue, const int contextWidth, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const int numLabels, const bool trainWords) {
+            void cbow_(void *vsyn0, void *vsyn1, void *vsyn1Neg, void *vexpTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *context, int *lockedWords, int *indices, int8_t *codes, double alpha, sd::LongType randomValue, const int contextWidth, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const int numLabels, const bool trainWords) {
                 auto syn0 = reinterpret_cast<T *>(vsyn0);
                 auto syn1 = reinterpret_cast<T *>(vsyn1);
                 auto syn1Neg = reinterpret_cast<T *>(vsyn1Neg);
@@ -174,7 +173,7 @@ namespace sd {
                             // target is known in advance
                         } else {
                             randomValue = randomValue * (unsigned long long) 25214903917 + 11;
-                            auto idx = sd::math::nd4j_abs<Nd4jLong >((randomValue >> 16) % negLength);
+                            auto idx = sd::math::sd_abs<sd::LongType >((randomValue >> 16) % negLength);
                             irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
                             if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -212,11 +211,11 @@ namespace sd {
                 delete[] neu1;
                 delete[] neu1e;
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void cbow_, (void *syn0, void *syn1, void *syn1Neg, void *expTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *context, int *lockedWords, int *indices, int8_t *codes, double alpha, Nd4jLong randomValue, const int contextWidth, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const int numLabels, const bool trainWords), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void cbow_, (void *syn0, void *syn1, void *syn1Neg, void *expTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *context, int *lockedWords, int *indices, int8_t *codes, double alpha, sd::LongType randomValue, const int contextWidth, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const int numLabels, const bool trainWords), SD_FLOAT_TYPES);
 
 
             template <typename T>
-            ND4J_LOCAL void skipgram_(void *vsyn0, void *vsyn1, void *vsyn1Neg, void *vexpTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *indices, int8_t *codes, double alpha, Nd4jLong randomValue, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength) {
+            void skipgram_(void *vsyn0, void *vsyn1, void *vsyn1Neg, void *vexpTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *indices, int8_t *codes, double alpha, sd::LongType randomValue, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength) {
                 auto syn0 = reinterpret_cast<T*>(vsyn0);
                 auto syn1 = reinterpret_cast<T*>(vsyn1);
                 auto syn1Neg = reinterpret_cast<T*>(vsyn1Neg);
@@ -249,7 +248,7 @@ namespace sd {
                             // target is known in advance
                         } else {
                             randomValue = randomValue * (unsigned long long) 25214903917 + 11;
-                            auto idx = sd::math::nd4j_abs<Nd4jLong >((randomValue >> 16) % negLength);
+                            auto idx = sd::math::sd_abs<sd::LongType >((randomValue >> 16) % negLength);
                             irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
                             if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -273,12 +272,12 @@ namespace sd {
 
                 delete[] neu1e;
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void skipgram_, (void *syn0, void *syn1, void *syn1Neg, void *expTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *indices, int8_t *codes, double alpha, Nd4jLong randomValue, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void skipgram_, (void *syn0, void *syn1, void *syn1Neg, void *expTable, void *vnegTable, void *vinfVector, int target, int ngStarter, int *indices, int8_t *codes, double alpha, sd::LongType randomValue, const int hsRounds, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength), SD_FLOAT_TYPES);
 
-            ND4J_LOCAL int binarySearch(const int *haystack, const int needle, const int totalElements) {
+            int binarySearch(const int *haystack, const int needle, const int totalElements) {
                 int firstIndex = 0;
                 int lastIndex = totalElements - 1;
-                int halfIndex = sd::math::nd4j_floor<float, int>((lastIndex + firstIndex) / (float) 2);
+                int halfIndex = sd::math::sd_floor<float, int>((lastIndex + firstIndex) / (float) 2);
 
                 while(haystack[halfIndex] != needle && firstIndex < lastIndex) {
                     if (needle < haystack[halfIndex]) {
@@ -286,7 +285,7 @@ namespace sd {
                     } else if (needle > haystack[halfIndex]) {
                         firstIndex = halfIndex + 1;
                     }
-                    halfIndex = sd::math::nd4j_floor<float, int>((lastIndex + firstIndex) / (float) 2);
+                    halfIndex = sd::math::sd_floor<float, int>((lastIndex + firstIndex) / (float) 2);
                 }
 
                 return (haystack[halfIndex] == needle) ? halfIndex : -1;
@@ -303,7 +302,7 @@ namespace sd {
 
             template <typename T>
             static void do_positive(const int target, const int postive, T* syn0, T* syn1Neg, T* expTable, T* neu1e, const double alpha, const int vectorLength, const int expLength) {
-                //nd4j_printf("Target: [%i]; Positive: [%i]; TID: [%i];\n", target, postive, omp_get_thread_num());
+                //sd_printf("Target: [%i]; Positive: [%i]; TID: [%i];\n", target, postive, omp_get_thread_num());
                 nSampling_<T>(syn0, syn1Neg, expTable, neu1e, alpha, vectorLength, 1, expLength, false);
             }
 
@@ -312,8 +311,8 @@ namespace sd {
                 int irow = 0;
                 unsigned long long randomValue = rv;
                 for (int r = 0; r < nsRounds; r++) {
-                    randomValue = sd::math::nd4j_abs<Nd4jLong>(randomValue * (unsigned long long) 25214903917 + 11);
-                    auto idx = sd::math::nd4j_abs<Nd4jLong>((randomValue >> 16) % negLength);
+                    randomValue = sd::math::sd_abs<sd::LongType>(randomValue * (unsigned long long) 25214903917 + 11);
+                    auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
                     irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
                     if (irow < 0 || irow >= vocabSize)
@@ -345,7 +344,7 @@ namespace sd {
             }
 
             template <typename T>
-            ND4J_LOCAL void skipgramBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool preciseMode, const int numThreads) {
+            void skipgramBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool preciseMode, const int numThreads) {
                 //auto syn0 = reinterpret_cast<T*>(vsyn0);
                 //auto syn1 = reinterpret_cast<T*>(vsyn1);
                 //auto syn1Neg = reinterpret_cast<T*>(vsyn1Neg);
@@ -372,7 +371,7 @@ namespace sd {
 
                             auto target = bTarget[t];
                             auto alpha = lr.e<double>(t);
-                            unsigned long long randomValue = nextRandom.e<Nd4jLong>(t);
+                            unsigned long long randomValue = nextRandom.e<sd::LongType>(t);
 
                             auto syn0row = reinterpret_cast<T *>(s0.bufferWithOffset(target * vectorLength));
 
@@ -380,7 +379,7 @@ namespace sd {
                                 int irow = 0;
                                 auto cShift = t * idxShift;
 
-                                for (Nd4jLong e = 0; e < hsRounds; e++) {
+                                for (sd::LongType e = 0; e < hsRounds; e++) {
                                     irow = bIndices[e + cShift];
                                     if (irow < 0 || irow >= vocabSize)
                                         continue;
@@ -388,7 +387,7 @@ namespace sd {
                                     auto syn1row = s1.bufferWithOffset(irow * vectorLength);
                                     auto code = bCodes[e + cShift];
 
-                                    //nd4j_printf("syn0: [%i]; syn1: [%i]; code: [%i]\n", target, irow, code);
+                                    //sd_printf("syn0: [%i]; syn1: [%i]; code: [%i]\n", target, irow, code);
                                     hSoftmax_<T>(syn0row, syn1row, expTable, neu1e, alpha, vectorLength, code,
                                                  expLength, false);
                                 }
@@ -403,7 +402,7 @@ namespace sd {
                                         // target is known in advance
                                     } else {
                                         randomValue = randomValue * (unsigned long long) 25214903917 + 11;
-                                        auto idx = sd::math::nd4j_abs<Nd4jLong>((randomValue >> 16) % negLength);
+                                        auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
                                         irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
                                         if (irow < 0 || irow >= vocabSize)
@@ -429,11 +428,11 @@ namespace sd {
 
                     samediff::Threads::parallel_tad(func, 0, numTargets, 1, numThreads);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void skipgramBatchExec_, (NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool preciseMode, const int numThreads), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void skipgramBatchExec_, (NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool preciseMode, const int numThreads), SD_FLOAT_TYPES);
 
 
             template <typename T>
-            ND4J_LOCAL void cbowBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &context, NDArray &lockedWords, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, NDArray &nLabels, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool trainWords, const int numThreads) {
+            void cbowBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &context, NDArray &lockedWords, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, NDArray &nLabels, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength, const bool trainWords, const int numThreads) {
                 const auto syn0 = s0.bufferAsT<T>();
                 const auto syn1 = s1.bufferAsT<T>();
                 const auto syn1Neg = s1n.bufferAsT<T>();
@@ -502,7 +501,7 @@ namespace sd {
 
                         // hierarchic softmax step
                         if (!indices.isEmpty()) {
-                            for (Nd4jLong i = 0; i < numIndices; i++) {
+                            for (sd::LongType i = 0; i < numIndices; i++) {
                                 const int cIndex = bIndices[(e * numIndices) + i];
                                 const int cCode = bCodes[(e * numIndices) + i];
 
@@ -522,13 +521,13 @@ namespace sd {
                         if (!negStarters.isEmpty() && nsRounds > 0) {
                             int irow = bStarters[e];
                             const int nsStarter = irow;
-                            unsigned long long randomValue = nextRandom.e<Nd4jLong>(e);
+                            unsigned long long randomValue = nextRandom.e<sd::LongType>(e);
 
                             for (int r = 0; r < nsRounds + 1; r++) {
                                 // we're skipping rng on 0 step
                                 if (r != 0) {
                                     randomValue = randomValue * (unsigned long long) 25214903917 + 11;
-                                    auto idx = sd::math::nd4j_abs<Nd4jLong>((randomValue >> 16) % negLength);
+                                    auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
                                     irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
                                     if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -542,7 +541,7 @@ namespace sd {
                                                   alpha, vectorLength, r == 0 ? 1 : 0, expLength, infVector != nullptr);
                                 }
 
-                                //nd4j_printf("Thread <%i>: syn0: [%i]; s1n: [%i];\n", omp_get_thread_num(), 0, irow);
+                                //sd_printf("Thread <%i>: syn0: [%i]; s1n: [%i];\n", omp_get_thread_num(), 0, irow);
                             }
                         }
 
@@ -581,30 +580,30 @@ namespace sd {
 
                 samediff::Threads::parallel_tad(func, 0, numTargets, 1, numThreads);
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void cbowBatchExec_, (NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &context, NDArray &lockedWords, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, NDArray &nLabels, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength,  const bool trainWords, const int numThreads), FLOAT_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void cbowBatchExec_, (NDArray &s0, NDArray &s1, NDArray &s1n, void *vexpTable, void *vnegTable, void *vinfVector, NDArray &context, NDArray &lockedWords, NDArray &targets, NDArray &negStarters, NDArray &indices, NDArray &codes, NDArray &lr, NDArray &nextRandom, NDArray &nLabels, const int nsRounds, const int vocabSize, const int vectorLength, const int expLength, const int negLength,  const bool trainWords, const int numThreads), SD_FLOAT_TYPES);
 
-            ND4J_LOCAL void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &inferenceVector, const bool preciseMode, const int numWorkers) {
+            void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &inferenceVector, const bool preciseMode, const int numWorkers) {
                 auto xType = syn0.dataType();
 
                 // single round case
                 if ((ngStarter.isScalar() && !ngStarter.isEmpty())|| (target.isScalar() && !target.isEmpty())) {
                     auto hsRounds = codes.lengthOf();
 
-                    BUILD_SINGLE_SELECTOR(xType, skipgram_, (syn0.buffer(), syn1.buffer(), syn1Neg.buffer(), expTable.buffer(), negTable.buffer(), inferenceVector.buffer(), target.isEmpty() ? -1 : target.e<int>(0), ngStarter.isEmpty() ? -1 : ngStarter.e<int>(0), reinterpret_cast<int *>(indices.buffer()), reinterpret_cast<int8_t *>(codes.buffer()), alpha.e<double>(0), randomValue.e<Nd4jLong>(0), hsRounds, nsRounds, (int) syn0.sizeAt(0), (int) syn0.sizeAt(1), (int) expTable.lengthOf(), (int) negTable.lengthOf()), FLOAT_TYPES);
+                    BUILD_SINGLE_SELECTOR(xType, skipgram_, (syn0.buffer(), syn1.buffer(), syn1Neg.buffer(), expTable.buffer(), negTable.buffer(), inferenceVector.buffer(), target.isEmpty() ? -1 : target.e<int>(0), ngStarter.isEmpty() ? -1 : ngStarter.e<int>(0), reinterpret_cast<int *>(indices.buffer()), reinterpret_cast<int8_t *>(codes.buffer()), alpha.e<double>(0), randomValue.e<sd::LongType>(0), hsRounds, nsRounds, (int) syn0.sizeAt(0), (int) syn0.sizeAt(1), (int) expTable.lengthOf(), (int) negTable.lengthOf()), SD_FLOAT_TYPES);
                 } else if (ngStarter.isVector() || target.isVector()){
                     // batch mode
 
-                    BUILD_SINGLE_SELECTOR(xType, skipgramBatchExec_, (syn0, syn1, syn1Neg, expTable.buffer(), negTable.buffer(), nullptr, target, ngStarter, indices, codes, alpha, randomValue, nsRounds, syn0.sizeAt(0), syn0.sizeAt(1), expTable.lengthOf(), negTable.lengthOf(), preciseMode, numWorkers), FLOAT_TYPES);
+                    BUILD_SINGLE_SELECTOR(xType, skipgramBatchExec_, (syn0, syn1, syn1Neg, expTable.buffer(), negTable.buffer(), nullptr, target, ngStarter, indices, codes, alpha, randomValue, nsRounds, syn0.sizeAt(0), syn0.sizeAt(1), expTable.lengthOf(), negTable.lengthOf(), preciseMode, numWorkers), SD_FLOAT_TYPES);
                 } else
                     throw std::runtime_error("SkipGram: target must have rank 0 or 1");
             }
 
-            ND4J_LOCAL void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &numLabels, NDArray &inferenceVector, const bool trainWords, int numWorkers) {
+            void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &numLabels, NDArray &inferenceVector, const bool trainWords, int numWorkers) {
                 auto xType = syn0.dataType();
 
                 if ((context.rankOf() == 0 || context.rankOf() == 1) && (indices.rankOf() == 1 || indices.rankOf() == 0)) {
                     // single round case
-                    /*nd4j_printf("Row exec; ContextWidth: %i; LockedWords: %i; numLabels: %i; Train words: %i\n", (int) context.lengthOf(), (int) lockedWords.lengthOf(), numLabels.isEmpty() ? 0 : numLabels.e<int>(0), (int) trainWords);
+                    /*sd_printf("Row exec; ContextWidth: %i; LockedWords: %i; numLabels: %i; Train words: %i\n", (int) context.lengthOf(), (int) lockedWords.lengthOf(), numLabels.isEmpty() ? 0 : numLabels.e<int>(0), (int) trainWords);
                     if (context.lengthOf() == 2) {
                         context.printBuffer("context");
                         lockedWords.printBuffer("locked");
@@ -614,12 +613,12 @@ namespace sd {
 
                     auto hsRounds = codes.lengthOf();
 
-                    BUILD_SINGLE_SELECTOR(xType, cbow_, (syn0.buffer(), syn1.buffer(), syn1Neg.buffer(), expTable.buffer(), negTable.buffer(), inferenceVector.buffer(), target.isEmpty() ? -1 : target.e<int>(0), ngStarter.isEmpty() ? -1 : ngStarter.e<int>(0), reinterpret_cast<int *>(context.buffer()), reinterpret_cast<int *>(lockedWords.buffer()),reinterpret_cast<int *>(indices.buffer()), reinterpret_cast<int8_t *>(codes.buffer()), alpha.e<double>( 0), randomValue.e<Nd4jLong>(0), (int) context.lengthOf(), hsRounds, nsRounds, (int) syn0.sizeAt(0), (int) syn0.sizeAt(1), (int) expTable.lengthOf(), (int) negTable.lengthOf(), numLabels.isEmpty() ? 0 : numLabels.e<int>(0), trainWords), FLOAT_TYPES);
+                    BUILD_SINGLE_SELECTOR(xType, cbow_, (syn0.buffer(), syn1.buffer(), syn1Neg.buffer(), expTable.buffer(), negTable.buffer(), inferenceVector.buffer(), target.isEmpty() ? -1 : target.e<int>(0), ngStarter.isEmpty() ? -1 : ngStarter.e<int>(0), reinterpret_cast<int *>(context.buffer()), reinterpret_cast<int *>(lockedWords.buffer()),reinterpret_cast<int *>(indices.buffer()), reinterpret_cast<int8_t *>(codes.buffer()), alpha.e<double>( 0), randomValue.e<sd::LongType>(0), (int) context.lengthOf(), hsRounds, nsRounds, (int) syn0.sizeAt(0), (int) syn0.sizeAt(1), (int) expTable.lengthOf(), (int) negTable.lengthOf(), numLabels.isEmpty() ? 0 : numLabels.e<int>(0), trainWords), SD_FLOAT_TYPES);
                 } else if (context.rankOf() == 2 && indices.rankOf() == 2) {
                     // batch mode
-                    //nd4j_printf("Batch exec\n","");
+                    //sd_printf("Batch exec\n","");
 
-                    BUILD_SINGLE_SELECTOR(xType, cbowBatchExec_, (syn0, syn1, syn1Neg, expTable.buffer(), negTable.buffer(), nullptr, context, lockedWords, target, ngStarter, indices, codes, alpha, randomValue, numLabels, nsRounds, syn0.sizeAt(0), syn0.sizeAt(1), expTable.lengthOf(), negTable.isEmpty() ? 0 : negTable.lengthOf(), trainWords, numWorkers), FLOAT_TYPES);
+                    BUILD_SINGLE_SELECTOR(xType, cbowBatchExec_, (syn0, syn1, syn1Neg, expTable.buffer(), negTable.buffer(), nullptr, context, lockedWords, target, ngStarter, indices, codes, alpha, randomValue, numLabels, nsRounds, syn0.sizeAt(0), syn0.sizeAt(1), expTable.lengthOf(), negTable.isEmpty() ? 0 : negTable.lengthOf(), trainWords, numWorkers), SD_FLOAT_TYPES);
                 } else
                     throw std::runtime_error("CBOW: context must have rank 0/1 or 2");
             }

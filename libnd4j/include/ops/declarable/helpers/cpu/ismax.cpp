@@ -21,14 +21,13 @@
 // @author raver119@gmail.com
 //
 
-
 #include <helpers/TAD.h>
 #include<ops/declarable/helpers/ismax.h>
 #include <helpers/ConstantTadHelper.h>
 #include <execution/Threads.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 template <typename X, typename Z>
@@ -139,8 +138,8 @@ static void ismax_(const NDArray* input, NDArray* output, const std::vector<int>
         int tads = tadPack.numberOfTads();
 
         int tadsPerThread = tads / TAD_THRESHOLD;
-        int num_threads = sd::math::nd4j_max<int>(1, tadsPerThread);
-        num_threads = sd::math::nd4j_min<int>(num_threads, omp_get_max_threads());
+        int num_threads = sd::math::sd_max<int>(1, tadsPerThread);
+        num_threads = sd::math::sd_min<int>(num_threads, omp_get_max_threads());
 
         auto tadEWS = shape::elementWiseStride(tadShapeShapeInfo);
         auto zEWS = shape::elementWiseStride(tadPackZ.primaryShapeInfo());
@@ -202,8 +201,8 @@ static void ismax_(const NDArray* input, NDArray* output, const std::vector<int>
 }
 
 
- void ismax(sd::LaunchContext * context, const NDArray *input, NDArray *output, const std::vector<int>& dimensions) {
-    BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), ismax_, (input, output, dimensions), LIBND4J_TYPES, LIBND4J_TYPES);
+void ismax(sd::LaunchContext * context, const NDArray *input, NDArray *output, const std::vector<int>& dimensions) {
+    BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), ismax_, (input, output, dimensions), SD_COMMON_TYPES, SD_COMMON_TYPES);
 }
 
 

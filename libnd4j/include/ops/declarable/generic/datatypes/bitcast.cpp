@@ -45,13 +45,13 @@ namespace sd {
             }
             if(input->isEmpty()){
                 REQUIRE_TRUE(output->isEmpty(), 0, "BITCAST: If input is empty, output array must also be empty.");
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             // just memcpy data
             DataBuffer::memcpy(*output->dataBuffer(), *input->dataBuffer());
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(BitCast, bitcast);
 
@@ -74,7 +74,7 @@ namespace sd {
             }
             else if (inputSize > outputSize) {
                 // range of output increased by 1 with inputSize / outputSize as last dimension
-                std::vector<Nd4jLong> shapeOf(inputRank + 1);
+                std::vector<sd::LongType> shapeOf(inputRank + 1);
                 int i;
                 for (i = 0; i < inputRank; ++i) {
                     shapeOf[i] = inShape[i + 1];
@@ -84,7 +84,7 @@ namespace sd {
                 return SHAPELIST(outputShape);
             }
             REQUIRE_TRUE(shape::sizeAt(inShape, -1) == outputSize / inputSize, 0, "BITCAST: %llu > %llu. So last dimension should be %i, but %i given.", inputSize, outputSize, outputSize / inputSize, shape::sizeAt(inShape, -1));
-            std::vector<Nd4jLong> shapeOf(inputRank - 1);
+            std::vector<sd::LongType> shapeOf(inputRank - 1);
 
             for (auto i = 0; i < shapeOf.size(); ++i) {
                 shapeOf[i] = inShape[i + 1];

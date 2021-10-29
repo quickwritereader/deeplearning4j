@@ -26,12 +26,9 @@
 //Released under MIT License
 //license available in LICENSE file, or at http://www.opensource.org/licenses/mit-license.php
 
-#include <system/pointercast.h>
 #include <stdexcept>
 #include <cnpy/cnpy.h>
 #include <types/types.h>
-
-
 
 /**
  *
@@ -212,7 +209,7 @@ char* cnpy::loadFile(const char *path) {
         buffer = (char*) malloc ((length+ 1) * sizeof(char));
 
         // just getting rid of compiler warning
-        Nd4jLong fps = 0;
+        sd::LongType fps = 0;
 
         if (buffer) {
             fps += fread (buffer, sizeof(char), length, f);
@@ -247,7 +244,6 @@ void cnpy::parseNpyHeaderStr(std::string header,
     int loc1, loc2;
 
 
-
     //fortran order
     loc1 = header.find("fortran_order") + 16;
     fortranOrder = (header.substr(loc1,5) == "True" ? true : false);
@@ -264,7 +260,6 @@ void cnpy::parseNpyHeaderStr(std::string header,
         shape[i] = atoi(str_shape.substr(0,loc1).c_str());
         str_shape = str_shape.substr(loc1 + 1);
     }
-
 
 
     //endian, word size, data type
@@ -311,7 +306,6 @@ void cnpy::parseNpyHeader(FILE *fp,
                             ndims,
                             fortranOrder);
 }
-
 
 
 /**
@@ -370,7 +364,6 @@ cnpy::NpyArray cnpy::loadNpyFromFile(FILE *fp) {
         throw std::runtime_error("load_the_npy_file: failed fread");
     return arr;
 }
-
 
 
 /**
@@ -582,8 +575,6 @@ cnpy::NpyArray cnpy::npzLoad(std::string fname, std::string varname) {
 }
 
 
-
-
 /**
  * Load a numpy array from the given file
  * @param fname the fully qualified path for the file
@@ -591,6 +582,8 @@ cnpy::NpyArray cnpy::npzLoad(std::string fname, std::string varname) {
  */
 cnpy::NpyArray cnpy::npyLoad(std::string fname) {
     FILE* fp = fopen(fname.c_str(), "rb");
+ 
+
 
     if(!fp) {
         printf("npy_load: Error! Unable to open file %s!\n",fname.c_str());
@@ -729,6 +722,6 @@ std::vector<char> cnpy::createNpyHeader(const void *vdata,
     return header;
 }
 
-BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT std::vector<char> cnpy::createNpyHeader, (const void *data, const unsigned int *shape, const unsigned int ndims, unsigned int wordSize), LIBND4J_TYPES);
-//template ND4J_EXPORT std::vector<char> cnpy::createNpyHeader<void>(const void *data, const unsigned int *shape, const unsigned int ndims, unsigned int wordSize);
-template ND4J_EXPORT void cnpy::npy_save<float>(std::string fname, const float* data, const unsigned int* shape, const unsigned int ndims, std::string mode);
+BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT std::vector<char> cnpy::createNpyHeader, (const void *data, const unsigned int *shape, const unsigned int ndims, unsigned int wordSize), SD_COMMON_TYPES);
+//template SD_LIB_EXPORT std::vector<char> cnpy::createNpyHeader<void>(const void *data, const unsigned int *shape, const unsigned int ndims, unsigned int wordSize);
+template SD_LIB_EXPORT void cnpy::npy_save<float>(std::string fname, const float* data, const unsigned int* shape, const unsigned int ndims, std::string mode);

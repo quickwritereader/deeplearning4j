@@ -20,7 +20,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <initializer_list>
 #include <array/NDArrayFactory.h>
@@ -29,7 +28,6 @@
 #include <execution/Engine.h>
 
 #ifdef HAVE_CUDNN
-
 #include <ops/declarable/platform/cudnn/cudnnUtils.h>
 
 #endif
@@ -44,7 +42,7 @@ public:
 static void printer(std::initializer_list<sd::ops::platforms::PlatformHelper*> helpers) {
 
     for (auto v:helpers) {
-        nd4j_printf("Initialized [%s]\n", v->name().c_str());
+        sd_printf("Initialized [%s]\n", v->name().c_str());
     }
 }
 
@@ -70,7 +68,6 @@ TEST_F(CuDnnTests, helpers_includer) {
     sd::ops::platforms::PLATFORM_maxpool3dnew_bp_ENGINE_CUDA maxpool3dnew_bp;
 
 
-
     printer({&conv2d});
     printer({&conv2d_bp});
     printer({&conv3dnew});
@@ -93,7 +90,7 @@ TEST_F(CuDnnTests, helpers_includer) {
 
 TEST_F(CuDnnTests, mixed_helpers_test_1) {
 #if defined(HAVE_CUDNN) && defined (HAVE_ONEDNN)
-    nd4j_printf("Mixed platforms test\n", "");
+    sd_printf("Mixed platforms test\n", "");
 
 
     int bS=2, iH=4,iW=3,  iC=4,oC=3,  kH=3,kW=2,  sH=1,sW=1,  pH=0,pW=0,  dH=1,dW=1;
@@ -129,7 +126,7 @@ TEST_F(CuDnnTests, mixed_helpers_test_1) {
     cuda.setIArguments({kH,kW,  sH,sW,  pH,pW,  dH,dW, paddingMode, dataFormat});
     auto statusCUDA = op.execute(&cuda);
 
-    ASSERT_EQ(Status::OK(), statusCUDA);
+    ASSERT_EQ(sd::Status::OK, statusCUDA);
     ASSERT_EQ(expOutput, zCUDA);
 
     // MKL-DNN part
@@ -144,7 +141,7 @@ TEST_F(CuDnnTests, mixed_helpers_test_1) {
 
     zMKL.tickWriteHost();
 
-    ASSERT_EQ(Status::OK(), statusMKL);
+    ASSERT_EQ(sd::Status::OK, statusMKL);
     ASSERT_EQ(expOutput, zMKL);
 #endif
 }

@@ -42,7 +42,7 @@ OP_IMPL(mergeadd, -1, 1, false) {
 
     helpers::mergeAdd(block.launchContext(), inArrs, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(mergesum, mergeadd);
 DECLARE_SYN(add_n, mergeadd);
@@ -72,7 +72,7 @@ DECLARE_SYN(accumulate_n, mergeadd);
         }
         helpers::mergeAddBp(block.launchContext(), *gradient, outArrs);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(mergeadd_bp) {

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16/11/17.
 //
-
 #include <graph/FlowPath.h>
 
 namespace sd {
@@ -39,25 +38,25 @@ namespace sd {
             }
         }
 
-        void FlowPath::setInnerTime(int nodeId, Nd4jLong time) {
+        void FlowPath::setInnerTime(int nodeId, sd::LongType time) {
             ensureNode(nodeId);
 
             _states[nodeId].setInnerTime(time);
         }
 
-        void FlowPath::setOuterTime(int nodeId, Nd4jLong time) {
+        void FlowPath::setOuterTime(int nodeId, sd::LongType time) {
             ensureNode(nodeId);
 
             _states[nodeId].setOuterTime(time);
         }
 
-        Nd4jLong FlowPath::innerTime(int nodeId) {
+        sd::LongType FlowPath::innerTime(int nodeId) {
             ensureNode(nodeId);
 
             return _states[nodeId].innerTime();
         }
 
-        Nd4jLong FlowPath::outerTime(int nodeId) {
+        sd::LongType FlowPath::outerTime(int nodeId) {
             ensureNode(nodeId);
 
             return _states[nodeId].outerTime();
@@ -87,53 +86,53 @@ namespace sd {
             _states[nodeId].markBranch(index);
         }
 
-        bool FlowPath::isFrameActive(Nd4jLong frameId) {
+        bool FlowPath::isFrameActive(sd::LongType frameId) {
             ensureFrame(frameId);
 
             return _frames[frameId].wasActivated();
         }
 
-        void FlowPath::markFrameActive(Nd4jLong frameId, bool isActive) {
+        void FlowPath::markFrameActive(sd::LongType frameId, bool isActive) {
             ensureFrame(frameId);
 
             _frames[frameId].markActivated(isActive);
         }
 
-        bool FlowPath::isRewindPlanned(Nd4jLong frameId) {
+        bool FlowPath::isRewindPlanned(sd::LongType frameId) {
             return _frames[frameId].isRewindPlanned();
         }
 
-        void FlowPath::planRewind(Nd4jLong frameId, bool reallyRewind) {
+        void FlowPath::planRewind(sd::LongType frameId, bool reallyRewind) {
             _frames[frameId].planRewind(reallyRewind);
         }
 
-        int FlowPath::getRewindPosition(Nd4jLong frameId) {
+        int FlowPath::getRewindPosition(sd::LongType frameId) {
             return _frames[frameId].getRewindPosition();
         }
 
-        void FlowPath::setRewindPosition(Nd4jLong frameId, int position) {
+        void FlowPath::setRewindPosition(sd::LongType frameId, int position) {
             _frames[frameId].setRewindPosition(position);
         }
 
-        void FlowPath::setRewindPositionOnce(Nd4jLong frameId, int position) {
+        void FlowPath::setRewindPositionOnce(sd::LongType frameId, int position) {
             _frames[frameId].setRewindPositionOnce(position);
         }
 
-        void FlowPath::registerFrame(Nd4jLong frameId) {
+        void FlowPath::registerFrame(sd::LongType frameId) {
             if (_frames.count(frameId) == 0)
                 ensureFrame(frameId);
         }
 
-        void FlowPath::forgetFrame(Nd4jLong frameId) {
+        void FlowPath::forgetFrame(sd::LongType frameId) {
             if (_frames.count(frameId) > 0)
                 _frames.erase(frameId);
         }
 
-        void FlowPath::incrementNumberOfCycles(Nd4jLong frameId) {
+        void FlowPath::incrementNumberOfCycles(sd::LongType frameId) {
             _frames[frameId].incrementNumberOfCycles();
         }
 
-        Nd4jLong FlowPath::getNumberOfCycles(Nd4jLong frameId) {
+        sd::LongType FlowPath::getNumberOfCycles(sd::LongType frameId) {
             return _frames[frameId].getNumberOfCycles();
         }
 

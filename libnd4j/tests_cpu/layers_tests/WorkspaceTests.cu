@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <memory/Workspace.h>

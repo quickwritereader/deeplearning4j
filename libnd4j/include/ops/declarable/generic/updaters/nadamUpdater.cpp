@@ -43,7 +43,7 @@ namespace sd {
 
             // todo maybe we need an error like on Java side
             if (gradient->isEmpty() || initStateV->isEmpty() || initStateM->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initStateM), 0, "NADAM UPDATER OP: input state M must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -84,7 +84,7 @@ namespace sd {
             }
 
             helpers::updaterNadam(block.launchContext(), *gradient, *initStateV, *initStateM, *update, *stateV, *stateM, dLr, dBeta1, dBeta2, dEpsilon, nIteration);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(nadam_updater) {

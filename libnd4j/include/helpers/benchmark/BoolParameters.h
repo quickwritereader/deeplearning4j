@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_BOOLPARAMETERS_H
 #define DEV_TESTS_BOOLPARAMETERS_H
-
 #include <map>
 #include <vector>
 #include <string>

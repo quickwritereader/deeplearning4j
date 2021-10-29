@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <exceptions/allocation_exception.h>
 #include <helpers/StringUtils.h>
 
@@ -28,15 +27,15 @@ namespace sd {
         //
     }
 
-    allocation_exception allocation_exception::build(std::string message, Nd4jLong numBytes) {
-        auto bytes = StringUtils::valueToString<Nd4jLong>(numBytes);
+    allocation_exception allocation_exception::build(std::string message, sd::LongType numBytes) {
+        auto bytes = StringUtils::valueToString<sd::LongType>(numBytes);
         message += "; Requested bytes: [" + bytes + "]";
         return allocation_exception(message);
     }
 
-    allocation_exception allocation_exception::build(std::string message, Nd4jLong limit, Nd4jLong numBytes) {
-        auto bytes = StringUtils::valueToString<Nd4jLong>(numBytes);
-        auto lim = StringUtils::valueToString<Nd4jLong>(limit);
+    allocation_exception allocation_exception::build(std::string message, sd::LongType limit, sd::LongType numBytes) {
+        auto bytes = StringUtils::valueToString<sd::LongType>(numBytes);
+        auto lim = StringUtils::valueToString<sd::LongType>(limit);
         message += "; Limit bytes: [" + lim + "]; Requested bytes: [" + bytes + "]";
         return allocation_exception(message);
     }

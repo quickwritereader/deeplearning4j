@@ -22,12 +22,11 @@
 
 #ifndef DEV_TESTS_ERRORREFERENCE_H
 #define DEV_TESTS_ERRORREFERENCE_H
-
 #include <string>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT ErrorReference {
+    class SD_LIB_EXPORT ErrorReference {
     private:
         int _errorCode = 0;
         std::string _errorMessage;

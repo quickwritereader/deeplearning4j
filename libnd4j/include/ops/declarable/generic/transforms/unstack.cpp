@@ -43,15 +43,15 @@ CUSTOM_OP_IMPL(unstack, 1, -1, false, 0, 1) {
     REQUIRE_TRUE(dim >= 0, 0, "Unstack dimension should be non-negative value, but got %i !", dim);
 
     if(input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     std::vector<NDArray*> outArrs(input->sizeAt(dim));
-    for(uint i = 0; i < outArrs.size(); ++i)
+    for(sd::Unsigned i = 0; i < outArrs.size(); ++i)
         outArrs[i] = OUTPUT_VARIABLE(i);
 
     helpers::unstack(block.launchContext(), *input, outArrs, dim);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SYN(unpack, unstack);
@@ -71,14 +71,14 @@ DECLARE_SHAPE_FN(unstack) {
         if(shape::shapeOf(inShapeInfo)[dim] == 0)
             return SHAPELIST();
 
-        const Nd4jLong numTads = shape::shapeOf(inShapeInfo)[dim];
-        std::vector<Nd4jLong> outShape;
-        for(uint i = 0; i < shape::rank(inShapeInfo); ++i)
+        const sd::LongType numTads = shape::shapeOf(inShapeInfo)[dim];
+        std::vector<sd::LongType> outShape;
+        for(sd::Unsigned i = 0; i < shape::rank(inShapeInfo); ++i)
             if(i != dim)
                 outShape.push_back(shape::shapeOf(inShapeInfo)[i]);
 
         auto result = SHAPELIST();
-        for(uint i = 0; i < numTads; ++i)
+        for(sd::Unsigned i = 0; i < numTads; ++i)
             result->push_back(ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShapeInfo), shape::order(inShapeInfo), outShape));
 
         return result;
@@ -89,15 +89,15 @@ DECLARE_SHAPE_FN(unstack) {
     if (dims.size() == 0 && shape::rank(inShapeInfo) == 1) { // split vector into lenthOf scalars
 
         auto result = SHAPELIST();
-        for (Nd4jLong e = 0; e < shape::length(inShapeInfo); e++)
+        for (sd::LongType e = 0; e < shape::length(inShapeInfo); e++)
             result->push_back(ConstantShapeHelper::getInstance().scalarShapeInfo(ArrayOptions::dataType(inShapeInfo)));
 
         return result;
     }
 
-    std::vector<Nd4jLong> subArrShape(shape::rank(inShapeInfo) - 1);
+    std::vector<sd::LongType> subArrShape(shape::rank(inShapeInfo) - 1);
 
-    for(uint j = 0, i = 0; i < shape::rank(inShapeInfo); i++)
+    for(sd::Unsigned j = 0, i = 0; i < shape::rank(inShapeInfo); i++)
         if(i != dim)
             subArrShape[j++] = shape::shapeOf(inShapeInfo)[i];
 

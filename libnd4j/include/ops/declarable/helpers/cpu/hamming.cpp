@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/helpers.h>
 #include <ops/declarable/helpers/hamming.h>
 #include <execution/Threads.h>
@@ -28,8 +27,8 @@ namespace sd {
     namespace ops {
         namespace helpers {
 
-            static Nd4jLong hamming_distance(unsigned long long x, unsigned long long y) {
-                Nd4jLong dist = 0;
+            static sd::LongType hamming_distance(unsigned long long x, unsigned long long y) {
+                sd::LongType dist = 0;
 
                 for (unsigned long long val = x ^ y; val > 0; val /= 2) {
                     if (val & 1)
@@ -47,10 +46,10 @@ namespace sd {
                 auto xBuffer = x.bufferAsT<X>();
                 auto yBuffer = y.bufferAsT<X>();
 
-                Nd4jLong distance = 0;
+                sd::LongType distance = 0;
                 auto lengthOf = x.lengthOf();
-                int maxThreads = sd::math::nd4j_min<int>(256, omp_get_max_threads());
-                Nd4jLong intermediate[256];
+                int maxThreads = sd::math::sd_min<int>(256, omp_get_max_threads());
+                sd::LongType intermediate[256];
 
                 // nullify temp values
                 for (int e = 0; e < maxThreads; e++)
@@ -81,8 +80,8 @@ namespace sd {
                 } else {
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
-                            auto _x = static_cast<unsigned long long>(x.e<Nd4jLong>(e));
-                            auto _y = static_cast<unsigned long long>(y.e<Nd4jLong>(e));
+                            auto _x = static_cast<unsigned long long>(x.e<sd::LongType>(e));
+                            auto _y = static_cast<unsigned long long>(y.e<sd::LongType>(e));
 
                             intermediate[thread_id] += hamming_distance(_x, _y);
                         }
@@ -98,8 +97,8 @@ namespace sd {
                 z.p(0, distance);
             }
 
-            ND4J_LOCAL void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output) {
-                BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (x, y, output), INTEGER_TYPES, INDEXING_TYPES);
+            void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output) {
+                BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (x, y, output), SD_INTEGER_TYPES, SD_INDEXING_TYPES);
             }
         }
     }

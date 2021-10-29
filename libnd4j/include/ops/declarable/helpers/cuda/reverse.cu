@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma, created on 16.04.2018
 //
-
 #include <ops/declarable/helpers/reverse.h>
 #include <helpers/ShapeUtils.h>
 #include <array/ResultSet.h>
@@ -33,7 +32,7 @@ namespace ops     {
 namespace helpers {
 
     template <typename T>
-    static __global__ void reverseTadKernel(const void* vinput, const Nd4jLong *inputShape, void* voutput, const Nd4jLong *outputShape, const Nd4jLong *inputTadShape, const Nd4jLong *inputTadOffsets, const Nd4jLong *outputTadShape, const Nd4jLong *outputTadOffsets, uint64_t limit, uint64_t numOfElemsToReverse, uint64_t numTads) {
+    static SD_KERNEL void reverseTadKernel(const void* vinput, const sd::LongType *inputShape, void* voutput, const sd::LongType *outputShape, const sd::LongType *inputTadShape, const sd::LongType *inputTadOffsets, const sd::LongType *outputTadShape, const sd::LongType *outputTadOffsets, uint64_t limit, uint64_t numOfElemsToReverse, uint64_t numTads) {
         auto input = reinterpret_cast<const T*>(vinput);
         auto output = reinterpret_cast<T*>(voutput);
         const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -94,7 +93,7 @@ namespace helpers {
 
 
     template <typename T>
-    static __global__ void reverseArrayKernel(const void* input, const Nd4jLong *inputShape, void* output, const Nd4jLong *outputShape, Nd4jLong numOfElemsToReverse) {
+    static SD_KERNEL void reverseArrayKernel(const void* input, const sd::LongType *inputShape, void* output, const sd::LongType *outputShape, sd::LongType numOfElemsToReverse) {
         const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
         const auto step = gridDim.x * blockDim.x;
         __shared__ int linearStatus;
@@ -143,15 +142,15 @@ namespace helpers {
     }
 
     template<typename T>
-    static void reverseTad(sd::LaunchContext * context, const NDArray* input, NDArray* output, const Nd4jLong *inputTadShape, const Nd4jLong *inputTadOffsets, const Nd4jLong *outputTadShape, const Nd4jLong *outputTadOffsets, uint64_t tadLength) {
+    static void reverseTad(sd::LaunchContext * context, const NDArray* input, NDArray* output, const sd::LongType *inputTadShape, const sd::LongType *inputTadOffsets, const sd::LongType *outputTadShape, const sd::LongType *outputTadOffsets, uint64_t tadLength) {
         auto stream = context->getCudaStream();
         reverseTadKernel<T><<<256, 512, 8192, *stream>>>(input->specialBuffer(), input->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), inputTadShape, inputTadOffsets, outputTadShape, outputTadOffsets, input->lengthOf(), tadLength, input->lengthOf() / tadLength);
     }
 
     template<typename T>
-    static void reverseArray(sd::LaunchContext * context, const NDArray* input, NDArray* output, Nd4jLong numOfElemsToReverse) {
+    static void reverseArray(sd::LaunchContext * context, const NDArray* input, NDArray* output, sd::LongType numOfElemsToReverse) {
         auto stream = context->getCudaStream();
-        Nd4jLong numOfReverse = numOfElemsToReverse;
+        sd::LongType numOfReverse = numOfElemsToReverse;
         if (numOfElemsToReverse == 0)
             numOfReverse = input->lengthOf();
 
@@ -200,19 +199,19 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void reverseSequence(sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output, int seqDim, const int batchDim) {
+    void reverseSequence(sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output, int seqDim, const int batchDim) {
         NDArray::prepareSpecialUse({output}, {input, seqLengths});
 
         // if op isn't inplace - copy original data into output array
         if (output->specialBuffer() != input->specialBuffer())
             output->assign(input);
 
-        BUILD_SINGLE_SELECTOR(input->dataType(), reverseSequence_, (context, input, seqLengths, output, seqDim, batchDim), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), reverseSequence_, (context, input, seqLengths, output, seqDim, batchDim), SD_COMMON_TYPES);
         NDArray::registerSpecialUse({output}, {input, seqLengths});
     }
 
     //////////////////////////////////////////////////////////////////////////
-    ND4J_LOCAL void reverse(sd::LaunchContext * context, const NDArray* input, NDArray* output, const std::vector<int>* intArgs) {
+    void reverse(sd::LaunchContext * context, const NDArray* input, NDArray* output, const std::vector<int>* intArgs) {
 
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), *intArgs);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), *intArgs);
@@ -220,9 +219,9 @@ namespace helpers {
         NDArray::prepareSpecialUse({output}, {input});
 
         if (packX.numberOfTads() == 1) {
-            BUILD_SINGLE_SELECTOR(input->dataType(), reverseArray, (context, input, output, 0),  LIBND4J_TYPES);
+            BUILD_SINGLE_SELECTOR(input->dataType(), reverseArray, (context, input, output, 0),  SD_COMMON_TYPES);
         } else {
-            BUILD_SINGLE_SELECTOR(input->dataType(), reverseTad, (context, input, output, packX.platformShapeInfo(), packX.platformOffsets(), packZ.platformShapeInfo(), packZ.platformOffsets(), (uint64_t) (input->lengthOf() / packX.numberOfTads())),  LIBND4J_TYPES);
+            BUILD_SINGLE_SELECTOR(input->dataType(), reverseTad, (context, input, output, packX.platformShapeInfo(), packX.platformOffsets(), packZ.platformShapeInfo(), packZ.platformOffsets(), (uint64_t) (input->lengthOf() / packX.numberOfTads())),  SD_COMMON_TYPES);
         }
 
         NDArray::registerSpecialUse({output}, {input});

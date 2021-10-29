@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/OpRegistrator.h>
 #include "mkldnnUtils.h"
 
@@ -321,7 +320,7 @@ PLATFORM_IMPL(lstmLayer, ENGINE_CPU) {
     REQUIRE_TRUE(dataFormat < 2, 0, "LSTM_LAYER_MKLDNN operation: wrong data format, only two formats are allowed for input/output tensors in mkl dnn library: TNC and NTC!");
     REQUIRE_TRUE(directionMode < 4, 0, "LSTM_LAYER_MKLDNN operation: option for bidirectional extra output dimension is not valid in mkl dnn library !");
     REQUIRE_TRUE(retLastH == retLastC, 0, "LSTM_LAYER_MKLDNN operation: only two options are present: 1) calculate both output at last time and cell state at last time; 2) do not calculate both !");
-	REQUIRE_TRUE(hasInitH == hasInitC, 0, "LSTM_LAYER_MKLDNN operation: either both of or neither of initial C and initial H must be provided");
+    REQUIRE_TRUE(hasInitH == hasInitC, 0, "LSTM_LAYER_MKLDNN operation: either both of or neither of initial C and initial H must be provided");
 
     count = 0;
     auto h  = retFullSeq ? OUTPUT_VARIABLE(count++) : nullptr;           // output
@@ -329,10 +328,10 @@ PLATFORM_IMPL(lstmLayer, ENGINE_CPU) {
     auto cL = retLastC   ? OUTPUT_VARIABLE(count++) : nullptr;           // cell state at last step
 
     // evaluate dimensions
-    const Nd4jLong sL   = x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 0 ? x->sizeAt(1) : x->sizeAt(0);
-    const Nd4jLong nIn  = x->sizeAt(2);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType sL   = x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 0 ? x->sizeAt(1) : x->sizeAt(0);
+    const sd::LongType nIn  = x->sizeAt(2);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     // inputs validations
     if(directionMode < 2) {     // no bidirectional
@@ -420,7 +419,7 @@ PLATFORM_IMPL(lstmLayer, ENGINE_CPU) {
         delete hP;
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 PLATFORM_CHECK(lstmLayer, ENGINE_CPU) {
@@ -488,7 +487,6 @@ PLATFORM_CHECK(lstmLayer, ENGINE_CPU) {
     return req;
 
 }
-
 
 
 }

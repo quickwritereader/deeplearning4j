@@ -120,7 +120,7 @@ namespace ops  {
         // FIXME: bad for performance
         output->assign(projRes);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -259,7 +259,7 @@ namespace ops  {
         AttentionHelper::multiHeadProjectBp(keys, Wk, &dLdProjectedKeys, dLdk, dLdWk, block.launchContext());
         AttentionHelper::multiHeadProjectBp(values, Wv, &dLdProjectedValues, dLdv, dLdWv, block.launchContext());
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(multi_head_dot_product_attention_bp) {
@@ -268,19 +268,19 @@ namespace ops  {
     }
 
     DECLARE_SHAPE_FN(multi_head_dot_product_attention_bp) {
-        Nd4jLong *dLdq_shape;
+        sd::LongType *dLdq_shape;
         COPY_SHAPE(inputShape->at(0), dLdq_shape);
-        Nd4jLong *dLdk_shape;
+        sd::LongType *dLdk_shape;
         COPY_SHAPE(inputShape->at(1), dLdk_shape);
-        Nd4jLong *dLdv_shape;
+        sd::LongType *dLdv_shape;
         COPY_SHAPE(inputShape->at(2), dLdv_shape);
-        Nd4jLong *dLdWq_shape;
+        sd::LongType *dLdWq_shape;
         COPY_SHAPE(inputShape->at(3), dLdWq_shape);
-        Nd4jLong *dLdWk_shape;
+        sd::LongType *dLdWk_shape;
         COPY_SHAPE(inputShape->at(4), dLdWk_shape);
-        Nd4jLong *dLdWv_shape;
+        sd::LongType *dLdWv_shape;
         COPY_SHAPE(inputShape->at(5), dLdWv_shape);
-        Nd4jLong *dLdWo_shape;
+        sd::LongType *dLdWo_shape;
         COPY_SHAPE(inputShape->at(6), dLdWo_shape);
 
         return SHAPELIST(CONSTANT(dLdq_shape), CONSTANT(dLdk_shape), CONSTANT(dLdv_shape), CONSTANT(dLdWq_shape), CONSTANT(dLdWk_shape), CONSTANT(dLdWv_shape), CONSTANT(dLdWo_shape));

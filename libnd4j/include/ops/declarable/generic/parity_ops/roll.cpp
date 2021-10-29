@@ -46,7 +46,7 @@ namespace ops {
             REQUIRE_TRUE(axesI->lengthOf() == shiftsI->lengthOf(), 0, "roll: shifts and axes should be the same length, but %i and %i given.", (int)shiftsI->lengthOf(), (int)axesI->lengthOf());
             helpers::adjustAxis(axesI->lengthOf(), axesI, axes );
             shifts.resize(shiftsI->lengthOf());
-            for (Nd4jLong i = 0; i < shiftsI->lengthOf(); i++) {
+            for (sd::LongType i = 0; i < shiftsI->lengthOf(); i++) {
                 auto shift = shiftsI->e<int>(i);
                 if (shift < 0) {
                     shift -= input->sizeAt(i) * (shift / inputLen - 1);
@@ -88,20 +88,20 @@ namespace ops {
         if (block.isInplace()) output = input;
 
         shiftIsLinear = (axes.size() == 0) || (input->rankOf() == 1);
-        nd4j_debug("Roll: Shift is linear %d Shift is %d, first dimension is %d\n",(int)shiftIsLinear,(int)shifts[0],axes.size()>0?axes[0]:0);
+        sd_debug("Roll: Shift is linear %d Shift is %d, first dimension is %d\n",(int)shiftIsLinear,(int)shifts[0],axes.size()>0?axes[0]:0);
         bool shiftsSumZero = false;
         auto shiftSum = 0;
         for (auto& s: shifts) {
            shiftSum += s;
-           nd4j_debug("Roll: Shift  is %d\n",s);
+           sd_debug("Roll: Shift  is %d\n",s);
         }
         //all zeros is no op
         if(shiftSum < 1) {
-            nd4j_debug("Roll: No shift needed. Shift total was %d\n",shiftSum);
+            sd_debug("Roll: No shift needed. Shift total was %d\n",shiftSum);
             if(!block.isInplace()) {
                 output->assign(input);
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         if (shiftIsLinear) {
@@ -111,7 +111,7 @@ namespace ops {
             helpers::rollFunctorFull(block.launchContext(), input, output, shifts, axes, block.isInplace());
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(roll) {

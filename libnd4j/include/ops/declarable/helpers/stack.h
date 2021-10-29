@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_STACK_H
 #define LIBND4J_STACK_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include <array/NDArray.h>
 
@@ -30,8 +29,8 @@ namespace sd    {
 namespace ops     {
 namespace helpers {
 
-void stack  (sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& outArr, const int dim);
-void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim);
+SD_LIB_HIDDEN void stack  (sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& outArr, const int dim);
+SD_LIB_HIDDEN void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim);
 
 
 }

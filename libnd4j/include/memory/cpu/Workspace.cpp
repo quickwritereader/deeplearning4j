@@ -22,7 +22,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include <system/op_boilerplate.h>
 #include <atomic>
 #include <stdio.h>
@@ -51,7 +50,7 @@ namespace sd {
             }
         };
 
-        Workspace::Workspace(Nd4jLong initialSize, Nd4jLong secondaryBytes) {
+        Workspace::Workspace(sd::LongType initialSize, sd::LongType secondaryBytes) {
             if (initialSize > 0) {
                 this->_ptrHost = (char *) malloc(initialSize);
 
@@ -72,7 +71,7 @@ namespace sd {
             this->_spillsSize = 0;
         }
 
-        void Workspace::init(Nd4jLong bytes, Nd4jLong secondaryBytes) {
+        void Workspace::init(sd::LongType bytes, sd::LongType secondaryBytes) {
             if (this->_currentSize < bytes) {
                 if (this->_allocatedHost && !_externalized)
                     free((void *)this->_ptrHost);
@@ -87,11 +86,11 @@ namespace sd {
             }
         }
 
-        void Workspace::expandBy(Nd4jLong numBytes, Nd4jLong secondaryBytes) {
+        void Workspace::expandBy(sd::LongType numBytes, sd::LongType secondaryBytes) {
             this->init(_currentSize + numBytes, _currentSizeSecondary + secondaryBytes);
         }
 
-        void Workspace::expandTo(Nd4jLong numBytes, Nd4jLong secondaryBytes) {
+        void Workspace::expandTo(sd::LongType numBytes, sd::LongType secondaryBytes) {
             this->init(numBytes, secondaryBytes);
         }
 
@@ -114,20 +113,20 @@ namespace sd {
             freeSpills();
         }
 
-        Nd4jLong Workspace::getUsedSize() {
+        sd::LongType Workspace::getUsedSize() {
             return getCurrentOffset();
         }
 
-        Nd4jLong Workspace::getCurrentSize() {
+        sd::LongType Workspace::getCurrentSize() {
             return _currentSize;
         }
 
-        Nd4jLong Workspace::getCurrentOffset() {
+        sd::LongType Workspace::getCurrentOffset() {
             return _offset.load();
         }
 
 
-        void* Workspace::allocateBytes(Nd4jLong numBytes) {
+        void* Workspace::allocateBytes(sd::LongType numBytes) {
             if (numBytes < 1)
                 throw allocation_exception::build("Number of bytes for allocation should be positive", numBytes);
 
@@ -138,10 +137,10 @@ namespace sd {
             this->_mutexAllocation.lock();
 
             if (_offset.load() + numBytes > _currentSize) {
-                nd4j_debug("Allocating %lld bytes in spills\n", numBytes);
+                sd_debug("Allocating %lld bytes in spills\n", numBytes);
                 this->_mutexAllocation.unlock();
-#if defined(USE_ALIGNED_ALLOC)
-                void *p = aligned_alloc(DESIRED_ALIGNMENT, (numBytes + DESIRED_ALIGNMENT-1) & (-DESIRED_ALIGNMENT));
+#if defined(SD_ALIGNED_ALLOC)
+                void *p = aligned_alloc(SD_DESIRED_ALIGNMENT, (numBytes + SD_DESIRED_ALIGNMENT-1) & (-SD_DESIRED_ALIGNMENT));
 #else
                 void *p = malloc(numBytes);
 #endif
@@ -160,14 +159,14 @@ namespace sd {
             _offset += numBytes;
             //memset(result, 0, (int) numBytes);
 
-            nd4j_debug("Allocating %lld bytes from workspace; Current PTR: %p; Current offset: %lld\n", numBytes, result, _offset.load());
+            sd_debug("Allocating %lld bytes from workspace; Current PTR: %p; Current offset: %lld\n", numBytes, result, _offset.load());
 
             this->_mutexAllocation.unlock();
 
             return result;
         }
 
-        Nd4jLong Workspace::getAllocatedSize() {
+        sd::LongType Workspace::getAllocatedSize() {
             return getCurrentSize() + getSpilledSize();
         }
 
@@ -182,40 +181,40 @@ namespace sd {
             _offsetSecondary = 0;
         }
 
-        Nd4jLong Workspace::getSpilledSize() {
+        sd::LongType Workspace::getSpilledSize() {
             return _spillsSize.load();
         }
 
-        void* Workspace::allocateBytes(sd::memory::MemoryType type, Nd4jLong numBytes) {
+        void* Workspace::allocateBytes(sd::memory::MemoryType type, sd::LongType numBytes) {
             if (type == DEVICE)
                 throw std::runtime_error("CPU backend doesn't have device memory");
 
             return this->allocateBytes(numBytes);
         }
 
-        Nd4jLong Workspace::getAllocatedSecondarySize() {
+        sd::LongType Workspace::getAllocatedSecondarySize() {
             return 0L;
         }
 
-        Nd4jLong Workspace::getCurrentSecondarySize() {
+        sd::LongType Workspace::getCurrentSecondarySize() {
             return 0L;
         }
 
-        Nd4jLong Workspace::getCurrentSecondaryOffset() {
+        sd::LongType Workspace::getCurrentSecondaryOffset() {
             return 0L;
         }
 
-        Nd4jLong Workspace::getSpilledSecondarySize() {
+        sd::LongType Workspace::getSpilledSecondarySize() {
             return 0L;
         }
 
-        Nd4jLong Workspace::getUsedSecondarySize() {
+        sd::LongType Workspace::getUsedSecondarySize() {
             return 0L;
         }
 
         Workspace* Workspace::clone() {
             // for clone we take whatever is higher: current allocated size, or allocated size of current loop
-            return new Workspace(sd::math::nd4j_max<Nd4jLong >(this->getCurrentSize(), this->_cycleAllocations.load()));
+            return new Workspace(sd::math::sd_max<sd::LongType >(this->getCurrentSize(), this->_cycleAllocations.load()));
         }
     }
 }

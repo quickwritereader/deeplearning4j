@@ -19,7 +19,6 @@
 //
 //  @author  raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <helpers/Loops.h>
 #include <types/types.h>
@@ -33,18 +32,18 @@ namespace functions {
 
         template <typename X>
         void TransformStrict<X>::exec(int opNum,
-                                      const void *x, const Nd4jLong *xShapeInfo,
+                                      const void *x, const sd::LongType *xShapeInfo,
                                       void *z,
-                                      const Nd4jLong *zShapeInfo,
+                                      const sd::LongType *zShapeInfo,
                                       void *extraParams,
                                       uint64_t threadId, uint64_t numThreads) {
                     DISPATCH_BY_OPNUM_T(exec, PARAMS(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads), TRANSFORM_STRICT_OPS);
-		}
+        }
 
         template <typename X>
         template<typename OpType>
-		void _CUDA_H TransformStrict<X>::exec(const void *vx, const Nd4jLong *xShapeInfo,
-                                              void *vz, const Nd4jLong *zShapeInfo,
+        void SD_HOST TransformStrict<X>::exec(const void *vx, const sd::LongType *xShapeInfo,
+                                              void *vz, const sd::LongType *zShapeInfo,
                                               void *vextraParams,
                                               uint64_t threadId, uint64_t numThreads) {
 
@@ -55,6 +54,6 @@ namespace functions {
             sd::TransformLoops<X,X,X>::template loopTransform<OpType>(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads);
         }
 
-        BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL TransformStrict, , FLOAT_TYPES);
+        BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN TransformStrict, , SD_FLOAT_TYPES);
     }
 }

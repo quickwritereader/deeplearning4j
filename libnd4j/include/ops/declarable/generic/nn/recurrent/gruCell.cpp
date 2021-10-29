@@ -67,7 +67,7 @@ CUSTOM_OP_IMPL(gruCell, 6, 4, false, 0, 0) {
 
     helpers::gruCell(block.launchContext(), x, hLast, Wru, Wc, bru, bc, r, u, c, h);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(gruCell) {
@@ -105,8 +105,8 @@ DECLARE_SHAPE_FN(gruCell) {
     REQUIRE_TRUE(shape::rank(bru)==1 && bru[1]==(2*nU), 0, "gruCell: reset/update biases must be rank 1, size 2*nU");
     REQUIRE_TRUE(shape::rank(bc)==1 && bc[1]==nU, 0, "gruCell: cell biases must be rank 1, size nU");
 
-    Nd4jLong *s0(nullptr);
-    ALLOCATE(s0, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);// [bS x nU]
+    sd::LongType *s0(nullptr);
+    ALLOCATE(s0, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);// [bS x nU]
 
     s0[0] = rank;
     s0[1] = bS;
@@ -141,17 +141,17 @@ CUSTOM_OP_IMPL(gruCell_bp, 10, 6, false, 0, 0) {
     auto dLdb   = OUTPUT_VARIABLE(4);                               // gradient wrt biases, [2*nU]
     auto dLdbc  = OUTPUT_VARIABLE(5);                               // gradient wrt c biases, [nU]
 
-    const Nd4jLong bS = x->sizeAt(0);
-    const Nd4jLong iS = x->sizeAt(1);
-    const Nd4jLong nU = hi->sizeAt(1);
+    const sd::LongType bS = x->sizeAt(0);
+    const sd::LongType iS = x->sizeAt(1);
+    const sd::LongType nU = hi->sizeAt(1);
 
     REQUIRE_TRUE(x->rankOf() == 2, 0, "GRU_CELL_BP: rank of input array x must be 2, but got %i instead", x->rankOf());
 
-    const std::vector<Nd4jLong> hiCorrectShape = {bS, nU};
-    const std::vector<Nd4jLong> wCorrectShape  = {iS+nU, 2*nU};
-    const std::vector<Nd4jLong> wcCorrectShape = {iS+nU, nU};
-    const std::vector<Nd4jLong> bCorrectShape  = {2*nU};
-    const std::vector<Nd4jLong> bcCorrectShape = {nU};
+    const std::vector<sd::LongType> hiCorrectShape = {bS, nU};
+    const std::vector<sd::LongType> wCorrectShape  = {iS+nU, 2*nU};
+    const std::vector<sd::LongType> wcCorrectShape = {iS+nU, nU};
+    const std::vector<sd::LongType> bCorrectShape  = {2*nU};
+    const std::vector<sd::LongType> bcCorrectShape = {nU};
 
     REQUIRE_TRUE(hi->isSameShape(hiCorrectShape),  0, "GRU_CELL_BP op: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(hiCorrectShape).c_str(), ShapeUtils::shapeAsString(hi).c_str());
     REQUIRE_TRUE(W->isSameShape(wCorrectShape),   0, "GRU_CELL_BP op: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wCorrectShape).c_str(), ShapeUtils::shapeAsString(W).c_str());
@@ -165,7 +165,7 @@ CUSTOM_OP_IMPL(gruCell_bp, 10, 6, false, 0, 0) {
 
     helpers::gruCellBp(block.launchContext(), x, hi, W, Wc, b, bc, dLdr, dLdu, dLdc, dLdh, dLdx, dLdhi, dLdW, dLdWc, dLdb, dLdbc);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(gruCell_bp) {
@@ -197,17 +197,17 @@ DECLARE_SHAPE_FN(gruCell_bp) {
     auto dLdhShapeInfo = inputShape->at(9);                          // [bS, nU]
 
     const int rank    = xShapeInfo[0];                               // = 2
-    const Nd4jLong bS = xShapeInfo[1];
-    const Nd4jLong iS = xShapeInfo[2];
-    const Nd4jLong nU = hiShapeInfo[2];
+    const sd::LongType bS = xShapeInfo[1];
+    const sd::LongType iS = xShapeInfo[2];
+    const sd::LongType nU = hiShapeInfo[2];
 
     REQUIRE_TRUE(xShapeInfo[0] == 2, 0, "GRU_CELL_BP: rank of input array x must be 2, but got %i instead", xShapeInfo[0]);
 
-    const std::vector<Nd4jLong> hiCorrectShape = {bS, nU};
-    const std::vector<Nd4jLong> wCorrectShape  = {iS+nU, 2*nU};
-    const std::vector<Nd4jLong> wcCorrectShape = {iS+nU, nU};
-    const std::vector<Nd4jLong> bCorrectShape  = {2*nU};
-    const std::vector<Nd4jLong> bcCorrectShape = {nU};
+    const std::vector<sd::LongType> hiCorrectShape = {bS, nU};
+    const std::vector<sd::LongType> wCorrectShape  = {iS+nU, 2*nU};
+    const std::vector<sd::LongType> wcCorrectShape = {iS+nU, nU};
+    const std::vector<sd::LongType> bCorrectShape  = {2*nU};
+    const std::vector<sd::LongType> bcCorrectShape = {nU};
 
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(hiShapeInfo, hiCorrectShape),  0, "GRU_CELL_BP op: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(hiCorrectShape).c_str(), ShapeUtils::shapeAsString(hiShapeInfo).c_str());
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(wShapeInfo, wCorrectShape),   0, "GRU_CELL_BP op: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wCorrectShape).c_str(), ShapeUtils::shapeAsString(wShapeInfo).c_str());
@@ -219,22 +219,22 @@ DECLARE_SHAPE_FN(gruCell_bp) {
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(dLdcShapeInfo, hiCorrectShape),  0, "GRU_CELL_BP op: wrong shape of dLdc array (gradient wrt cell state), expected is %s, but got %s instead !", ShapeUtils::shapeAsString(hiCorrectShape).c_str(), ShapeUtils::shapeAsString(dLdcShapeInfo).c_str());
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(dLdhShapeInfo, hiCorrectShape),  0, "GRU_CELL_BP op: wrong shape of dLdh array (gradient wrt current cell output), expected is %s, but got %s instead !", ShapeUtils::shapeAsString(hiCorrectShape).c_str(), ShapeUtils::shapeAsString(dLdhShapeInfo).c_str());
 
-    Nd4jLong *dLdxShapeInfo = nullptr;
+    sd::LongType *dLdxShapeInfo = nullptr;
     COPY_SHAPE(xShapeInfo, dLdxShapeInfo);
 
-    Nd4jLong *dLdhiShapeInfo = nullptr;
+    sd::LongType *dLdhiShapeInfo = nullptr;
     COPY_SHAPE(hiShapeInfo, dLdhiShapeInfo);
 
-    Nd4jLong *dLdWShapeInfo = nullptr;
+    sd::LongType *dLdWShapeInfo = nullptr;
     COPY_SHAPE(wShapeInfo, dLdWShapeInfo);
 
-    Nd4jLong *dLdWcShapeInfo = nullptr;
+    sd::LongType *dLdWcShapeInfo = nullptr;
     COPY_SHAPE(wcShapeInfo, dLdWcShapeInfo);
 
-    Nd4jLong *dLdbShapeInfo = nullptr;
+    sd::LongType *dLdbShapeInfo = nullptr;
     COPY_SHAPE(bShapeInfo, dLdbShapeInfo);
 
-    Nd4jLong *dLdbcShapeInfo = nullptr;
+    sd::LongType *dLdbcShapeInfo = nullptr;
     COPY_SHAPE(bcShapeInfo, dLdbcShapeInfo);
 
     return SHAPELIST(CONSTANT(dLdxShapeInfo), CONSTANT(dLdhiShapeInfo), CONSTANT(dLdWShapeInfo), CONSTANT(dLdWcShapeInfo), CONSTANT(dLdbShapeInfo), CONSTANT(dLdbcShapeInfo));

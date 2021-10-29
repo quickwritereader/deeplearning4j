@@ -23,13 +23,12 @@
 #ifndef LIBND4J_GRADCHECK_H
 #define LIBND4J_GRADCHECK_H
 
-
 #include <array/NDArray.h>
 #include <ops/declarable/DeclarableOp.h>
 
 namespace sd {
 
-class ND4J_EXPORT GradCheck {
+class SD_LIB_EXPORT GradCheck {
 
     public:
         enum LossFunc {MEAN = 0, SUM = 1};
@@ -58,15 +57,12 @@ class ND4J_EXPORT GradCheck {
 };
 
 
-
-
-
 // //////////////////////////////////////////////////////////////////////////
 // ///// IMLEMENTATION OF INLINE METHODS /////
 // //////////////////////////////////////////////////////////////////////////
 
 // template<typename T>
-// FORCEINLINE bool ShapeUtils::isPermutNecessary(const std::vector<int>& permut) {
+// SD_INLINE bool ShapeUtils::isPermutNecessary(const std::vector<int>& permut) {
 
 //     for(int i=0; i<permut.size(); ++i)
 //         if(permut[i] != i)
@@ -74,7 +70,6 @@ class ND4J_EXPORT GradCheck {
 
 //     return false;
 // }
-
 
 
 }

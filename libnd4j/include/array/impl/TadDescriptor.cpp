@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //
 
-
 #include <algorithm>
 #include "../TadDescriptor.h"
 
@@ -33,7 +32,7 @@ namespace sd {
         _unitiesInShape = other._unitiesInShape;
     }
 #endif
-    TadDescriptor::TadDescriptor(const Nd4jLong *originalShape, const int *dimensions, const int length, const bool keepUnitiesInShape) {
+    TadDescriptor::TadDescriptor(const sd::LongType *originalShape, const int *dimensions, const int length, const bool keepUnitiesInShape) {
         ShapeDescriptor descriptor(originalShape);
 
         _axis.resize(length);

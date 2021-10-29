@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/VariableSpace.h>
 #include <graph/Stash.h>
 #include <graph/SessionLocalStorage.h>
@@ -33,7 +32,7 @@ namespace sd {
             _stash = stash;
         }
 
-        VariableSpace* SessionLocalStorage::localVariableSpace(Nd4jLong sessionId) {
+        VariableSpace* SessionLocalStorage::localVariableSpace(sd::LongType sessionId) {
             _mutex.lock();
             auto varSpace = _threadVariableSpace.at(sessionId);
             _mutex.unlock();
@@ -52,7 +51,7 @@ namespace sd {
         }
 
 
-        Nd4jLong SessionLocalStorage::getThreadId() {
+        sd::LongType SessionLocalStorage::getThreadId() {
 #ifdef __APPLE__
             // syscall?
 #elif _WIN32
@@ -72,7 +71,7 @@ namespace sd {
             return size;
         }
 
-        void SessionLocalStorage::endSession(Nd4jLong sessionId) {
+        void SessionLocalStorage::endSession(sd::LongType sessionId) {
             // we should delete specific holders here
             _mutex.lock();
             auto vs = _threadVariableSpace[sessionId];
@@ -95,7 +94,7 @@ namespace sd {
             endSession(ntid);
         }
 
-        Nd4jLong SessionLocalStorage::getSessionId() {
+        sd::LongType SessionLocalStorage::getSessionId() {
             auto tid = getThreadId();
 
             _mutex.lock();
@@ -106,11 +105,11 @@ namespace sd {
             return ntid;
         }
 
-        Nd4jLong sd::graph::SessionLocalStorage::startSession() {
+        sd::LongType sd::graph::SessionLocalStorage::startSession() {
             auto tid = getThreadId();
 
-            nd4j_debug("Adding ThreadId: %i;\n", (int) tid);
-            Nd4jLong ntid = _sessionCounter++;
+            sd_debug("Adding ThreadId: %i;\n", (int) tid);
+            sd::LongType ntid = _sessionCounter++;
             _mutex.lock();
 
             _threadSession[tid] = ntid;

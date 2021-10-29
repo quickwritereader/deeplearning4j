@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "../MemoryCounter.h"
 #include <execution/AffinityManager.h>
 #include <system/Environment.h>
@@ -51,32 +50,32 @@ namespace sd {
           return instance;
         }
 
-        void MemoryCounter::countIn(int deviceId, Nd4jLong numBytes) {
+        void MemoryCounter::countIn(int deviceId, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _deviceCounters[deviceId] += numBytes;
         }
 
-        void MemoryCounter::countIn(sd::memory::MemoryType group, Nd4jLong numBytes) {
+        void MemoryCounter::countIn(sd::memory::MemoryType group, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _groupCounters[group] += numBytes;
         }
 
-        void MemoryCounter::countOut(int deviceId, Nd4jLong numBytes) {
+        void MemoryCounter::countOut(int deviceId, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _deviceCounters[deviceId] -= numBytes;
         }
 
-        void MemoryCounter::countOut(sd::memory::MemoryType group, Nd4jLong numBytes) {
+        void MemoryCounter::countOut(sd::memory::MemoryType group, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _groupCounters[group] -= numBytes;
         }
 
-        bool MemoryCounter::validate(Nd4jLong numBytes) {
+        bool MemoryCounter::validate(sd::LongType numBytes) {
             auto deviceId = sd::AffinityManager::currentDeviceId();
             return validateDevice(deviceId, numBytes);
         }
 
-        bool MemoryCounter::validateDevice(int deviceId, Nd4jLong numBytes) {
+        bool MemoryCounter::validateDevice(int deviceId, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             auto dLimit = _deviceLimits[deviceId];
             if (dLimit <= 0)
@@ -87,7 +86,7 @@ namespace sd {
             return numBytes + dAlloc <= dLimit;
         }
 
-        bool MemoryCounter::validateGroup(sd::memory::MemoryType group, Nd4jLong numBytes) {
+        bool MemoryCounter::validateGroup(sd::memory::MemoryType group, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             auto gLimit = _groupLimits[group];
             if (gLimit <= 0)
@@ -98,32 +97,32 @@ namespace sd {
             return numBytes + gAlloc <= gLimit;
         }
 
-        Nd4jLong MemoryCounter::allocatedDevice(int deviceId) {
+        sd::LongType MemoryCounter::allocatedDevice(int deviceId) {
             std::lock_guard<std::mutex> lock(_locker);
             return _deviceCounters[deviceId];
         }
 
-        Nd4jLong MemoryCounter::allocatedGroup(sd::memory::MemoryType group) {
+        sd::LongType MemoryCounter::allocatedGroup(sd::memory::MemoryType group) {
             std::lock_guard<std::mutex> lock(_locker);
             return _groupCounters[group];
         }
 
-        void MemoryCounter::setDeviceLimit(int deviceId, Nd4jLong numBytes) {
+        void MemoryCounter::setDeviceLimit(int deviceId, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _deviceLimits[deviceId] = numBytes;
         }
 
-        void MemoryCounter::setGroupLimit(sd::memory::MemoryType group, Nd4jLong numBytes) {
+        void MemoryCounter::setGroupLimit(sd::memory::MemoryType group, sd::LongType numBytes) {
             std::lock_guard<std::mutex> lock(_locker);
             _groupLimits[group] = numBytes;
         }
 
-        Nd4jLong MemoryCounter::deviceLimit(int deviceId) {
+        sd::LongType MemoryCounter::deviceLimit(int deviceId) {
             std::lock_guard<std::mutex> lock(_locker);
             return _deviceLimits[deviceId];
         }
 
-        Nd4jLong MemoryCounter::groupLimit(sd::memory::MemoryType group) {
+        sd::LongType MemoryCounter::groupLimit(sd::memory::MemoryType group) {
             std::lock_guard<std::mutex> lock(_locker);
             return _groupLimits[group];
         }

@@ -23,7 +23,6 @@
 
 #ifndef _SYS_MMAN_H_
 #define _SYS_MMAN_H_
-
 #include <windows.h>
 #include <errno.h>
 #include <io.h>
@@ -32,8 +31,8 @@
 #define FILE_MAP_EXECUTE    0x0020
 #endif /* FILE_MAP_EXECUTE */
 
-#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.
-#define _WIN32_WINNT 0x0501	// Change this to the appropriate value to target other versions of Windows.
+#ifndef _WIN32_WINNT        // Allow use of features specific to Windows XP or later.
+#define _WIN32_WINNT 0x0501    // Change this to the appropriate value to target other versions of Windows.
 #endif
 
 /* All the headers include this file. */
@@ -48,7 +47,6 @@ typedef int64_t OffsetType;
 #else
 typedef uint32_t OffsetType;
 #endif
-
 #include <sys/types.h>
 
 #ifdef __cplusplus
@@ -75,7 +73,7 @@ extern "C" {
 #define MS_SYNC         2
 #define MS_INVALIDATE   4
 
-void _mmap(Nd4jLong* result, size_t length, const char *fileName);
+void _mmap(sd::LongType* result, size_t length, const char *fileName);
 void*   mmap(void *addr, size_t len, int prot, int flags, int fildes, OffsetType off);
 int     munmap(void *addr, size_t len);
 int     _mprotect(void *addr, size_t len, int prot);
@@ -133,7 +131,7 @@ static DWORD __map_mmap_prot_file(const int prot)
     return desiredAccess;
 }
 
-void _mmap(Nd4jLong* result, size_t length, const char *fileName) {
+void _mmap(sd::LongType* result, size_t length, const char *fileName) {
     HANDLE fm, h;
 
     void * map = MAP_FAILED;
@@ -167,7 +165,7 @@ void _mmap(Nd4jLong* result, size_t length, const char *fileName) {
 
     if (h == INVALID_HANDLE_VALUE) {
         errno = __map_mman_error(GetLastError(), EPERM);
-        nd4j_printf("Error code: %i\n", (int) errno);
+        sd_printf("Error code: %i\n", (int) errno);
         throw std::runtime_error("CreateFile failed");
     }
 
@@ -189,8 +187,8 @@ void _mmap(Nd4jLong* result, size_t length, const char *fileName) {
         throw std::runtime_error("MapViewOfFile failed");
     }
 
-    result[0] = reinterpret_cast<Nd4jLong>(map);
-    result[1] = reinterpret_cast<Nd4jLong>(h);
+    result[0] = reinterpret_cast<sd::LongType>(map);
+    result[1] = reinterpret_cast<sd::LongType>(h);
 }
 
 void* mmap(void *addr, size_t len, int prot, int flags, int files, OffsetType off)

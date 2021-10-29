@@ -22,7 +22,6 @@
 
 #ifndef SAMEDIFF_COMPAT_H
 #define SAMEDIFF_COMPAT_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

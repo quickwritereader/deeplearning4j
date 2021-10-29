@@ -21,7 +21,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <helpers/PointersManager.h>
 #include <math/templatemath.h>
@@ -32,17 +31,17 @@ namespace ops  {
 //////////////////////////////////////////////////////////////////////////
 // columns [bS, iC, kD, kH, kW, oD, oH, oW] to be de-convoluted to volume [bS, iC, iD, iH, iW]
 template <typename T>
-static __global__ void col2volCuda(const void* columns, const Nd4jLong* colShapeInfo, void* volume, const Nd4jLong* volShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+static SD_KERNEL void col2volCuda(const void* columns, const sd::LongType* colShapeInfo, void* volume, const sd::LongType* volShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     const T* col = reinterpret_cast<const T*>(columns);
           T* vol = reinterpret_cast<T*>(volume);
 
-    __shared__ uint kD, kH, kW, oD, oH, oW, *sharedMem;
-    __shared__ Nd4jLong volLen;
+    __shared__ sd::Unsigned kD, kH, kW, oD, oH, oW, *sharedMem;
+    __shared__ sd::LongType volLen;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<uint*>(shmem);
+        sharedMem = reinterpret_cast<sd::Unsigned*>(shmem);
 
         oD = colShapeInfo[6];
         oH = colShapeInfo[7];
@@ -60,7 +59,7 @@ static __global__ void col2volCuda(const void* columns, const Nd4jLong* colShape
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < volLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < volLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, volShapeInfo, coords);
 
@@ -68,29 +67,29 @@ static __global__ void col2volCuda(const void* columns, const Nd4jLong* colShape
 
         const auto bSiCoffset = coords[0] * colShapeInfo[9] + coords[1] * colShapeInfo[10];
 
-        const uint imD = coords[2] + pD;
-        const uint imH = coords[3] + pH;
-        const uint imW = coords[4] + pW;
+        const sd::Unsigned imD = coords[2] + pD;
+        const sd::Unsigned imH = coords[3] + pH;
+        const sd::Unsigned imW = coords[4] + pW;
 
-        const uint colDstart = (imD < kD) ? 0 : (imD - kD) / sD + 1;
-        const uint colHstart = (imH < kH) ? 0 : (imH - kH) / sH + 1;
-        const uint colWstart = (imW < kW) ? 0 : (imW - kW) / sW + 1;
+        const sd::Unsigned colDstart = (imD < kD) ? 0 : (imD - kD) / sD + 1;
+        const sd::Unsigned colHstart = (imH < kH) ? 0 : (imH - kH) / sH + 1;
+        const sd::Unsigned colWstart = (imW < kW) ? 0 : (imW - kW) / sW + 1;
 
-        const uint colDend = sd::math::nd4j_min<uint>(imD / sD + 1, oD);
-        const uint colHend = sd::math::nd4j_min<uint>(imH / sH + 1, oH);
-        const uint colWend = sd::math::nd4j_min<uint>(imW / sW + 1, oW);
+        const sd::Unsigned colDend = sd::math::sd_min<sd::Unsigned>(imD / sD + 1, oD);
+        const sd::Unsigned colHend = sd::math::sd_min<sd::Unsigned>(imH / sH + 1, oH);
+        const sd::Unsigned colWend = sd::math::sd_min<sd::Unsigned>(imW / sW + 1, oW);
 
         T val = 0;
 
-        for(uint colD = colDstart; colD < colDend; ++colD) {
+        for(sd::Unsigned colD = colDstart; colD < colDend; ++colD) {
             coords[2] = imD - colD * sD;
             if(coords[2] % dD != 0) continue;
 
-            for(uint colH = colHstart; colH < colHend; ++colH) {
+            for(sd::Unsigned colH = colHstart; colH < colHend; ++colH) {
                 coords[3] = imH - colH * sH;
                 if(coords[3] % dH != 0) continue;
 
-                for(uint colW = colWstart; colW < colWend; ++colW) {
+                for(sd::Unsigned colW = colWstart; colW < colWend; ++colW) {
                     coords[4] = imW - colW * sW;
                     if(coords[4] % dW != 0) continue;
 
@@ -107,24 +106,24 @@ static __global__ void col2volCuda(const void* columns, const Nd4jLong* colShape
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void col2volCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                const void* columns, const Nd4jLong* colShapeInfo,
-                                      void* volume, const Nd4jLong* volShapeInfo,
+                                const void* columns, const sd::LongType* colShapeInfo,
+                                      void* volume, const sd::LongType* volShapeInfo,
                                 const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     col2volCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(columns, colShapeInfo, volume, volShapeInfo, sD, sH, sW, pD, pH, pW, dD, dH, dW);
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void ConvolutionUtils::col2vol(sd::graph::Context& block, const NDArray& col, NDArray& vol, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+void ConvolutionUtils::col2vol(sd::graph::Context& block, const NDArray& col, NDArray& vol, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     PointersManager manager(block.launchContext(), "col2vol");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (vol.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-    const int sharedMem = col.rankOf() * sizeof(uint) * threadsPerBlock  + 256;
+    const int sharedMem = col.rankOf() * sizeof(sd::Unsigned) * threadsPerBlock  + 256;
 
     NDArray::prepareSpecialUse({&vol}, {&col});
-    BUILD_SINGLE_SELECTOR(vol.dataType(), col2volCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), col.specialBuffer(), col.specialShapeInfo(), vol.specialBuffer(), vol.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(vol.dataType(), col2volCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), col.specialBuffer(), col.specialShapeInfo(), vol.specialBuffer(), vol.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({&vol}, {&col});
 
     manager.synchronize();

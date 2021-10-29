@@ -33,7 +33,7 @@ namespace sd {
 
             x->applyTransform(transform::Rint, *z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
     }
 

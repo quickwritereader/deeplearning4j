@@ -20,14 +20,13 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include <ops/declarable/helpers/batchnorm.h>
 #include <helpers/ShapeUtils.h>
 #include <helpers/OmpLaunchHelper.h>
 #include <execution/Threads.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
@@ -54,21 +53,21 @@ static void batchnorm_(const NDArray* input, const NDArray* mean, const NDArray*
     if(paramSameOffset && beta != nullptr)
         paramSameOffset &= shape::haveSameShapeAndStrides(mean->shapeInfo(), beta->shapeInfo());
 
-    const Nd4jLong  lenBig        = input->lengthOf();
-    const Nd4jLong  lenSmall      = mean->lengthOf();
+    const sd::LongType  lenBig        = input->lengthOf();
+    const sd::LongType  lenSmall      = mean->lengthOf();
 
-    const Nd4jLong steps = lenBig / lenSmall;
+    const sd::LongType steps = lenBig / lenSmall;
     std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(input->rankOf(), axes);
 
     OmpLaunchHelper info(lenBig, lenSmall);
 
     auto func = PRAGMA_THREADS_DO {
 
-        Nd4jLong* xOffsets = new Nd4jLong[steps];
-        Nd4jLong* zOffsets = xzSameOffset ? xOffsets : new Nd4jLong[steps];
+        sd::LongType* xOffsets = new sd::LongType[steps];
+        sd::LongType* zOffsets = xzSameOffset ? xOffsets : new sd::LongType[steps];
         int* auxBuff = new int[2 * input->rankOf()];
 
-        for (Nd4jLong j = 0; j < lenSmall; ++j) {
+        for (sd::LongType j = 0; j < lenSmall; ++j) {
 
             const bool isOwner = (j < info._numThreads) ? thread_id == j : thread_id == (j % info._numThreads);
 
@@ -79,7 +78,7 @@ static void batchnorm_(const NDArray* input, const NDArray* mean, const NDArray*
             const auto varOffset  = paramSameOffset ? meanOffset : shape::getIndexOffset(j, variance->shapeInfo());
 
             const auto meanVal = m[meanOffset];
-            auto sigmaInvGam   = static_cast<T>(1) / sd::math::nd4j_sqrt<T, T>(v[varOffset] + epsilon);
+            auto sigmaInvGam   = static_cast<T>(1) / sd::math::sd_sqrt<T, T>(v[varOffset] + epsilon);
 
             if(g != nullptr) {
                 const auto gammaOffset = paramSameOffset ? meanOffset : shape::getIndexOffset(j, gamma->shapeInfo());
@@ -98,7 +97,7 @@ static void batchnorm_(const NDArray* input, const NDArray* mean, const NDArray*
                 shape::outerArrayOffsets(zOffsets, j, output->shapeInfo(), mean->shapeInfo(), auxBuff, dimsToExclude.data());
 
             PRAGMA_OMP_SIMD
-            for (Nd4jLong i = 0; i < steps; ++i)
+            for (sd::LongType i = 0; i < steps; ++i)
                 z[zOffsets[i]] = (x[xOffsets[i]] - meanVal) * sigmaInvGam + betaVal;
         }
 
@@ -127,9 +126,9 @@ static void batchnorm2_(const NDArray* input, const NDArray* mean, const NDArray
     const auto b = beta  == nullptr ? nullptr : beta->bufferAsT<T>();
 
     // xRank == zRank, minRank = meanRank = varianceRank = gammaRank = betaRank
-    const uint xRank   = input->rankOf();
-    const uint minRank = mean->rankOf();
-    const uint numAxes = axes.size();
+    const sd::Unsigned xRank   = input->rankOf();
+    const sd::Unsigned minRank = mean->rankOf();
+    const sd::Unsigned numAxes = axes.size();
 
     const bool xzSameOffset = shape::haveSameShapeAndStrides(input->shapeInfo(), output->shapeInfo());
 
@@ -141,9 +140,9 @@ static void batchnorm2_(const NDArray* input, const NDArray* mean, const NDArray
 
     auto func = PRAGMA_THREADS_FOR {
 
-        int xzCoords[MAX_RANK], minCoords[MAX_RANK];
+        int xzCoords[SD_MAX_RANK], minCoords[SD_MAX_RANK];
 
-        for (uint i = 0, j = 0; i < xRank; ++i)
+        for (sd::Unsigned i = 0, j = 0; i < xRank; ++i)
             if(j < numAxes && i != axes[j])
                 minCoords[i] = 0;
             else
@@ -157,7 +156,7 @@ static void batchnorm2_(const NDArray* input, const NDArray* mean, const NDArray
             const auto zOffset = xzSameOffset ? xOffset : shape::getOffset(output->shapeInfo(), xzCoords);
 
             if(minRank == xRank) {
-                for (uint j = 0; j < numAxes; ++j)
+                for (sd::Unsigned j = 0; j < numAxes; ++j)
                     minCoords[axes[j]] = xzCoords[axes[j]];
             }
             else    // minRank = numAxes = 1 in this case
@@ -166,7 +165,7 @@ static void batchnorm2_(const NDArray* input, const NDArray* mean, const NDArray
             const auto meanOffset     = shape::getOffset(mean->shapeInfo(), minCoords);
             const auto varianceOffset = paramSameOffset ? meanOffset : shape::getOffset(variance->shapeInfo(), minCoords);
 
-            T sigmaInvGam = 1. / sd::math::nd4j_sqrt<T, T>(v[varianceOffset] + epsilon);
+            T sigmaInvGam = 1. / sd::math::sd_sqrt<T, T>(v[varianceOffset] + epsilon);
 
             if(g != nullptr) {
                 const auto gammaOffset = paramSameOffset ? meanOffset : shape::getOffset(gamma->shapeInfo(), minCoords);
@@ -189,12 +188,11 @@ static void batchnorm2_(const NDArray* input, const NDArray* mean, const NDArray
  void batchnorm(const NDArray* input, const NDArray* mean, const NDArray* variance, const NDArray* gamma, const NDArray* beta, NDArray* output, const std::vector<int>& axes, const double epsilon) {
 
     // batchnorm2_ is still slower ?
-    BUILD_SINGLE_SELECTOR(input->dataType(), batchnorm_, (input, mean, variance, gamma, beta, output, axes, epsilon), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), batchnorm_, (input, mean, variance, gamma, beta, output, axes, epsilon), SD_FLOAT_TYPES);
 }
 
 
-
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void batchnorm_, (const NDArray* input, const NDArray* mean, const NDArray* variance, const NDArray* gamma, const NDArray* beta, NDArray* output, const std::vector<int>& axes, const double epsilon), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void batchnorm_, (const NDArray* input, const NDArray* mean, const NDArray* variance, const NDArray* gamma, const NDArray* beta, NDArray* output, const std::vector<int>& axes, const double epsilon), SD_FLOAT_TYPES);
 
 }
 }

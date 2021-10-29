@@ -36,25 +36,25 @@
 namespace sd {
 
 
-class ND4J_EXPORT LoopKind {
+class SD_LIB_EXPORT LoopKind {
 
     public:
         enum Kind { SMALLARR2DX, EWS1, EWSNONZERO, RANK1, RANK2, RANK3, RANK4, RANK5, X_EWSNONZERO, Y_EWSNONZERO, Z_EWSNONZERO, COMMON, BROADCAST_SCALAR_X, BROADCAST_SCALAR_Y, BROADCAST_3D, BROADCAST_4D, BROADCAST_5D };
 
-        static FORCEINLINE Kind deduceKindOfLoopXZ(const Nd4jLong* xShapeInfo, const Nd4jLong* zShapeInfo);
-        static FORCEINLINE Kind deduceKindOfLoopXYZ(const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, const Nd4jLong* zShapeInfo);
-        static FORCEINLINE Kind deduceKindOfLoopTadXZ(const Nd4jLong* xShapeInfo, const Nd4jLong* zShapeInfo, const Nd4jLong* tadShapeInfo);
-        static FORCEINLINE Kind deduceKindOfLoopTadXYZ(const Nd4jLong* xTadShapeInfo, const Nd4jLong* yTadShapeInfo, const Nd4jLong* zShapeInfo);
-        static FORCEINLINE Kind deduceKindOfLoopBroadcast(const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, const Nd4jLong* zShapeInfo);
+        static SD_INLINE Kind deduceKindOfLoopXZ(const sd::LongType* xShapeInfo, const sd::LongType* zShapeInfo);
+        static SD_INLINE Kind deduceKindOfLoopXYZ(const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, const sd::LongType* zShapeInfo);
+        static SD_INLINE Kind deduceKindOfLoopTadXZ(const sd::LongType* xShapeInfo, const sd::LongType* zShapeInfo, const sd::LongType* tadShapeInfo);
+        static SD_INLINE Kind deduceKindOfLoopTadXYZ(const sd::LongType* xTadShapeInfo, const sd::LongType* yTadShapeInfo, const sd::LongType* zShapeInfo);
+        static SD_INLINE Kind deduceKindOfLoopBroadcast(const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, const sd::LongType* zShapeInfo);
 
 };
 
 //////////////////////////////////////////////////////////////////////////////
-LoopKind::Kind LoopKind::deduceKindOfLoopXZ(const Nd4jLong* xShapeInfo, const Nd4jLong* zShapeInfo) {
+LoopKind::Kind LoopKind::deduceKindOfLoopXZ(const sd::LongType* xShapeInfo, const sd::LongType* zShapeInfo) {
 
     const int xRank = shape::rank(xShapeInfo);
-    const Nd4jLong xEws = shape::elementWiseStride(xShapeInfo);
-    const Nd4jLong zEws = shape::elementWiseStride(zShapeInfo);
+    const sd::LongType xEws = shape::elementWiseStride(xShapeInfo);
+    const sd::LongType zEws = shape::elementWiseStride(zShapeInfo);
 
     const char xOrder = shape::order(xShapeInfo);
     const char zOrder = shape::order(zShapeInfo);
@@ -85,7 +85,7 @@ LoopKind::Kind LoopKind::deduceKindOfLoopXZ(const Nd4jLong* xShapeInfo, const Nd
     return COMMON;
 }
 
-LoopKind::Kind LoopKind::deduceKindOfLoopBroadcast(const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, const Nd4jLong* zShapeInfo) {
+LoopKind::Kind LoopKind::deduceKindOfLoopBroadcast(const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, const sd::LongType* zShapeInfo) {
     auto xRank = shape::rank(xShapeInfo);
     auto yRank = shape::rank(yShapeInfo);
     auto zRank = shape::rank(zShapeInfo);
@@ -147,12 +147,12 @@ LoopKind::Kind LoopKind::deduceKindOfLoopBroadcast(const Nd4jLong* xShapeInfo, c
 }
 
 //////////////////////////////////////////////////////////////////////////////
-LoopKind::Kind LoopKind::deduceKindOfLoopXYZ(const Nd4jLong* xShapeInfo, const Nd4jLong* yShapeInfo, const Nd4jLong* zShapeInfo) {
+LoopKind::Kind LoopKind::deduceKindOfLoopXYZ(const sd::LongType* xShapeInfo, const sd::LongType* yShapeInfo, const sd::LongType* zShapeInfo) {
 
     const int xRank = shape::rank(xShapeInfo);
-    const Nd4jLong xEws = shape::elementWiseStride(xShapeInfo);
-    const Nd4jLong yEws = shape::elementWiseStride(yShapeInfo);
-    const Nd4jLong zEws = shape::elementWiseStride(zShapeInfo);
+    const sd::LongType xEws = shape::elementWiseStride(xShapeInfo);
+    const sd::LongType yEws = shape::elementWiseStride(yShapeInfo);
+    const sd::LongType zEws = shape::elementWiseStride(zShapeInfo);
 
     const char xOrder = shape::order(xShapeInfo);
     const char yOrder = shape::order(yShapeInfo);
@@ -189,14 +189,14 @@ LoopKind::Kind LoopKind::deduceKindOfLoopXYZ(const Nd4jLong* xShapeInfo, const N
 
 
 //////////////////////////////////////////////////////////////////////////////
-LoopKind::Kind LoopKind::deduceKindOfLoopTadXZ(const Nd4jLong* xShapeInfo, const Nd4jLong* zShapeInfo, const Nd4jLong* tadShapeInfo) {
+LoopKind::Kind LoopKind::deduceKindOfLoopTadXZ(const sd::LongType* xShapeInfo, const sd::LongType* zShapeInfo, const sd::LongType* tadShapeInfo) {
 
     const int xRank = shape::rank(xShapeInfo);
     const int tRank = shape::rank(tadShapeInfo);
 
-    const Nd4jLong xEws = shape::elementWiseStride(xShapeInfo);
-    const Nd4jLong tEws = shape::elementWiseStride(tadShapeInfo);
-    const Nd4jLong zEws = shape::elementWiseStride(zShapeInfo);
+    const sd::LongType xEws = shape::elementWiseStride(xShapeInfo);
+    const sd::LongType tEws = shape::elementWiseStride(tadShapeInfo);
+    const sd::LongType zEws = shape::elementWiseStride(zShapeInfo);
 
     const char xOrder = shape::order(xShapeInfo);
     const char tOrder = shape::order(tadShapeInfo);
@@ -233,15 +233,15 @@ LoopKind::Kind LoopKind::deduceKindOfLoopTadXZ(const Nd4jLong* xShapeInfo, const
 }
 
 //////////////////////////////////////////////////////////////////////////////
-LoopKind::Kind LoopKind::deduceKindOfLoopTadXYZ(const Nd4jLong* xTadShapeInfo, const Nd4jLong* yTadShapeInfo, const Nd4jLong* zShapeInfo) {
+LoopKind::Kind LoopKind::deduceKindOfLoopTadXYZ(const sd::LongType* xTadShapeInfo, const sd::LongType* yTadShapeInfo, const sd::LongType* zShapeInfo) {
 
     // both tad shapes are the same, but strides and ews may be different
 
     const int tadRank = shape::rank(xTadShapeInfo);
 
-    const Nd4jLong xTadEws = shape::elementWiseStride(xTadShapeInfo);
-    const Nd4jLong yTadEws = shape::elementWiseStride(yTadShapeInfo);
-    const Nd4jLong zEws    = shape::elementWiseStride(zShapeInfo);
+    const sd::LongType xTadEws = shape::elementWiseStride(xTadShapeInfo);
+    const sd::LongType yTadEws = shape::elementWiseStride(yTadShapeInfo);
+    const sd::LongType zEws    = shape::elementWiseStride(zShapeInfo);
 
     const char xTadOrder = shape::order(xTadShapeInfo);
     const char yTadOrder = shape::order(xTadShapeInfo);
@@ -269,8 +269,6 @@ LoopKind::Kind LoopKind::deduceKindOfLoopTadXYZ(const Nd4jLong* xTadShapeInfo, c
         return RANK5;
     return COMMON;
 }
-
-
 
 
 }

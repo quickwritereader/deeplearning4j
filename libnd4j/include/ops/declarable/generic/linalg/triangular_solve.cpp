@@ -63,7 +63,7 @@ namespace sd {
             if (input != a)
                 delete input;
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(triangular_solve) {

@@ -22,22 +22,20 @@
 
 #ifndef LIBND4J_FLOWPATH_H
 #define LIBND4J_FLOWPATH_H
-
 #include <system/op_boilerplate.h>
 #include <unordered_map>
 #include <map>
-#include <system/pointercast.h>
 #include <graph/NodeState.h>
 #include <graph/FrameState.h>
 #include <graph/profiling/GraphProfile.h>
-#include <system/dll.h>
+
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT FlowPath {
+        class SD_LIB_EXPORT FlowPath {
         private:
-            MAP_IMPL<int, NodeState> _states;
-            MAP_IMPL<Nd4jLong, FrameState> _frames;
+            SD_MAP_IMPL<int, NodeState> _states;
+            SD_MAP_IMPL<sd::LongType, FrameState> _frames;
 
             void ensureNode(int nodeId);
             void ensureFrame(int nodeId);
@@ -47,11 +45,11 @@ namespace sd {
             FlowPath() = default;
             ~FlowPath() = default;
 
-            void setInnerTime(int nodeId, Nd4jLong time);
-            void setOuterTime(int nodeId, Nd4jLong time);
+            void setInnerTime(int nodeId, sd::LongType time);
+            void setOuterTime(int nodeId, sd::LongType time);
 
-            Nd4jLong innerTime(int nodeId);
-            Nd4jLong outerTime(int nodeId);
+            sd::LongType innerTime(int nodeId);
+            sd::LongType outerTime(int nodeId);
 
             bool isNodeActive(int nodeId);
             void markNodeActive(int nodeId, bool isActive);
@@ -64,21 +62,21 @@ namespace sd {
 
             // Frame-related methods
 
-            void registerFrame(Nd4jLong frameId);
-            void forgetFrame(Nd4jLong frameId);
+            void registerFrame(sd::LongType frameId);
+            void forgetFrame(sd::LongType frameId);
 
-            bool isFrameActive(Nd4jLong frameId);
-            void markFrameActive(Nd4jLong frameId, bool isActive);
+            bool isFrameActive(sd::LongType frameId);
+            void markFrameActive(sd::LongType frameId, bool isActive);
 
-            bool isRewindPlanned(Nd4jLong frameId);
-            void planRewind(Nd4jLong frameId, bool reallyRewind);
+            bool isRewindPlanned(sd::LongType frameId);
+            void planRewind(sd::LongType frameId, bool reallyRewind);
 
-            int getRewindPosition(Nd4jLong frameId);
-            void setRewindPosition(Nd4jLong frameId, int position);
-            void setRewindPositionOnce(Nd4jLong frameId, int position);
+            int getRewindPosition(sd::LongType frameId);
+            void setRewindPosition(sd::LongType frameId, int position);
+            void setRewindPositionOnce(sd::LongType frameId, int position);
 
-            void incrementNumberOfCycles(Nd4jLong frameId);
-            Nd4jLong getNumberOfCycles(Nd4jLong frameId);
+            void incrementNumberOfCycles(sd::LongType frameId);
+            sd::LongType getNumberOfCycles(sd::LongType frameId);
 
             GraphProfile* profile();
         };

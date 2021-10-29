@@ -22,10 +22,8 @@
 
 #ifndef LIBND4J_TESTLAYERS_H
 #define LIBND4J_TESTLAYERS_H
-
 #include <memory/MemoryTracker.h>
-#include <system/op_boilerplate.h>
-#include <system/pointercast.h>
+#include <system/common.h>
 #include <legacy/NativeOps.h>
 #include <graph/Node.h>
 #include <graph/Variable.h>

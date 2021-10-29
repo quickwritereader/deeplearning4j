@@ -20,7 +20,6 @@
 
 #ifndef LIBND4J_HELPERS_CTCLOSS_H
 #define LIBND4J_HELPERS_CTCLOSS_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include <graph/Context.h>
 #include <type_traits>
@@ -123,7 +122,7 @@ namespace helpers {
      * @param gradients NDArray {BATCH_LEN, MAX_FRAME_LEN, CLASS_LEN } or EMPTY. gradients
      * @param blankIndex index of the blank label in logits
      */
-    void ctcLoss(graph::Context& block, const NDArray &logitsInput, const NDArray &targetLabels, const NDArray &logitsLengths, const NDArray &targetLabelLengths, NDArray &logLosses, NDArray &gradients, int blankIndex);
+    SD_LIB_HIDDEN void ctcLoss(graph::Context& block, const NDArray &logitsInput, const NDArray &targetLabels, const NDArray &logitsLengths, const NDArray &targetLabelLengths, NDArray &logLosses, NDArray &gradients, int blankIndex);
 
 
     /**
@@ -144,7 +143,7 @@ namespace helpers {
      * NOTE:
      * maximum value of integer type  should be >= CLASS_LEN to make sense. And also user should consider frame lengthes as well.
      */
-void beamSearch(const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits);
+    SD_LIB_HIDDEN void beamSearch(const NDArray& logit, const NDArray& sequence_length, NDArray& result_sequences, NDArray& result_probs, NDArray& result_sequences_length, int blank_index, int beam_width , int nbest_len, bool normalize_logits);
 }
 }
 }

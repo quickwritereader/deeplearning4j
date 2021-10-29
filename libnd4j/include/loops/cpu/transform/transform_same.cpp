@@ -19,7 +19,6 @@
 //
 //  @author  raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <helpers/Loops.h>
 #include <types/types.h>
@@ -33,28 +32,28 @@ namespace functions {
 
         template <typename X>
         void TransformSame<X>::exec(int opNum,
-                                    const void *x, const Nd4jLong *xShapeInfo,
-                                    void *z, const Nd4jLong *zShapeInfo,
+                                    const void *x, const sd::LongType *xShapeInfo,
+                                    void *z, const sd::LongType *zShapeInfo,
                                     void *extraParams,
                                     uint64_t threadId, uint64_t numThreads) {
                     DISPATCH_BY_OPNUM_T(exec, PARAMS(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads), TRANSFORM_SAME_OPS);
-		}
+        }
 
         template <typename X>
         template<typename OpType>
-		void _CUDA_H TransformSame<X>::exec(const void *vx, const Nd4jLong *xShapeInfo,
-                                            void *vz, const Nd4jLong *zShapeInfo,
+        void SD_HOST TransformSame<X>::exec(const void *vx, const sd::LongType *xShapeInfo,
+                                            void *vz, const sd::LongType *zShapeInfo,
                                             void *vextraParams,
                                             uint64_t threadId, uint64_t numThreads) {
 
-		    auto x = reinterpret_cast<const X *>(vx);
-		    auto z = reinterpret_cast<X *>(vz);
-		    auto extraParams = reinterpret_cast<X *>(vextraParams);
+            auto x = reinterpret_cast<const X *>(vx);
+            auto z = reinterpret_cast<X *>(vz);
+            auto extraParams = reinterpret_cast<X *>(vextraParams);
 
 
             sd::TransformLoops<X,X,X>::template loopTransform<OpType>(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads);
         }
 
-        BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL TransformSame, , LIBND4J_TYPES);
+        BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN TransformSame, , SD_COMMON_TYPES);
     }
 }

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <loops/pairwise_int.h>
 #include <types/types.h>
 #include <helpers/LoopKind.h>
@@ -33,11 +32,11 @@ namespace functions {
 
         template <typename X>
         void PairWiseIntTransform<X>::exec(const int opNum,
-                                           const void *x, Nd4jLong xEws,
-                                           const void *y, Nd4jLong yEws,
-                                           void *z, Nd4jLong zEws,
+                                           const void *x, sd::LongType xEws,
+                                           const void *y, sd::LongType yEws,
+                                           void *z, sd::LongType zEws,
                                            void *extraParams,
-                                           Nd4jLong n,
+                                           sd::LongType n,
                                            const uint64_t start, const uint64_t stop) {
             DISPATCH_BY_OPNUM_T(exec, PARAMS(x,
                                                xEws,
@@ -50,14 +49,13 @@ namespace functions {
         };
 
 
-
         template <typename X>
         template <typename OpType>
-        void PairWiseIntTransform<X>::exec(const void *vx, Nd4jLong xEws,
-                                           const void *vy, Nd4jLong yEws,
-                                           void *vz, Nd4jLong zEws,
+        void PairWiseIntTransform<X>::exec(const void *vx, sd::LongType xEws,
+                                           const void *vy, sd::LongType yEws,
+                                           void *vz, sd::LongType zEws,
                                            void *vextraParams,
-                                           const Nd4jLong n,
+                                           const sd::LongType n,
                                            const uint64_t start,
                                            const uint64_t stop) {
             auto x = reinterpret_cast<const X *>(vx);
@@ -79,9 +77,9 @@ namespace functions {
 
         template <typename X>
         void PairWiseIntTransform<X>::exec(const int opNum,
-                                           const void *x, const Nd4jLong *xShapeInfo,
-                                           const void *y, const Nd4jLong *yShapeInfo,
-                                           void *z, const Nd4jLong *zShapeInfo,
+                                           const void *x, const sd::LongType *xShapeInfo,
+                                           const void *y, const sd::LongType *yShapeInfo,
+                                           void *z, const sd::LongType *zShapeInfo,
                                            void *extraParams,
                                            const uint64_t start, const uint64_t stop) {
             DISPATCH_BY_OPNUM_T(exec, PARAMS(x,
@@ -97,9 +95,9 @@ namespace functions {
 
         template <typename X>
         template <typename OpType>
-        void PairWiseIntTransform<X>::exec(const void *vx, const Nd4jLong* xShapeInfo,
-                                           const void *vy, const Nd4jLong* yShapeInfo,
-                                           void *vz, const Nd4jLong* zShapeInfo,
+        void PairWiseIntTransform<X>::exec(const void *vx, const sd::LongType* xShapeInfo,
+                                           const void *vy, const sd::LongType* yShapeInfo,
+                                           void *vz, const sd::LongType* zShapeInfo,
                                            void *vextraParams,
                                            const uint64_t start,
                                            const uint64_t stop) {
@@ -116,7 +114,7 @@ namespace functions {
 
             if (shape::isScalar(yShapeInfo)) {
 
-               uint xShapeInfoCast[MAX_RANK];
+               sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
                 if(shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
@@ -127,7 +125,7 @@ namespace functions {
                     };
                 }
                 else {
-                    uint zShapeInfoCast[MAX_RANK];
+                    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                     const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
 
                     PRAGMA_OMP_SIMD
@@ -152,7 +150,7 @@ namespace functions {
             else {
 
                 if(shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo) && shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
-                    uint xShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
                     PRAGMA_OMP_SIMD
@@ -162,8 +160,8 @@ namespace functions {
                     };
                 }
                 else if(shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo)) {
-                    uint xShapeInfoCast[MAX_RANK];
-                    uint zShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                     const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
 
@@ -175,8 +173,8 @@ namespace functions {
                     };
                 }
                 else if(shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
-                    uint xShapeInfoCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                     const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -188,8 +186,8 @@ namespace functions {
                     };
                 }
                 else if(shape::haveSameShapeAndStrides(yShapeInfo, zShapeInfo)) {
-                    uint xShapeInfoCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                     const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
 
@@ -201,9 +199,9 @@ namespace functions {
                     };
                 }
                 else {
-                    uint xShapeInfoCast[MAX_RANK];
-                    uint yShapeInfoCast[MAX_RANK];
-                    uint zShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
+                    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
                     const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
                     const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
                     const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
@@ -219,6 +217,6 @@ namespace functions {
             }
         }
 
-        BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL PairWiseIntTransform, , INTEGER_TYPES);
+        BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN PairWiseIntTransform, , SD_INTEGER_TYPES);
     }
 }

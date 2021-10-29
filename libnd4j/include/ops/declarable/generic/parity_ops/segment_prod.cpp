@@ -40,7 +40,7 @@ namespace sd {
             segmentedOutput->nullify();
             helpers::segmentProdFunctor(block.launchContext(), input, idxSegments, segmentedOutput);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(segment_prod) {
@@ -48,12 +48,12 @@ namespace sd {
 
             auto in = inputShape->at(0);
             int outRank = shape::rank(in);
-            Nd4jLong* outputShape = nullptr;
+            sd::LongType* outputShape = nullptr;
             int val = (*idxVector).e<int>(idxVector->lengthOf() - 1);
 
             int numOfClasses = val + 1;
 
-            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
 
             outputShape[0] = outRank;
             outputShape[1] = numOfClasses;
@@ -74,7 +74,7 @@ namespace sd {
             outIndices->assign(indices);
             helpers::segmentProdFunctorBP(block.launchContext(), input, indices, gradOut, output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(segment_prod) {
@@ -90,8 +90,8 @@ namespace sd {
             auto in = inputShape->at(0);
             auto inIdx = inputShape->at(1);
 
-            Nd4jLong* outShape;
-            Nd4jLong* outIndex;
+            sd::LongType* outShape;
+            sd::LongType* outIndex;
             COPY_SHAPE(in, outShape);
             COPY_SHAPE(inIdx, outIndex);
             return SHAPELIST(CONSTANT(outShape), CONSTANT(outIndex));
@@ -101,7 +101,7 @@ namespace sd {
             getOpDescriptor()
                     ->setAllowedInputTypes(sd::DataType::ANY)
                     ->setAllowedOutputTypes(0, {ALL_FLOATS})
-					->setAllowedOutputTypes(1, {ALL_INTS})
+                    ->setAllowedOutputTypes(1, {ALL_INTS})
                     ->setSameMode(false);
         }
     }

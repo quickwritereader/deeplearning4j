@@ -20,14 +20,13 @@
 // Created by raver119 on 21.10.17.
 //
 
-#include <system/pointercast.h>
 #include <graph/execution/LogicSwitch.h>
 #include <graph/GraphExecutioner.h>
-#include <graph/Status.h>
+
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicSwitch::processNode(Graph* graph, Node* node) {
+        sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
             auto __variableSpace = graph->getVariableSpace();
             auto __flowPath = __variableSpace->flowPath();
 
@@ -35,7 +34,7 @@ namespace sd {
 
             // this can be either  our format, or compatible format.
             if (graph->hasScope(node->input()->at(0).first)) {
-                nd4j_debug("Node_%i: Scoped mode.\n", node->id());
+                sd_debug("Node_%i: Scoped mode.\n", node->id());
                 // first input is Scope, so it's ours
                 int scopeConditionIndex = node->input()->at(0).first;
                 auto input = ctx.variable(1);
@@ -72,7 +71,7 @@ namespace sd {
                 }
             } else {
                 // first input is NOT a Scope, so it's compatible format
-                nd4j_debug("Node_%i: Compatible mode.\n", node->id());
+                sd_debug("Node_%i: Compatible mode.\n", node->id());
 
                 auto input = ctx.variable(0)->getNDArray();
                 auto boolean = ctx.variable(1)->getNDArray();
@@ -91,20 +90,20 @@ namespace sd {
 
                 if (!boolean->e<bool>(0)) {
                     // false
-                    nd4j_debug("Node_%i: FALSE branch active\n", node->id());
+                    sd_debug("Node_%i: FALSE branch active\n", node->id());
                     __flowPath->markBranch(node->id(), 0);
                     __variableSpace->getVariable(pair0)->setNDArray(input);
                     __variableSpace->getVariable(pair0)->markRemovable(false);
                 } else {
                     //true
-                    nd4j_debug("Node_%i: TRUE branch active\n", node->id());
+                    sd_debug("Node_%i: TRUE branch active\n", node->id());
                     __flowPath->markBranch(node->id(), 1);
                     __variableSpace->getVariable(pair1)->setNDArray(input);
                     __variableSpace->getVariable(pair1)->markRemovable(false);
                 }
             }
 
-            return sd::Status::OK();
+            return sd::Status::OK;
         };
     }
 }

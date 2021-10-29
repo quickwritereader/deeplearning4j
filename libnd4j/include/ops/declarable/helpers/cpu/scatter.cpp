@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/scatter.h>
 #include <numeric>
 #include <helpers/ShapeUtils.h>
@@ -32,7 +31,7 @@ namespace helpers {
 ///////////////////////////////////////////////////////////////////
 // x - indices, z - input/output
 template<typename T>
- Nd4jLong checkIndices_(const NDArray& indices, const NDArray& output, const int axis) {
+sd::LongType checkIndices_(const NDArray& indices, const NDArray& output, const int axis) {
 
     std::atomic<int64_t> numOfBadIndx{0};
 
@@ -45,13 +44,13 @@ template<typename T>
 
     auto func = PRAGMA_THREADS_FOR {
 
-        int xCoords[MAX_RANK];
+        int xCoords[SD_MAX_RANK];
 
         for (auto i = start; i < stop; i++) {
 
             shape::index2coordsCPU(start, i, xShapeInfo, xCoords);
 
-            const Nd4jLong currentInd = x[shape::getOffset(xShapeInfo, xCoords)];
+            const sd::LongType currentInd = x[shape::getOffset(xShapeInfo, xCoords)];
 
             if(currentInd >= shape::sizeAt(zShapeInfo, axis == -1 ? xCoords[xRank-1] : axis)) {
                 printf("checkIndices: out of range element %lld at index %ld \n", currentInd,  i);
@@ -66,23 +65,23 @@ template<typename T>
 }
 
 ///////////////////////////////////////////////////////////////////
- Nd4jLong checkIndices(sd::LaunchContext *context, const NDArray& indices, const NDArray& output, const int axis) {
+sd::LongType checkIndices(sd::LaunchContext *context, const NDArray& indices, const NDArray& output, const int axis) {
 
-    BUILD_SINGLE_SELECTOR(indices.dataType(), return checkIndices_, (indices, output, axis), INDEXING_TYPES);
+    BUILD_SINGLE_SELECTOR(indices.dataType(), return checkIndices_, (indices, output, axis), SD_INDEXING_TYPES);
 }
 
 ///////////////////////////////////////////////////////////////////
- void scatter(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
+void scatter(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
 
     const int outRank = output.rankOf();
     const int indRank = indices.rankOf();
     const int updRank = updates.rankOf();
-    const Nd4jLong indLen = indices.lengthOf();
+    const sd::LongType indLen = indices.lengthOf();
 
     if(outRank == 1) {
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
-                Nd4jLong idx = indices.e<Nd4jLong>(i);
+                sd::LongType idx = indices.e<sd::LongType>(i);
                 NDArray out = output({idx, idx + 1});
 
                 out.applyPairwiseTransform(op, updates.e(i));
@@ -102,7 +101,7 @@ template<typename T>
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
-                NDArray outSubArr = output(indices.e<Nd4jLong>(i), std::vector<int>({0}));
+                NDArray outSubArr = output(indices.e<sd::LongType>(i), std::vector<int>({0}));
                 NDArray updSubArr = updates(i, dimsToExcludeUpd);
 
                 outSubArr.applyPairwiseTransform(op, updSubArr);
@@ -114,17 +113,17 @@ template<typename T>
 }
 
 ///////////////////////////////////////////////////////////////////
- void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
+void scatterND(sd::LaunchContext  *context, pairwise::Ops op, const NDArray& indices, const NDArray& updates, NDArray& output, const bool lock) {
 
-    const Nd4jLong indLen = indices.lengthOf();
+    const sd::LongType indLen = indices.lengthOf();
     const int outRank = output.rankOf();
     const int indRank = indices.rankOf();
-    const Nd4jLong indLastDim = indices.sizeAt(-1);
+    const sd::LongType indLastDim = indices.sizeAt(-1);
 
     if(outRank == 1) {
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
-                Nd4jLong idx = indices.e<Nd4jLong>(i);
+                sd::LongType idx = indices.e<sd::LongType>(i);
                 NDArray out = output({idx, idx + 1});
 
                 out.applyPairwiseTransform(op, updates.e(i), nullptr);
@@ -139,13 +138,13 @@ template<typename T>
         std::iota(dimsToExcludeUpd.begin(), dimsToExcludeUpd.end(), 0);
 
         auto func = PRAGMA_THREADS_FOR {
-            std::vector<Nd4jLong> idxRangeOut(2*outRank, 0);
+            std::vector<sd::LongType> idxRangeOut(2*outRank, 0);
 
             for (auto i = start; i < stop; i++) {
                 NDArray indSubArr = indices(i, dimsToExcludeInd);
 
-                for (Nd4jLong j = 0; j < indLastDim; ++j) {
-                    idxRangeOut[2 * j] = indSubArr.e<Nd4jLong>(j);
+                for (sd::LongType j = 0; j < indLastDim; ++j) {
+                    idxRangeOut[2 * j] = indSubArr.e<sd::LongType>(j);
                     idxRangeOut[2 * j + 1] = idxRangeOut[2 * j] + 1;
                 }
 
@@ -160,13 +159,13 @@ template<typename T>
     }
 }
 
- void scatterForLoss(sd::LaunchContext  *context, const NDArray& indices, NDArray& updates, NDArray& output, const bool calcGrad) {
+void scatterForLoss(sd::LaunchContext  *context, const NDArray& indices, NDArray& updates, NDArray& output, const bool calcGrad) {
 
     // shapes of indices and output must be the same
     // shape of indices should be the same as updates shape with last dimension excluded
     // for example if updates is {a,b,c} then indices should be {a,b}
 
-    const Nd4jLong indicesLen = indices.lengthOf();
+    const sd::LongType indicesLen = indices.lengthOf();
 
     std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(updates.rankOf(), {-1});
 
@@ -174,7 +173,7 @@ template<typename T>
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
                 auto subArr = updates(i, dimsToExclude);
-                output.p(i, subArr.e(indices.e<Nd4jLong>(i)));
+                output.p(i, subArr.e(indices.e<sd::LongType>(i)));
             }
         };
 
@@ -183,7 +182,7 @@ template<typename T>
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
                 auto subArr = updates(i, dimsToExclude);
-                auto ind = indices.e<Nd4jLong>(i);
+                auto ind = indices.e<sd::LongType>(i);
                 subArr.p(ind, subArr.e(ind) - 1.);
             }
         };

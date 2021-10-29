@@ -36,7 +36,7 @@ namespace sd {
                 out->assign(x);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(StopGradient, stop_gradient);
 

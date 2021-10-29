@@ -21,14 +21,12 @@
 //
 
 
-#include <system/pointercast.h>
 #include <types/types.h>
 #include <types/float16.h>
 #include <system/op_boilerplate.h>
 #include <loops/summarystatsreduce.h>
 #include <helpers/shape.h>
 #include <helpers/TAD.h>
-#include <system/dll.h>
 #include <system/Environment.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -41,26 +39,26 @@ namespace functions {
     namespace summarystats {
 
 template <typename X, typename Z>
-void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeInfo, int xRank, void *extraParams, void *z, Nd4jLong const* zShapeInfo, int zRank, int *dimension, int dimensionLength, int postProcessOrNot,bool biasCorrected,int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+void SD_KERNEL summaryStatsReduceT(int op, void const* dx, sd::LongType const* xShapeInfo, int xRank, void *extraParams, void *z, sd::LongType const* zShapeInfo, int zRank, int *dimension, int dimensionLength, int postProcessOrNot,bool biasCorrected,int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
 
     functions::summarystats::SummaryStatsReduce<X,Z>::transform(op,dx,xShapeInfo,extraParams,z,zShapeInfo,dimension,dimensionLength,biasCorrected,allocationBuffer,reductionBuffer,tadOnlyShapeInfo,tadOffsets);
 }
 
         /**
-		 *
-		 * @param sPartialsRef
-		 * @param tid
-		 * @param extraParams
-		 */
+         *
+         * @param sPartialsRef
+         * @param tid
+         * @param extraParams
+         */
         template<typename X, typename Z>
         template<typename OpType>
-        _CUDA_D void SummaryStatsReduce<X,Z>::aggregatePartials(SummaryStatsData<X> *sPartials, Nd4jLong tid, Nd4jLong numElements, void *vextraParams) {
+        SD_DEVICE void SummaryStatsReduce<X,Z>::aggregatePartials(SummaryStatsData<X> *sPartials, sd::LongType tid, sd::LongType numElements, void *vextraParams) {
             // start the shared memory loop on the next power of 2 less
             // than the block size.  If block size is not a power of 2,
             // accumulate the intermediate sums in the remainder range.
 
             auto extraParams = static_cast<Z*>(vextraParams);
-            Nd4jLong floorPow2 = blockDim.x;
+            sd::LongType floorPow2 = blockDim.x;
 
             if (floorPow2 & (floorPow2 - 1)) {
                 while (floorPow2 & (floorPow2 - 1)) {
@@ -75,7 +73,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                 __syncthreads();
             }
 
-            for (Nd4jLong activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
+            for (sd::LongType activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
                 if (tid < activeThreads && tid + activeThreads < numElements) {
                     SummaryStatsData<X> curr = sPartials[tid];
                     SummaryStatsData<X> next = sPartials[tid + activeThreads];
@@ -86,32 +84,32 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
         };
 
         /**
-			 * @param n n is the number of
-			 *        elements to loop through
-			 * @param dx the data to operate on
-			 * @param xVectorInfo the meta data for the vector:
-			 *                              0 is the offset
-			 *                              1 is the increment/stride
-			 *                              2 is the real length of the buffer (n and dx.length won't always be the same)
-			 *                              3 is the element wise stride for the buffer
-			 *                              4 is the number of elements it takes to get to the next row/column/tensor
-			 * @param gpuInformation
-			 *                              0 is the block size
-			 *                              1 is the grid size
-			 *                              2 is the shared memory size
-			 * @param problemDefinition
-			 *                          0 is the number of elements per vector
-			 *                          1 is the number of vectors
-			 */
+             * @param n n is the number of
+             *        elements to loop through
+             * @param dx the data to operate on
+             * @param xVectorInfo the meta data for the vector:
+             *                              0 is the offset
+             *                              1 is the increment/stride
+             *                              2 is the real length of the buffer (n and dx.length won't always be the same)
+             *                              3 is the element wise stride for the buffer
+             *                              4 is the number of elements it takes to get to the next row/column/tensor
+             * @param gpuInformation
+             *                              0 is the block size
+             *                              1 is the grid size
+             *                              2 is the shared memory size
+             * @param problemDefinition
+             *                          0 is the number of elements per vector
+             *                          1 is the number of vectors
+             */
         template<typename X, typename Z>
         template<typename OpType>
-        _CUDA_D void SummaryStatsReduce<X,Z>::transform(void const* vx, Nd4jLong const* xShapeInfo,
+        SD_DEVICE void SummaryStatsReduce<X,Z>::transform(void const* vx, sd::LongType const* xShapeInfo,
                                                         void *vextraParams,
-                                                        void *vz, Nd4jLong const* zShapeInfo,
+                                                        void *vz, sd::LongType const* zShapeInfo,
                                                         int *dimension, int dimensionLength,
                                                         int postProcessOrNot,
                                                         int *allocationBuffer, void *vreductionBuffer,
-                                                        Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+                                                        sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
 
             auto dx = static_cast<X const*>(vx);
             auto z = static_cast<Z*>(vz);
@@ -125,7 +123,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
 
             int numElements = blockDim.x;
             //shared memory space for storing intermediate results
-            __shared__ SummaryStatsData<X> sPartials[CUDA_BLOCK_SIZE];
+            __shared__ SummaryStatsData<X> sPartials[SD_CUDA_BLOCK_SIZE];
 
             Z startingVal = startingValue(dx);
 
@@ -151,7 +149,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
 
 
                 if (dimensionLength == 1) {
-                    if (resultLength == 1 && (dimension == nullptr || dimension[0] == MAX_DIMENSION))
+                    if (resultLength == 1 && (dimension == nullptr || dimension[0] == SD_MAX_DIMENSION))
                         resultScalar = 1;
                     else
                         resultScalar = 0;
@@ -165,7 +163,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                 auto xStride = shape::stride(xShapeInfo);
                 auto xOrder = shape::order(xShapeInfo);
 
-                if (dimension != nullptr && (dimension[0] != MAX_DIMENSION && dimensionLength == 1)) {
+                if (dimension != nullptr && (dimension[0] != SD_MAX_DIMENSION && dimensionLength == 1)) {
                     xElementWiseStride = xStride[dimension[0]];
                 }
                 else {
@@ -208,7 +206,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                             sPartials[threadIdx.x] = update(sPartials[threadIdx.x], OpType::op(indexVal2, extraParams), extraParams);
                         }
                         __syncthreads();
-                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, tadLength), extraParams);
+                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, tadLength), extraParams);
 
                         __syncthreads();
                         if (threadIdx.x == 0) {
@@ -234,7 +232,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                         }
 
                         __syncthreads();
-                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, tadLength), extraParams);
+                        aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, tadLength), extraParams);
 
                         __syncthreads();
                         if (threadIdx.x == 0) {
@@ -252,7 +250,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                 __syncthreads();
 
                 if (xElementWiseStride >= 1) {
-                    for (Nd4jLong i = tid; i < n; i += (blockDim.x * gridDim.x)) {
+                    for (sd::LongType i = tid; i < n; i += (blockDim.x * gridDim.x)) {
                         SummaryStatsData<X> indexVal2;
                         indexVal2.initWithValue(dx[i * xElementWiseStride]);
                         reduction = update(reduction, indexVal2, extraParams);
@@ -260,7 +258,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
                 }
                 else {
 
-                    for (Nd4jLong i = tid; i < n; i += blockDim.x * gridDim.x) {
+                    for (sd::LongType i = tid; i < n; i += blockDim.x * gridDim.x) {
 
                         auto offset = shape::getIndexOffset(i, xShapeInfo);
                         SummaryStatsData<X> indexVal2;
@@ -328,13 +326,13 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
 
 
         template <typename X, typename Y>
-        _CUDA_D void SummaryStatsReduce<X,Y>::transform(const int opNum, void const* dx, Nd4jLong const* xShapeInfo, void *extraParams, void *z, Nd4jLong const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets) {
+        SD_DEVICE void SummaryStatsReduce<X,Y>::transform(const int opNum, void const* dx, sd::LongType const* xShapeInfo, void *extraParams, void *z, sd::LongType const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets) {
             DISPATCH_BY_OPNUM_TT(transform, PARAMS(dx, xShapeInfo, extraParams, z, zShapeInfo, dimension, dimensionLength, postProcessOrNot, allocationBuffer, reductionBuffer, tadOnlyShapeInfo, tadOffsets), SUMMARY_STATS_OPS);
         };
 
 
         template <typename X, typename Z>
-        _CUDA_H void SummaryStatsReduce<X,Z>::execSummaryStatsReduceScalar(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *vextraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
+        SD_HOST void SummaryStatsReduce<X,Z>::execSummaryStatsReduceScalar(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *vextraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
 
             auto x = static_cast<X const*>(vx);
             auto extraParams = static_cast<Z*>(vextraParams);
@@ -360,7 +358,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
         }
 
         template <typename X, typename Z>
-        _CUDA_H void SummaryStatsReduce<X,Z>::execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *vextraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
+        SD_HOST void SummaryStatsReduce<X,Z>::execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *vextraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
 
             auto x = static_cast<X const*>(vx);
             auto z = static_cast<Z*>(vz);
@@ -387,7 +385,7 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
 
 
         template<typename X, typename Z>
-        _CUDA_H void SummaryStatsReduce<X,Z>::execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *vextraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, int *dimension, int dimensionLength, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
+        SD_HOST void SummaryStatsReduce<X,Z>::execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* vx, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *vextraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, int *dimension, int dimensionLength, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer) {
 
             auto x = static_cast<X const*>(vx);
             auto z = static_cast<Z*>(vz);
@@ -411,6 +409,6 @@ void _CUDA_G summaryStatsReduceT(int op, void const* dx, Nd4jLong const* xShapeI
         }
 
 
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL SummaryStatsReduce, , LIBND4J_TYPES, FLOAT_TYPES);
+        BUILD_DOUBLE_TEMPLATE(template class SD_LIB_HIDDEN SummaryStatsReduce, , SD_COMMON_TYPES, SD_FLOAT_TYPES);
     }
 }

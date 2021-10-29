@@ -19,14 +19,13 @@
 //
 // Created by raver119 on 11.10.2017.
 //
-
 #include "ops/declarable/OpTuple.h"
 
 sd::ops::OpTuple::OpTuple(const char *opName) {
     _opName = opName;
 }
 
-sd::ops::OpTuple::OpTuple(const char *opName, std::initializer_list<sd::NDArray *> &&inputs, std::initializer_list<double> &&tArgs, std::initializer_list<Nd4jLong> &&iArgs) {
+sd::ops::OpTuple::OpTuple(const char *opName, std::initializer_list<sd::NDArray *> &&inputs, std::initializer_list<double> &&tArgs, std::initializer_list<sd::LongType> &&iArgs) {
     _opName = opName;
     _inputs = inputs;
     _iArgs = iArgs;
@@ -53,7 +52,7 @@ sd::ops::OpTuple *sd::ops::OpTuple::setTArgs(std::initializer_list<double> tArgs
     return this;
 }
 
-sd::ops::OpTuple *sd::ops::OpTuple::setIArgs(std::initializer_list<Nd4jLong> iArgs) {
+sd::ops::OpTuple *sd::ops::OpTuple::setIArgs(std::initializer_list<sd::LongType> iArgs) {
     _iArgs = iArgs;
     return this;
 }

@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/legacy_helpers.h>
 #include <array/NDArrayFactory.h>
 #include <ops/ops.h>
@@ -30,36 +29,36 @@ namespace sd {
         namespace helpers {
             ////////////////////////////////////////////////////////////////////////
             template <typename T>
-            linkage void tanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
+           void tanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
                 auto functor = LAMBDA_TT(x, y){
-                    T th = sd::math::nd4j_tanh<T,T>(x);
+                    T th = sd::math::sd_tanh<T,T>(x);
                     return y * ((T)1.0f - (th * th));
                 };
 
                 input->applyPairwiseLambda(*epsilon, functor, *output);
             }
 
-            ND4J_LOCAL void tanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
-                BUILD_SINGLE_SELECTOR(theFirst->dataType(), tanhDerivative_, (theFirst, theSecond, theOutput), FLOAT_TYPES);
+            void tanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
+                BUILD_SINGLE_SELECTOR(theFirst->dataType(), tanhDerivative_, (theFirst, theSecond, theOutput), SD_FLOAT_TYPES);
             }
 
             // return static_cast<X>(d2) * simdOps::HardTanhDerivative<X>::op(d1, nullptr);
             template <typename T>
-            linkage void hardTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
+           void hardTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
                 auto functor = LAMBDA_TT(x, y){
-                    T th = sd::math::nd4j_tanh<T,T>(x);
+                    T th = sd::math::sd_tanh<T,T>(x);
                     return y * simdOps::HardTanhDerivative<T>::op(x, nullptr);
                 };
 
                 input->applyPairwiseLambda(*epsilon, functor, *output);
             }
 
-            ND4J_LOCAL void hardTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
-                BUILD_SINGLE_SELECTOR(theFirst->dataType(), hardTanhDerivative_, (theFirst, theSecond, theOutput), FLOAT_TYPES);
+            void hardTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
+                BUILD_SINGLE_SELECTOR(theFirst->dataType(), hardTanhDerivative_, (theFirst, theSecond, theOutput), SD_FLOAT_TYPES);
             }
 
             template <typename T>
-            linkage void rationalTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
+           void rationalTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
                 auto functor = LAMBDA_TT(x, y){
                     return y * simdOps::RationalTanhDerivative<T>::op(x, nullptr);
                 };
@@ -67,21 +66,21 @@ namespace sd {
                 input->applyPairwiseLambda(*epsilon, functor, *output);
             }
 
-            ND4J_LOCAL void rationalTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
-                BUILD_SINGLE_SELECTOR(theFirst->dataType(), rationalTanhDerivative_, (theFirst, theSecond, theOutput), FLOAT_TYPES);
+            void rationalTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
+                BUILD_SINGLE_SELECTOR(theFirst->dataType(), rationalTanhDerivative_, (theFirst, theSecond, theOutput), SD_FLOAT_TYPES);
             }
 
             template <typename T>
-            linkage void rectifiedTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
+           void rectifiedTanhDerivative_(NDArray* input, NDArray* epsilon, NDArray* output) {
                 auto functor = LAMBDA_TT(x, y){
-                    return x > (T) 0.0f ? y * (sd::math::nd4j_tanhderivative<T,T>(x)) : (T) 0.0f;
+                    return x > (T) 0.0f ? y * (sd::math::sd_tanhderivative<T,T>(x)) : (T) 0.0f;
                 };
 
                 input->applyPairwiseLambda(*epsilon, functor, *output);
             }
 
-            ND4J_LOCAL void rectifiedTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
-                BUILD_SINGLE_SELECTOR(theFirst->dataType(), rectifiedTanhDerivative_, (theFirst, theSecond, theOutput), FLOAT_TYPES);
+            void rectifiedTanhDerivative(sd::LaunchContext * context, NDArray* theFirst, NDArray* theSecond, NDArray* theOutput) {
+                BUILD_SINGLE_SELECTOR(theFirst->dataType(), rectifiedTanhDerivative_, (theFirst, theSecond, theOutput), SD_FLOAT_TYPES);
             }
         }
     }

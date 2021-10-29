@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -40,7 +39,7 @@ public:
 };
 
 template <typename T>
-static _CUDA_G void multiplyKernel(void *vbuffer, uint64_t length, void *vresult) {
+static SD_KERNEL void multiplyKernel(void *vbuffer, uint64_t length, void *vresult) {
     auto buffer = reinterpret_cast<T*>(vbuffer);
     auto result = reinterpret_cast<T*>(vresult);
 
@@ -50,7 +49,7 @@ static _CUDA_G void multiplyKernel(void *vbuffer, uint64_t length, void *vresult
         auto rem = e % 4;
         auto i = (e - rem) / 4;
 
-        sd::math::atomics::nd4j_atomicMul<T>(&result[i], buffer[e]);
+        sd::math::atomics::sd_atomicMul<T>(&result[i], buffer[e]);
     }
 }
 
@@ -63,7 +62,7 @@ static void multiplyLauncher(void *vbuffer, uint64_t length, void *vresult) {
 }
 
 template <typename T>
-static _CUDA_G void sumKernel(void *vbuffer, uint64_t length, void *vresult) {
+static SD_KERNEL void sumKernel(void *vbuffer, uint64_t length, void *vresult) {
     auto buffer = reinterpret_cast<T*>(vbuffer);
     auto result = reinterpret_cast<T*>(vresult);
 
@@ -73,7 +72,7 @@ static _CUDA_G void sumKernel(void *vbuffer, uint64_t length, void *vresult) {
         auto rem = e % 4;
         auto i = (e - rem) / 4;
 
-        sd::math::atomics::nd4j_atomicAdd<T>(&result[i], buffer[e]);
+        sd::math::atomics::sd_atomicAdd<T>(&result[i], buffer[e]);
     }
 }
 
@@ -86,7 +85,7 @@ static void sumLauncher(void *vbuffer, uint64_t length, void *vresult) {
 }
 
 template <typename T>
-static _CUDA_G void subKernel(void *vbuffer, uint64_t length, void *vresult) {
+static SD_KERNEL void subKernel(void *vbuffer, uint64_t length, void *vresult) {
     auto buffer = reinterpret_cast<T*>(vbuffer);
     auto result = reinterpret_cast<T*>(vresult);
 
@@ -96,7 +95,7 @@ static _CUDA_G void subKernel(void *vbuffer, uint64_t length, void *vresult) {
         auto rem = e % 4;
         auto i = (e - rem) / 4;
 
-        sd::math::atomics::nd4j_atomicSub<T>(&result[i], buffer[e]);
+        sd::math::atomics::sd_atomicSub<T>(&result[i], buffer[e]);
     }
 }
 
@@ -109,7 +108,7 @@ static void subLauncher(void *vbuffer, uint64_t length, void *vresult) {
 }
 
 template <typename T>
-static _CUDA_G void divKernel(void *vbuffer, uint64_t length, void *vresult) {
+static SD_KERNEL void divKernel(void *vbuffer, uint64_t length, void *vresult) {
     auto buffer = reinterpret_cast<T*>(vbuffer);
     auto result = reinterpret_cast<T*>(vresult);
 
@@ -119,7 +118,7 @@ static _CUDA_G void divKernel(void *vbuffer, uint64_t length, void *vresult) {
         auto rem = e % 4;
         auto i = (e - rem) / 4;
 
-        sd::math::atomics::nd4j_atomicDiv<T>(&result[i], buffer[e]);
+        sd::math::atomics::sd_atomicDiv<T>(&result[i], buffer[e]);
     }
 }
 
@@ -132,26 +131,26 @@ static void divLauncher(void *vbuffer, uint64_t length, void *vresult) {
 }
 
 static void multiplyHost(NDArray &input, NDArray &output) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), multiplyLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), NUMERIC_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), multiplyLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), SD_NUMERIC_TYPES);
 }
 
 static void sumHost(NDArray &input, NDArray &output) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), sumLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), NUMERIC_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), sumLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), SD_NUMERIC_TYPES);
 }
 
 static void subHost(NDArray &input, NDArray &output) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), subLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), subLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), SD_FLOAT_TYPES);
 }
 
 static void divHost(NDArray &input, NDArray &output) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), divLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), divLauncher, (input.specialBuffer(), input.lengthOf(), output.specialBuffer()), SD_FLOAT_TYPES);
 }
 
 TEST_F(AtomicTests, test_multiply) {
     std::vector<sd::DataType> dtypes = {sd::DataType::FLOAT32, sd::DataType::DOUBLE, sd::DataType::INT16, sd::DataType::HALF};
 
     for (auto t:dtypes) {
-        nd4j_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
+        sd_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
         NDArray input('c', {4, 25}, t);
         NDArray output('c', {input.lengthOf() / 4}, t);
         NDArray exp = output.ulike();
@@ -169,7 +168,7 @@ TEST_F(AtomicTests, test_multiply_2) {
     std::vector<sd::DataType> dtypes = {sd::DataType::FLOAT32, sd::DataType::DOUBLE, sd::DataType::HALF, sd::DataType::BFLOAT16};
 
     for (auto t:dtypes) {
-        nd4j_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
+        sd_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
         NDArray input('c', {4, 25}, t);
         NDArray output('c', {input.lengthOf() / 4}, t);
         NDArray exp = output.ulike();
@@ -188,7 +187,7 @@ TEST_F(AtomicTests, test_sum) {
     std::vector<sd::DataType> dtypes = {sd::DataType::FLOAT32, sd::DataType::DOUBLE, sd::DataType::BFLOAT16, sd::DataType::HALF, sd::DataType::INT16};
 
     for (auto t:dtypes) {
-        nd4j_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
+        sd_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
         NDArray input('c', {4, 25}, t);
         NDArray output('c', {input.lengthOf() / 4}, t);
         NDArray exp = output.ulike();
@@ -207,7 +206,7 @@ TEST_F(AtomicTests, test_sub) {
     std::vector<sd::DataType> dtypes = {sd::DataType::FLOAT32, sd::DataType::DOUBLE, sd::DataType::HALF};
 
     for (auto t:dtypes) {
-        nd4j_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
+        sd_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
         NDArray input('c', {4, 25}, t);
         NDArray output('c', {input.lengthOf() / 4}, t);
         NDArray exp = output.ulike();
@@ -227,7 +226,7 @@ TEST_F(AtomicTests, test_div) {
     std::vector<sd::DataType> dtypes = {sd::DataType::FLOAT32, sd::DataType::DOUBLE, sd::DataType::BFLOAT16, sd::DataType::HALF};
 
     for (auto t:dtypes) {
-        nd4j_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
+        sd_printf("Trying data type [%s]\n", DataTypeUtils::asString(t).c_str());
         NDArray input('c', {4, 25}, t);
         NDArray output('c', {input.lengthOf() / 4}, t);
         NDArray exp = output.ulike();

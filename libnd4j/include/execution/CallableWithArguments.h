@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_CALLABLEWITHARGUMENTS_H
 #define DEV_TESTS_CALLABLEWITHARGUMENTS_H
-
 #include <functional>
 #include <vector>
 #include <atomic>

@@ -19,11 +19,9 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
-
 #include <helpers/MKLDNNStream.h>
 #include "mkldnnUtils.h"
 #include <numeric>
@@ -214,7 +212,7 @@ PLATFORM_IMPL(matmul, ENGINE_CPU) {
     auto z = OUTPUT_VARIABLE(0);
 
     if(x->isEmpty() || y->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     int iSize = (int) block.getIArguments()->size();
     int transX = iSize > 0 ? INT_ARG(0) : 0;
@@ -264,7 +262,7 @@ PLATFORM_IMPL(matmul, ENGINE_CPU) {
 
     matmulMKLDNN(x, y, z, transX, transY, alpha, beta);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 #include <iostream>
 //////////////////////////////////////////////////////////////////////////

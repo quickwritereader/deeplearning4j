@@ -21,7 +21,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include "cudnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -281,7 +280,7 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
 
     ConvolutionUtils::calcPadding3D(pD, pH, pW, oD, oH, oW, iD, iH, iW, kD, kH, kW, sD, sH, sW, dD, dH, dW, paddingMode);
 
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
     REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0, "CONV3D CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if (bias)
         REQUIRE_TRUE(bias->rankOf() <= 2 && oC == bias->lengthOf(), 0, "CONV3D CUDNN OP: wrong shape of array with biases, expected rank, length: <=2, %i, but got %i, %i instead !", oC, bias->rankOf(), bias->lengthOf());
@@ -301,7 +300,7 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
     }
     conv3dCUDNN(block.launchContext(), input, newWeights, bias, output, kD,kH,kW,sD,sH,sW,pD,pH,pW,dD,dH,dW, paddingMode, isNCDHW, wFormat);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -365,8 +364,8 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
 
     REQUIRE_TRUE(paddingMode < 2, 0, "CONV3D_BP CUDNN OP: causal padding mode (paddingMode = 2) is not allowed for this operation !");
 
-    std::vector<Nd4jLong> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoD,trueoH,trueoW,  0,indIOioC,indIOioD,indIOioD+1,indIOioD+2});
-    std::vector<Nd4jLong> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
+    std::vector<sd::LongType> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx({bS,oC,trueoD,trueoH,trueoW,  0,indIOioC,indIOioD,indIOioD+1,indIOioD+2});
+    std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
     REQUIRE_TRUE(gradO->isSameShape(expectedGradOShape), 0,  "CONV3D_BP CUDNN OP: wrong shape of output gradients (next epsilon) array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedGradOShape).c_str(), ShapeUtils::shapeAsString(gradO).c_str());
     REQUIRE_TRUE(gradW->isSameShape(expectedWeightsShape), 0, "CONV3D_BP CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
     if(bias)
@@ -377,8 +376,8 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
     std::unique_ptr<NDArray> tmpGradI = {}, tmpInput = {} , tmpWeights = {}, tmpGradW = {};
     NDArray *newWeights = weights, *newGradW = gradW; // cudnn support only two formats {oC,iC,kD,kH,kW} and {oC,kD,kH,kW,iC}
     if(0 == wFormat) {
-        tmpGradW.reset( new NDArray(gradW->ordering(),   isNCDHW ? std::vector<Nd4jLong>({oC, iC, kD, kH, kW}) : std::vector<Nd4jLong>({oC, kD, kH, kW, iC}), gradW->dataType(),   gradW->getContext()));
-        tmpWeights.reset( new NDArray(weights->ordering(), isNCDHW ? std::vector<Nd4jLong>({oC, iC, kD, kH, kW}) : std::vector<Nd4jLong>({oC, kD, kH, kW, iC}), weights->dataType(), weights->getContext()));
+        tmpGradW.reset( new NDArray(gradW->ordering(),   isNCDHW ? std::vector<sd::LongType>({oC, iC, kD, kH, kW}) : std::vector<sd::LongType>({oC, kD, kH, kW, iC}), gradW->dataType(),   gradW->getContext()));
+        tmpWeights.reset( new NDArray(weights->ordering(), isNCDHW ? std::vector<sd::LongType>({oC, iC, kD, kH, kW}) : std::vector<sd::LongType>({oC, kD, kH, kW, iC}), weights->dataType(), weights->getContext()));
         newGradW = tmpGradW.get();
         newWeights = tmpWeights.get();
         newWeights->assign(weights->permute(isNCDHW ? std::vector<int>({4,3,0,1,2}) : std::vector<int>({4,0,1,2,3}))); // (kD, kH, kW, iC, oC  --> oC, iC, kD, kH, kW) or (kD, kH, kW, iC, oC  --> oC, kD, kH, kW, iC)
@@ -409,7 +408,7 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
 
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 PLATFORM_CHECK(conv3dnew_bp, ENGINE_CUDA) {

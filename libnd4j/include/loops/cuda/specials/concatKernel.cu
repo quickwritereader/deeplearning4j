@@ -20,17 +20,16 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __device__ void concatKernel(int numArrays,
-                                 Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                 void *vz, Nd4jLong *resultShapeInfo,
-                                 Nd4jPointer *tadPointers, Nd4jPointer *offsetPointers,
-                                 Nd4jLong *zTadShape, Nd4jLong *zOffsets) {
+    SD_DEVICE void concatKernel(int numArrays,
+                                 sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                 void *vz, sd::LongType *resultShapeInfo,
+                                 sd::Pointer *tadPointers, sd::Pointer *offsetPointers,
+                                 sd::LongType *zTadShape, sd::LongType *zOffsets) {
 
         int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -38,9 +37,9 @@ namespace sd {
 
         auto result = reinterpret_cast<T*>(vz);
         auto dataT = reinterpret_cast<T **>(data);
-        auto shapeInfoPointers = reinterpret_cast<Nd4jLong **>(inputShapeInfos);
-        auto tadShapes = reinterpret_cast<Nd4jLong **>(tadPointers);
-        auto tadOffsets = reinterpret_cast<Nd4jLong **>(offsetPointers);
+        auto shapeInfoPointers = reinterpret_cast<sd::LongType **>(inputShapeInfos);
+        auto tadShapes = reinterpret_cast<sd::LongType **>(tadPointers);
+        auto tadOffsets = reinterpret_cast<sd::LongType **>(offsetPointers);
 
         //if (threadIdx.x == 0 && blockIdx.x == 0) {
         //    shape::printShapeInfoLinear("zTadShape", zTadShape);
@@ -65,7 +64,7 @@ namespace sd {
 
         if (shape::isVector(resultShapeInfo)) {
             //if (threadIdx.x == 0 && blockIdx.x == 0)
-            //	printf("Vector here\n");
+            //    printf("Vector here\n");
 
             if (zEWS >= 1) {
                 for (int r = blockIdx.x; r < numArrays; r += gridDim.x) {
@@ -129,21 +128,21 @@ namespace sd {
 
             if (yLength == 1 && _vec) {
                 //if (threadIdx.x == 0 && blockIdx.x == 0)
-                //	printf("Branch 0\n");
+                //    printf("Branch 0\n");
 
                 // edge case, each thread will handle it's own tad then
                 for (int j = tid; j < numTads; j += blockDim.x * gridDim.x) {
-                    Nd4jLong inputOffset = currentOffsets[j];
-                    Nd4jLong resultOffset = zOffsets[j];
+                    sd::LongType inputOffset = currentOffsets[j];
+                    sd::LongType resultOffset = zOffsets[j];
 
                     T *dataTAD = currentData + inputOffset;
                     T *resultTAD = result + resultOffset;
 
-                    int sub[MAX_RANK];
+                    int sub[SD_MAX_RANK];
 
                     shape::index2coords(arrOffset, zTadShape, sub);
 
-                    Nd4jLong baseOffset = shape::getOffset(zTadShape, sub);
+                    sd::LongType baseOffset = shape::getOffset(zTadShape, sub);
 
                     resultTAD += baseOffset;
 
@@ -159,7 +158,7 @@ namespace sd {
                 }
             } else {
                 //if (threadIdx.x == 0 && blockIdx.x == 0)
-                //	printf("Branch 1\n");
+                //    printf("Branch 1\n");
 
                 for (int j = blockIdx.x; j < numTads; j += gridDim.x) {
                     auto inputOffset = currentOffsets[j];
@@ -168,10 +167,10 @@ namespace sd {
                     auto dataTAD = currentData + inputOffset;
                     auto resultTAD = result + resultOffset;
 
-                    int sub[MAX_RANK];
+                    int sub[SD_MAX_RANK];
 
                     shape::index2coords(arrOffset, zTadShape, sub);
-                    Nd4jLong baseOffset = shape::getOffset(zTadShape, sub);
+                    sd::LongType baseOffset = shape::getOffset(zTadShape, sub);
 
                     resultTAD += baseOffset;
 
@@ -201,7 +200,7 @@ namespace sd {
                                     resultTAD[baseIdx + k * tadEWS] = dataTAD[k];
                                 }
                             } else {
-                                int yIdx[MAX_RANK];
+                                int yIdx[SD_MAX_RANK];
                                 auto yRank = shape::rank(currentTad);
 
                                 for (int i = threadIdx.x; i < yLength; i+= blockDim.x) {
@@ -216,8 +215,8 @@ namespace sd {
                             //if (threadIdx.x == 0 && blockIdx.x  == 0)
                             //    printf("Branch C; yLength: %i;\n", yLength);
 
-                            int zIdx[MAX_RANK];
-                            int yIdx[MAX_RANK];
+                            int zIdx[SD_MAX_RANK];
+                            int yIdx[SD_MAX_RANK];
                             auto yRank = shape::rank(currentTad);
                             auto tadRank = shape::rank(zTadShape);
 
@@ -241,12 +240,12 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __global__ void execConcatKernel(int numArrays,
-                                     Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                     void *vz, Nd4jLong *zShapeInfo,
-                                     Nd4jPointer *tadPointers, Nd4jPointer *offsetPointers,
-                                     Nd4jLong *zTadShape,
-                                     Nd4jLong *zOffsets) {
+    SD_KERNEL void execConcatKernel(int numArrays,
+                                     sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                     void *vz, sd::LongType *zShapeInfo,
+                                     sd::Pointer *tadPointers, sd::Pointer *offsetPointers,
+                                     sd::LongType *zTadShape,
+                                     sd::LongType *zOffsets) {
 
         concatKernel<T>(numArrays, data, inputShapeInfos, vz, zShapeInfo, tadPointers, offsetPointers, zTadShape,
                         zOffsets);
@@ -255,18 +254,18 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __host__ void concatKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
+    SD_HOST void concatKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
                                       int numArrays,
-                                      Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                      void *vz, Nd4jLong *zShapeInfo,
-                                      Nd4jPointer *tadPointers, Nd4jPointer *offsetPointers,
-                                      Nd4jLong *zTadShape,
-                                      Nd4jLong *zOffsets) {
+                                      sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                      void *vz, sd::LongType *zShapeInfo,
+                                      sd::Pointer *tadPointers, sd::Pointer *offsetPointers,
+                                      sd::LongType *zTadShape,
+                                      sd::LongType *zOffsets) {
 
 
         execConcatKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(numArrays, data, inputShapeInfos, vz, zShapeInfo, tadPointers, offsetPointers, zTadShape, zOffsets);
         sd::DebugHelper::checkErrorCode(stream, "concatGenericLegacy(...) failed");
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL concatKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, int numArrays, Nd4jPointer * data, Nd4jPointer * inputShapeInfos, void * vz, Nd4jLong *zShapeInfo, Nd4jPointer * tadPointers, Nd4jPointer * offsetPointers, Nd4jLong * zTadShape, Nd4jLong * zOffsets), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN concatKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, int numArrays, sd::Pointer * data, sd::Pointer * inputShapeInfos, void * vz, sd::LongType *zShapeInfo, sd::Pointer * tadPointers, sd::Pointer * offsetPointers, sd::LongType * zTadShape, sd::LongType * zOffsets), SD_COMMON_TYPES);
 }

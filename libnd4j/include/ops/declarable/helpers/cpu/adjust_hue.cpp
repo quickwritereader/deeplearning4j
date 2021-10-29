@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/adjust_hue.h>
 #include <helpers/ConstantTadHelper.h>
 #include <execution/Threads.h>
@@ -64,9 +63,9 @@ static void adjustHue_(const NDArray *input, const NDArray* deltaScalarArr, NDAr
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),  dimC);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-        const Nd4jLong numOfTads   = packX.numberOfTads();
-        const Nd4jLong xDimCstride = input->stridesOf()[dimC];
-        const Nd4jLong zDimCstride = output->stridesOf()[dimC];
+        const sd::LongType numOfTads   = packX.numberOfTads();
+        const sd::LongType xDimCstride = input->stridesOf()[dimC];
+        const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
@@ -94,8 +93,8 @@ static void adjustHue_(const NDArray *input, const NDArray* deltaScalarArr, NDAr
 }
 
 
- void adjustHue(sd::LaunchContext* context, const NDArray *input, const NDArray* deltaScalarArr, NDArray *output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), adjustHue_, (input, deltaScalarArr, output, dimC), FLOAT_TYPES);
+void adjustHue(sd::LaunchContext* context, const NDArray *input, const NDArray* deltaScalarArr, NDArray *output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), adjustHue_, (input, deltaScalarArr, output, dimC), SD_FLOAT_TYPES);
 }
 
 /*
@@ -179,18 +178,18 @@ void adjust_hue_(sd::LaunchContext * context, NDArray *array, NDArray *output, N
         // FIXME: template selector should be moved out of loop
         PRAGMA_OMP_PARALLEL_FOR
         for (int e = 0; e < tSize; e++) {
-            BUILD_SINGLE_SELECTOR(xType, adjust_hue_single_, (context, tadsIn->at(e), tadsOut->at(e), d, isNHWC);, FLOAT_TYPES);
+            BUILD_SINGLE_SELECTOR(xType, adjust_hue_single_, (context, tadsIn->at(e), tadsOut->at(e), d, isNHWC);, SD_FLOAT_TYPES);
         }
 
 
         delete tadsIn;
         delete tadsOut;
     } else {
-        BUILD_SINGLE_SELECTOR(xType, adjust_hue_single_, (context, array, output, d, isNHWC);, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, adjust_hue_single_, (context, array, output, d, isNHWC);, SD_FLOAT_TYPES);
     }
 }
 
-BUILD_SINGLE_TEMPLATE(template void adjust_hue_single_, (sd::LaunchContext * context, NDArray *array, NDArray *output, float delta, bool isNHWC);, FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void adjust_hue_single_, (sd::LaunchContext * context, NDArray *array, NDArray *output, float delta, bool isNHWC);, SD_FLOAT_TYPES);
 */
 
 

@@ -36,7 +36,7 @@ namespace sd {
             output->p(0, input->lengthOf());
             output->syncToDevice();
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(size) {
             return SHAPELIST(ConstantShapeHelper::getInstance().scalarShapeInfo(sd::DataType::INT64));

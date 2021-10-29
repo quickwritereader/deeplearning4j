@@ -24,22 +24,21 @@
 #define LIBND4J_FRAMESTATE_H
 
 #include <string>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT FrameState {
+        class SD_LIB_EXPORT FrameState {
         private:
             std::string _name;
-            Nd4jLong _id = 0;
+            sd::LongType _id = 0;
             int _numberOfCycles = 0;
             bool _activated = false;
 
             bool _rewindPlanned = false;
             int _rewindPosition = -1;
         public:
-             FrameState(Nd4jLong id = 0);
+             FrameState(sd::LongType id = 0);
             ~FrameState() = default;
 
             /**

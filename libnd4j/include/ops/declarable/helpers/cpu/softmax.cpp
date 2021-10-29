@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 19.04.2018
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/activations.h>
 #include <helpers/ShapeUtils.h>
 #include <numeric>
@@ -32,7 +31,7 @@ namespace sd {
         namespace helpers {
 
             template <typename T>
-            static void softMaxForVector_(void const* input, Nd4jLong const* inShapeInfo, void *output, Nd4jLong const* outShapeInfo) {
+            static void softMaxForVector_(void const* input, sd::LongType const* inShapeInfo, void *output, sd::LongType const* outShapeInfo) {
 
                 auto inBuff  = reinterpret_cast<T const*>(input);
                 auto outBuff = reinterpret_cast<T *>(output);
@@ -48,10 +47,10 @@ namespace sd {
                     if (inEWS == 1 && outEWS == 1) {
 
                         for (int i = 0; i < length; i++)
-                            max = sd::math::nd4j_max<T>(max, inBuff[i]);
+                            max = sd::math::sd_max<T>(max, inBuff[i]);
 
                         for (int i = 0; i < length; i++) {
-                            outBuff[i] = sd::math::nd4j_exp<T, T>(inBuff[i] - max);
+                            outBuff[i] = sd::math::sd_exp<T, T>(inBuff[i] - max);
                             sum += outBuff[i];
                         }
 
@@ -61,10 +60,10 @@ namespace sd {
                     else {
 
                         for (int i = 0; i < length; i++)
-                            max = sd::math::nd4j_max<T>(max, inBuff[i * inEWS]);
+                            max = sd::math::sd_max<T>(max, inBuff[i * inEWS]);
 
                         for (int i = 0; i < length; i++) {
-                            T r = sd::math::nd4j_exp<T, T>(inBuff[i * inEWS] - max);
+                            T r = sd::math::sd_exp<T, T>(inBuff[i * inEWS] - max);
                             outBuff[i * outEWS] = r;
                             sum += r;
                         }
@@ -76,23 +75,23 @@ namespace sd {
             }
 
             ///////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void softMaxForVector(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
+            void softMaxForVector(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
 
                 if(!input.isVector() || !output.isVector())
                     throw std::runtime_error("ops::helpers::softMaxForVector function: input and output arrays must be vectors !");
 
                 auto xType = input.dataType();
-                BUILD_SINGLE_SELECTOR(xType, softMaxForVector_, (input.buffer(), input.shapeInfo(), output.buffer(), output.shapeInfo()), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, softMaxForVector_, (input.buffer(), input.shapeInfo(), output.buffer(), output.shapeInfo()), SD_FLOAT_TYPES);
             }
 
             template <typename T>
-            ND4J_LOCAL void softmax_loop(const T* input, T *output, const Nd4jLong * offsets, Nd4jLong numOfSubArrs, uint32_t tadLen);
+            void softmax_loop(const T* input, T *output, const sd::LongType * offsets, sd::LongType numOfSubArrs, uint32_t tadLen);
 
 #ifdef _OPENMP
             template <>
-            ND4J_LOCAL FORCEINLINE void softmax_loop(const float* input, float *output, const Nd4jLong * offsets, Nd4jLong numOfSubArrs, uint32_t tadLen) {
+            SD_INLINE void softmax_loop(const float* input, float *output, const sd::LongType * offsets, sd::LongType numOfSubArrs, uint32_t tadLen) {
 #pragma omp parallel for default(shared)
-                    for (Nd4jLong i = 0; i < numOfSubArrs; i++) {
+                    for (sd::LongType i = 0; i < numOfSubArrs; i++) {
                         auto inBuff = input + offsets[i];
                         auto outBuff = output + offsets[i];
 
@@ -100,23 +99,23 @@ namespace sd {
                         float sum = 0.f;
 
 #pragma omp simd reduction(max:max)
-                        for (uint j = 0; j < tadLen; ++j)
-                            max = sd::math::nd4j_max<float>(max, inBuff[j]);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
+                            max = sd::math::sd_max<float>(max, inBuff[j]);
 
 #pragma omp simd reduction(+:sum)
-                        for (uint j = 0; j < tadLen; ++j) {
-                            float temp = sd::math::nd4j_exp<float, float>(inBuff[j] - max);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j) {
+                            float temp = sd::math::sd_exp<float, float>(inBuff[j] - max);
                             outBuff[j] = temp;
                             sum += temp;
                         }
 
-                        for (uint j = 0; j < tadLen; ++j)
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
                             outBuff[j] /= sum;
                     }
             }
 #else
             template <>
-            ND4J_LOCAL FORCEINLINE void softmax_loop(const float *input, float *output, const Nd4jLong *offsets, Nd4jLong numOfSubArrs, uint32_t tadLen) {
+            SD_INLINE void softmax_loop(const float *input, float *output, const sd::LongType *offsets, sd::LongType numOfSubArrs, uint32_t tadLen) {
                 auto func = PRAGMA_THREADS_FOR {
                     for (auto i = start; i < stop; i++) {
                         auto inBuff = input + offsets[i];
@@ -125,16 +124,16 @@ namespace sd {
                         float max = -DataTypeUtils::max<float>();
                         float sum = 0.f;
 
-                        for (uint j = 0; j < tadLen; ++j)
-                            max = sd::math::nd4j_max<float>(max, inBuff[j]);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
+                            max = sd::math::sd_max<float>(max, inBuff[j]);
 
-                        for (uint j = 0; j < tadLen; ++j) {
-                            float temp = sd::math::nd4j_exp<float, float>(inBuff[j] - max);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j) {
+                            float temp = sd::math::sd_exp<float, float>(inBuff[j] - max);
                             outBuff[j] = temp;
                             sum += temp;
                         }
 
-                        for (uint j = 0; j < tadLen; ++j)
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
                             outBuff[j] /= sum;
                     }
                 };
@@ -146,7 +145,7 @@ namespace sd {
 
 
             template <typename T>
-            ND4J_LOCAL FORCEINLINE void softmax_loop(const T *input, T *output, const Nd4jLong *offsets, Nd4jLong numOfSubArrs, uint32_t tadLen) {
+            SD_INLINE void softmax_loop(const T *input, T *output, const sd::LongType *offsets, sd::LongType numOfSubArrs, uint32_t tadLen) {
                 auto func = PRAGMA_THREADS_FOR {
                     for (auto i = start; i < stop; i++) {
                         auto inBuff = input + offsets[i];
@@ -156,16 +155,16 @@ namespace sd {
                         T sum(0.f);
 
 PRAGMA_OMP_SIMD_MAX_2(max)
-                        for (uint j = 0; j < tadLen; ++j)
-                            max = sd::math::nd4j_max<T>(max, inBuff[j]);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
+                            max = sd::math::sd_max<T>(max, inBuff[j]);
 PRAGMA_OMP_SIMD_SUM(sum)
-                        for (uint j = 0; j < tadLen; ++j) {
-                            T temp = sd::math::nd4j_exp<T, T>(inBuff[j] - max);
+                        for (sd::Unsigned j = 0; j < tadLen; ++j) {
+                            T temp = sd::math::sd_exp<T, T>(inBuff[j] - max);
                             outBuff[j] = temp;
                             sum += temp;
                         }
 
-                        for (uint j = 0; j < tadLen; ++j)
+                        for (sd::Unsigned j = 0; j < tadLen; ++j)
                             outBuff[j] /= sum;
                     }
                 };
@@ -191,8 +190,8 @@ PRAGMA_OMP_SIMD_SUM(sum)
                     TadPack tadPack  = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimension);
                     auto tadShapeInfo  = tadPack.primaryShapeInfo();
                     auto tadOffsets    = tadPack.primaryOffsets();
-                    const uint numOfSubArrs = tadPack.numberOfTads();
-                    const uint tadLen       = shape::length(tadShapeInfo);
+                    const sd::Unsigned numOfSubArrs = tadPack.numberOfTads();
+                    const sd::Unsigned tadLen       = shape::length(tadShapeInfo);
 
                     if(shape::elementWiseStride(tadShapeInfo) == 1){
                         auto inBuff = input.bufferAsT<T>();
@@ -202,10 +201,10 @@ PRAGMA_OMP_SIMD_SUM(sum)
                     }
                     else {
 
-                        uint inShapeInfoCast[MAX_RANK];
+                        sd::Unsigned inShapeInfoCast[SD_MAX_RANK];
                         bool canCast = sd::DataTypeUtils::castShapeInfo(tadShapeInfo, inShapeInfoCast);
 
-                        auto offsets = new Nd4jLong[tadLen];
+                        auto offsets = new sd::LongType[tadLen];
                         shape::calcOffsets(tadShapeInfo, offsets);
 
                         auto func = PRAGMA_THREADS_FOR {
@@ -216,16 +215,16 @@ PRAGMA_OMP_SIMD_SUM(sum)
                                 T max = -DataTypeUtils::max<T>();
                                 T sum = 0.f;
 
-                                for (uint j = 0; j < tadLen; ++j)
-                                    max = sd::math::nd4j_max<T>(max, inBuff[offsets[j]]);
+                                for (sd::Unsigned j = 0; j < tadLen; ++j)
+                                    max = sd::math::sd_max<T>(max, inBuff[offsets[j]]);
 
-                                for (uint j = 0; j < tadLen; ++j) {
-                                    T temp = sd::math::nd4j_exp<T, T>(inBuff[offsets[j]] - max);
+                                for (sd::Unsigned j = 0; j < tadLen; ++j) {
+                                    T temp = sd::math::sd_exp<T, T>(inBuff[offsets[j]] - max);
                                     outBuff[offsets[j]] = temp;
                                     sum += temp;
                                 }
 
-                                for (uint j = 0; j < tadLen; ++j)
+                                for (sd::Unsigned j = 0; j < tadLen; ++j)
                                     outBuff[offsets[j]] /= sum;
                             }
                         };
@@ -246,9 +245,9 @@ PRAGMA_OMP_SIMD_SUM(sum)
 
 
             ///////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void softmax(sd::LaunchContext * context, const NDArray& input, NDArray& output, const int dimension) {
+            void softmax(sd::LaunchContext * context, const NDArray& input, NDArray& output, const int dimension) {
 
-                BUILD_SINGLE_SELECTOR(input.dataType(), softmax_, (context, input, output, dimension), FLOAT_TYPES);
+                BUILD_SINGLE_SELECTOR(input.dataType(), softmax_, (context, input, output, dimension), SD_FLOAT_TYPES);
             }
 
         }

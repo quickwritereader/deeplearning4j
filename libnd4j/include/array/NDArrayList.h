@@ -24,16 +24,16 @@
 
 #ifndef NDARRAY_LIST_H
 #define NDARRAY_LIST_H
-
 #include <string>
 #include <atomic>
 #include <unordered_map>
+#include <system/common.h>
 #include <array/NDArray.h>
 #include <memory/Workspace.h>
-#include <system/dll.h>
+
 
 namespace sd {
-    class ND4J_EXPORT NDArrayList {
+    class SD_LIB_EXPORT NDArrayList {
     private:
         // workspace where chunks belong to
         //sd::memory::Workspace* _workspace = nullptr;
@@ -46,14 +46,14 @@ namespace sd {
         sd::DataType _dtype;
 
         // stored chunks
-        MAP_IMPL<int, sd::NDArray*> _chunks;
+        SD_MAP_IMPL<int, sd::NDArray*> _chunks;
 
         // just a counter, for stored elements
         std::atomic<int> _elements;
         std::atomic<int> _counter;
 
         // reference shape
-        std::vector<Nd4jLong> _shape;
+        std::vector<sd::LongType> _shape;
 
         // unstack axis
         int _axis = 0;
@@ -71,13 +71,13 @@ namespace sd {
 
         NDArray* read(int idx);
         NDArray* readRaw(int idx);
-        Nd4jStatus write(int idx, NDArray* array);
+        sd::Status write(int idx, NDArray* array);
 
         NDArray* pick(std::initializer_list<int> indices);
         NDArray* pick(std::vector<int>& indices);
         bool isWritten(int index);
 
-        std::vector<Nd4jLong>& shape();
+        std::vector<sd::LongType>& shape();
 
         NDArray* stack();
         void unstack(NDArray* array, int axis);

@@ -22,7 +22,6 @@
 
 #ifndef SAMEDIFF_STRINGS_H
 #define SAMEDIFF_STRINGS_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

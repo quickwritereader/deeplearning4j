@@ -41,7 +41,7 @@ namespace sd {
 
             helpers::hamming(block.launchContext(), *x, *y, *output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(bits_hamming_distance) {

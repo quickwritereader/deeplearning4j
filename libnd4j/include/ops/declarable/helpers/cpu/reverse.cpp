@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma, created on 16.04.2018
 //
-
 #include <ops/declarable/helpers/reverse.h>
 #include <helpers/ShapeUtils.h>
 #include <array/ResultSet.h>
@@ -31,7 +30,7 @@ namespace ops     {
 namespace helpers {
 
 template <typename T>
-inline void swap(T* arr, Nd4jLong from, Nd4jLong to) {
+inline void swap(T* arr, sd::LongType from, sd::LongType to) {
     T tmp = arr[from];
     arr[from] = arr[to];
     arr[to] = tmp;
@@ -40,12 +39,12 @@ inline void swap(T* arr, Nd4jLong from, Nd4jLong to) {
 // this legacy op is written by raver119@gmail.com
 
 template<typename T>
-static void reverseArray(sd::LaunchContext * context, void const* vinArr, Nd4jLong const*inShapeBuffer, void *voutArr, Nd4jLong const*outShapeBuffer, int numOfElemsToReverse = 0) {
+static void reverseArray(sd::LaunchContext * context, void const* vinArr, sd::LongType const*inShapeBuffer, void *voutArr, sd::LongType const*outShapeBuffer, int numOfElemsToReverse = 0) {
             auto inArr = reinterpret_cast<T const*>(vinArr);
             auto outArr = reinterpret_cast<T *>(voutArr);
 
-            Nd4jLong inLength  = shape::length(inShapeBuffer);
-            Nd4jLong outLength = shape::length(outShapeBuffer);
+            sd::LongType inLength  = shape::length(inShapeBuffer);
+            sd::LongType outLength = shape::length(outShapeBuffer);
             if(numOfElemsToReverse == 0)
                 numOfElemsToReverse = inLength;
             int inEWS = shape::elementWiseStride(inShapeBuffer);
@@ -67,7 +66,7 @@ static void reverseArray(sd::LaunchContext * context, void const* vinArr, Nd4jLo
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto e = start; e < stop; e++) {
                             auto idx1 = (sLength - e) * inEWS;
-                            Nd4jLong idx2 = e * inEWS;
+                            sd::LongType idx2 = e * inEWS;
                             swap(const_cast<T*>(inArr), idx1, idx2);
                         }
                     };
@@ -95,7 +94,7 @@ static void reverseArray(sd::LaunchContext * context, void const* vinArr, Nd4jLo
                 if (inEWS == 1 && outEWS == 1 && inOrder == outOrder) {
 
                     auto func = PRAGMA_THREADS_FOR {
-                        for (Nd4jLong e = start; e < stop; e++)
+                        for (sd::LongType e = start; e < stop; e++)
                             outArr[sLength - e] = inArr[e];
                     };
                     samediff::Threads::parallel_for(func, 0, numOfElemsToReverse);
@@ -175,7 +174,7 @@ static void reverseSequence_(sd::LaunchContext * context, const NDArray* input, 
 
         for(int i = 0; i < inSubArrsSet.size(); ++i) {
 
-            Nd4jLong numOfElemsToReverse = seqLengths->e<Nd4jLong>(i);
+            sd::LongType numOfElemsToReverse = seqLengths->e<sd::LongType>(i);
 
             if(numOfElemsToReverse == 0 || numOfElemsToReverse == 1) {
                 outSubArrsSet.at(i)->assign(inSubArrsSet.at(i));
@@ -191,7 +190,7 @@ static void reverseSequence_(sd::LaunchContext * context, const NDArray* input, 
 }
 
     void reverseSequence(sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output, int seqDim, const int batchDim) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), reverseSequence_, (context, input, seqLengths, output, seqDim, batchDim), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), reverseSequence_, (context, input, seqLengths, output, seqDim, batchDim), SD_COMMON_TYPES);
     }
 
 //////////////////////////////////////////////////////////////////////////
@@ -205,12 +204,12 @@ void reverse(sd::LaunchContext * context, const NDArray* input, NDArray* output,
     for(int i = 0; i < listIn.size(); ++i) {               // listIn.size() = listOut.size()
         subArrIn   = listIn.at(i);
         subArrOut  = listOut.at(i);
-        BUILD_SINGLE_SELECTOR(input->dataType(), helpers::reverseArray, (context, subArrIn->buffer(), subArrIn->shapeInfo(), subArrOut->buffer(), subArrOut->shapeInfo()), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), helpers::reverseArray, (context, subArrIn->buffer(), subArrIn->shapeInfo(), subArrOut->buffer(), subArrOut->shapeInfo()), SD_COMMON_TYPES);
     }
 }
 
-BUILD_SINGLE_TEMPLATE(template void reverseSequence_, (sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output, int seqDim, const int batchDim), LIBND4J_TYPES);
-BUILD_SINGLE_TEMPLATE(template void reverseArray, (sd::LaunchContext * context, void const*inArr, Nd4jLong const*inShapeBuffer, void* outArr, Nd4jLong const* outShapeBuffer, int numOfElemsToReverse), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void reverseSequence_, (sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output, int seqDim, const int batchDim), SD_COMMON_TYPES);
+BUILD_SINGLE_TEMPLATE(template void reverseArray, (sd::LaunchContext * context, void const*inArr, sd::LongType const*inShapeBuffer, void* outArr, sd::LongType const* outShapeBuffer, int numOfElemsToReverse), SD_COMMON_TYPES);
 
 
 }

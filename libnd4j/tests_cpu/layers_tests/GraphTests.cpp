@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <flatbuffers/flatbuffers.h>
 #include <graph/generated/node_generated.h>
@@ -425,8 +424,8 @@ TEST_F(GraphTests, IndexReductionsTest1) {
         }
     }
 
-    auto z = NDArrayFactory::create_<Nd4jLong>('c', {5, 1});
-    auto axis = NDArrayFactory::create_<Nd4jLong>('c', {1}, {1});
+    auto z = NDArrayFactory::create_<sd::LongType>('c', {5, 1});
+    auto axis = NDArrayFactory::create_<sd::LongType>('c', {1}, {1});
     graph->getVariableSpace()->putVariable(-1, x);
     graph->getVariableSpace()->putVariable(-2, z);
     //graph->getVariableSpace()->putVariable(-3, axis);
@@ -879,7 +878,7 @@ TEST_F(GraphTests, OutputValidation6) {
 
     auto outputs = graph->fetchOutputs();
 
-//    nd4j_printf("Returned variables: \n", "");
+//    sd_printf("Returned variables: \n", "");
 //    for (int e = 0; e < outputs->size(); e++) {
 //        printf("%i, ", outputs->at(e)->id());
 //    }
@@ -942,9 +941,9 @@ TEST_F(GraphTests, TestMultiOutput1) {
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(pair0));
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(pair1));
 
-    Nd4jStatus status = GraphExecutioner::execute(graph);
+    sd::Status status = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_NEAR(-2.0f, graph->getVariableSpace()->getVariable(21)->getNDArray()->meanNumber().e<float>(0), 1e-5);
     ASSERT_NEAR(-4.0f, graph->getVariableSpace()->getVariable(31)->getNDArray()->meanNumber().e<float>(0), 1e-5);
@@ -1144,12 +1143,12 @@ TEST_F(GraphTests, TestGraphInGraph_1) {
     ASSERT_EQ(0, nodeB0->getLayer());
     ASSERT_EQ(1, nodeB1->getLayer());
 
-    Nd4jStatus status = GraphExecutioner::execute(&graphA);
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = GraphExecutioner::execute(&graphA);
+    ASSERT_EQ(sd::Status::OK, status);
 
     float m = graphA.getVariableSpace()->getVariable(4)->getNDArray()->meanNumber().e<float>(0);
 
-    //nd4j_printf("OpResult: %f\n", m);
+    //sd_printf("OpResult: %f\n", m);
 
     ASSERT_NEAR(-11.0, m, 1e-5);
 }
@@ -1215,12 +1214,12 @@ TEST_F(GraphTests, TestGraphInGraph_2) {
     ASSERT_EQ(0, nodeB0->getLayer());
     ASSERT_EQ(1, nodeB1->getLayer());
 
-    Nd4jStatus status = GraphExecutioner::execute(&graphA);
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = GraphExecutioner::execute(&graphA);
+    ASSERT_EQ(sd::Status::OK, status);
 
     float m = graphA.getVariableSpace()->getVariable(4)->getNDArray()->meanNumber().e<float>(0);
 
-    //nd4j_printf("OpResult: %f\n", m);
+    //sd_printf("OpResult: %f\n", m);
 
     ASSERT_NEAR(-11.0, m, 1e-5);
 }
@@ -1237,14 +1236,14 @@ TEST_F(GraphTests, Test_Clone_1) {
 
     auto clone = graph->clone();
 
-    Nd4jStatus statusOriginal = GraphExecutioner::execute(graph);
+    sd::Status statusOriginal = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, statusOriginal);
+    ASSERT_EQ(sd::Status::OK, statusOriginal);
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
-    Nd4jStatus statusClone = GraphExecutioner::execute(clone);
+    sd::Status statusClone = GraphExecutioner::execute(clone);
 
-    ASSERT_EQ(ND4J_STATUS_OK, statusClone);
+    ASSERT_EQ(sd::Status::OK, statusClone);
 
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
@@ -1262,8 +1261,6 @@ TEST_F(GraphTests, Test_Clone_1) {
 }
 
 
-
-
 TEST_F(GraphTests, Test_Clone_2) {
     auto exp = NDArrayFactory::create<float>('c', {3});
     exp.assign(3.0);
@@ -1275,14 +1272,14 @@ TEST_F(GraphTests, Test_Clone_2) {
 
     auto clone = graph->clone();
 
-    Nd4jStatus statusOriginal = GraphExecutioner::execute(graph);
+    sd::Status statusOriginal = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, statusOriginal);
+    ASSERT_EQ(sd::Status::OK, statusOriginal);
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
-    Nd4jStatus statusClone = GraphExecutioner::execute(clone);
+    sd::Status statusClone = GraphExecutioner::execute(clone);
 
-    ASSERT_EQ(ND4J_STATUS_OK, statusClone);
+    ASSERT_EQ(sd::Status::OK, statusClone);
 
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
@@ -1311,8 +1308,8 @@ TEST_F(GraphTests, Test_Dtype_Conversion_1) {
     auto gf = gd->template asT<float>();
 
     // checking float graph
-    Nd4jStatus statusF = GraphExecutioner::execute(gf);
-    ASSERT_EQ(ND4J_STATUS_OK, statusF);
+    sd::Status statusF = GraphExecutioner::execute(gf);
+    ASSERT_EQ(sd::Status::OK, statusF);
 
     ASSERT_TRUE(gf->getVariableSpace()->hasVariable(3));
 
@@ -1324,8 +1321,8 @@ TEST_F(GraphTests, Test_Dtype_Conversion_1) {
 
 
     // checking double graph
-    Nd4jStatus statusD = GraphExecutioner<double>::execute(gd);
-    ASSERT_EQ(ND4J_STATUS_OK, statusD);
+    sd::Status statusD = GraphExecutioner<double>::execute(gd);
+    ASSERT_EQ(sd::Status::OK, statusD);
 
     ASSERT_TRUE(gd->getVariableSpace()->hasVariable(3));
     auto z2 = gd->getVariableSpace()->getVariable(3)->getNDArray();
@@ -1354,7 +1351,7 @@ TEST_F(GraphTests, Test_Dtype_Conversion_2) {
 
     // checking float
     auto resultF = GraphExecutioner::execute(gf);
-    ASSERT_EQ(ND4J_STATUS_OK, resultF);
+    ASSERT_EQ(sd::Status::OK, resultF);
     ASSERT_TRUE(gf->getVariableSpace()->hasVariable(18));
     auto zF = gf->getVariableSpace()->getVariable(18)->getNDArray();
 
@@ -1364,7 +1361,7 @@ TEST_F(GraphTests, Test_Dtype_Conversion_2) {
 
     // checking double
     auto resultD = GraphExecutioner<double>::execute(gd);
-    ASSERT_EQ(ND4J_STATUS_OK, resultD);
+    ASSERT_EQ(sd::Status::OK, resultD);
     ASSERT_TRUE(gd->getVariableSpace()->hasVariable(18));
     auto zD = gd->getVariableSpace()->getVariable(18)->getNDArray();
 
@@ -1413,8 +1410,8 @@ TEST_F(GraphTests, OpListTest_1) {
 
     std::string exp(" -g \"-DSD_OPS_LIST='-DOP_rank=true -DOP_range=true -DOP_subtract=true -DOP_permute=true -DOP_matmul=true -DOP_biasadd=true -DOP_TRANSFORM{15}=true '\"");
     std::string out = GraphUtils::makeCommandLine(ops);
-//    nd4j_printf("EXP: >%s<\n", exp.c_str());
-//    nd4j_printf("OUT: >%s<\n", out.c_str());
+//    sd_printf("EXP: >%s<\n", exp.c_str());
+//    sd_printf("OUT: >%s<\n", out.c_str());
     ASSERT_EQ(exp, out);
 
     delete graph;
@@ -1475,7 +1472,7 @@ TEST_F(GraphTests, OpListTest_4) {
     std::vector<OpDescriptor> ops2(ops);
     std::copy(ops.begin(), ops.end(),  std::back_inserter(ops2));
 
-    // nd4j_printf("Total ops before %i\n", ops.size());
+    // sd_printf("Total ops before %i\n", ops.size());
     ASSERT_TRUE(ops.size() == 6);
     ASSERT_TRUE(ops2.size() == 2 * ops.size());
 
@@ -1505,7 +1502,7 @@ TEST_F(GraphTests, Test_Inplace_Execution_1) {
     ASSERT_TRUE(graph->nodeById(18)->isInplace());
 
     auto status = GraphExecutioner::execute(graph, graph->getVariableSpace());
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto z = graph->getVariableSpace()->getVariable(18)->getNDArray();
 
@@ -1574,7 +1571,7 @@ TEST_F(GraphTests, Test_Inplace_Outputs_1) {
 
     sd::ops::test_output_reshape op;
     auto result = op.execute({&x}, {&z}, {}, {}, {});
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(exp.isSameShape(z));
     ASSERT_TRUE(exp.equalsTo(z));

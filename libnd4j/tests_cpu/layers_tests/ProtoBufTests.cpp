@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include "testlayers.h"
 #include <graph/GraphExecutioner.h>
 

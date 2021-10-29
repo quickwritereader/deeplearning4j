@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <loops/type_conversions.h>
@@ -35,7 +34,7 @@ using namespace sd::graph;
 class ThreadsTests : public testing::Test {
 public:
     ThreadsTests() {
-        nd4j_printf("\n","");
+        sd_printf("\n","");
     }
 };
 
@@ -96,7 +95,7 @@ TEST_F(ThreadsTests, th_test_5) {
     for (auto e = 0; e < 6; e++) {
         auto span = Span3::build(1, e, 6, 0, 32, 1, 0, 112, 1, 0, 112, 1);
 
-        nd4j_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
+        sd_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
     }
 }
 
@@ -119,14 +118,14 @@ TEST_F(ThreadsTests, th_test_4) {
     for (auto e = 0; e < 6; e++) {
         auto span = Span2::build(1, e, 6, 0, 19, 1, 0, 17, 1);
 
-        nd4j_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
+        sd_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
     }
 
-    nd4j_printf("-----------------------\n","");
+    sd_printf("-----------------------\n","");
     for (auto e = 0; e < 6; e++) {
         auto span = Span2::build(1, e, 6, 0, 32, 1, 0, 3, 1);
 
-        nd4j_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
+        sd_printf("Span start: %lld; stop: %lld\n", span.startX(), span.stopX());
     }
 }
 
@@ -140,7 +139,7 @@ TEST_F(ThreadsTests, test_span_converage_1) {
                 auto loop = ThreadsHelper::pickLoop2d(threads, b, c);
 
                 if (t > 1 && threads == 1 && (b > 1 && c > 1)) {
-                    nd4j_printf("Got 1 thread for [%i, %i] loop; initial max threads: %i\n", b, c, t)
+                    sd_printf("Got 1 thread for [%i, %i] loop; initial max threads: %i\n", b, c, t)
                 }
 
                 auto sum = 0;
@@ -190,7 +189,7 @@ TEST_F(ThreadsTests, validation_test_2d_1) {
             }
         }
 
-        nd4j_printf("Finished iteration %i\n", e);
+        sd_printf("Finished iteration %i\n", e);
     }
 }
 
@@ -266,6 +265,6 @@ TEST_F(ThreadsTests, basic_test_1) {
 
     ASSERT_NEAR((float) array.lengthOf(), array.sumNumber().e<float>(0), 1e-5f);
 
-    nd4j_printf("Threads time: %lld us; OMP time: %lld us; %p\n", outerTimeThreads, outerTimeOmp, instance)
+    sd_printf("Threads time: %lld us; OMP time: %lld us; %p\n", outerTimeThreads, outerTimeOmp, instance)
 }
  */

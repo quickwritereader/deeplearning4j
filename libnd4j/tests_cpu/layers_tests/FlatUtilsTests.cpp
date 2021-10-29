@@ -21,7 +21,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
 #include "testlayers.h"

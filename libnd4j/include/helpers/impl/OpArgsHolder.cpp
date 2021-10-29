@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 15.07.2018
 //
-
 #include <helpers/OpArgsHolder.h>
 
 
@@ -29,9 +28,9 @@ namespace sd {
 // default constructor
 OpArgsHolder::OpArgsHolder() {
 
-	_inArrs = std::vector<NDArray*>();
+    _inArrs = std::vector<NDArray*>();
     _tArgs  = std::vector<double>();
-    _iArgs  = std::vector<Nd4jLong>();
+    _iArgs  = std::vector<sd::LongType>();
     _bArgs  = std::vector<bool>();
 
     _isArrAlloc = std::vector<bool>();
@@ -46,17 +45,17 @@ OpArgsHolder::OpArgsHolder() {
 // copy constructor
 OpArgsHolder::OpArgsHolder(const OpArgsHolder& other) {
 
-	throw std::runtime_error("OpArgsHolder::OpArgsHolder copy constructor: don't use me !");
+    throw std::runtime_error("OpArgsHolder::OpArgsHolder copy constructor: don't use me !");
 }
 
 
 ////////////////////////////////////////////////////////////////////////
 // constructor
 OpArgsHolder::OpArgsHolder(const std::vector<NDArray*>& inArrs,
-			 			   const std::vector<double>& tArgs,
-			 			   const std::vector<Nd4jLong>& iArgs,
-			 			   const std::vector<bool>& bArgs) {
-	_inArrs = inArrs;
+                            const std::vector<double>& tArgs,
+                            const std::vector<sd::LongType>& iArgs,
+                            const std::vector<bool>& bArgs) {
+    _inArrs = inArrs;
     _tArgs  = tArgs;
     _iArgs  = iArgs;
     _bArgs  = bArgs;
@@ -72,12 +71,12 @@ OpArgsHolder::OpArgsHolder(const std::vector<NDArray*>& inArrs,
 ////////////////////////////////////////////////////////////////////////
 // move constructor
 OpArgsHolder::OpArgsHolder(OpArgsHolder&& other) noexcept: _inArrs(std::move(other._inArrs)),
-												 		   _tArgs(std::move(other._tArgs)),
-												  		   _iArgs(std::move(other._iArgs)),
-												  		   _bArgs(std::move(other._bArgs)),
-												  		   _isArrAlloc(std::move(other._isArrAlloc))  {
+                                                            _tArgs(std::move(other._tArgs)),
+                                                             _iArgs(std::move(other._iArgs)),
+                                                             _bArgs(std::move(other._bArgs)),
+                                                             _isArrAlloc(std::move(other._isArrAlloc))  {
 
-	other._isArrAlloc = std::vector<bool>();
+    other._isArrAlloc = std::vector<bool>();
 
     _numInArrs = _inArrs.size();
     _numTArgs  = _tArgs.size();
@@ -97,22 +96,22 @@ OpArgsHolder& OpArgsHolder::operator=(const OpArgsHolder& other) {
 // move assignment operator
 OpArgsHolder& OpArgsHolder::operator=(OpArgsHolder&& other) noexcept {
 
-	if (this == &other)
+    if (this == &other)
         return *this;
 
-    for (int i = 0; i < _isArrAlloc.size(); ++i)		// delete arrays if necessary
-		if(_isArrAlloc[i])
-			delete _inArrs[i];
+    for (int i = 0; i < _isArrAlloc.size(); ++i)        // delete arrays if necessary
+        if(_isArrAlloc[i])
+            delete _inArrs[i];
 
-	_inArrs 	= std::move(other._inArrs);
-	_tArgs  	= std::move(other._tArgs);
-	_iArgs  	= std::move(other._iArgs);
-	_bArgs  	= std::move(other._bArgs);
-	_isArrAlloc = std::move(other._isArrAlloc);
+    _inArrs     = std::move(other._inArrs);
+    _tArgs      = std::move(other._tArgs);
+    _iArgs      = std::move(other._iArgs);
+    _bArgs      = std::move(other._bArgs);
+    _isArrAlloc = std::move(other._isArrAlloc);
 
-	other._isArrAlloc = std::vector<bool>();
+    other._isArrAlloc = std::vector<bool>();
 
-	_numInArrs = _inArrs.size();
+    _numInArrs = _inArrs.size();
     _numTArgs  = _tArgs.size();
     _numIArgs  = _iArgs.size();
     _numBArgs  = _bArgs.size();
@@ -123,37 +122,37 @@ OpArgsHolder& OpArgsHolder::operator=(OpArgsHolder&& other) noexcept {
 ////////////////////////////////////////////////////////////////////////
 OpArgsHolder OpArgsHolder::createArgsHolderForBP(const std::vector<NDArray*>& inGradArrs, const bool isInPlace) const {
 
-	const int numInGradArrs = inGradArrs.size();
+    const int numInGradArrs = inGradArrs.size();
 
-	OpArgsHolder result(std::vector<NDArray*>(_numInArrs + numInGradArrs, nullptr), _tArgs, _iArgs);
+    OpArgsHolder result(std::vector<NDArray*>(_numInArrs + numInGradArrs, nullptr), _tArgs, _iArgs);
 
-	if(isInPlace)
-		result._isArrAlloc = std::vector<bool>(_numInArrs + numInGradArrs, false);
+    if(isInPlace)
+        result._isArrAlloc = std::vector<bool>(_numInArrs + numInGradArrs, false);
 
-	for (int i = 0; i < _numInArrs; ++i) {
+    for (int i = 0; i < _numInArrs; ++i) {
 
-		if(isInPlace) {
-			result._inArrs[i] = new NDArray(*_inArrs[i]);		// make copy
-			result._isArrAlloc[i] = true;
-		}
-		else
-			result._inArrs[i] = _inArrs[i];
-	}
+        if(isInPlace) {
+            result._inArrs[i] = new NDArray(*_inArrs[i]);        // make copy
+            result._isArrAlloc[i] = true;
+        }
+        else
+            result._inArrs[i] = _inArrs[i];
+    }
 
-	// input gradients
-	for (int i = 0; i < numInGradArrs; ++i)
-		result._inArrs[_numInArrs + i] = inGradArrs[i];
+    // input gradients
+    for (int i = 0; i < numInGradArrs; ++i)
+        result._inArrs[_numInArrs + i] = inGradArrs[i];
 
-	return result;
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // default destructor
 OpArgsHolder::~OpArgsHolder() noexcept {
 
-	for (int i = 0; i < _isArrAlloc.size(); ++i)
-		if(_isArrAlloc[i])
-			delete _inArrs[i];
+    for (int i = 0; i < _isArrAlloc.size(); ++i)
+        if(_isArrAlloc[i])
+            delete _inArrs[i];
 }
 
 }

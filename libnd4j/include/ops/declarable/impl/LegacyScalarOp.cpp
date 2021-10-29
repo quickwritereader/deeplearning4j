@@ -19,10 +19,9 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyScalarOp.h>
 #include <array/NDArrayFactory.h>
-#include <graph/Status.h>
+
 
 
 namespace sd {
@@ -46,13 +45,13 @@ namespace sd {
         ShapeList *LegacyScalarOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));
         }
 
-        Nd4jStatus LegacyScalarOp::validateAndExecute(Context &block) {
+        sd::Status LegacyScalarOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
 
@@ -85,7 +84,7 @@ namespace sd {
                 NDArray::registerSpecialUse({z}, {x, _scalar});
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
     }
 }

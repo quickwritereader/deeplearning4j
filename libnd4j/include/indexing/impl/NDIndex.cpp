@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <indexing/NDIndex.h>
 
 namespace sd {
@@ -28,7 +27,7 @@ namespace sd {
         return false;
     }
 
-    Nd4jLong NDIndex::stride() {
+    sd::LongType NDIndex::stride() {
         return _stride;
     }
 
@@ -36,7 +35,7 @@ namespace sd {
         _indices.push_back(-1);
     }
 
-    sd::NDIndexPoint::NDIndexPoint(Nd4jLong point) : sd::NDIndex() {
+    sd::NDIndexPoint::NDIndexPoint(sd::LongType point) : sd::NDIndex() {
         this->_indices.push_back(point);
     }
 
@@ -53,8 +52,7 @@ namespace sd {
     }
 
 
-
-    sd::NDIndexInterval::NDIndexInterval(Nd4jLong start, Nd4jLong end, Nd4jLong stride) : sd::NDIndex() {
+    sd::NDIndexInterval::NDIndexInterval(sd::LongType start, sd::LongType end, sd::LongType stride) : sd::NDIndex() {
         this->_stride = stride;
         for (int e = start; e < end; e+= stride)
             this->_indices.push_back(e);
@@ -68,7 +66,7 @@ namespace sd {
         return _indices.size() == 1 && _indices.at(0) >= 0;
     }
 
-    std::vector<Nd4jLong> &sd::NDIndex::getIndices() {
+    std::vector<sd::LongType> &sd::NDIndex::getIndices() {
         return _indices;
     }
 
@@ -77,11 +75,11 @@ namespace sd {
         return new NDIndexAll();
     }
 
-    sd::NDIndex *sd::NDIndex::point(Nd4jLong pt) {
+    sd::NDIndex *sd::NDIndex::point(sd::LongType pt) {
         return new NDIndexPoint(pt);
     }
 
-    sd::NDIndex *sd::NDIndex::interval(Nd4jLong start, Nd4jLong end, Nd4jLong stride) {
+    sd::NDIndex *sd::NDIndex::interval(sd::LongType start, sd::LongType end, sd::LongType stride) {
         return new NDIndexInterval(start, end, stride);
     }
 }

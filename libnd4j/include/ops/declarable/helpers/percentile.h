@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_PERCENTILE_H
 #define LIBND4J_PERCENTILE_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include "array/NDArray.h"
 
@@ -30,8 +29,8 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation);
-    
+SD_LIB_HIDDEN void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation);
+
 
 }
 }

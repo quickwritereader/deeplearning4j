@@ -22,7 +22,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -47,12 +46,12 @@ public:
 
 TEST_F(DeclarableOpsTests19, test_argmax_maxint_vector_1) {
     auto x = NDArrayFactory::create<float>('c', {3}, {0.1f, 0.5f, 0.7f});
-    auto z = NDArrayFactory::create<Nd4jLong>(0);
-    auto e = NDArrayFactory::create<Nd4jLong>(2);
+    auto z = NDArrayFactory::create<sd::LongType>(0);
+    auto e = NDArrayFactory::create<sd::LongType>(2);
 
     sd::ops::argmax op;
     auto status = op.execute({&x}, {&z}, {DataTypeUtils::max<int>()});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_EQ(e, z);
 }
 
@@ -133,7 +132,7 @@ TEST_F(DeclarableOpsTests19, test_threshold_decode_1) {
 
     sd::ops::decode_threshold op;
     auto status = op.execute({&x, &y}, {&x});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_EQ(exp_gradients, x);
 }
 
@@ -145,7 +144,7 @@ TEST_F(DeclarableOpsTests19, test_bitmap_encode_1) {
 
     sd::ops::encode_bitmap enc;
     auto enc_result = enc.evaluate({&initial}, {1e-3f});
-    ASSERT_EQ(Status::OK(), enc_result.status());
+    ASSERT_EQ(sd::Status::OK, enc_result.status());
 
     //initial.printIndexedBuffer("initial");
     ASSERT_EQ(exp_0, initial);
@@ -159,7 +158,7 @@ TEST_F(DeclarableOpsTests19, test_bitmap_encode_1) {
 
     sd::ops::decode_bitmap dec;
     auto status = dec.execute({&initial, encoded}, {&initial});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
 
     //initial.printIndexedBuffer();
@@ -181,7 +180,7 @@ TEST_F(DeclarableOpsTests19, test_bitmap_encode_decode) {
     // checking equality of all encoded bits
     for (int e = 5; e < encoded->lengthOf() - 1; e++) {
         if (encoded->e<int>(e) != encoded->e<int>(e - 1))
-            nd4j_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
+            sd_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
     }
 
     ASSERT_NE(exp, initial);
@@ -189,13 +188,13 @@ TEST_F(DeclarableOpsTests19, test_bitmap_encode_decode) {
 
     sd::ops::decode_bitmap dec;
     auto status = dec.execute({&initial, encoded}, {&initial});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // checking equality of all dedoded bits
     for (int e = 0; e < initial.lengthOf(); e++) {
         auto f = initial.e<float>(e);
         if (f != 1.0f)
-            nd4j_printf("initial[%i] = %f\n", e, f);
+            sd_printf("initial[%i] = %f\n", e, f);
     }
 
 
@@ -219,7 +218,7 @@ TEST_F(DeclarableOpsTests19, test_threshold_encode_decode) {
     for (int e = 0; e < initial.lengthOf(); e++) {
         auto f = initial.e<float>(e);
         if (f != 0.5f) {
-            nd4j_printf("initial[%i] = %f\n", e, f);
+            sd_printf("initial[%i] = %f\n", e, f);
             throw std::runtime_error("");
         }
     }
@@ -228,18 +227,18 @@ TEST_F(DeclarableOpsTests19, test_threshold_encode_decode) {
     // checking equality of all encoded bits
     //for (int e = 5; e < encoded->lengthOf() - 1; e++) {
         //if (encoded->e<int>(e) != encoded->e<int>(e - 1) + 1)
-            //nd4j_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
+            //sd_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
     //}
 
     sd::ops::decode_threshold dec;
     auto status = dec.execute({&initial, encoded}, {&initial});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // checking equality of all dedoded bits
     for (int e = 0; e < initial.lengthOf(); e++) {
         auto f = initial.e<float>(e);
         if (f != 1.0f)
-            nd4j_printf("initial[%i] = %f\n", e, f);
+            sd_printf("initial[%i] = %f\n", e, f);
     }
 
     ASSERT_EQ(exp, initial);
@@ -265,7 +264,7 @@ TEST_F(DeclarableOpsTests19, test_threshold_encode_decode_2) {
   for (int e = 0; e < initial.lengthOf(); e++) {
     auto f = initial.e<float>(e);
     if (f != 0.5f) {
-      nd4j_printf("initial[%i] = %f\n", e, f);
+      sd_printf("initial[%i] = %f\n", e, f);
       throw std::runtime_error("");
     }
   }
@@ -275,26 +274,25 @@ TEST_F(DeclarableOpsTests19, test_threshold_encode_decode_2) {
   // checking equality of all encoded bits
   //for (int e = 5; e < encoded->lengthOf() - 1; e++) {
   //if (encoded->e<int>(e) != encoded->e<int>(e - 1) + 1)
-  //nd4j_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
+  //sd_printf("Non equal encoded values at E[%i]: %i;\n", e, encoded->e<int>(e));
   //}
 
   sd::ops::decode_threshold dec;
   auto status = dec.execute({&initial, encoded}, {&initial});
-  ASSERT_EQ(Status::OK(), status);
+  ASSERT_EQ(sd::Status::OK, status);
 
   // checking equality of all dedoded bits
   /*
   for (int e = 0; e < initial.lengthOf(); e++) {
     auto f = initial.e<float>(e);
     if (f != 1.0f)
-      nd4j_printf("initial[%i] = %f\n", e, f);
+      sd_printf("initial[%i] = %f\n", e, f);
   }
    */
 
   ASSERT_EQ(exp, initial);
 }
 #endif
-
 
 
 TEST_F(DeclarableOpsTests19, test_matmul_ccc) {
@@ -310,7 +308,7 @@ TEST_F(DeclarableOpsTests19, test_matmul_ccc) {
 
     sd::ops::matmul op;
     auto status = op.execute({&x, &y}, {&z}, {1.0, 1.0});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -328,7 +326,7 @@ TEST_F(DeclarableOpsTests19, test_matmul_fcf) {
 
     sd::ops::matmul op;
     auto status = op.execute({&x, &y}, {&z}, {1.0, 1.0});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -346,7 +344,7 @@ TEST_F(DeclarableOpsTests19, test_matmul_cff) {
 
     sd::ops::matmul op;
     auto status = op.execute({&x, &y}, {&z}, {1.0, 1.0});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -365,7 +363,7 @@ TEST_F(DeclarableOpsTests19, test_matmul_ccf) {
 
     sd::ops::matmul op;
     auto status = op.execute({&x, &y}, {&z}, {1.0, 1.0});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -383,7 +381,7 @@ TEST_F(DeclarableOpsTests19, test_matmul_fff) {
 
     sd::ops::matmul op;
     auto status = op.execute({&x, &y}, {&z}, {1.0, 1.0});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -411,7 +409,7 @@ TEST_F(DeclarableOpsTests19, test_conv1d_bp_1) {
 
     sd::ops::conv1d_bp op;
     auto result = op.evaluate({&t, &u, &v}, {3, 2, 0, 1, 2,0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
 }
 
@@ -422,6 +420,6 @@ TEST_F(DeclarableOpsTests19, test_squeeze_1) {
 
     sd::ops::squeeze op;
     auto status = op.execute({&x}, {&e}, {axis});
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 }
 

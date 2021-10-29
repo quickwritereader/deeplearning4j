@@ -23,7 +23,6 @@
 #ifndef LIBND4J_GRAPHPROFILINGHELPER_H
 #define LIBND4J_GRAPHPROFILINGHELPER_H
 
-
 #include <graph/Graph.h>
 #include "GraphProfile.h"
 

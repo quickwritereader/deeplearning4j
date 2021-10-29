@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.09.2018
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include<ops/declarable/helpers/addBias.h>
 #include <ops/declarable/helpers/im2col.h>
@@ -57,9 +56,9 @@ static void depthwiseConv2d_(sd::graph::Context& block, const NDArray* input, co
             ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, wFormat, *input, *output, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH, indWiC, indWmC, indWkH, indOoH);
             mC = weights->sizeAt(indWmC);                           // channels multiplier
 
-            std::vector<std::vector<Nd4jLong>> modifColumns = {{1,0,4,5,2,3}, {iC,bS*oH*oW,kH*kW}};  // [bS,iC,kH,kW,oH,oW] -> [iC,bS,oH,oW,kH,kW] -> [iC,bS*oH*oW,kH*kW]
-            std::vector<std::vector<Nd4jLong>> modifOutput, modifWeights;
-            std::vector<Nd4jLong> outReShape;
+            std::vector<std::vector<sd::LongType>> modifColumns = {{1,0,4,5,2,3}, {iC,bS*oH*oW,kH*kW}};  // [bS,iC,kH,kW,oH,oW] -> [iC,bS,oH,oW,kH,kW] -> [iC,bS*oH*oW,kH*kW]
+            std::vector<std::vector<sd::LongType>> modifOutput, modifWeights;
+            std::vector<sd::LongType> outReShape;
 
             if(!isNCHW) {
                 outReShape = {bS, oH, oW, iC, mC};                                              // [bS,oH,oW,iC*mC] -> [bS,oH,oW,iC,mC]
@@ -95,8 +94,8 @@ static void depthwiseConv2d_(sd::graph::Context& block, const NDArray* input, co
                 delete input;
         }
 
- void ConvolutionUtils::depthwiseConv2d(sd::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode, const int isNCHW, const int wFormat) {
-            BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), depthwiseConv2d_, (block, input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat), FLOAT_TYPES);
+    void ConvolutionUtils::depthwiseConv2d(sd::graph::Context& block, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode, const int isNCHW, const int wFormat) {
+            BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), depthwiseConv2d_, (block, input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat), SD_FLOAT_TYPES);
         }
 
 }

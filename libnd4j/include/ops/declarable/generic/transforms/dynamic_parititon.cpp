@@ -52,7 +52,7 @@ namespace ops {
         }
         helpers::dynamicPartitionFunctor(block.launchContext(), input, indices, outputList);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_SHAPE_FN(dynamic_partition) {
@@ -63,15 +63,15 @@ namespace ops {
         auto idx = inputShape->at(1);
         for (int i = 0; i < numPartition; i++) {
             for (int e = 0; e < indices->lengthOf(); ++e)
-                if (indices->e<Nd4jLong>(e) == i)
+                if (indices->e<sd::LongType>(e) == i)
                     partitionSizes[i]++;
         }
 
         auto shapes = SHAPELIST();
         int outRank = shape::rank(in) - shape::rank(idx) + 1;
         for (int e = 0; e < numPartition; e++) {
-            Nd4jLong *newShape;
-            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+            sd::LongType *newShape;
+            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
             //shape::shapeVector(partitionSizes[e], newShape);
             newShape[0] = outRank;
             newShape[1] = partitionSizes[e];
@@ -106,7 +106,7 @@ namespace ops {
 
         std::vector<NDArray*> outputList(2); // only for output
         std::vector<NDArray*> gradOutList(numPartition);
-        for (Nd4jLong e = 0; e < numPartition; e++) {
+        for (sd::LongType e = 0; e < numPartition; e++) {
             gradOutList[e] = INPUT_VARIABLE(e + 2);
         }
         outputList[0] = OUTPUT_VARIABLE(0);
@@ -115,7 +115,7 @@ namespace ops {
         originalIndices.linspace(0);
         ops::dynamic_partition op;
         auto res = op.evaluate({&originalIndices, indices}, {numPartition});
-        REQUIRE_TRUE(res.status() == ND4J_STATUS_OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
+        REQUIRE_TRUE(res.status() == sd::Status::OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
         ops::dynamic_stitch stichOp;
         std::vector<NDArray*> partitions(numPartition * 2);
         for (size_t i = 0; i < res.size(); i++) {
@@ -124,13 +124,13 @@ namespace ops {
         }
 
         auto result = stichOp.evaluate(partitions, {numPartition});
-        REQUIRE_TRUE(result.status() == ND4J_STATUS_OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
+        REQUIRE_TRUE(result.status() == sd::Status::OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
         result.at(0)->reshapei(outputList[0]->getShapeAsVector());
         outputList[1]->assign(indices);
         outputList[0]->assign(result.at(0));
 
 //        helpers::dynamicPartitionFunctorBP(block.launchContext(), input, indices, gradOutList, outputList);
-        return ND4J_STATUS_OK;
+        return sd::Status::OK;
     }
 
     DECLARE_SHAPE_FN(dynamic_partition_bp) {
@@ -140,8 +140,8 @@ namespace ops {
 
         auto shapes = SHAPELIST();
         // just copy shape info from input and indices to output
-        for (Nd4jLong i = 0; i < 2; i++) {
-            Nd4jLong *newShape;
+        for (sd::LongType i = 0; i < 2; i++) {
+            sd::LongType *newShape;
             COPY_SHAPE(inputShape->at(i), newShape);
             shapes->push_back(CONSTANT(newShape));
         }

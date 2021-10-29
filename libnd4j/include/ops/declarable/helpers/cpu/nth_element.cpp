@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/nth_element.h>
 #include <helpers/TAD.h>
 #include <helpers/ShapeUtils.h>
@@ -31,7 +30,7 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    ND4J_LOCAL void nthElementFunctor_(NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
+    void nthElementFunctor_(NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
 
         NDArray sortedVals(*input);
         if (input->isVector()) {
@@ -54,7 +53,7 @@ namespace helpers {
             SpecialMethods<T>::sortTadGeneric(sortedVals.buffer(), sortedVals.shapeInfo(), lastDims.data(), lastDims.size(), pack.primaryShapeInfo(), pack.primaryOffsets(), reverse);
 
             ResultSet rows = sortedVals.allTensorsAlongDimension(lastDims);
-            Nd4jLong oL = output->lengthOf();
+            sd::LongType oL = output->lengthOf();
 
             auto func = PRAGMA_THREADS_FOR {
                 for (auto e = start; e < stop; e++) {
@@ -67,11 +66,11 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void nthElementFunctor(sd::LaunchContext  *launchContext, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), LIBND4J_TYPES);
+    void nthElementFunctor(sd::LaunchContext  *launchContext, NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), SD_COMMON_TYPES);
 
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void nthElementFunctor_, (NDArray* input, Nd4jLong n, NDArray* output, bool reverse), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_, (NDArray* input, sd::LongType n, NDArray* output, bool reverse), SD_COMMON_TYPES);
 
 }
 }

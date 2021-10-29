@@ -19,22 +19,21 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/ShapeUtils.h>
 #include <helpers/Loops.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void scatterUpdate(sd::LaunchContext * context, NDArray& input, NDArray& updates, const std::vector<int>* intArgs) {
+void scatterUpdate(sd::LaunchContext * context, NDArray& input, NDArray& updates, const std::vector<int>* intArgs) {
 
     int opCode = (*intArgs)[0];
     int dimSize = (*intArgs)[1];
-    Nd4jLong e;
-    Nd4jLong limg = 2 + dimSize;
+    sd::LongType e;
+    sd::LongType limg = 2 + dimSize;
     std::vector<int> tadDimensions(dimSize);
     for (e = 2; e < limg; e++)
         tadDimensions[e-2] = (*intArgs)[e];
@@ -44,7 +43,7 @@ ND4J_LOCAL void scatterUpdate(sd::LaunchContext * context, NDArray& input, NDArr
     // increasing counter to skip numIndices
     e++;
     std::vector<int> indices;
-    for (; e < static_cast<Nd4jLong>(intArgs->size()); e++)
+    for (; e < static_cast<sd::LongType>(intArgs->size()); e++)
         indices.push_back((*intArgs)[e]);
 
     auto func = PRAGMA_THREADS_FOR {
@@ -88,10 +87,10 @@ ND4J_LOCAL void scatterUpdate(sd::LaunchContext * context, NDArray& input, NDArr
 
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void scatterSimple(sd::LaunchContext * context, const int opId, NDArray& input, const NDArray& updates, const NDArray& indices, const std::vector<int>& dimensions) {
+void scatterSimple(sd::LaunchContext * context, const int opId, NDArray& input, const NDArray& updates, const NDArray& indices, const std::vector<int>& dimensions) {
 
     // updates and indices have same length
-    const Nd4jLong len = indices.lengthOf();
+    const sd::LongType len = indices.lengthOf();
 
     switch (opId) {
 
@@ -99,7 +98,7 @@ ND4J_LOCAL void scatterSimple(sd::LaunchContext * context, const int opId, NDArr
             auto func = PRAGMA_THREADS_FOR {
                 for (auto i = start; i < stop; i++) {
                     auto inSubArr = input(i, dimensions);
-                    inSubArr.p(indices.t<Nd4jLong>(i), updates.e(i));
+                    inSubArr.p(indices.t<sd::LongType>(i), updates.e(i));
                 }
             };
 

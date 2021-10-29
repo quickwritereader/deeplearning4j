@@ -33,7 +33,7 @@ namespace sd {
             auto condition = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
             if (z->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             if (block.width() == 3) {
                 auto x = INPUT_VARIABLE(1);
@@ -49,7 +49,7 @@ namespace sd {
                             auto r = !condition->e<bool>(e) ? y->e<double>(e) : x->e<double>(e);
                             z->p(e, r);
                         } else {
-                            auto r = !condition->e<bool>(e) ? y->e<Nd4jLong>(e) : x->e<Nd4jLong>(e);
+                            auto r = !condition->e<bool>(e) ? y->e<sd::LongType>(e) : x->e<sd::LongType>(e);
                             z->p(e, r);
                         }
                     }
@@ -76,19 +76,19 @@ namespace sd {
 
                 int width = condition->rankOf();
                 if (z->isEmpty())
-                    return ND4J_STATUS_OK;
+                    return sd::Status::OK;
 
                 std::vector<int> dims = ShapeUtils::evalDimsToExclude(width, {0});
 
                 helpers::_where(block.launchContext(), *condition, *output, block.workspace());
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(Where) {
             if (block.width() == 3) {
                 auto inShape = inputShape->at(1);
-                Nd4jLong *newshape;
+                sd::LongType *newshape;
                 COPY_SHAPE(inShape, newshape);
 
                 return SHAPELIST(CONSTANT(newshape));
@@ -97,14 +97,14 @@ namespace sd {
                 // output shape is the 2D tensor num_true x rankOf (inShape)
                 auto condition = INPUT_VARIABLE(0);
                 auto inShape = inputShape->at(0);
-                Nd4jLong numOfTrue = 0; //condition->reduceNumber(reduce::CountNonZero, nullptr).e<Nd4jLong>(0);
-                for (Nd4jLong i = 0; i < condition->lengthOf(); i++)
+                sd::LongType numOfTrue = 0; //condition->reduceNumber(reduce::CountNonZero, nullptr).e<sd::LongType>(0);
+                for (sd::LongType i = 0; i < condition->lengthOf(); i++)
                     if (condition->e<bool>(i)) numOfTrue++;
 
-                Nd4jLong const* theNewShape;
+                sd::LongType const* theNewShape;
                 if (numOfTrue > 0) {
-                    Nd4jLong* newShape;
-                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                    sd::LongType* newShape;
+                    ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
 
                     newShape[0] = 2;
                     newShape[1] = numOfTrue;

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16/11/17.
 //
-
 #include <graph/NodeState.h>
 
 namespace sd {
@@ -28,19 +27,19 @@ namespace sd {
             _id = id;
         }
 
-        void NodeState::setInnerTime(Nd4jLong time) {
+        void NodeState::setInnerTime(sd::LongType time) {
             _inner = time;
         }
 
-        void NodeState::setOuterTime(Nd4jLong time) {
+        void NodeState::setOuterTime(sd::LongType time) {
             _outer = time;
         }
 
-        Nd4jLong NodeState::innerTime() {
+        sd::LongType NodeState::innerTime() {
             return _inner;
         }
 
-        Nd4jLong NodeState::outerTime() {
+        sd::LongType NodeState::outerTime() {
             return _outer;
         }
 

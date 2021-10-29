@@ -49,7 +49,7 @@ namespace sd {
 
             helpers::applyGradientDescent(block.launchContext(), parameters, gradients, lr, Z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(ApplyGradientDescent, apply_sgd);
     }

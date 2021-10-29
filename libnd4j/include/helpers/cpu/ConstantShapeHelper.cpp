@@ -21,7 +21,6 @@
 //
 
 #ifndef __CUDABLAS__
-
 #include <helpers/ConstantShapeHelper.h>
 #include <helpers/logger.h>
 #include <helpers/ShapeBuilders.h>
@@ -32,7 +31,7 @@ namespace sd {
     ConstantShapeHelper::ConstantShapeHelper() {
         _cache.resize(32);
         for (int e = 0; e < 32; e++) {
-            MAP_IMPL<ShapeDescriptor, ConstantShapeBuffer> cache;
+            SD_MAP_IMPL<ShapeDescriptor, ConstantShapeBuffer> cache;
             _cache[e] = cache;
         }
     }
@@ -42,12 +41,12 @@ namespace sd {
       return instance;
     }
 
-ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(sd::DataType dataType, char order, const std::vector<Nd4jLong> &shape) {
+ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(sd::DataType dataType, char order, const std::vector<sd::LongType> &shape) {
         ShapeDescriptor descriptor(dataType, order, shape);
         return bufferForShapeInfo(descriptor);
     }
 
-ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const sd::DataType dataType, const char order, const int rank, const Nd4jLong* shape) {
+ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const sd::DataType dataType, const char order, const int rank, const sd::LongType* shape) {
         ShapeDescriptor descriptor(dataType, order, shape, rank);
         return bufferForShapeInfo(descriptor);
     }
@@ -69,7 +68,7 @@ ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const ShapeDescript
   }
 }
 
-ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const Nd4jLong *shapeInfo) {
+ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const sd::LongType *shapeInfo) {
         ShapeDescriptor descriptor(shapeInfo);
         return bufferForShapeInfo(descriptor);
     }
@@ -82,40 +81,40 @@ ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const Nd4jLong *sha
         return _cache[deviceId].count(descriptor) != 0;
     }
 
-    const Nd4jLong* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const char order, const int rank, const Nd4jLong* shape) {
+    const sd::LongType* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const char order, const int rank, const sd::LongType* shape) {
         ShapeDescriptor descriptor(dataType, order, shape, rank);
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const Nd4jLong* shapeInfo) {
-        return ConstantShapeHelper::createShapeInfo(dataType, shape::order(shapeInfo), shape::rank(shapeInfo), shape::shapeOf(const_cast<Nd4jLong*>(shapeInfo)));
+    const sd::LongType* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const sd::LongType* shapeInfo) {
+        return ConstantShapeHelper::createShapeInfo(dataType, shape::order(shapeInfo), shape::rank(shapeInfo), shape::shapeOf(const_cast<sd::LongType*>(shapeInfo)));
     }
 
-    const Nd4jLong* ConstantShapeHelper::emptyShapeInfo(const sd::DataType dataType) {
+    const sd::LongType* ConstantShapeHelper::emptyShapeInfo(const sd::DataType dataType) {
         auto descriptor = ShapeDescriptor::emptyDescriptor(dataType);
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::scalarShapeInfo(const sd::DataType dataType) {
+    const sd::LongType* ConstantShapeHelper::scalarShapeInfo(const sd::DataType dataType) {
         auto descriptor = ShapeDescriptor::scalarDescriptor(dataType);
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::vectorShapeInfo(const Nd4jLong length, const sd::DataType dataType) {
+    const sd::LongType* ConstantShapeHelper::vectorShapeInfo(const sd::LongType length, const sd::DataType dataType) {
         auto descriptor = ShapeDescriptor::vectorDescriptor(length, dataType);
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const char order, const std::vector<Nd4jLong> &shape) {
+    const sd::LongType* ConstantShapeHelper::createShapeInfo(const sd::DataType dataType, const char order, const std::vector<sd::LongType> &shape) {
         ShapeDescriptor descriptor(dataType, order, shape);
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::createShapeInfo(const ShapeDescriptor &descriptor) {
+    const sd::LongType* ConstantShapeHelper::createShapeInfo(const ShapeDescriptor &descriptor) {
         return bufferForShapeInfo(descriptor).primary();
     }
 
-    const Nd4jLong* ConstantShapeHelper::createFromExisting(Nd4jLong *shapeInfo, bool destroyOriginal) {
+    const sd::LongType* ConstantShapeHelper::createFromExisting(sd::LongType *shapeInfo, bool destroyOriginal) {
         ShapeDescriptor descriptor(shapeInfo);
         auto result = createShapeInfo(descriptor);
 
@@ -125,7 +124,7 @@ ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const Nd4jLong *sha
         return result;
     }
 
-    const Nd4jLong* ConstantShapeHelper::createFromExisting(Nd4jLong *shapeInfo, sd::memory::Workspace *workspace) {
+    const sd::LongType* ConstantShapeHelper::createFromExisting(sd::LongType *shapeInfo, sd::memory::Workspace *workspace) {
         ShapeDescriptor descriptor(shapeInfo);
         auto result = createShapeInfo(descriptor);
 
@@ -136,10 +135,10 @@ ConstantShapeBuffer& ConstantShapeHelper::bufferForShapeInfo(const Nd4jLong *sha
 
 
 ////////////////////////////////////////////////////////////////////////
-ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithUnitiesForBroadcast(const Nd4jLong* maxShapeInfo, const Nd4jLong* minShapeInfo, sd::memory::Workspace* workspace, const std::vector<int> &dimensions) {
+ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithUnitiesForBroadcast(const sd::LongType* maxShapeInfo, const sd::LongType* minShapeInfo, sd::memory::Workspace* workspace, const std::vector<int> &dimensions) {
 
-    Nd4jLong* newShapeInfo = nullptr;
-    ALLOCATE(newShapeInfo, workspace, shape::shapeInfoLength(shape::rank(maxShapeInfo)), Nd4jLong);
+    sd::LongType* newShapeInfo = nullptr;
+    ALLOCATE(newShapeInfo, workspace, shape::shapeInfoLength(shape::rank(maxShapeInfo)), sd::LongType);
 
     newShapeInfo[0] = shape::rank(maxShapeInfo);
     newShapeInfo[2*shape::rank(maxShapeInfo)+1] = 0;
@@ -149,7 +148,7 @@ ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithUnitiesForBroadcast
 
     if(!dimensions.empty()) {
 
-        for(uint k = 0, j = 0, i = 0; i < shape::rank(maxShapeInfo); ++i) {
+        for(sd::Unsigned k = 0, j = 0, i = 0; i < shape::rank(maxShapeInfo); ++i) {
 
             if(j < dimensions.size() && dimensions[j] == i) {
                 shape::shapeOf(newShapeInfo)[i] = shape::shapeOf(minShapeInfo)[k];
@@ -189,10 +188,10 @@ ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithUnitiesForBroadcast
 
 
 ////////////////////////////////////////////////////////////////////////
-ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithNoUnitiesForReduce(const Nd4jLong* inShapeInfo, const std::vector<int> &dimsWithUnities, sd::memory::Workspace* workspace) {
+ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithNoUnitiesForReduce(const sd::LongType* inShapeInfo, const std::vector<int> &dimsWithUnities, sd::memory::Workspace* workspace) {
 
-    Nd4jLong* newShapeInfo = nullptr;
-    ALLOCATE(newShapeInfo, workspace, shape::shapeInfoLength(shape::rank(inShapeInfo) - dimsWithUnities.size()), Nd4jLong);
+    sd::LongType* newShapeInfo = nullptr;
+    ALLOCATE(newShapeInfo, workspace, shape::shapeInfoLength(shape::rank(inShapeInfo) - dimsWithUnities.size()), sd::LongType);
 
     int temp;
     if(dimsWithUnities.size() == 1 && shape::isCommonVector(inShapeInfo, temp) && temp == dimsWithUnities[0]) {
@@ -210,9 +209,9 @@ ConstantShapeBuffer& ConstantShapeHelper::createShapeInfoWithNoUnitiesForReduce(
 }
 
 ////////////////////////////////////////////////////////////////////////
-ConstantShapeBuffer& ConstantShapeHelper::createSubArrShapeInfo(const Nd4jLong* inShapeInfo, const int* dims, const int dimsSize, sd::memory::Workspace* workspace) {
+ConstantShapeBuffer& ConstantShapeHelper::createSubArrShapeInfo(const sd::LongType* inShapeInfo, const int* dims, const int dimsSize, sd::memory::Workspace* workspace) {
 
-    Nd4jLong* newShapeInfo = ShapeBuilders::createSubArrShapeInfo(inShapeInfo, dims, dimsSize, workspace);
+    sd::LongType* newShapeInfo = ShapeBuilders::createSubArrShapeInfo(inShapeInfo, dims, dimsSize, workspace);
 
     ShapeDescriptor descriptor(newShapeInfo);
 
@@ -220,7 +219,6 @@ ConstantShapeBuffer& ConstantShapeHelper::createSubArrShapeInfo(const Nd4jLong* 
 
     return bufferForShapeInfo(descriptor);
 }
-
 
 
 }

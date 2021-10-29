@@ -50,7 +50,7 @@ namespace sd {
             REQUIRE_TRUE(a->sizeAt(-2) == b->sizeAt(-2), 0, "lstsq: The last dimmension of left part should be equal to prelast of right part, but %i and %i are given", a->sizeAt(-1), b->sizeAt(-2));
             //REQUIRE_TRUE(l2_factor == 0., 0, "lstsq: Implementation of operation is not finished for factor difference from 0.");
             if (a->isEmpty() || b->isEmpty() || z->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             auto res = helpers::leastSquaresSolveFunctor(block.launchContext(), a, b, l2_factor, fastFlag, z);
 
@@ -75,7 +75,7 @@ namespace sd {
 //            REQUIRE_TRUE(a->sizeAt(-1) == a->sizeAt(-2), 0, "lstsq: The last two dimmensions should be equal, but %i and %i are given", a->sizeAt(-1), a->sizeAt(-2));
             REQUIRE_TRUE(a->sizeAt(-2) == b->sizeAt(-2), 0, "lstsq: The last dimmension of left part should be equal to prelast of right part, but %i and %i are given", a->sizeAt(-1), b->sizeAt(-2));
             //REQUIRE_TRUE(l2_factor == 0., 0, "lstsq: Implementation of operation is not finished for factor difference from 0.");
-            auto res = Status::OK();
+            auto res = sd::Status::OK;
             if (a->isEmpty() || b->isEmpty() || z->isEmpty())
                 return res;
 

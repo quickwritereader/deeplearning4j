@@ -23,7 +23,6 @@
 
 #ifndef DEV_TESTS_REDUCE_SAME_LOOPS_H
 #define DEV_TESTS_REDUCE_SAME_LOOPS_H
-
 #include <ops.h>
 #include <types/types.h>
 #include <system/op_boilerplate.h>
@@ -36,18 +35,18 @@ namespace functions {
         template <typename X>
         class ReduceSameInplace {
         public:
-            static FORCEINLINE void _CUDA_D execScalarCudaLegacy(int opNum, void *vx, Nd4jLong *xShapeInfo, void *vextraParams, void *vz, Nd4jLong *zShapeInfo, void *vreductionBuffer, Nd4jLong *tadOnlyShapeInfo);
+            static SD_INLINE void SD_DEVICE execScalarCudaLegacy(int opNum, void *vx, sd::LongType *xShapeInfo, void *vextraParams, void *vz, sd::LongType *zShapeInfo, void *vreductionBuffer, sd::LongType *tadOnlyShapeInfo);
 
             template <typename OpClass>
-            static FORCEINLINE void _CUDA_D execScalarCuda(void *vx, Nd4jLong *xShapeInfo, void *vextraParams, void *vz, Nd4jLong *zShapeInfo, void *vreductionBuffer, Nd4jLong *tadOnlyShapeInfo);
+            static SD_INLINE void SD_DEVICE execScalarCuda(void *vx, sd::LongType *xShapeInfo, void *vextraParams, void *vz, sd::LongType *zShapeInfo, void *vreductionBuffer, sd::LongType *tadOnlyShapeInfo);
 
             template <typename OpClass>
-            static FORCEINLINE void _CUDA_D aggregatePartials(void *vsPartials, Nd4jLong tid, Nd4jLong numItems, void *vextraParams);
+            static SD_INLINE void SD_DEVICE aggregatePartials(void *vsPartials, sd::LongType tid, sd::LongType numItems, void *vextraParams);
         };
 
         template <typename X>
         template <typename OpType>
-        __device__ void ReduceSameInplace<X>::aggregatePartials(void *vsPartials, Nd4jLong tid, Nd4jLong numItems, void *vextraParams) {
+        SD_DEVICE void ReduceSameInplace<X>::aggregatePartials(void *vsPartials, sd::LongType tid, sd::LongType numItems, void *vextraParams) {
 
             // start the shared memory loop on the next power of 2 less
             // than the block size.  If block size is not a power of 2,
@@ -56,7 +55,7 @@ namespace functions {
             auto sPartials = static_cast<X*>(vsPartials);
             auto extraParams = static_cast<X*>(vextraParams);
 
-            Nd4jLong floorPow2 = numItems;
+            sd::LongType floorPow2 = numItems;
 
             if (floorPow2 & (floorPow2 - 1)) {
 
@@ -69,7 +68,7 @@ namespace functions {
                 __syncthreads();
             }
 
-            for (Nd4jLong activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
+            for (sd::LongType activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
                 if (tid < activeThreads && tid + activeThreads < numItems)
                     sPartials[tid] = OpType::update(sPartials[tid], sPartials[tid + activeThreads], extraParams);
 
@@ -78,21 +77,21 @@ namespace functions {
         }
 
         template <typename X>
-        FORCEINLINE void _CUDA_D ReduceSameInplace<X>::execScalarCudaLegacy(int opNum, void *vx, Nd4jLong *xShapeInfo,
+        SD_INLINE void SD_DEVICE ReduceSameInplace<X>::execScalarCudaLegacy(int opNum, void *vx, sd::LongType *xShapeInfo,
                                                                     void *vextraParams,
-                                                                    void *vz, Nd4jLong *zShapeInfo,
+                                                                    void *vz, sd::LongType *zShapeInfo,
                                                                     void *vreductionBuffer,
-                                                                    Nd4jLong *tadOnlyShapeInfo) {
+                                                                    sd::LongType *tadOnlyShapeInfo) {
             DISPATCH_BY_OPNUM_T(execScalarCuda, PARAMS(vx, xShapeInfo, vextraParams, vz, zShapeInfo, vreductionBuffer, tadOnlyShapeInfo), REDUCE_SAME_OPS);
         }
 
         template <typename X>
         template <typename OpType>
-        FORCEINLINE void _CUDA_D ReduceSameInplace<X>::execScalarCuda(void *vx, Nd4jLong *xShapeInfo,
+        SD_INLINE void SD_DEVICE ReduceSameInplace<X>::execScalarCuda(void *vx, sd::LongType *xShapeInfo,
                                                               void *vextraParams,
-                                                              void *vz, Nd4jLong *zShapeInfo,
+                                                              void *vz, sd::LongType *zShapeInfo,
                                                               void *vreductionBuffer,
-                                                              Nd4jLong *tadOnlyShapeInfo) {
+                                                              sd::LongType *tadOnlyShapeInfo) {
 
             auto x = reinterpret_cast<X*>(vx);
             auto z = reinterpret_cast<X*>(vz);
@@ -120,7 +119,7 @@ namespace functions {
                     sPartials[threadIdx.x] = OpType::update(sPartials[threadIdx.x], OpType::op(x[shape::getIndexOffset(i, xShapeInfo)], extraParams), extraParams);
 
             __syncthreads();
-            aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(blockDim.x, len), extraParams);
+            aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(blockDim.x, len), extraParams);
             __syncthreads();
 
 
@@ -152,7 +151,7 @@ namespace functions {
                         sPartials[threadIdx.x] = OpType::update(sPartials[threadIdx.x], reductionBuffer[i], extraParams);
 
                     __syncthreads();
-                    aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::nd4j_min<int>(gridDim.x, blockDim.x), extraParams);
+                    aggregatePartials<OpType>(sPartials, threadIdx.x, sd::math::sd_min<int>(gridDim.x, blockDim.x), extraParams);
                     __syncthreads();
 
                     if (threadIdx.x == 0) {

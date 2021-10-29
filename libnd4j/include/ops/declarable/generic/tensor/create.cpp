@@ -34,7 +34,7 @@ namespace sd {
             if (init)
                 OUTPUT_VARIABLE(0)->nullify();
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(create) {
@@ -44,7 +44,7 @@ namespace sd {
 
             REQUIRE_TRUE(order == 'c' || order == 'f', 0, "create: order must be either c or f");
 
-            auto shape = shapeInput->getBufferAsVector<Nd4jLong>();
+            auto shape = shapeInput->getBufferAsVector<sd::LongType>();
 
             return SHAPELIST(sd::ConstantShapeHelper::getInstance().createShapeInfo(dtype, order, shape));
         }

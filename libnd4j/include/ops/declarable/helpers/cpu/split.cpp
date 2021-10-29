@@ -21,7 +21,6 @@
  //
  //  @author Oleh Semeniv (oleg.semeniv@gmail.com)
  //
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/Loops.h>
 
@@ -33,7 +32,7 @@ namespace helpers {
             //////////////////////////////////////////////////////////////////////////
             template <typename T>
             static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, const int axis) {
-                uint numSplits = outArrs.size();
+                sd::Unsigned numSplits = outArrs.size();
 
                 const auto sizeofT = input.sizeOfT();
 
@@ -42,7 +41,7 @@ namespace helpers {
                 bool luckCase1 = ((axis == 0 && input.ordering() == 'c') || (axis == input.rankOf() - 1 && input.ordering() == 'f')) && input.ews() == 1;
 
                 if (luckCase1) {
-                    for (uint i = 0; i < numSplits; ++i) {
+                    for (sd::Unsigned i = 0; i < numSplits; ++i) {
                         luckCase1 &= outArrs[i]->ordering() == input.ordering() && outArrs[i]->ews() == 1;
                         if (!luckCase1)
                             break;
@@ -52,7 +51,7 @@ namespace helpers {
                 if (luckCase1) {
 
                     T* x = const_cast<T*>(xBuff);
-                    for (uint i = 0; i < numSplits; ++i) {
+                    for (sd::Unsigned i = 0; i < numSplits; ++i) {
                         const auto memAmountToCopy = outArrs[i]->lengthOf();
                         memcpy(outArrs[i]->bufferAsT<T>(), x, memAmountToCopy * sizeofT);
                         x += memAmountToCopy;
@@ -65,7 +64,7 @@ namespace helpers {
                 bool allSameOrder = true;
 
                 if (isXcontin) {
-                    for (uint i = 0; i < numSplits; ++i) {
+                    for (sd::Unsigned i = 0; i < numSplits; ++i) {
                         areOutsContin &= outArrs[i]->strideAt(axis) == 1;
                         allSameOrder &= outArrs[i]->ordering() == input.ordering();
                         if (!areOutsContin || !allSameOrder)
@@ -79,11 +78,11 @@ namespace helpers {
 
                     const auto xDim = input.sizeAt(axis);
 
-                    for (Nd4jLong i = 0; i < input.lengthOf() / xDim; ++i) {
+                    for (sd::LongType i = 0; i < input.lengthOf() / xDim; ++i) {
 
                         auto x = xBuff + xDim * i;
 
-                        for (uint j = 0; j < numSplits; ++j) {
+                        for (sd::Unsigned j = 0; j < numSplits; ++j) {
                             const auto zDim = outArrs[j]->sizeAt(axis);
                             T* z = outArrs[j]->bufferAsT<T>() + zDim * i;
                             memcpy(z, x, zDim * sizeofT);
@@ -95,19 +94,19 @@ namespace helpers {
                     return;
                 }
 
-                uint zDim = outArrs[0]->sizeAt(axis);
+                sd::Unsigned zDim = outArrs[0]->sizeAt(axis);
                 // general case
 
                 auto func = PRAGMA_THREADS_FOR{
 
-                    int coords[MAX_RANK], temp;
+                    int coords[SD_MAX_RANK], temp;
 
                     for (auto i = start; i < stop; i += increment) {
 
                         shape::index2coordsCPU(start, i, input.shapeInfo(), coords);
                         const auto xOffset = shape::getOffset(input.shapeInfo(), coords);
 
-                        uint outArrIdx = 0;
+                        sd::Unsigned outArrIdx = 0;
 
                         temp = coords[axis];
 
@@ -127,8 +126,8 @@ namespace helpers {
                 samediff::Threads::parallel_for(func, 0, input.lengthOf());
             }
 
-            ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vector<NDArray*>& outArrs, const int axis) {
-                BUILD_SINGLE_SELECTOR(input.dataType(), split_, (input, outArrs, axis), LIBND4J_TYPES);
+            void split(sd::LaunchContext* context, const NDArray& input, std::vector<NDArray*>& outArrs, const int axis) {
+                BUILD_SINGLE_SELECTOR(input.dataType(), split_, (input, outArrs, axis), SD_COMMON_TYPES);
             }
       }
     }

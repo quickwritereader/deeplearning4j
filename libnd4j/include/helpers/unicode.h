@@ -24,7 +24,6 @@
 
 #ifndef LIBND4J_UNICODE_H
 #define LIBND4J_UNICODE_H
-
 #include <array/NDArray.h>
 
 namespace sd {
@@ -36,7 +35,7 @@ namespace unicode {
         * @param size of the string
         * @return offset of utf16
    */
-    Nd4jLong offsetUtf8StringInUtf16(const void* start, const void* end);
+    sd::LongType offsetUtf8StringInUtf16(const void* start, const void* end);
 
     /**
         * This method calculate u8 offset based on utf16
@@ -44,7 +43,7 @@ namespace unicode {
         * @param size of the string
         * @return offset of utf8
    */
-    Nd4jLong offsetUtf16StringInUtf8(const void* start, const void* end);
+    sd::LongType offsetUtf16StringInUtf8(const void* start, const void* end);
 
     /**
        * This method calculate u32 offset based on utf16
@@ -52,7 +51,7 @@ namespace unicode {
        * @param size of the string
        * @return offset of utf32
     */
-    Nd4jLong offsetUtf32StringInUtf16(const void* start, const void* end);
+    sd::LongType offsetUtf32StringInUtf16(const void* start, const void* end);
 
     /**
        * This method calculate u32 offset based on utf8
@@ -60,7 +59,7 @@ namespace unicode {
        * @param size of the string
        * @return offset of utf8
     */
-    Nd4jLong offsetUtf32StringInUtf8(const void* start, const void* end);
+    sd::LongType offsetUtf32StringInUtf8(const void* start, const void* end);
 
     /*
     * This function check is valid charecter in u8 string
@@ -83,7 +82,7 @@ namespace unicode {
          * @param size of the string
          * @return offset
     */
-    Nd4jLong offsetUtf8StringInUtf32(const void* input, uint32_t nInputSize);
+    sd::LongType offsetUtf8StringInUtf32(const void* input, uint32_t nInputSize);
 
     /**
      * This method count offset for utf8 string in utf32
@@ -91,7 +90,7 @@ namespace unicode {
      * @param const end pointer to the utf8 string
      * @return offset
     */
-    Nd4jLong offsetUtf8StringInUtf32(const void* input, const void* stop);
+    sd::LongType offsetUtf8StringInUtf32(const void* input, const void* stop);
 
     /**
          * This method count offset for utf32 based on utf16 string
@@ -99,7 +98,7 @@ namespace unicode {
          * @param size of the string
          * @return offset
     */
-    Nd4jLong offsetUtf16StringInUtf32(const void* input, uint32_t nInputSize);
+    sd::LongType offsetUtf16StringInUtf32(const void* input, uint32_t nInputSize);
 
     /**
          * This method calculate offset of u16 based on utf8
@@ -107,7 +106,7 @@ namespace unicode {
          * @param size of the string
          * @return offset of utf16
     */
-    Nd4jLong offsetUtf8StringInUtf16(const void* input, uint32_t nInputSize);
+    sd::LongType offsetUtf8StringInUtf16(const void* input, uint32_t nInputSize);
 
     /**
         * This method calculate offset of u8 based on utf16
@@ -115,7 +114,7 @@ namespace unicode {
         * @param size of the string
         * @return offset of utf8
    */
-    Nd4jLong offsetUtf16StringInUtf8(const void* input, uint32_t nInputSize);
+    sd::LongType offsetUtf16StringInUtf8(const void* input, uint32_t nInputSize);
 
     /**
        * This method calculate offset of u32 based on utf8
@@ -123,7 +122,7 @@ namespace unicode {
        * @param size of the string
        * @return offset of utf32
     */
-    Nd4jLong offsetUtf32StringInUtf8(const void* input, uint32_t nInputSize);
+    sd::LongType offsetUtf32StringInUtf8(const void* input, uint32_t nInputSize);
 
     /**
        * This method calculate offset of u32 based on utf16
@@ -131,7 +130,7 @@ namespace unicode {
        * @param size of the string
        * @return offset of utf32
     */
-    Nd4jLong offsetUtf32StringInUtf16(const void* input, const uint32_t nInputSize);
+    sd::LongType offsetUtf32StringInUtf16(const void* input, const uint32_t nInputSize);
 
     /**
          * This method convert utf8 string to utf16 string
@@ -185,7 +184,7 @@ namespace unicode {
          * @param size of input utf32 string
          * @return status of convertion
     */
-    bool utf32to8(const void* input, void* output, const Nd4jLong nInputSize);
+    bool utf32to8(const void* input, void* output, const sd::LongType nInputSize);
 }
 }
 

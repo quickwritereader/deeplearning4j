@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_PARAMETERSPACE_H
 #define DEV_TESTS_PARAMETERSPACE_H
-
 #include <vector>
 
 namespace sd {

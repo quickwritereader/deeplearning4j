@@ -19,7 +19,6 @@
 //
 // @author Oleg Semeniv <oleg.semeniv@gmail.com>
 //
-
 #include <helpers/unicode.h>
 
 namespace sd {
@@ -38,27 +37,27 @@ namespace unicode {
     constexpr uint32_t CODEPOINTMAX = 0x0010ffffu;
 
     template<typename T>
-    FORCEINLINE uint8_t castToU8(const T cp) {
+    SD_INLINE uint8_t castToU8(const T cp) {
         return static_cast<uint8_t>(0xff & cp);
     }
 
     template<typename T>
-    FORCEINLINE uint16_t castToU16(const T cp) {
+    SD_INLINE uint16_t castToU16(const T cp) {
         return static_cast<uint16_t>(0xffff & cp);
     }
 
     template<typename T>
-    FORCEINLINE uint32_t castToU32(const T cp) {
+    SD_INLINE uint32_t castToU32(const T cp) {
         return static_cast<uint32_t>(0xffffff & cp);
     }
 
     template<typename T>
-    FORCEINLINE bool isTrail(const T cp) {
+    SD_INLINE bool isTrail(const T cp) {
         return ((castToU8(cp) >> 6) == 0x2);
     }
 
     template <typename T>
-    FORCEINLINE bool isHighSurrogate(const T cp) {
+    SD_INLINE bool isHighSurrogate(const T cp) {
         return (cp & 0xfffffc00) == 0xd800;
     }
 
@@ -68,42 +67,42 @@ namespace unicode {
     }
 
     template <typename T>
-    FORCEINLINE bool isLeadSurrogate(const T cp) {
+    SD_INLINE bool isLeadSurrogate(const T cp) {
         return (cp >= HIGHBYTEMIN && cp <= HIGHBYTEMAX);
     }
 
     template <typename T>
-    FORCEINLINE bool isTrailSurrogate(const T cp) {
+    SD_INLINE bool isTrailSurrogate(const T cp) {
         return (cp >= TRAILBYTEMIN && cp <= TRAILBYTEMAX);
     }
 
     template <typename T>
-    FORCEINLINE bool isSurrogateU8(const T cp) {
+    SD_INLINE bool isSurrogateU8(const T cp) {
         return (cp >= HIGHBYTEMIN && cp <= TRAILBYTEMAX);
     }
 
     template <typename T>
-    FORCEINLINE bool isSurrogateU16(const T cp) {
+    SD_INLINE bool isSurrogateU16(const T cp) {
         return ((cp - 0xd800u) < 2048u);
     }
 
     template <typename T>
-    FORCEINLINE bool isSymbolU8Valid(const T cp) {
+    SD_INLINE bool isSymbolU8Valid(const T cp) {
         return (cp <= CODEPOINTMAX && !isSurrogateU8(cp));
     }
 
     template <typename T>
-    FORCEINLINE bool isSymbolValid(const T cp) {
+    SD_INLINE bool isSymbolValid(const T cp) {
         return (cp <= CODEPOINTMAX);
     }
 
     template <typename T>
-    FORCEINLINE uint32_t surrogateU32(const T& high, const T& low) {
+    SD_INLINE uint32_t surrogateU32(const T& high, const T& low) {
         return (high << 10) + low - 0x35fdc00;
     }
 
     template <typename T>
-    Nd4jLong symbolLength(const T* it) {
+    sd::LongType symbolLength(const T* it) {
         uint8_t lead = castToU8(*it);
         if (lead < 0x80)
             return 1;
@@ -118,7 +117,7 @@ namespace unicode {
     }
 
     template <typename T>
-    Nd4jLong symbolLength32(const T* it) {
+    sd::LongType symbolLength32(const T* it) {
         auto lead = castToU32(*it);
         if (lead < ONEBYTEBOUND)
             return 1;
@@ -133,7 +132,7 @@ namespace unicode {
     }
 
     template <typename T>
-    Nd4jLong symbolLength16(const T* it) {
+    sd::LongType symbolLength16(const T* it) {
 
         uint32_t lead = castToU16(*it);
         if (!isLeadSurrogate(lead)) {
@@ -151,64 +150,64 @@ namespace unicode {
         }
     }
 
-    Nd4jLong offsetUtf8StringInUtf32(const void* start, const void* end) {
+    sd::LongType offsetUtf8StringInUtf32(const void* start, const void* end) {
         
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const int8_t*>(start); it != end; it++) {
             auto length = symbolLength(it);
             it += (length > 0) ? (length - 1) : 0;
             count += 1;
         }
-        return static_cast<Nd4jLong>(count * sizeof(char32_t));
+        return static_cast<sd::LongType>(count * sizeof(char32_t));
     }
     
-    Nd4jLong offsetUtf16StringInUtf32(const void* start, const void* end) {
+    sd::LongType offsetUtf16StringInUtf32(const void* start, const void* end) {
 
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const uint16_t*>(start); it != end;) {
             auto length = symbolLength16(it);
             it += (4 == length) ? 2 : 1;
             count += 1;
         }
-        return static_cast<Nd4jLong>(count*sizeof(char32_t));
+        return static_cast<sd::LongType>(count*sizeof(char32_t));
     }
     
-    Nd4jLong offsetUtf8StringInUtf16(const void* start, const void* end) {
+    sd::LongType offsetUtf8StringInUtf16(const void* start, const void* end) {
 
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const int8_t*>(start); it != end; it++) {
             auto length = symbolLength(it);
             auto step = ((length > 0) ? (length - 1) : 0);
             it += step;
             count += (4 == length) ? 2 : 1;
         }
-        return static_cast<Nd4jLong>(count*sizeof(char16_t));
+        return static_cast<sd::LongType>(count*sizeof(char16_t));
     }
     
-    Nd4jLong offsetUtf16StringInUtf8(const void* start, const void* end) {
+    sd::LongType offsetUtf16StringInUtf8(const void* start, const void* end) {
 
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const uint16_t*>(start); it != end;) {
             auto length = symbolLength16(it);
             it += (4 == length) ? 2 : 1;
             count += length;
         }
-        return static_cast<Nd4jLong>(count);
+        return static_cast<sd::LongType>(count);
     }
     
-    Nd4jLong offsetUtf32StringInUtf16(const void* start, const void* end) {
+    sd::LongType offsetUtf32StringInUtf16(const void* start, const void* end) {
         
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const uint32_t*>(start); it != end; it++) {
             auto length = symbolLength32(it);
             count += (4 == length) ? 2 : 1;;
         }
-        return static_cast<Nd4jLong>(count*sizeof(char16_t));
+        return static_cast<sd::LongType>(count*sizeof(char16_t));
     }
     
-    Nd4jLong offsetUtf32StringInUtf8(const void* start, const void* end) {
+    sd::LongType offsetUtf32StringInUtf8(const void* start, const void* end) {
 
-        Nd4jLong count = 0;
+        sd::LongType count = 0;
         for (auto it = static_cast<const uint32_t*>(start); it != end; it++) {
             count += symbolLength32(it);
         }
@@ -404,27 +403,27 @@ namespace unicode {
          return result;
      }
 
-     Nd4jLong offsetUtf8StringInUtf32(const void* input, uint32_t nInputSize) {
+     sd::LongType offsetUtf8StringInUtf32(const void* input, uint32_t nInputSize) {
          return  offsetUtf8StringInUtf32(input, static_cast<const int8_t*>(input) + nInputSize);
      }
 
-     Nd4jLong offsetUtf16StringInUtf32(const void* input, uint32_t nInputSize) {
+     sd::LongType offsetUtf16StringInUtf32(const void* input, uint32_t nInputSize) {
          return  offsetUtf16StringInUtf32(input, static_cast<const uint16_t*>(input) + nInputSize);
      }
     
-     Nd4jLong offsetUtf8StringInUtf16(const void* input, uint32_t nInputSize) {
+     sd::LongType offsetUtf8StringInUtf16(const void* input, uint32_t nInputSize) {
          return offsetUtf8StringInUtf16(input, static_cast<const int8_t*>(input) + nInputSize);
      }
  
-     Nd4jLong offsetUtf16StringInUtf8(const void* input, uint32_t nInputSize) {
+     sd::LongType offsetUtf16StringInUtf8(const void* input, uint32_t nInputSize) {
          return offsetUtf16StringInUtf8(input, static_cast<const uint16_t*>(input) + nInputSize);
      }
 
-     Nd4jLong offsetUtf32StringInUtf8(const void* input, uint32_t nInputSize) {
+     sd::LongType offsetUtf32StringInUtf8(const void* input, uint32_t nInputSize) {
          return offsetUtf32StringInUtf8(input, static_cast<const uint32_t*>(input) + nInputSize);
      }
      
-     Nd4jLong offsetUtf32StringInUtf16(const void* input, const uint32_t nInputSize) {
+     sd::LongType offsetUtf32StringInUtf16(const void* input, const uint32_t nInputSize) {
          return offsetUtf32StringInUtf16(input, static_cast<const uint32_t*>(input) + nInputSize);
      }
      
@@ -448,7 +447,7 @@ namespace unicode {
          return utf32to16Ptr(input, static_cast<const uint32_t*>(input) + nInputSize, output);
      }
      
-     bool utf32to8(const void* input, void* output, const Nd4jLong nInputSize) {
+     bool utf32to8(const void* input, void* output, const sd::LongType nInputSize) {
          return utf32to8Ptr(input, static_cast<const uint32_t*>(input) + nInputSize, output);
      }
 

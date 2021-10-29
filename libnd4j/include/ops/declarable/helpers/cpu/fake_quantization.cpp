@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/fake_quantization.h>
 #include <array/NDArrayFactory.h>
 
@@ -49,7 +48,7 @@ namespace helpers {
                 if (zeroPointFromMin > quantMaxF) {
                     return static_cast<uint16_t>(quantMax);
                 }
-                return (uint16_t)sd::math::nd4j_round<T,int>(zeroPointFromMin);
+                return (uint16_t)sd::math::sd_round<T,int>(zeroPointFromMin);
         }();
         // compute nudged min and max with computed nudged zero point
         *nudgedMin = (quantMinF - nudged_zero_point) * (*scale);
@@ -57,7 +56,7 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL void fakeQuantWithMinMaxVarsPerChannel_(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+    void fakeQuantWithMinMaxVarsPerChannel_(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
         int lowIntBound = narrowed ? 1 : 0; // 0 or 1
         int upperIntBound = (1 << numBits) - 1; // 2^b - 1
         auto channels = input->sizeAt(-1); // last dimension
@@ -75,7 +74,7 @@ namespace helpers {
                 else if (val >= nudged_max)
                     val = nudged_max;
                 // quantization itself
-                output->r<T>(e + i) = math::nd4j_floor<T,T>((val - nudged_min)/scale + T(0.5)) * scale + nudged_min;
+                output->r<T>(e + i) = math::sd_floor<T,T>((val - nudged_min)/scale + T(0.5)) * scale + nudged_min;
             }
         }
     }
@@ -87,7 +86,7 @@ namespace helpers {
 //                        nudged_min;
 //
     template <typename T>
-    ND4J_LOCAL void fakeQuantWithMinMaxVars_(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+    void fakeQuantWithMinMaxVars_(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
         int lowIntBound = narrowed ? 1 : 0;
         int upperIntBound = (1 << numBits) - 1;
 
@@ -104,20 +103,20 @@ namespace helpers {
                 val = nudgedMax;
             // converse value with scale and shifted with nudged min
             val -= nudgedMin;
-            return (sd::math::nd4j_floor<T,T>(val / scale + T(0.5f)) * scale + nudgedMin);
+            return (sd::math::sd_floor<T,T>(val / scale + T(0.5f)) * scale + nudgedMin);
         };
 
         input->applyLambda<T>(fakeQuantizationWithMinMax, *output);
     }
 
-    ND4J_LOCAL void fakeQuantWithMinMaxVars(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVars_, (input, min, max, numBits, narrowed, output), FLOAT_TYPES);
+    void fakeQuantWithMinMaxVars(NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVars_, (input, min, max, numBits, narrowed, output), SD_FLOAT_TYPES);
     }
-    ND4J_LOCAL void fakeQuantWithMinMaxVarsPerChannel(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVarsPerChannel_, (input, min, max, numBits, narrowed, output), FLOAT_TYPES);
+    void fakeQuantWithMinMaxVarsPerChannel(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), fakeQuantWithMinMaxVarsPerChannel_, (input, min, max, numBits, narrowed, output), SD_FLOAT_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void fakeQuantWithMinMaxVars_, (NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output), FLOAT_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void fakeQuantWithMinMaxVars_, (NDArray* input, NDArray* min, NDArray* max, int numBits, bool narrowed, NDArray* output), SD_FLOAT_TYPES);
 
 }
 }

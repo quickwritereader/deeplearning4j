@@ -19,12 +19,11 @@
 //
 // Created by raver119 on 15/11/17.
 //
-
 #include <graph/VariablesSet.h>
 
 namespace sd {
     namespace graph {
-        Nd4jStatus VariablesSet::status() {
+        sd::Status VariablesSet::status() {
             return _status;
         }
 
@@ -40,7 +39,7 @@ namespace sd {
             return _holder.at(index);
         }
 
-        VariablesSet::VariablesSet(Nd4jStatus status) {
+        VariablesSet::VariablesSet(sd::Status status) {
             _status = status;
         }
 

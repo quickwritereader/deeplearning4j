@@ -23,12 +23,10 @@
 #ifndef SAMEDIFF_BLASVERSIONHELPER_H
 #define SAMEDIFF_BLASVERSIONHELPER_H
 
-#include <system/dll.h>
-#include <cuda.h>
-#include <cuda_runtime.h>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT BlasVersionHelper {
+    class SD_LIB_EXPORT BlasVersionHelper {
     public:
         int _blasMajorVersion = 0;
         int _blasMinorVersion = 0;

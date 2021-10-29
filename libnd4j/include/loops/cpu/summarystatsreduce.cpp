@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 18.12.17.
 //
-
 #include <types/types.h>
 #include <system/op_boilerplate.h>
 #include <loops/summarystatsreduce.h>
@@ -37,7 +36,7 @@ namespace functions {
         template <typename X, typename Y>
         Y SummaryStatsReduce<X,Y>::execScalar(const int opNum,
                                               const bool biasCorrected,
-                                              const void *x, const Nd4jLong *xShapeInfo,
+                                              const void *x, const sd::LongType *xShapeInfo,
                                               void *extraParams) {
             RETURNING_DISPATCH_BY_OPNUM_TT(execScalar, PARAMS(biasCorrected, x, xShapeInfo, extraParams), SUMMARY_STATS_OPS);
         }
@@ -45,18 +44,18 @@ namespace functions {
         template <typename X, typename Y>
         void SummaryStatsReduce<X,Y>::execScalar(const int opNum,
                                                  const bool biasCorrected,
-                                                 const void *x, const Nd4jLong *xShapeInfo,
+                                                 const void *x, const sd::LongType *xShapeInfo,
                                                  void *extraParams,
-                                                 void *z, const Nd4jLong *zShapeInfo) {
+                                                 void *z, const sd::LongType *zShapeInfo) {
             DISPATCH_BY_OPNUM_TT(execScalar, PARAMS(biasCorrected, x, xShapeInfo, extraParams, z, zShapeInfo), SUMMARY_STATS_OPS);
         }
 
         template <typename X, typename Y>
         void SummaryStatsReduce<X,Y>::exec(const int opNum,
                                            const bool biasCorrected,
-                                           const void *x, const Nd4jLong *xShapeInfo,
+                                           const void *x, const sd::LongType *xShapeInfo,
                                            void *extraParams,
-                                           void *z, const Nd4jLong *zShapeInfo,
+                                           void *z, const sd::LongType *zShapeInfo,
                                            int *dimension, int dimensionLength) {
             DISPATCH_BY_OPNUM_TT(exec, PARAMS(biasCorrected, x, xShapeInfo, extraParams, z, zShapeInfo, dimension, dimensionLength), SUMMARY_STATS_OPS);
         }
@@ -64,16 +63,16 @@ namespace functions {
         template <typename X, typename Z>
         template <typename OpType >
         void SummaryStatsReduce<X,Z>::execScalar(const bool biasCorrected,
-                                                 const void *vx, const Nd4jLong *xShapeInfo,
+                                                 const void *vx, const sd::LongType *xShapeInfo,
                                                  void *vextraParams,
-                                                 void *vz, const Nd4jLong *zShapeInfo) {
+                                                 void *vz, const sd::LongType *zShapeInfo) {
             auto z = reinterpret_cast<Z*>(vz);
             z[0] = execScalar<OpType>(biasCorrected, vx, xShapeInfo, vextraParams);
         }
 
         template <typename X, typename Z>
         template <typename OpType >
-        Z SummaryStatsReduce<X,Z>::execScalar(const bool biasCorrected, const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams) {
+        Z SummaryStatsReduce<X,Z>::execScalar(const bool biasCorrected, const void *vx, const sd::LongType *xShapeInfo, void *vextraParams) {
 
             auto x = reinterpret_cast<const X *>(vx);
             auto extraParams = reinterpret_cast<Z *>(vextraParams);
@@ -82,10 +81,10 @@ namespace functions {
             startingIndex.initialize();
             auto length = shape::length(xShapeInfo);
 
-            uint xShapeInfoCast[MAX_RANK];
-            const bool canCast = sd::DataTypeUtils::castShapeInfo<uint>(xShapeInfo, xShapeInfoCast);
+            sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+            const bool canCast = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(xShapeInfo, xShapeInfoCast);
 
-            for (Nd4jLong i = 0; i < length; i++) {
+            for (sd::LongType i = 0; i < length; i++) {
                 auto xOffset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCast);
 
                 SummaryStatsData<X> curr;
@@ -99,9 +98,9 @@ namespace functions {
         template <typename X, typename Z>
         template <typename OpType >
         void SummaryStatsReduce<X,Z>::exec(const bool biasCorrected,
-                                           const void *vx, const Nd4jLong *xShapeInfo,
+                                           const void *vx, const sd::LongType *xShapeInfo,
                                            void *vextraParams,
-                                           void *vz, const Nd4jLong *zShapeInfo,
+                                           void *vz, const sd::LongType *zShapeInfo,
                                            int *dimension, int dimensionLength) {
 
             auto x = reinterpret_cast<const X *>(vx);
@@ -115,7 +114,7 @@ namespace functions {
                 SummaryStatsData<X> comp;
                 comp.initWithValue(x[0]);
 
-                for (Nd4jLong i = 0; i < resultLength; i++)
+                for (sd::LongType i = 0; i < resultLength; i++)
                     z[i] = OpType::getValue(biasCorrected, comp);
                 return;
             }
@@ -145,8 +144,8 @@ namespace functions {
             auto tadEWS = shape::elementWiseStride(tadPack.primaryShapeInfo());
             auto tadOrder = shape::order(tadPack.primaryShapeInfo());
 
-            uint tadShapeShapeInfoCast[MAX_RANK];
-            const bool canCast = tadEWS == 1 && tadOrder == 'c' ? false : sd::DataTypeUtils::castShapeInfo<uint>(tadShapeShapeInfo, tadShapeShapeInfoCast);
+            sd::Unsigned tadShapeShapeInfoCast[SD_MAX_RANK];
+            const bool canCast = tadEWS == 1 && tadOrder == 'c' ? false : sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(tadShapeShapeInfo, tadShapeShapeInfoCast);
 
             auto func = PRAGMA_THREADS_FOR {
                 for (auto r = start; r < stop; r++) {
@@ -157,14 +156,14 @@ namespace functions {
                     comp.initWithValue(tx[0]);
 
                     if (tadEWS == 1 && tadOrder == 'c') {
-                        for (Nd4jLong i = 1; i < tadLength; i++) {
+                        for (sd::LongType i = 1; i < tadLength; i++) {
                             SummaryStatsData <X> indexVal2;
                             indexVal2.initWithValue(tx[i]);
 
                             comp = update(comp, OpType::op(indexVal2, extraParams), extraParams);
                         }
                     } else {
-                        for (Nd4jLong i = 1; i < tadLength; i++) {
+                        for (sd::LongType i = 1; i < tadLength; i++) {
                             auto xOffset = shape::indexOffset(i, tadShapeShapeInfo, tadShapeShapeInfoCast, canCast);
 
                             SummaryStatsData <X> indexVal2;
@@ -182,6 +181,6 @@ namespace functions {
         }
 
 
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL SummaryStatsReduce, , LIBND4J_TYPES, FLOAT_TYPES);
+        BUILD_DOUBLE_TEMPLATE(template class SD_LIB_HIDDEN SummaryStatsReduce, , SD_COMMON_TYPES, SD_FLOAT_TYPES);
     }
 }

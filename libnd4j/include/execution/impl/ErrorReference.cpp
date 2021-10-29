@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include <execution/ErrorReference.h>
 
 namespace sd {

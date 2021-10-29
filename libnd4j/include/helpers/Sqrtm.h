@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SQRTM_H
 #define LIBND4J_SQRTM_H
-
 #include <array/NDArray.h>
 
 namespace sd {

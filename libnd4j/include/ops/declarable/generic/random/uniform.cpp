@@ -50,7 +50,7 @@ namespace sd {
             if(block.getIArguments()->size() > 1) {
                 auto seed = INT_ARG(1);
                 rng.setStates(seed,seed ^ 0xdeadbeef);
-                nd4j_debug("randomuniform: Setting seed %d\n",seed);
+                sd_debug("randomuniform: Setting seed %d\n",seed);
                 //rng.setSeed(seed);
             }
 
@@ -75,14 +75,14 @@ namespace sd {
                 delete min;
                 delete max;
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 
         DECLARE_SHAPE_FN(randomuniform) {
             auto in = INPUT_VARIABLE(0);
             //auto min = INPUT_VARIABLE(1);
-            auto shape = in->template asVectorT<Nd4jLong>();
+            auto shape = in->template asVectorT<sd::LongType>();
             auto dtype = DataType::FLOAT32; //ArrayOptions::dataType(inputShape->at(1)); // output type is by given min
 
             if (block.getIArguments()->size())

@@ -55,14 +55,14 @@ namespace helpers {
         colorTable.emplace_back(std::vector<float>({1, 0, 1, 1}));    // 9: fuchsia
 
         if (depth == 1) {
-            for (Nd4jLong i = 0; i < colorTable.size(); i++) {
+            for (sd::LongType i = 0; i < colorTable.size(); i++) {
                 colorTable[i][0] = 1;
             }
         }
         return colorTable;
     }
 
-     void drawBoundingBoxesFunctor(sd::LaunchContext * context, NDArray* images, NDArray* boxes, NDArray* colors, NDArray* output) {
+    void drawBoundingBoxesFunctor(sd::LaunchContext * context, NDArray* images, NDArray* boxes, NDArray* colors, NDArray* output) {
         // images - batch of 3D images with BW (last dim = 1), RGB (last dim = 3) or RGBA (last dim = 4) channel set
         // boxes - batch of 2D bounds with last dim (y_start, x_start, y_end, x_end) to compute i and j as
         // floor((height - 1 ) * y_start) => rowStart, floor((height - 1) * y_end) => rowEnd
@@ -93,27 +93,27 @@ namespace helpers {
             colorTable = DefaultColorTable(channels);
         auto func = PRAGMA_THREADS_FOR {
             for (auto batch = start; batch < stop; ++batch) { // loop by batch
-                const Nd4jLong numBoxes = boxes->sizeAt(1);
+                const sd::LongType numBoxes = boxes->sizeAt(1);
                 for (auto boxIndex = 0; boxIndex < numBoxes; ++boxIndex) {
                     auto colorIndex = boxIndex % colorTable.size();
-                    auto rowStart = Nd4jLong((height - 1) * boxes->t<float>(batch, boxIndex, 0));
-                    auto rowStartBound = sd::math::nd4j_max(Nd4jLong(0), rowStart);
-                    auto rowEnd = Nd4jLong((height - 1) * boxes->t<float>(batch, boxIndex, 2));
-                    auto rowEndBound = sd::math::nd4j_min(Nd4jLong(height - 1), rowEnd);
-                    auto colStart = Nd4jLong((width - 1) * boxes->t<float>(batch, boxIndex, 1));
-                    auto colStartBound = sd::math::nd4j_max(Nd4jLong(0), colStart);
-                    auto colEnd = Nd4jLong((width - 1) * boxes->t<float>(batch, boxIndex, 3));
-                    auto colEndBound = sd::math::nd4j_min(Nd4jLong(width - 1), colEnd);
+                    auto rowStart = sd::LongType((height - 1) * boxes->t<float>(batch, boxIndex, 0));
+                    auto rowStartBound = sd::math::sd_max(sd::LongType(0), rowStart);
+                    auto rowEnd = sd::LongType((height - 1) * boxes->t<float>(batch, boxIndex, 2));
+                    auto rowEndBound = sd::math::sd_min(sd::LongType(height - 1), rowEnd);
+                    auto colStart = sd::LongType((width - 1) * boxes->t<float>(batch, boxIndex, 1));
+                    auto colStartBound = sd::math::sd_max(sd::LongType(0), colStart);
+                    auto colEnd = sd::LongType((width - 1) * boxes->t<float>(batch, boxIndex, 3));
+                    auto colEndBound = sd::math::sd_min(sd::LongType(width - 1), colEnd);
 
                     if (rowStart > rowEnd || colStart > colEnd) {
-                        nd4j_debug(
+                        sd_debug(
                                 "helpers::drawBoundingBoxesFunctor: Bounding box (%lld, %lld, %lld, %lld) is inverted "
                                 "and will not be drawn\n", rowStart, colStart, rowEnd, colEnd);
                         continue;
                     }
                     if (rowStart >= height || rowEnd < 0 || colStart >= width ||
                         colEnd < 0) {
-                        nd4j_debug(
+                        sd_debug(
                                 "helpers::drawBoundingBoxesFunctor: Bounding box (%lld, %lld, %lld, %lld) is completely "
                                 "outside the image and not be drawn\n ", rowStart, colStart, rowEnd, colEnd);
                         continue;

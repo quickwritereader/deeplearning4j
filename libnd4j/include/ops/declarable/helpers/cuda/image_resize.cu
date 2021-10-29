@@ -35,7 +35,6 @@ limitations under the License.
 //
 //  @author George A. Shulinok <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/image_resize.h>
 #include <exceptions/cuda_exception.h>
 #include <array/NDArrayFactory.h>
@@ -43,7 +42,6 @@ limitations under the License.
 namespace sd {
 namespace ops {
 namespace helpers {
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,38 +52,38 @@ namespace helpers {
 //      interporationData - result
 //
     template <class Scaler>
-    static __global__ void computeInterpolationWeights(Nd4jLong outSize,
-                                              Nd4jLong inSize,
+    static SD_KERNEL void computeInterpolationWeights(sd::LongType outSize,
+                                              sd::LongType inSize,
                                               double scale,
-                                              Nd4jLong channels,
+                                              sd::LongType channels,
                                               BilinearInterpolationData* interpolationData) {
         interpolationData[outSize].bottomIndex = 0;
         interpolationData[outSize].topIndex = 0;
         auto tid = blockIdx.x * blockDim.x + threadIdx.x;
         auto step = blockDim.x * gridDim.x;
         Scaler scaler;
-        for (Nd4jLong i = outSize - tid; i >= 0; i -= step) {
+        for (sd::LongType i = outSize - tid; i >= 0; i -= step) {
             double in = scaler(i, scale);
-//            interpolationData[i].bottomIndex = static_cast<Nd4jLong>(in);
-//            interpolationData[i].topIndex = sd::math::nd4j_min(interpolationData[i].bottomIndex + 1, inSize - 1);
+//            interpolationData[i].bottomIndex = static_cast<sd::LongType>(in);
+//            interpolationData[i].topIndex = sd::math::sd_min(interpolationData[i].bottomIndex + 1, inSize - 1);
 //            interpolationData[i].interpolarValue = in - interpolationData[i].bottomIndex;
             double const in_f = sd::math::p_floor<double>(in);
             double const in_c = sd::math::p_ceil<double>(in);
-            interpolationData[i].bottomIndex = sd::math::nd4j_max(static_cast<Nd4jLong>(in_f), (Nd4jLong)0LL);//static_cast<Nd4jLong>(in);
-            interpolationData[i].topIndex = sd::math::nd4j_min(static_cast<Nd4jLong>(in_c), inSize - 1);
+            interpolationData[i].bottomIndex = sd::math::sd_max(static_cast<sd::LongType>(in_f), (sd::LongType)0LL);//static_cast<sd::LongType>(in);
+            interpolationData[i].topIndex = sd::math::sd_min(static_cast<sd::LongType>(in_c), inSize - 1);
             interpolationData[i].interpolarValue = in - in_f;
 
             if (channels) {
-                math::atomics::nd4j_atomicMul(&interpolationData[i].bottomIndex, channels);
-                math::atomics::nd4j_atomicMul(&interpolationData[i].topIndex, channels);
+                math::atomics::sd_atomicMul(&interpolationData[i].bottomIndex, channels);
+                math::atomics::sd_atomicMul(&interpolationData[i].topIndex, channels);
             }
         }
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // resize image with bilinear interpolation algorithm
 //
-    static void resizeImage(sd::LaunchContext* context, NDArray const* images, Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight,
-                     Nd4jLong outWidth, Nd4jLong channels,
+    static void resizeImage(sd::LaunchContext* context, NDArray const* images, sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight,
+                     sd::LongType outWidth, sd::LongType channels,
                      BilinearInterpolationData* xs_,
                      BilinearInterpolationData* ys_,
                      NDArray* output);
@@ -94,19 +92,19 @@ namespace helpers {
 // resize image with bilinear interpolation algorithm kernel
 //
     template <typename T, typename Z>
-    static __global__ void resizeImageKernel(T const* input, Nd4jLong const* inputShape, Z* outputYptr,
-            Nd4jLong const* outputShape, Nd4jLong batchSize, Nd4jLong outWidth, Nd4jLong outHeight, Nd4jLong channels,
-            Nd4jLong inRowSize, Nd4jLong outRowSize, Nd4jLong inBatchNumValues,
+    static SD_KERNEL void resizeImageKernel(T const* input, sd::LongType const* inputShape, Z* outputYptr,
+            sd::LongType const* outputShape, sd::LongType batchSize, sd::LongType outWidth, sd::LongType outHeight, sd::LongType channels,
+            sd::LongType inRowSize, sd::LongType outRowSize, sd::LongType inBatchNumValues,
             BilinearInterpolationData* xs_, BilinearInterpolationData* ys_) {
 
         for (auto batch = blockIdx.x; batch < batchSize; batch += gridDim.x ) { // blockIdx.x as batch index
             auto pX = input + batch * inBatchNumValues;
-            for (Nd4jLong y = threadIdx.x; y < outHeight; y += blockDim.x) {
+            for (sd::LongType y = threadIdx.x; y < outHeight; y += blockDim.x) {
                 const T* ys_input_lower_ptr = pX + ys_[y].bottomIndex * inRowSize;
                 const T* ys_input_upper_ptr = pX + ys_[y].topIndex * inRowSize;
                 double yVal = ys_[y].interpolarValue;
                 auto pZ = outputYptr + (batch * outHeight + y) * outRowSize;
-                for (Nd4jLong x = 0; x < outWidth; x++) {
+                for (sd::LongType x = 0; x < outWidth; x++) {
                     auto xsBottom = xs_[x].bottomIndex;
                     auto xsTop = xs_[x].topIndex;
                     auto xVal = xs_[x].interpolarValue;
@@ -129,14 +127,14 @@ namespace helpers {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // resize image with
     template <typename T, typename F>
-    static void resizeImage_(sd::LaunchContext* context, NDArray const* images, Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight,
-                     Nd4jLong outWidth, Nd4jLong channels,
+    static void resizeImage_(sd::LaunchContext* context, NDArray const* images, sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight,
+                     sd::LongType outWidth, sd::LongType channels,
                      BilinearInterpolationData* xs_,
                      BilinearInterpolationData* ys_,
                      NDArray* output) {
-        Nd4jLong inRowSize = inWidth * channels;
-        Nd4jLong inBatchNumValues = inHeight * inRowSize;
-        Nd4jLong outRowSize = outWidth * channels;
+        sd::LongType inRowSize = inWidth * channels;
+        sd::LongType inBatchNumValues = inHeight * inRowSize;
+        sd::LongType outRowSize = outWidth * channels;
         auto stream = context->getCudaStream();
         T const* pInput = images->getDataBuffer()->specialAsT<T>(); //reinterpret_cast<T const *>(images->specialBuffer()); // this works only with 'c' direction
         F* pOutput = output->dataBuffer()->specialAsT<F>();//reinterpret_cast<F *>(output->specialBuffer());
@@ -154,20 +152,20 @@ namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T, typename F>
-    static int resizeBilinearFunctor_(sd::LaunchContext* context, NDArray const* images, int const width,
+    static sd::Status resizeBilinearFunctor_(sd::LaunchContext* context, NDArray const* images, int const width,
             int const height, bool const alignCorners, bool const halfPixelCenter, NDArray* output) {
-        const Nd4jLong batchSize = images->sizeAt(0);
-        const Nd4jLong inHeight = images->sizeAt(1);
-        const Nd4jLong inWidth = images->sizeAt(2);
-        const Nd4jLong channels = images->sizeAt(3);
+        const sd::LongType batchSize = images->sizeAt(0);
+        const sd::LongType inHeight = images->sizeAt(1);
+        const sd::LongType inWidth = images->sizeAt(2);
+        const sd::LongType channels = images->sizeAt(3);
 
-        const Nd4jLong outHeight = output->sizeAt(1);
-        const Nd4jLong outWidth = output->sizeAt(2);
+        const sd::LongType outHeight = output->sizeAt(1);
+        const sd::LongType outWidth = output->sizeAt(2);
 
         // Handle no-op resizes efficiently.
         if (outHeight == inHeight && outWidth == inWidth) {
             output->assign(images);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         float heightScale = ImageResizerState::calculateResizeScale(inHeight, outHeight, alignCorners);
@@ -215,13 +213,13 @@ namespace helpers {
             throw cuda_exception::build("helpers::resize_image: Cannot deallocate memory for horizontical parts rectangulars", err);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
     typedef float (*MODE_FUNC) (float);
 
-    __device__ MODE_FUNC mode_functions[4] = { sd::math::p_floor<float>, 
+    SD_DEVICE MODE_FUNC mode_functions[4] = { sd::math::p_floor<float>, 
                                                sd::math::p_round_prefer_floor<float>,
                                                sd::math::p_round_prefer_ceil<float>,
                                                sd::math::p_ceil<float> };
@@ -230,8 +228,8 @@ namespace helpers {
 // resize by interpolation nearest neighbor algorithm kernel
 //
     template <typename T, typename Scaler>
-    static __global__ void resizeNeighborKernel(T const* input, Nd4jLong const* inputShape, T* output, Nd4jLong const* outputShape,
-            Nd4jLong batchSize, Nd4jLong inWidth, Nd4jLong inHeight, Nd4jLong outWidth, Nd4jLong outHeight, Nd4jLong channels, double widthScale, double heightScale, NearestMode nearestMode) {
+    static SD_KERNEL void resizeNeighborKernel(T const* input, sd::LongType const* inputShape, T* output, sd::LongType const* outputShape,
+            sd::LongType batchSize, sd::LongType inWidth, sd::LongType inHeight, sd::LongType outWidth, sd::LongType outHeight, sd::LongType channels, double widthScale, double heightScale, NearestMode nearestMode) {
 
                 constexpr bool halfPixelCenter = std::is_same<Scaler, HalfPixelScaler>::value || std::is_same<Scaler, HalfPixelScalerNN>::value;
         MODE_FUNC modeFunc;
@@ -254,35 +252,33 @@ namespace helpers {
         }
         Scaler scaler;
         // if(threadIdx.x==0){
-        
-        
-        
-            
+
+
         // }
         //for (int b = blockIdx.x; b < batchSize; b += gridDim.x)
         if (blockIdx.x < batchSize)
         {
             auto b = blockIdx.x;
             for (int y = threadIdx.x; y < outHeight; y += blockDim.x) {
-                auto posY = static_cast<Nd4jLong>(modeFunc(scaler(y, heightScale)));
-                Nd4jLong inY = sd::math::nd4j_min(posY, inHeight - 1);
+                auto posY = static_cast<sd::LongType>(modeFunc(scaler(y, heightScale)));
+                sd::LongType inY = sd::math::sd_min(posY, inHeight - 1);
                 if (halfPixelCenter) {
-                    inY = sd::math::nd4j_max(0LL, inY);
+                    inY = sd::math::sd_max(0LL, inY);
                 }
 
                 for (int x = threadIdx.y; x < outWidth; x += blockDim.y) {
-                    auto posX = static_cast<Nd4jLong>(modeFunc(scaler(x, widthScale)));
-                    Nd4jLong inX = sd::math::nd4j_min(posX, inWidth - 1);
+                    auto posX = static_cast<sd::LongType>(modeFunc(scaler(x, widthScale)));
+                    sd::LongType inX = sd::math::sd_min(posX, inWidth - 1);
                     if (halfPixelCenter) {
-                        inX = sd::math::nd4j_max(0LL, inX);
+                        inX = sd::math::sd_max(0LL, inX);
                     }
 
                     auto start = blockIdx.z * blockDim.z + threadIdx.z;
                     auto step = blockDim.z * gridDim.z;
 
-                    for (Nd4jLong e = start; e < channels; e += step) {
-                        Nd4jLong posX[] = {b, inY, inX, e};
-                        Nd4jLong posZ[] = {b, y, x, e};
+                    for (sd::LongType e = start; e < channels; e += step) {
+                        sd::LongType posX[] = {b, inY, inX, e};
+                        sd::LongType posZ[] = {b, y, x, e};
                         auto xIndex = shape::getOffset(inputShape, posX);
                         auto zIndex = shape::getOffset(outputShape, posZ);
                         output[zIndex] = input[xIndex];
@@ -297,19 +293,19 @@ namespace helpers {
 // resizeNeighborFunctor - main algorithm by nearest neighbor
 //
     template<typename T>
-    ND4J_LOCAL int resizeNeighborFunctor_(sd::LaunchContext* context, NDArray const *images, int const width, int const height, CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
-        const Nd4jLong batchSize = images->sizeAt(0);
-        const Nd4jLong inHeight = images->sizeAt(1);
-        const Nd4jLong inWidth = images->sizeAt(2);
-        const Nd4jLong channels = images->sizeAt(3);
+    sd::Status resizeNeighborFunctor_(sd::LaunchContext* context, NDArray const *images, int const width, int const height, CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
+        const sd::LongType batchSize = images->sizeAt(0);
+        const sd::LongType inHeight = images->sizeAt(1);
+        const sd::LongType inWidth = images->sizeAt(2);
+        const sd::LongType channels = images->sizeAt(3);
 
-        const Nd4jLong outHeight = output->sizeAt(1);
-        const Nd4jLong outWidth = output->sizeAt(2);
+        const sd::LongType outHeight = output->sizeAt(1);
+        const sd::LongType outWidth = output->sizeAt(2);
 
         // Handle no-op resizes efficiently.
         if (outHeight == inHeight && outWidth == inWidth) {
             output->assign(images);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         float heightScale = ImageResizerState::calculateResizeScale(inHeight, outHeight, alignCorner);
@@ -342,48 +338,48 @@ namespace helpers {
 
         NDArray::registerSpecialUse({output}, {images});
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // resizeImage - resize bilinear algorithm caller
 //
-    void resizeImage(sd::LaunchContext* context, NDArray const* images, Nd4jLong batchSize, Nd4jLong inHeight,
-            Nd4jLong inWidth, Nd4jLong outHeight, Nd4jLong outWidth, Nd4jLong channels, BilinearInterpolationData* xs_,
+    void resizeImage(sd::LaunchContext* context, NDArray const* images, sd::LongType batchSize, sd::LongType inHeight,
+            sd::LongType inWidth, sd::LongType outHeight, sd::LongType outWidth, sd::LongType channels, BilinearInterpolationData* xs_,
             BilinearInterpolationData* ys_, NDArray* output) {
         BUILD_DOUBLE_SELECTOR(images->dataType(), output->dataType(),
                 resizeImage_, (context, images, batchSize, inHeight, inWidth, outHeight, outWidth, channels,
-                        xs_, ys_, output), NUMERIC_TYPES, FLOAT_TYPES);
+                        xs_, ys_, output), SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
     }
 
     BUILD_DOUBLE_TEMPLATE(template void resizeImage_,(sd::LaunchContext* context, NDArray const* images,
-            Nd4jLong batchSize, Nd4jLong inHeight, Nd4jLong inWidth, Nd4jLong outHeight, Nd4jLong outWidth,
-            Nd4jLong channels, BilinearInterpolationData* xs_, BilinearInterpolationData* ys_, NDArray* output),
-            NUMERIC_TYPES, FLOAT_TYPES);
+            sd::LongType batchSize, sd::LongType inHeight, sd::LongType inWidth, sd::LongType outHeight, sd::LongType outWidth,
+            sd::LongType channels, BilinearInterpolationData* xs_, BilinearInterpolationData* ys_, NDArray* output),
+            SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    int resizeBilinearFunctor(sd::LaunchContext* context, NDArray const* images, int width, int height,
+    sd::Status resizeBilinearFunctor(sd::LaunchContext* context, NDArray const* images, int width, int height,
             bool const alignCorners, bool const halfPixelCenter, NDArray* output) {
         BUILD_DOUBLE_SELECTOR(images->dataType(), output->dataType(), return resizeBilinearFunctor_, (context, images,
-                width, height, alignCorners, halfPixelCenter, output), NUMERIC_TYPES, FLOAT_TYPES);
+                width, height, alignCorners, halfPixelCenter, output), SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
     }
-//    BUILD_SINGLE_TEMPLATE(template int resizeBilinearFunctor_, (sd::LaunchContext* context,
+//    BUILD_SINGLE_TEMPLATE(template sd::Status resizeBilinearFunctor_, (sd::LaunchContext* context,
 //            NDArray const* images, int const width, int const height, bool const alignCorners,
-//            bool const halfPixelCenter, NDArray* output), LIBND4J_TYPES);
+//            bool const halfPixelCenter, NDArray* output), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
+sd::Status resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
     CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output) {
-    BUILD_SINGLE_SELECTOR(images->dataType(), return resizeNeighborFunctor_, (context, images, width, height, coorMode, nearestMode, alignCorner, output), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(images->dataType(), return resizeNeighborFunctor_, (context, images, width, height, coorMode, nearestMode, alignCorner, output), SD_COMMON_TYPES);
 }
-//    BUILD_SINGLE_TEMPLATE(template int resizeNeighborFunctor_, (sd::LaunchContext* context, NDArray const* images,
-//            int width, int height, bool const alignCorners, bool const halfPixelCenter, NDArray* output), LIBND4J_TYPES);
+//    BUILD_SINGLE_TEMPLATE(template sd::Status Logger::logStatusMsg, (sd::LaunchContext* context, NDArray const* images,
+//            int width, int height, bool const alignCorners, bool const halfPixelCenter, NDArray* output), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Bicubic interpolation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-    static __global__ void initCoefTableKernel(const float a, float* table, Nd4jLong tableSize) {
+    static SD_KERNEL void initCoefTableKernel(const float a, float* table, sd::LongType tableSize) {
         KeysCubicKernelFunc<float> kernel(a);
         auto start = blockIdx.x * blockDim.x + threadIdx.x;
         auto step = blockDim.x * gridDim.x;
@@ -415,7 +411,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 
         return coeffs_table;
     }
-//    _CUDA_HD const  float* getCoeffsTable(const bool use_keys_cubic) {
+//    SD_HOST_DEVICE const  float* getCoeffsTable(const bool use_keys_cubic) {
 //            // Static so that we initialize it on first use
 //            if (use_keys_cubic) {
 //                // http://ieeexplore.ieee.org/document/1163711/
@@ -431,7 +427,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 //        }
 
 
-    static __global__ void accumulateChannelsKernel(WeightsAndIndices* pXWais, Nd4jLong outWidth, Nd4jLong channels) {
+    static SD_KERNEL void accumulateChannelsKernel(WeightsAndIndices* pXWais, sd::LongType outWidth, sd::LongType channels) {
         auto start = blockIdx.x * blockDim.x + threadIdx.x;
         auto step = blockDim.x * gridDim.x;
 
@@ -444,8 +440,8 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
     }
 
     template<typename Scaler>
-    static __global__ void advanceWeightsAndIndicesKernel(float const* cacheTable, CachedInterpolationCalculator* calc, WeightsAndIndices* pXWais, Nd4jLong inWidth, float widthScale,
-            Nd4jLong outWidth, Nd4jLong channels, bool exclude_outside) {
+    static SD_KERNEL void advanceWeightsAndIndicesKernel(float const* cacheTable, CachedInterpolationCalculator* calc, WeightsAndIndices* pXWais, sd::LongType inWidth, float widthScale,
+            sd::LongType outWidth, sd::LongType channels, bool exclude_outside) {
         auto start = blockIdx.x * blockDim.x + threadIdx.x;
         auto step = blockDim.x * gridDim.x;
 
@@ -500,16 +496,16 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 
 
     template <typename T, typename Scaler>
-    static __global__ void bicubicInterpolateWithCachingKernel(float const* cachedTable, T const* inputPtr, ImageResizerState* pResizerState, WeightsAndIndices* xWais, bool exclude_outside, float* outputPtr) {
+    static SD_KERNEL void bicubicInterpolateWithCachingKernel(float const* cachedTable, T const* inputPtr, ImageResizerState* pResizerState, WeightsAndIndices* xWais, bool exclude_outside, float* outputPtr) {
 //        auto numChannels = pResizerState->channels;
         const auto batchStride = pResizerState->bStride;
         const auto hStride = pResizerState->hStride;
         const auto cStride = pResizerState->cStride;
-        for (Nd4jLong b = blockIdx.x; b < pResizerState->batchSize; b += gridDim.x) {
+        for (sd::LongType b = blockIdx.x; b < pResizerState->batchSize; b += gridDim.x) {
             auto pInput = inputPtr + b * batchStride;
 
             float* cachedValue;
-            for (Nd4jLong y = threadIdx.x; y < pResizerState->outHeight; y += blockDim.x) {
+            for (sd::LongType y = threadIdx.x; y < pResizerState->outHeight; y += blockDim.x) {
                 if (threadIdx.x == 0) {
                     extern __shared__ char sharedChar[];
                     cachedValue = reinterpret_cast<float*>(sharedChar);
@@ -531,7 +527,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                     float cached_value_0[4] = {0};
                     float cached_value_1[4] = {0};
                     float cached_value_2[4] = {0};
-                    for (Nd4jLong x = 0; x < pResizerState->outWidth; ++x) {
+                    for (sd::LongType x = 0; x < pResizerState->outWidth; ++x) {
                         const WeightsAndIndices& xWai = xWais[x];
                         // Shift values in cached_value_* to fill first '_advance' values.
                         switch (xWai._advance) {
@@ -590,25 +586,25 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                                         xWai._weight2, xWai._weight3);
                     }
                 } else {
-                    for (Nd4jLong x = 0; x < pResizerState->outWidth; ++x) {
+                    for (sd::LongType x = 0; x < pResizerState->outWidth; ++x) {
                         const WeightsAndIndices& xWai = xWais[x];
                         // Shift values in cachedValue to fill first '_advance' values.
                         switch (xWai._advance) {
                             case 3:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 0] = cachedValue[4 * c + 1];
                                     cachedValue[4 * c + 1] = cachedValue[4 * c + 2];
                                     cachedValue[4 * c + 2] = cachedValue[4 * c + 3];
                                 }
                                 break;
                             case 2:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 0] = cachedValue[4 * c + 2];
                                     cachedValue[4 * c + 1] = cachedValue[4 * c + 3];
                                 }
                                 break;
                             case 1: {
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 0] = cachedValue[4 * c + 3];
                                 }
                                 break;
@@ -618,24 +614,24 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                         // Set the remaining '4-_advance' values by computing.
                         switch (xWai._advance) {
                             case 0:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 0] = computeYInterpolation(0, c * cStride, yWai, y_ptr_0, y_ptr_1, y_ptr_2, y_ptr_3, xWai);
                                 }
                             case 1:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 1] = computeYInterpolation(1, c * cStride, yWai, y_ptr_0, y_ptr_1, y_ptr_2, y_ptr_3, xWai);
                                 }
                             case 2:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 2] = computeYInterpolation(2, c * cStride, yWai, y_ptr_0, y_ptr_1, y_ptr_2, y_ptr_3, xWai);
                                 }
                             case 3:
-                                for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                                for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                                     cachedValue[4 * c + 3] = computeYInterpolation(3, c * cStride, yWai, y_ptr_0, y_ptr_1, y_ptr_2, y_ptr_3, xWai);
                                 }
                                // break;
                         }
-                        for (Nd4jLong c = 0; c < pResizerState->channels; ++c) {
+                        for (sd::LongType c = 0; c < pResizerState->channels; ++c) {
                             auto res= compute(&cachedValue[4 * c], xWai._weight0, xWai._weight1, xWai._weight2, xWai._weight3);
                             pOutput[x * pResizerState->channels + c] =res;
                             
@@ -726,21 +722,21 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T>
-    ND4J_LOCAL int resizeBicubicFunctor_(sd::LaunchContext * context, NDArray const* image, int width, int height,
+    sd::Status resizeBicubicFunctor_(sd::LaunchContext * context, NDArray const* image, int width, int height,
                               bool preserveAspectRatio, bool antialias, NDArray* output) {
-        return Status::OK();
+        return sd::Status::OK;
     }
 
-    ND4J_LOCAL int resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int width, int height,
+    sd::Status resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int width, int height,
                              bool preserveAspectRatio, bool antialias, NDArray* output) {
         BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctor_, (context, image,
-                width, height, preserveAspectRatio, antialias, output), NUMERIC_TYPES);
+                width, height, preserveAspectRatio, antialias, output), SD_NUMERIC_TYPES);
     }
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL int resizeBicubicFunctor_, (sd::LaunchContext * context, NDArray const* image, int width, int height,
-            bool preserveAspectRatio, bool antialias, NDArray* output), NUMERIC_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status resizeBicubicFunctor_, (sd::LaunchContext * context, NDArray const* image, int width, int height,
+            bool preserveAspectRatio, bool antialias, NDArray* output), SD_NUMERIC_TYPES);
 // ------------------------------------------------------------------------------------------------------------------ //
 
-    static __global__ void fillInterpolationCache(CachedInterpolation* xCached, Nd4jLong cacheLen, Nd4jLong inWidth, float widthScale) {
+    static SD_KERNEL void fillInterpolationCache(CachedInterpolation* xCached, sd::LongType cacheLen, sd::LongType inWidth, float widthScale) {
         auto start = blockIdx.x * blockDim.x + threadIdx.x;
         auto increment = blockDim.x * gridDim.x;
 
@@ -749,10 +745,10 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
             const float inX = x * widthScale;
             const float inX1 = (x + 1) * widthScale;
 
-            Nd4jLong v = math::nd4j_floor<float, Nd4jLong>(inX);
+            sd::LongType v = math::sd_floor<float, sd::LongType>(inX);
             xCache.start = v;
             xCache.startScale = v < inX ? (v + 1 > inX1 ? widthScale : v + 1 - inX) : (v + 1 > inX1 ? inX1 - v : 1.f);
-            v = math::nd4j_ceil<float, Nd4jLong>(inX1);
+            v = math::sd_ceil<float, sd::LongType>(inX1);
             xCache.end = v--;
             xCache.endMinusOneScale = v < inX ? (v + 1 > inX1 ? widthScale : v + 1 - inX) : (v + 1 > inX1 ? inX1 - v : 1.f);
             xCache.needsBounding = bound(xCache.start, inWidth) != xCache.start || bound(xCache.end - 1, inWidth) != (xCache.end - 1);
@@ -762,8 +758,8 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 // ------------------------------------------------------------------------------------------------------------------ //
 
     template <typename T>
-    static __global__ void resizeAreaKernel(ImageResizerState const* pSt, CachedInterpolation const* caches, float scale,
-            T const* inputPtr, Nd4jLong const* inputShape, float* outputPtr, Nd4jLong const* outputShape, ScaleCache<T>* cachePool) { //batch * outWidth * outHeight
+    static SD_KERNEL void resizeAreaKernel(ImageResizerState const* pSt, CachedInterpolation const* caches, float scale,
+            T const* inputPtr, sd::LongType const* inputShape, float* outputPtr, sd::LongType const* outputShape, ScaleCache<T>* cachePool) { //batch * outWidth * outHeight
 
         for (auto batch = blockIdx.x; batch < pSt->batchSize; batch += gridDim.x) {
             for (auto y = threadIdx.x; y < pSt->outHeight; y += blockDim.x) {
@@ -771,8 +767,8 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                 const float inY1 = (y + 1) * pSt->heightScale;
                 // The start and end height indices of all the cells that could
                 // contribute to the target cell.
-                const Nd4jLong yStart = math::nd4j_floor<float, Nd4jLong>(inY);
-                const Nd4jLong yEnd = math::nd4j_ceil<float, Nd4jLong>(inY1);
+                const sd::LongType yStart = math::sd_floor<float, sd::LongType>(inY);
+                const sd::LongType yEnd = math::sd_ceil<float, sd::LongType>(inY1);
                 auto scalesDim = yEnd - yStart;
                 auto yScaleCache = cachePool + (batch * pSt->outHeight + y) * pSt->outWidth;
 
@@ -782,7 +778,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                 //yPtrs = reinterpret_cast<T const**>(sharedBuf);
                 float* output = outputPtr + (batch * pSt->outHeight  +  y)  * pSt->channels * pSt->outWidth;
                 //int k = 0;
-                for (Nd4jLong i = yStart, k = 0; i < yEnd; ++i, ++k) {
+                for (sd::LongType i = yStart, k = 0; i < yEnd; ++i, ++k) {
                     float scaleY;
                     if (i < inY) {
                         scaleY = (i + 1 > inY1 ? pSt->heightScale : i + 1 - inY);
@@ -794,13 +790,13 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                 }
 
                 if (pSt->channels == 3) {
-                    for (Nd4jLong x = 0; x < pSt->outWidth; ++x) {
+                    for (sd::LongType x = 0; x < pSt->outWidth; ++x) {
                         const CachedInterpolation& xCache = caches[x];
                         computePatchSumOf3Channels<T>(scale, *pSt, yScaleCache, scalesDim, xCache, output);
                         output += pSt->channels;
                     }
                 } else {
-                    for (Nd4jLong x = 0; x < pSt->outWidth; ++x) {
+                    for (sd::LongType x = 0; x < pSt->outWidth; ++x) {
                         const CachedInterpolation &xCache = caches[x];
                         computePatchSum<T>(scale, *pSt, yScaleCache, scalesDim, xCache, output);
                         output += pSt->channels;
@@ -852,13 +848,13 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
     }
 // ------------------------------------------------------------------------------------------------------------------ //
     template <typename T>
-    int resizeAreaFunctor_(sd::LaunchContext* context, NDArray const* image, int const width, int const height,
+    sd::Status resizeAreaFunctor_(sd::LaunchContext* context, NDArray const* image, int const width, int const height,
                               bool const alignCorners, NDArray* output) {
 
         ImageResizerState st(alignCorners, false); // Create resize info
         auto res = st.validateAndCalculateOutputSize(image, width, height);
         auto stream = context->getCudaStream();
-        if (Status::OK() == res) {
+        if (sd::Status::OK == res) {
             CachedInterpolation* xCached;
             //(st.outWidth);
             auto err = cudaMalloc(&xCached, sizeof(CachedInterpolation) * st.outWidth);
@@ -881,21 +877,21 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 
         return res;
     }
-    ND4J_LOCAL int resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                               bool const alignCorners, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeAreaFunctor_, (context, image, width, height, alignCorners, output), NUMERIC_TYPES);
+        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeAreaFunctor_, (context, image, width, height, alignCorners, output), SD_NUMERIC_TYPES);
     }
 
 // ------------------------------------------------------------------------------------------------------------------ //
 // simplified bicubic resize without antialiasing
 //
     template <typename T>
-    ND4J_LOCAL int resizeBicubicFunctorA_(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeBicubicFunctorA_(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                             bool const alignCorners, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
         ImageResizerState st(alignCorners, coorMode == HALF_PIXEL, context->getCudaStream()); // align_corners, half_pixel_align
         NDArray::prepareSpecialUse({output}, {image});
-        int res = st.validateAndCreateOutput(image, width, height);
-        if (res == Status::OK()){
+        sd::Status res = st.validateAndCreateOutput(image, width, height);
+        if (res == sd::Status::OK){
             switch (coorMode)
             {
             case ASYMMETRIC:
@@ -914,12 +910,12 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
         NDArray::registerSpecialUse({output}, {image});
         return res;
     }
-    ND4J_LOCAL int resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                             bool const alignCorners, CoordinateTransformationMode coorMode, bool exclude_outside, double coefficient, NDArray* output) {
-        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctorA_, (context, image, width, height, alignCorners, coorMode, exclude_outside, coefficient, output), NUMERIC_TYPES);
+        BUILD_SINGLE_SELECTOR(image->dataType(), return resizeBicubicFunctorA_, (context, image, width, height, alignCorners, coorMode, exclude_outside, coefficient, output), SD_NUMERIC_TYPES);
     }
 // ------------------------------------------------------------------------------------------------------------------ //
-    ND4J_LOCAL int resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+    sd::Status resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
         ImageResizeMethods method, bool alignCorners, NDArray* output) {
         switch (method) {
         case kResizeBilinear:
@@ -943,17 +939,17 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
     // cropAndResize kernel   type of input(images) and output should be the same
     //
     template <typename T, typename Z, typename I>
-    static __global__ void cropAndResizeKernel(T const *images, Nd4jLong const* imagesShape, Z const* boxes, Nd4jLong const* boxesShape,
-            I const* indices, Nd4jLong const* indexShape, I const* cropSize, Nd4jLong const* cropShape, int method,
-            double extrapolationVal, T* output, Nd4jLong const* outputShape, int numBoxes, int cropHeight, int cropWidth,
+    static SD_KERNEL void cropAndResizeKernel(T const *images, sd::LongType const* imagesShape, Z const* boxes, sd::LongType const* boxesShape,
+            I const* indices, sd::LongType const* indexShape, I const* cropSize, sd::LongType const* cropShape, int method,
+            double extrapolationVal, T* output, sd::LongType const* outputShape, int numBoxes, int cropHeight, int cropWidth,
             int batchSize, int imageHeight, int imageWidth, int depth) {
 
         for (int b = blockIdx.x; b < numBoxes; b += gridDim.x)
         {
-            Nd4jLong x1Pos[] = {b, 1};
-            Nd4jLong y1Pos[] = {b, 0};
-            Nd4jLong y2Pos[] = {b, 2};
-            Nd4jLong x2Pos[] = {b, 3};
+            sd::LongType x1Pos[] = {b, 1};
+            sd::LongType y1Pos[] = {b, 0};
+            sd::LongType y2Pos[] = {b, 2};
+            sd::LongType x2Pos[] = {b, 3};
             Z y1 = boxes[shape::getOffset(boxesShape, y1Pos)];//->t<T>(b, 0)];
             Z x1 = boxes[shape::getOffset(boxesShape, x1Pos)];
             Z y2 = boxes[shape::getOffset(boxesShape, y2Pos)];
@@ -976,7 +972,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                         auto start = blockIdx.z * blockDim.x + threadIdx.z;
                         auto step = blockDim.z * gridDim.z;
                         for (int d = start; d < depth; d += step) {
-                            Nd4jLong zPos[] = {b, y, x, d};
+                            sd::LongType zPos[] = {b, y, x, d};
                             auto zIndex = shape::getOffset(outputShape, zPos);
                             output[zIndex] = (Z)extrapolationVal;
                             //crops->p(b, y, x, d, extrapolationVal);
@@ -998,7 +994,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                             auto start = blockIdx.z * blockDim.x + threadIdx.z;
                             auto step = blockDim.z * gridDim.z;
                             for (int d = start; d < depth; d += step) {
-                                Nd4jLong zPos[] = {b, y, x, d};
+                                sd::LongType zPos[] = {b, y, x, d};
                                 auto zIndex = shape::getOffset(outputShape, zPos);
                                 output[zIndex] = (Z)extrapolationVal;
 //                                crops->p(b, y, x, d, extrapolationVal);
@@ -1012,17 +1008,17 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                         auto start = blockIdx.z * blockDim.x + threadIdx.z;
                         auto step = blockDim.z * gridDim.z;
                         for (int d = start; d < depth; d += step) {
-                            Nd4jLong topLeftPos[] = {bIn, topYIndex, left_x_index, d};
-                            Nd4jLong topRightPos[] = {bIn, topYIndex, right_x_index, d};
-                            Nd4jLong bottomLeftPos[] = {bIn, bottomYIndex, left_x_index, d};
-                            Nd4jLong bottomRightPos[] = {bIn, bottomYIndex, right_x_index, d};
+                            sd::LongType topLeftPos[] = {bIn, topYIndex, left_x_index, d};
+                            sd::LongType topRightPos[] = {bIn, topYIndex, right_x_index, d};
+                            sd::LongType bottomLeftPos[] = {bIn, bottomYIndex, left_x_index, d};
+                            sd::LongType bottomRightPos[] = {bIn, bottomYIndex, right_x_index, d};
                             const T topLeft(images[shape::getOffset(imagesShape, topLeftPos)]); //->e<float>(bIn, topYIndex, left_x_index, d));
                             const T topRight(images[shape::getOffset(imagesShape, topRightPos)]); //->e<float>(bIn, topYIndex, right_x_index, d));
                             const T bottomLeft(images[shape::getOffset(imagesShape, bottomLeftPos)]);//->e<float>(bIn, bottomYIndex, left_x_index, d));
                             const T bottomRight(images[shape::getOffset(imagesShape, bottomRightPos)]); //->e<float>(bIn, bottomYIndex, right_x_index, d));
                             const T top = topLeft + (topRight - topLeft) * x_lerp;
                             const T bottom = bottomLeft + (bottomRight - bottomLeft) * x_lerp;
-                            Nd4jLong zPos[] = {b, y, x, d};
+                            sd::LongType zPos[] = {b, y, x, d};
                             auto zIndex = shape::getOffset(outputShape, zPos);
                             output[zIndex] = Z(top + (bottom - top) * y_lerp);
                         }
@@ -1036,7 +1032,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                             auto start = blockIdx.z * blockDim.x + threadIdx.z;
                             auto step = blockDim.z * gridDim.z;
                             for (int d = start; d < depth; d += step) {
-                                Nd4jLong zPos[] = {b, y, x, d};
+                                sd::LongType zPos[] = {b, y, x, d};
                                 auto zIndex = shape::getOffset(outputShape, zPos);
                                 output[zIndex] = (Z)extrapolationVal;
                             }
@@ -1047,8 +1043,8 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
                         auto start = blockIdx.z * blockDim.x + threadIdx.z;
                         auto step = blockDim.z * gridDim.z;
                         for (int d = start; d < depth; d += step) {
-                            Nd4jLong zPos[] = {b, y, x, d};
-                            Nd4jLong xPos[] = {bIn, closestYIndex, closestXIndex, d};
+                            sd::LongType zPos[] = {b, y, x, d};
+                            sd::LongType xPos[] = {bIn, closestYIndex, closestXIndex, d};
                             auto zIndex = shape::getOffset(outputShape, zPos);
                             auto xIndex = shape::getOffset(imagesShape, xPos);
                             output[zIndex] = images[xIndex];
@@ -1072,7 +1068,7 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
 //      crops - output (4D tensor - [batch, outWidth, outHeight, pixels])
 //
     template <typename T, typename Z, typename I>
-    ND4J_LOCAL void cropAndResizeFunctor_(sd::LaunchContext* context, NDArray const *images, NDArray const *boxes, NDArray const *indices,
+    void cropAndResizeFunctor_(sd::LaunchContext* context, NDArray const *images, NDArray const *boxes, NDArray const *indices,
                                       NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops) {
         const int batchSize = images->sizeAt(0);
         const int imageHeight = images->sizeAt(1);
@@ -1089,9 +1085,9 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
         I const* cropSizes = reinterpret_cast<I const*>(cropSize->specialBuffer());
         T* outBuf = reinterpret_cast<T*>(crops->specialBuffer());
 
-        int threadsPerBlock = math::nd4j_max(imageHeight * imageWidth, cropHeight * cropWidth);
-        if(threadsPerBlock > MAX_NUM_THREADS/4)
-            threadsPerBlock = MAX_NUM_THREADS/4;
+        int threadsPerBlock = math::sd_max(imageHeight * imageWidth, cropHeight * cropWidth);
+        if(threadsPerBlock > SD_MAX_NUM_THREADS/4)
+            threadsPerBlock = SD_MAX_NUM_THREADS/4;
 
         NDArray::prepareSpecialUse({crops}, {images, boxes, indices, cropSize});
         cropAndResizeKernel<T,Z,I><<<batchSize, threadsPerBlock, 256, *stream>>>(imagesBuf, images->specialShapeInfo(), boxesBuf, boxes->specialShapeInfo(), indexBuf, indices->specialShapeInfo(),
@@ -1100,14 +1096,14 @@ ND4J_LOCAL int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const 
     }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ND4J_LOCAL void cropAndResizeFunctor(sd::LaunchContext * context, NDArray const *images, NDArray const *boxes, NDArray const *indices, NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops) {
+    void cropAndResizeFunctor(sd::LaunchContext * context, NDArray const *images, NDArray const *boxes, NDArray const *indices, NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops) {
         BUILD_TRIPLE_SELECTOR(images->dataType(), boxes->dataType(), indices->dataType(), cropAndResizeFunctor_,
-                              (context, images, boxes, indices, cropSize, method, extrapolationVal, crops), NUMERIC_TYPES, FLOAT_TYPES, INTEGER_TYPES);
+                              (context, images, boxes, indices, cropSize, method, extrapolationVal, crops), SD_NUMERIC_TYPES, SD_FLOAT_TYPES, SD_INTEGER_TYPES);
         //
     }
-    BUILD_TRIPLE_TEMPLATE(template ND4J_LOCAL void cropAndResizeFunctor_,
+    BUILD_TRIPLE_TEMPLATE(template void cropAndResizeFunctor_,
                           (sd::LaunchContext * context, NDArray const* images, NDArray const* boxes, NDArray const* indices, NDArray const* cropSize, int method, double extrapolationVal, NDArray* crops),
-                          NUMERIC_TYPES, FLOAT_TYPES, INTEGER_TYPES);
+                          SD_NUMERIC_TYPES, SD_FLOAT_TYPES, SD_INTEGER_TYPES);
 }
 }
 }

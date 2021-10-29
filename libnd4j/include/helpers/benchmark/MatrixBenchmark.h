@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/OpBenchmark.h>
 #include <helpers/MmulHelper.h>
 
@@ -27,7 +26,7 @@
 #define DEV_TESTS_MATRIXBENCHMARK_H
 
 namespace sd {
-    class ND4J_EXPORT MatrixBenchmark : public OpBenchmark {
+    class SD_LIB_EXPORT MatrixBenchmark : public OpBenchmark {
     private:
         float _alpha = 1.0f;
         float _beta = 0.0f;

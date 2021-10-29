@@ -44,7 +44,7 @@ CUSTOM_OP_IMPL(rgb_to_grs, 1, 1, false, 0, 0) {
     REQUIRE_TRUE(input->sizeAt(dimC) == 3, 0, "RGBGrayScale: operation expects 3 channels (R, G, B) in last dimention, but received %i instead", input->sizeAt(dimC));
 
     helpers::transformRgbGrs(block.launchContext(), *input, *output, dimC);
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(rgb_to_grs) {

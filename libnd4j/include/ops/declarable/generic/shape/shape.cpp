@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(z);
 
-            return Status::OK();
+            return sd::Status::OK;
         };
         DECLARE_SYN(shape, shape_of);
 
@@ -63,14 +63,14 @@ namespace sd {
             auto shape = INPUT_VARIABLE(1);
             auto z = OUTPUT_VARIABLE(0);
             REQUIRE_TRUE(shape->isVector() || shape->isScalar(),0,"Shape must be either a scalar or a vector");
-            auto newShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(x->dataType(),x->ordering(),shape->asVectorT<Nd4jLong>());
+            auto newShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(x->dataType(),x->ordering(),shape->asVectorT<sd::LongType>());
             z->setShapeInfo(newShapeInfo);
             //if x and z aren't the same reference ensure the elements are the same.
             //this op should almost always be used in place and in very specific circumstances.
             if(x != z) {
                 z->assign(x,true);
             }
-            return Status::OK();
+            return sd::Status::OK;
         };
 
         DECLARE_SHAPE_FN(set_shape) {

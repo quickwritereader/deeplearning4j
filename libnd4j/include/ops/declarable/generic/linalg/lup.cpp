@@ -40,7 +40,7 @@ namespace sd {
             REQUIRE_TRUE(input->sizeAt(-1) == input->sizeAt(-2), 0, "lu: The last two dimmensions should be equal, but %i and %i are given", input->sizeAt(-1), input->sizeAt(-2));
 
             helpers::lu(block.launchContext(), input, z, p);
-            return Status::OK();
+            return sd::Status::OK;
         }
         
         DECLARE_SHAPE_FN(lu) {

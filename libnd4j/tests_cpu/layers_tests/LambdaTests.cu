@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/ExtraArguments.h>
 #include <array>
@@ -38,15 +37,15 @@ public:
 };
 
 template <typename Lambda>
-__global__ void runLambda(double *input, double *output, Nd4jLong length, Lambda lambda) {
+SD_KERNEL void runLambda(double *input, double *output, sd::LongType length, Lambda lambda) {
     auto tid = blockIdx.x * blockDim.x + threadIdx.x;
-    for (Nd4jLong e = tid; e < length; e += gridDim.x * blockDim.x) {
+    for (sd::LongType e = tid; e < length; e += gridDim.x * blockDim.x) {
         output[e] = lambda(input[e]);
     }
 }
 
-void launcher(cudaStream_t *stream, double *input, double *output, Nd4jLong length) {
-    //auto f = [] __host__ __device__ (double x) -> double {
+void launcher(cudaStream_t *stream, double *input, double *output, sd::LongType length) {
+    //auto f = [] SD_HOST_DEVICE (double x) -> double {
     //        return x + 1.;
     //};
     auto f = LAMBDA_D(x) {
@@ -61,7 +60,6 @@ void launcher(cudaStream_t *stream, double *input, double *output, Nd4jLong leng
 // TEST_F(LambdaTests, test_basic_1) {
 //     auto x = NDArrayFactory::create<double>('c', {5});
 //     auto e = NDArrayFactory::create<double>('c', {5}, {1., 1., 1., 1., 1.});
-
 
 
 //     //x.applyLambda<double>(f, nullptr);
@@ -193,10 +191,10 @@ void launcher(cudaStream_t *stream, double *input, double *output, Nd4jLong leng
 // void testPairwiseMy(NDArray &x, NDArray &y, NDArray &z) {
 
 //     auto f = LAMBDA_TT(x, y){
-//         return sd::math::nd4j_max<T>(x, (T)0.f)
+//         return sd::math::sd_max<T>(x, (T)0.f)
 //               - x * y
-//               + sd::math::nd4j_log<T,T>((T)1.f
-//                 + sd::math::nd4j_exp<T,T>(-sd::math::nd4j_abs(x)));
+//               + sd::math::sd_log<T,T>((T)1.f
+//                 + sd::math::sd_exp<T,T>(-sd::math::sd_abs(x)));
 //     };
 
 //     x.applyPairwiseLambda(y, f, z);

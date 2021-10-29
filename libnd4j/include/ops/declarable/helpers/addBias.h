@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_ADDBIAS_H
 #define LIBND4J_ADDBIAS_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include <graph/Context.h>
 
@@ -31,7 +30,7 @@ namespace ops     {
 namespace helpers {
 
 
-	void addBias(graph::Context& block, const NDArray& input, const NDArray& bias, NDArray& output, const bool isNCHW);
+    SD_LIB_HIDDEN void addBias(graph::Context& block, const NDArray& input, const NDArray& bias, NDArray& output, const bool isNCHW);
 
 
 }

@@ -88,13 +88,13 @@ namespace sd {
 
             //STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(firas_sparse) {
             auto inP = inputShape->at(0);
 
-            std::vector<Nd4jLong> shape({shape::shapeOf(inP)[0], (Nd4jLong) block.getIArguments()->size()});
+            std::vector<sd::LongType> shape({shape::shapeOf(inP)[0], (sd::LongType) block.getIArguments()->size()});
             auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inP), 'c', shape);
             return SHAPELIST(newShape);
         }

@@ -23,13 +23,14 @@
 #ifndef SAMEDIFF_CALLABLEINTERFACE_H
 #define SAMEDIFF_CALLABLEINTERFACE_H
 
-#include <system/openmp_pragmas.h>
+
 #include <cstdint>
 #include <functional>
 #include <atomic>
 #include <array>
 #include <mutex>
 #include <condition_variable>
+#include <system/common.h>
 
 namespace samediff {
     /**

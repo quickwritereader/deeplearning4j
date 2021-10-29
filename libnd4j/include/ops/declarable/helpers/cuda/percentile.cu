@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 17.05.2018
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/percentile.h>
 #include <array/NDArrayFactory.h>
 #include <helpers/ConstantTadHelper.h>
@@ -32,10 +31,10 @@ namespace ops     {
 namespace helpers {
 
     template <typename X>
-    static _CUDA_G void percentileKernel(void *vx, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets,
-                                         const Nd4jLong numTads, const Nd4jLong tadLength,
-                                         void *vz, const Nd4jLong *zShapeInfo, const Nd4jLong zLength,
-                                         const Nd4jLong position) {
+    static SD_KERNEL void percentileKernel(void *vx, const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets,
+                                         const sd::LongType numTads, const sd::LongType tadLength,
+                                         void *vz, const sd::LongType *zShapeInfo, const sd::LongType zLength,
+                                         const sd::LongType position) {
         for (int t = blockIdx.x; t < numTads; t += gridDim.x) {
             auto x = reinterpret_cast<X*>(vx) + xTadOffsets[t];
             auto z = reinterpret_cast<X*>(vz);
@@ -87,7 +86,6 @@ namespace helpers {
     }
 
 
-
     template <typename T>
     static void _percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axis, const float q, const int interpolation) {
         const int inputRank = input.rankOf();
@@ -104,17 +102,17 @@ namespace helpers {
         auto tadLength = shape::length(packX.primaryShapeInfo());
 
         const float fraction = 1.f - q / 100.;
-        Nd4jLong position = 0;
+        sd::LongType position = 0;
 
         switch(interpolation) {
             case 0: // lower
-                position = static_cast<Nd4jLong>(math::nd4j_ceil<float,T>((tadLength - 1) * fraction));
+                position = static_cast<sd::LongType>(math::sd_ceil<float,T>((tadLength - 1) * fraction));
                 break;
             case 1: // higher
-                position = static_cast<Nd4jLong>(math::nd4j_floor<float,T>((tadLength - 1) * fraction));
+                position = static_cast<sd::LongType>(math::sd_floor<float,T>((tadLength - 1) * fraction));
                 break;
             case 2: // nearest
-                position = static_cast<Nd4jLong>(math::nd4j_round<float,T>((tadLength - 1) * fraction));
+                position = static_cast<sd::LongType>(math::sd_round<float,T>((tadLength - 1) * fraction));
                 break;
         }
         position = tadLength - position - 1;
@@ -124,15 +122,15 @@ namespace helpers {
         sd::DebugHelper::checkErrorCode(context->getCudaStream(), "percentile");
     }
 
-    ND4J_LOCAL void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation) {
+    void percentile(sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation) {
         NDArray::prepareSpecialUse({&output}, {&input});
 
-        BUILD_SINGLE_SELECTOR(input.dataType(), _percentile, (context, input, output, axises, q, interpolation), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input.dataType(), _percentile, (context, input, output, axises, q, interpolation), SD_COMMON_TYPES);
 
         NDArray::registerSpecialUse({&output}, {&input});
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _percentile, (sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void _percentile, (sd::LaunchContext * context, const NDArray& input, NDArray& output, std::vector<int>& axises, const float q, const int interpolation), SD_COMMON_TYPES);
 
 }
 }

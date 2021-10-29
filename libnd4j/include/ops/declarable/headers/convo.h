@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HEADERS_CONVOL_H
 #define LIBND4J_HEADERS_CONVOL_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {
@@ -206,7 +205,7 @@ namespace sd {
          */
         #if NOT_EXCLUDED(OP_im2col)
         DECLARE_CUSTOM_OP(im2col, 1, 1, false, 0, 9);
-		DECLARE_CUSTOM_OP(im2col_bp, 2, 1, false, 0, 9);
+        DECLARE_CUSTOM_OP(im2col_bp, 2, 1, false, 0, 9);
         #endif
 
         /**

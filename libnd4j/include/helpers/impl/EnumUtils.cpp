@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <graph/VariableType.h>
 #include <helpers/EnumUtils.h>
 

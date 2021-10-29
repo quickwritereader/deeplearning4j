@@ -45,24 +45,24 @@ namespace helpers {
 // inputLength - input subarray length
 //
     template <typename T>
-    static __global__ void matrixBandKernel(const void* inputBuffer, const Nd4jLong* inputShape,
-                                            void* outputBuffer, const Nd4jLong* outputShape,
-                                            Nd4jLong lowerBand, Nd4jLong upperBand,
-                                            const Nd4jLong* tadOnlyInputShapeInfo,  const Nd4jLong* tadInputOffsets,
-                                            const Nd4jLong* tadOnlyOutputShapeInfo, const Nd4jLong* tadOutputOffsets,
-                                            Nd4jLong numTads,
-                                            Nd4jLong inputLength) {
+    static SD_KERNEL void matrixBandKernel(const void* inputBuffer, const sd::LongType* inputShape,
+                                            void* outputBuffer, const sd::LongType* outputShape,
+                                            sd::LongType lowerBand, sd::LongType upperBand,
+                                            const sd::LongType* tadOnlyInputShapeInfo,  const sd::LongType* tadInputOffsets,
+                                            const sd::LongType* tadOnlyOutputShapeInfo, const sd::LongType* tadOutputOffsets,
+                                            sd::LongType numTads,
+                                            sd::LongType inputLength) {
         int totalThreads = blockDim.x;
-        Nd4jLong rows = shape::sizeAt(inputShape, -2);
-        Nd4jLong cols = shape::sizeAt(inputShape, -1);
-        for (Nd4jLong e = blockIdx.x; e < numTads; e += gridDim.x) {
+        sd::LongType rows = shape::sizeAt(inputShape, -2);
+        sd::LongType cols = shape::sizeAt(inputShape, -1);
+        for (sd::LongType e = blockIdx.x; e < numTads; e += gridDim.x) {
             auto yOffset = tadInputOffsets[e];
             auto xOffset = tadOutputOffsets[e];
-            for (Nd4jLong i = blockIdx.y; i < rows; i += gridDim.y) {
-                for (Nd4jLong j = threadIdx.x; j < cols; j += totalThreads) {
-                    Nd4jLong coords[2] = {i, j};
-                    Nd4jLong tadOffsetOut = shape::getOffset(tadOnlyOutputShapeInfo, coords);
-                    Nd4jLong tadOffsetIn = shape::getOffset(tadOnlyInputShapeInfo, coords);
+            for (sd::LongType i = blockIdx.y; i < rows; i += gridDim.y) {
+                for (sd::LongType j = threadIdx.x; j < cols; j += totalThreads) {
+                    sd::LongType coords[2] = {i, j};
+                    sd::LongType tadOffsetOut = shape::getOffset(tadOnlyOutputShapeInfo, coords);
+                    sd::LongType tadOffsetIn = shape::getOffset(tadOnlyInputShapeInfo, coords);
 
                     if (i >= j) { // check lower diagonals
                         if (lowerBand > 0) {
@@ -89,7 +89,7 @@ namespace helpers {
 // matrixBandPart_ - main algorithm caller
 //
     template <typename T>
-    ND4J_LOCAL void matrixBandPart_(sd::LaunchContext * context, NDArray* input, NDArray* output, Nd4jLong lowerBand, Nd4jLong upperBand) {
+    void matrixBandPart_(sd::LaunchContext * context, NDArray* input, NDArray* output, sd::LongType lowerBand, sd::LongType upperBand) {
         dim3 launchDims(256, 512, 8192);
         auto stream = context->getCudaStream();
 
@@ -99,7 +99,7 @@ namespace helpers {
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), lastDims);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), lastDims);
 
-        const Nd4jLong numTads = packX.numberOfTads();
+        const sd::LongType numTads = packX.numberOfTads();
 
         NDArray::prepareSpecialUse({output}, {input});
         matrixBandKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(input->specialBuffer(),
@@ -109,8 +109,8 @@ namespace helpers {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ND4J_LOCAL void matrixBandPart(sd::LaunchContext * context, NDArray* input, NDArray* output, Nd4jLong lowerBand, Nd4jLong upperBand) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), matrixBandPart_, (context, input, output, lowerBand, upperBand), FLOAT_TYPES);
+    void matrixBandPart(sd::LaunchContext * context, NDArray* input, NDArray* output, sd::LongType lowerBand, sd::LongType upperBand) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), matrixBandPart_, (context, input, output, lowerBand, upperBand), SD_FLOAT_TYPES);
     }
 }
 }

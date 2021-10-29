@@ -20,16 +20,15 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __device__ void concatKernelVStack(int numArrays,
-                                       Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                       void *vz, Nd4jLong *zShapeInfo) {
+    SD_DEVICE void concatKernelVStack(int numArrays,
+                                       sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                       void *vz, sd::LongType *zShapeInfo) {
 
         /*
          this is special case for concat: we group bunch of vectors into 2D matrix
@@ -37,7 +36,7 @@ namespace sd {
          */
         auto z = static_cast<T *>(vz);
 
-        auto inputShapes = (Nd4jLong **) inputShapeInfos;
+        auto inputShapes = (sd::LongType **) inputShapeInfos;
         T **input = (T **) data;
 
         __shared__ int inputEWS;
@@ -64,9 +63,9 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __global__ void execConcatKernelVStack(int numArrays,
-                                           Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                           void *vz, Nd4jLong *zShapeInfo) {
+    SD_KERNEL void execConcatKernelVStack(int numArrays,
+                                           sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                           void *vz, sd::LongType *zShapeInfo) {
 
         concatKernelVStack<T>(numArrays, data, inputShapeInfos, vz, zShapeInfo);
     }
@@ -74,14 +73,14 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __host__ void concatKernelVStackGeneric(dim3 &launchDims, cudaStream_t *stream,
+    SD_HOST void concatKernelVStackGeneric(dim3 &launchDims, cudaStream_t *stream,
                                             int numArrays,
-                                            Nd4jPointer *data, Nd4jPointer *inputShapeInfos,
-                                            void *vz, Nd4jLong *zShapeInfo) {
+                                            sd::Pointer *data, sd::Pointer *inputShapeInfos,
+                                            void *vz, sd::LongType *zShapeInfo) {
 
         execConcatKernelVStack<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(numArrays, data, inputShapeInfos, vz, zShapeInfo);
         sd::DebugHelper::checkErrorCode(stream, "concatVStack(...) failed");
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL concatKernelVStackGeneric, (dim3 & launchDims, cudaStream_t * stream, int numArrays, Nd4jPointer * data, Nd4jPointer * inputShapeInfos, void * vz, Nd4jLong *zShapeInfo), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN concatKernelVStackGeneric, (dim3 & launchDims, cudaStream_t * stream, int numArrays, sd::Pointer * data, sd::Pointer * inputShapeInfos, void * vz, sd::LongType *zShapeInfo), SD_COMMON_TYPES);
 }

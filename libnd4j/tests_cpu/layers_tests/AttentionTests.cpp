@@ -21,7 +21,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -48,7 +47,7 @@ TEST_F(AttentionTests, basic_dot_product_attention) {
 
     sd::ops::dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values}, {1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 /*
@@ -61,7 +60,7 @@ TEST_F(AttentionTests, basic_dot_product_attention_bp) {
 
     sd::ops::dot_product_attention_bp op;
     auto result = op.execute({&queries, &keys, &values, &eps}, {}, {1, 0}, {});
-    ASSERT_EQ(Status::OK(), result->status());
+    ASSERT_EQ(sd::Status::OK, result->status());
 
     delete result;
 }
@@ -74,7 +73,7 @@ TEST_F(AttentionTests, basic_dot_product_attention_with_weights) {
 
     sd::ops::dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values}, {1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 TEST_F(AttentionTests, basic_dot_product_attention_with_mask) {
@@ -86,7 +85,7 @@ TEST_F(AttentionTests, basic_dot_product_attention_with_mask) {
 
     sd::ops::dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values, &mask}, {1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 /*
@@ -101,7 +100,7 @@ TEST_F(AttentionTests, basic_dot_product_attention_bp_with_mask) {
 
     sd::ops::dot_product_attention_bp op;
     auto result = op.execute({&queries, &keys, &values, &eps, &mask}, {}, {1, 0}, {});
-    ASSERT_EQ(Status::OK(), result->status());
+    ASSERT_EQ(sd::Status::OK, result->status());
 
     delete result;
 }
@@ -116,7 +115,7 @@ TEST_F(AttentionTests, multi_head_input_dot_product_attention_with_mask) {
 
     sd::ops::dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values, &mask}, {1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 /*
@@ -131,7 +130,7 @@ TEST_F(AttentionTests, multi_head_input_dot_product_attention_bp_with_mask) {
 
     sd::ops::dot_product_attention_bp op;
     auto result = op.execute({&queries, &keys, &values, &eps, &mask}, {}, {1, 0}, {});
-    ASSERT_EQ(Status::OK(), result->status());
+    ASSERT_EQ(sd::Status::OK, result->status());
 
     delete result;
 }
@@ -150,7 +149,7 @@ TEST_F(AttentionTests, basic_multi_head_dot_product_attention) {
 
     sd::ops::multi_head_dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values, &Wk, &Wv, &Wq, &Wo}, {1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 /*
@@ -170,7 +169,7 @@ TEST_F(AttentionTests, basic_multi_head_dot_product_bp_attention) {
 
     sd::ops::multi_head_dot_product_attention_bp op;
     auto result = op.execute({&queries, &keys, &values, &Wk, &Wv, &Wq, &Wo, &eps}, {}, {1, 0}, {});
-    ASSERT_EQ(Status::OK(), result->status());
+    ASSERT_EQ(sd::Status::OK, result->status());
 
     delete result;
 }
@@ -192,7 +191,7 @@ TEST_F(AttentionTests, basic_multi_head_dot_product_attention_with_mask) {
 
     sd::ops::multi_head_dot_product_attention op;
     auto result = op.evaluate({&queries, &keys, &values, &Wk, &Wv, &Wq, &Wo, &mask}, {1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 }
 
 /*
@@ -215,7 +214,7 @@ TEST_F(AttentionTests, basic_multi_head_dot_product_bp_attention_with_mask) {
 
     sd::ops::multi_head_dot_product_attention_bp op;
     auto result = op.execute({&queries, &keys, &values, &Wk, &Wv, &Wq, &Wo, &eps, &mask}, {}, {1, 0}, {});
-    ASSERT_EQ(Status::OK(), result->status());
+    ASSERT_EQ(sd::Status::OK, result->status());
 
     delete result;
 }

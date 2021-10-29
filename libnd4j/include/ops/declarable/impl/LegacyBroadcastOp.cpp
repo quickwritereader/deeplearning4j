@@ -19,17 +19,16 @@
 //
 // Created by raver119 on 17.10.2017.
 //
-
 #include <ops/declarable/LegacyBroadcastOp.h>
 #include <helpers/TAD.h>
 #include <ops/declarable/helpers/axis.h>
 #include <helpers/ShapeUtils.h>
 #include <helpers/ConstantTadHelper.h>
-#include <graph/Status.h>
+
 
 namespace sd {
     namespace ops {
-        Nd4jStatus LegacyBroadcastOp::validateAndExecute(Context &block) {
+        sd::Status LegacyBroadcastOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
             auto y = INPUT_VARIABLE(1);
 
@@ -55,8 +54,8 @@ namespace sd {
             REQUIRE_TRUE(tadLen == y->lengthOf(), 0, "Length of broadcast TAD should be equal to length of Y operand, but got [%i] vs [%i]",tadLen, (int) y->lengthOf());
 
             PointersManager manager(block.launchContext(),"LegacyBroadcastOp");
-            auto pTadShape = Environment::getInstance().isCPU() ? packX.primaryShapeInfo() : packX.specialShapeInfo(); //(Nd4jLong *) manager.replicatePointer(tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
-            auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //(Nd4jLong *) manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(Nd4jLong));
+            auto pTadShape = Environment::getInstance().isCPU() ? packX.primaryShapeInfo() : packX.specialShapeInfo(); //(sd::LongType *) manager.replicatePointer(tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
+            auto pTadOffsets = Environment::getInstance().isCPU() ? packX.primaryOffsets() : packX.specialOffsets(); //(sd::LongType *) manager.replicatePointer(tad.tadOffsets, tad.numTads * sizeof(sd::LongType));
 
             if (x == z)
                 NativeOpExecutioner::execBroadcast(block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(), x->specialShapeInfo(),
@@ -66,8 +65,8 @@ namespace sd {
                 // this is rare, but possible use case - X and Z might have different shapes/strides/orders. In this case we prepare and pass separate TAD info
                 auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(z->shapeInfo(), dims);
 
-                auto zTadShape = Environment::getInstance().isCPU() ? packZ.primaryShapeInfo() : packZ.specialShapeInfo(); //(Nd4jLong *) manager.replicatePointer(tadZ.tadOnlyShapeInfo, shape::shapeInfoByteLength(tadZ.tadOnlyShapeInfo));
-                auto zTadOffsets = Environment::getInstance().isCPU() ? packZ.primaryOffsets() : packZ.specialOffsets(); //(Nd4jLong *) manager.replicatePointer(tadZ.tadOffsets, tadZ.numTads * sizeof(Nd4jLong));
+                auto zTadShape = Environment::getInstance().isCPU() ? packZ.primaryShapeInfo() : packZ.specialShapeInfo(); //(sd::LongType *) manager.replicatePointer(tadZ.tadOnlyShapeInfo, shape::shapeInfoByteLength(tadZ.tadOnlyShapeInfo));
+                auto zTadOffsets = Environment::getInstance().isCPU() ? packZ.primaryOffsets() : packZ.specialOffsets(); //(sd::LongType *) manager.replicatePointer(tadZ.tadOffsets, tadZ.numTads * sizeof(sd::LongType));
 
                 NativeOpExecutioner::execBroadcast(block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(), x->specialShapeInfo(),
                         y->buffer(), y->shapeInfo(), y->specialBuffer(), y->specialShapeInfo(),
@@ -78,7 +77,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         LegacyBroadcastOp::LegacyBroadcastOp() : LegacyOp::LegacyOp(2) {
@@ -100,8 +99,8 @@ namespace sd {
             auto inShape = inputShape->at(0);
 
             // FIXME: remove memcpy
-            Nd4jLong *newShape;
-            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(inShape), Nd4jLong);
+            sd::LongType *newShape;
+            ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(inShape), sd::LongType);
             memcpy(newShape, inShape, shape::shapeInfoByteLength(inShape));
 
             return SHAPELIST(CONSTANT(newShape));

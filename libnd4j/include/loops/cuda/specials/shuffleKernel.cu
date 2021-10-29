@@ -20,18 +20,17 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template<typename T>
-    __global__ void execShuffleKernel(void **vdX, Nd4jLong **dxShapeInfo,
+    SD_KERNEL void execShuffleKernel(void **vdX, sd::LongType **dxShapeInfo,
                                       void **vdZ,
                                       int N,
                                       int *shuffleMap,
-                                      Nd4jLong **tadOnlyShapeInfo, Nd4jLong **tadOffsets) {
+                                      sd::LongType **tadOnlyShapeInfo, sd::LongType **tadOffsets) {
 
         // we assume that shuffle map for each X contains pair TAD Y
         auto dX = reinterpret_cast<T **>(vdX);
@@ -41,8 +40,8 @@ namespace sd {
         __shared__ int xRank;
         __shared__ int tadEWS;
         __shared__ int numTads;
-        __shared__ Nd4jLong* xShapeInfo;
-        __shared__ Nd4jLong xLength;
+        __shared__ sd::LongType* xShapeInfo;
+        __shared__ sd::LongType xLength;
 
         for (int f = 0; f < N; f++) {
             auto x = reinterpret_cast<T *>(dX[f]);
@@ -72,7 +71,7 @@ namespace sd {
                 }
             } else {
                 // we roll over the pairs of TADs, thus limit is numTads / 2
-                for (uint r = blockIdx.x; r < numTads; r += gridDim.x) {
+                for (sd::Unsigned r = blockIdx.x; r < numTads; r += gridDim.x) {
                     if (shuffleMap[r] >= 0) {
                         auto oldOffset = tadOffsets[f][r];
                         auto newOffset = tadOffsets[f][shuffleMap[r]];
@@ -85,14 +84,14 @@ namespace sd {
 
                         // so we're going to change TAD[oldOffset] with TAD[newOffset]
                         if (tadEWS == 1) {
-                            for (Nd4jLong i = threadIdx.x; i < tadLength; i += blockDim.x) {
+                            for (sd::LongType i = threadIdx.x; i < tadLength; i += blockDim.x) {
                                 T oldX = rX[i];
                                 rX[i] = rY[i];
                                 zY[i] = oldX;
                             }
 
                         } else {
-                            for (Nd4jLong i = threadIdx.x; i < tadLength; i += blockDim.x) {
+                            for (sd::LongType i = threadIdx.x; i < tadLength; i += blockDim.x) {
 
                                 auto xOffset = shape::getIndexOffset(i, tadOnlyShapeInfo[f]);
                                 auto yOffset = newOffset + xOffset;
@@ -112,16 +111,16 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template<typename T>
-    __host__ void shuffleKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
-                                       void **vdX, Nd4jLong **xShapeInfo,
+    SD_HOST void shuffleKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
+                                       void **vdX, sd::LongType **xShapeInfo,
                                        void **vdZ,
                                        int N,
                                        int *shuffleMap,
-                                       Nd4jLong **tadOnlyShapeInfo, Nd4jLong **tadOffsets) {
+                                       sd::LongType **tadOnlyShapeInfo, sd::LongType **tadOffsets) {
 
         execShuffleKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vdX, xShapeInfo, vdZ, N, shuffleMap, tadOnlyShapeInfo, tadOffsets);
         sd::DebugHelper::checkErrorCode(stream, "shuffleGeneric(...) failed");
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL shuffleKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * *vdX, Nd4jLong * *xShapeInfo, void **vdZ, int N, int * shuffleMap, Nd4jLong * *tadOnlyShapeInfo, Nd4jLong * *tadOffsets), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN shuffleKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * *vdX, sd::LongType * *xShapeInfo, void **vdZ, int N, int * shuffleMap, sd::LongType * *tadOnlyShapeInfo, sd::LongType * *tadOffsets), SD_COMMON_TYPES);
 }

@@ -23,17 +23,16 @@
 #ifndef LIBND4J_INTERVALS_H
 #define LIBND4J_INTERVALS_H
 
-#include <system/pointercast.h>
 #include <vector>
 #include <initializer_list>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
 
-    class ND4J_EXPORT Intervals {
+    class SD_LIB_EXPORT Intervals {
     
     private:
-        std::vector<std::vector<Nd4jLong>> _content;
+        std::vector<std::vector<sd::LongType>> _content;
 
     public:
 
@@ -41,11 +40,11 @@ namespace sd {
         Intervals();
         
         // constructor
-        Intervals(const std::initializer_list<std::vector<Nd4jLong>>& content );
-        Intervals(const std::vector<std::vector<Nd4jLong>>& content );
+        Intervals(const std::initializer_list<std::vector<sd::LongType>>& content );
+        Intervals(const std::vector<std::vector<sd::LongType>>& content );
         
         // accessing operator
-        std::vector<Nd4jLong> operator[](const Nd4jLong i) const;
+        std::vector<sd::LongType> operator[](const sd::LongType i) const;
 
         // returns size of _content
         int size() const;

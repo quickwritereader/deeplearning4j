@@ -55,7 +55,7 @@ CUSTOM_OP_IMPL(reduce_norm1, -1, 1, false, 0, 0) {
 
     input->reduceAlongDimension(reduce::Norm1, *output, dimensions, keepDims);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_norm1) {
@@ -136,7 +136,7 @@ CUSTOM_OP_IMPL(reduce_norm1_bp, -1, 1, false, 0, 0) {
             *gradI *= *gradO;
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_norm1_bp) {
@@ -152,7 +152,7 @@ DECLARE_SHAPE_FN(reduce_norm1_bp) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_NORM1_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-    Nd4jLong* outShapeInfo;
+    sd::LongType* outShapeInfo;
     COPY_SHAPE(inputShape->at(0), outShapeInfo);
 
     return SHAPELIST(CONSTANT(outShapeInfo));

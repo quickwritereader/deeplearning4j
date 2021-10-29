@@ -19,7 +19,6 @@
 
 #ifndef LIBND4J_REQUIREMENTSHELPER_H
 #define LIBND4J_REQUIREMENTSHELPER_H
-
 #include <type_traits>
 #include <exception>
 #include <system/op_boilerplate.h>
@@ -40,7 +39,7 @@ inline std::ostream& operator<<(std::ostream& o, const sd::DataType &type)
 }
 
 template <class T, std::size_t N>
-ND4J_LOCAL std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr)
+SD_LIB_HIDDEN std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr)
 {
     o<<'[';
     for(auto &x : arr){
@@ -51,7 +50,7 @@ ND4J_LOCAL std::ostream& operator<<(std::ostream& o, const std::array<T, N>& arr
 }
 
 template <class T>
-ND4J_LOCAL std::ostream& operator<<(std::ostream& o, const std::initializer_list<T>& arr)
+SD_LIB_HIDDEN std::ostream& operator<<(std::ostream& o, const std::initializer_list<T>& arr)
 {
     for(auto &x : arr){
         o<<x<<", ";
@@ -405,7 +404,7 @@ struct InfoVariable{
 };
 
 template<typename T1, typename T2>
-ND4J_LOCAL InfoVariable<T1, T2> makeInfoVariable( T1&& v1,  T2&& v2){
+SD_LIB_HIDDEN InfoVariable<T1, T2> makeInfoVariable( T1&& v1,  T2&& v2){
     return InfoVariable<T1, T2>(std::forward<T1>(v1), std::forward<T2>(v2));
 }
 

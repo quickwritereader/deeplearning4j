@@ -23,7 +23,6 @@
 #ifndef LIBND4J_DEBUGHELPER_H
 #define LIBND4J_DEBUGHELPER_H
 
-#include <system/pointercast.h>
 #include <system/op_boilerplate.h>
 #include <system/Environment.h>
 #include <helpers/StringUtils.h>
@@ -31,7 +30,6 @@
 
 
 #ifdef __CUDACC__
-
 #include <cuda.h>
 #include <driver_types.h>
 #include <cuda_runtime_api.h>
@@ -40,12 +38,12 @@
 #include <helpers/DebugInfo.h>
 namespace sd {
     class NDArray;
-    class ND4J_EXPORT DebugHelper {
+    class SD_LIB_EXPORT DebugHelper {
     public:
 
     // cuda-specific debug functions
 #ifdef __CUDACC__
-        static FORCEINLINE void checkErrorCode(cudaStream_t *stream, int opNum = 0) {
+        static SD_INLINE void checkErrorCode(cudaStream_t *stream, int opNum = 0) {
             if (Environment::getInstance().isDebug()) {
                 cudaError_t res = cudaStreamSynchronize(*stream);
 
@@ -60,7 +58,7 @@ namespace sd {
             }
         }
 
-        static FORCEINLINE void checkErrorCode(cudaStream_t *stream, const char *failMessage = nullptr) {
+        static SD_INLINE void checkErrorCode(cudaStream_t *stream, const char *failMessage = nullptr) {
             cudaError_t res = cudaStreamSynchronize(*stream);
             if (res != 0) {
                 if (failMessage == nullptr) {

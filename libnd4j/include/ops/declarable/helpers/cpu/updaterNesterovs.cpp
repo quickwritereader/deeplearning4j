@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -68,7 +67,7 @@ static void nesterovsUpdater_(const NDArray& gradient, const NDArray& initState,
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -86,8 +85,8 @@ static void nesterovsUpdater_(const NDArray& gradient, const NDArray& initState,
     return;
 }
 
- void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateV, const double dLr, const double dMomentum) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), nesterovsUpdater_, (gradient, initState, update, stateV, dLr, dMomentum), FLOAT_TYPES);
+void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateV, const double dLr, const double dMomentum) {
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), nesterovsUpdater_, (gradient, initState, update, stateV, dLr, dMomentum), SD_FLOAT_TYPES);
 }
 
 }

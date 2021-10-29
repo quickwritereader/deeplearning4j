@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HEADERS_RECURRENT_H
 #define LIBND4J_HEADERS_RECURRENT_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {
@@ -166,7 +165,7 @@ namespace ops  {
        *    and
        *    https://research.google.com/pubs/archive/43905.pdf
        *    Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory recurrent neural network architectures for large scale acoustic modeling." INTERSPEECH, 2014.
-	   * See also: https://arxiv.org/pdf/1503.04069.pdf
+       * See also: https://arxiv.org/pdf/1503.04069.pdf
        *
        * Input arrays:
        *    0: input [bS, inSize] at time t
@@ -183,7 +182,7 @@ namespace ops  {
        *
        *  Input float arguments:
        *    0: the bias added to forget gates in order to reduce the scale of forgetting in the beginning of the training
-	   *    1: clipping value for cell state, if it is not equal to zero, then cell state is clipped
+       *    1: clipping value for cell state, if it is not equal to zero, then cell state is clipped
        *
        * Output arrays:
        *    0: i      - Input modulation gate activations [bS, numUnits]

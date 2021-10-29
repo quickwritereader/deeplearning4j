@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HHCOLPICQR_H
 #define LIBND4J_HHCOLPICQR_H
-
 #include <helpers/hhColPivQR.h>
 #include <array/NDArray.h>
 
@@ -47,7 +46,6 @@ class HHcolPivQR {
 
         void evalData();
 };
-
 
 
 }

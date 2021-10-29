@@ -23,7 +23,6 @@
 #ifndef __STANDALONE_BUILD__
 #include "config.h"
 #endif
-
 #include <graph/GraphUtils.h>
 #include <cstdlib>
 #include <cstdio>
@@ -51,7 +50,7 @@ bool GraphUtils::filterOperations(GraphUtils::OpList& ops) {
     std::string name = *(filtered[0].getOpName());
 
     for (int e = 1; e < filtered.size(); e++) {
-//        nd4j_printf(">%s<, %lu %lu\n", name.c_str(), ops.size(), filtered.size());
+//        sd_printf(">%s<, %lu %lu\n", name.c_str(), ops.size(), filtered.size());
         if (0 == filtered[e].getOpName()->compare(name)) {
             // there is a match
             auto fi = std::find_if(ops.begin(), ops.end(), 
@@ -153,14 +152,14 @@ GraphUtils::runPreprocessor(char const* input, char const* output) {
 
     char const* cxx = cmd.c_str(); //;getenv("CXX");
 //    if (cxx == nullptr) {
-//        nd4j_printf("Cannot retrieve mandatory environment variable 'CXX'. Please set up the variable and try again.", "");
+//        sd_printf("Cannot retrieve mandatory environment variable 'CXX'. Please set up the variable and try again.", "");
 //        exit(3);
 //    }
     //char* pathEnv = getenv("PATH");
     //std::string pathStr("PATH=./;");
     //pathStr += pathEnv;
 
-    //nd4j_printf("%s\n", pathStr.c_str());
+    //sd_printf("%s\n", pathStr.c_str());
 //    char const* env[] = {// "HOME=/tmp", 
 //                          pathStr.c_str(),
 //                          (char *)0 };
@@ -209,7 +208,7 @@ GraphUtils::runPreprocessor(char const* input, char const* output) {
         params.emplace_back(const_cast<char*>(arg.data()));
     }
     params.emplace_back(nullptr);
-    nd4j_printf("Run: \n\t %s\n", preprocessorCmd.c_str());
+    sd_printf("Run: \n\t %s\n", preprocessorCmd.c_str());
 
     int err = execvp(cmd.c_str(), &params[0]);
 
@@ -217,8 +216,8 @@ GraphUtils::runPreprocessor(char const* input, char const* output) {
         perror("\nCannot run Preprocessor properly due \n");
     }
     status = err;
-    nd4j_printf("Header file %s was generated.\n", output);
-//    nd4j_printf("Running build script\n%s\n", cmdline.c_str());
+    sd_printf("Header file %s was generated.\n", output);
+//    sd_printf("Running build script\n%s\n", cmdline.c_str());
     }
     else
     {

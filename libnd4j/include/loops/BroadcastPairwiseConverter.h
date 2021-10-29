@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_BROADCASTPAIRWISECONVERTER_H
 #define DEV_TESTS_BROADCASTPAIRWISECONVERTER_H
-
 #include <system/op_boilerplate.h>
 #include <stdexcept>
 

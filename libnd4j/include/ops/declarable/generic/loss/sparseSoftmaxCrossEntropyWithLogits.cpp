@@ -32,7 +32,7 @@ namespace ops  {
 
 //////////////////////////////////////////////////////////////////////////
 CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0) {
-  	auto labels  = INPUT_VARIABLE(0);
+      auto labels  = INPUT_VARIABLE(0);
     auto logits  = INPUT_VARIABLE(1);
 
     auto output  = OUTPUT_VARIABLE(0);
@@ -43,8 +43,8 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0)
     // input validation
     REQUIRE_TRUE(labelsRank == logitsRank - 1, 0, "SPARSE_SOFTMAX_CROSS_ENTROPY_LOSS_WITH_LOGITS OP: input arrays should satisfy relation (labels_rank = logits_rank - 1), but got labels_rank = %i and logits_rank = %i instead !", labelsRank, logitsRank);
 
-    std::vector<Nd4jLong> labelsShape = labels->getShapeAsVector(); // this is correct
-    std::vector<Nd4jLong> logitsShape = logits->getShapeAsVector();
+    std::vector<sd::LongType> labelsShape = labels->getShapeAsVector(); // this is correct
+    std::vector<sd::LongType> logitsShape = logits->getShapeAsVector();
     logitsShape.pop_back();
     bool equalSoft = logitsShape == labelsShape;
 
@@ -58,7 +58,7 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0)
 
     helpers::scatterForLoss(block.launchContext(), *labels, logSoftMax, *output, false);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -110,8 +110,8 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits_grad, 2, 1, false, 
     // input validation
     REQUIRE_TRUE(labelsRank == logitsRank - 1, 0, "SPARSE_SOFTMAX_CROSS_ENTROPY_LOSS_WITH_LOGITS_GRAD OP: input arrays should satisfy relation (labels_rank = logits_rank - 1), but got labels_rank = %i and logits_rank = %i instead !", labelsRank, logitsRank);
 
-    std::vector<Nd4jLong> labelsShape = labels->getShapeAsVector(); // this is correct
-    std::vector<Nd4jLong> logitsShape = logits->getShapeAsVector();
+    std::vector<sd::LongType> labelsShape = labels->getShapeAsVector(); // this is correct
+    std::vector<sd::LongType> logitsShape = logits->getShapeAsVector();
     logitsShape.pop_back();
     bool equalSoft = logitsShape == labelsShape;
 
@@ -128,7 +128,7 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits_grad, 2, 1, false, 
     // subtract unities at appropriate indexes of dLdp array
     helpers::scatterForLoss(block.launchContext(), *labels, *dLdp, *labels /*actually third array is unnecessary for gradient calculation*/, true);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -157,7 +157,7 @@ DECLARE_SHAPE_FN(sparse_softmax_cross_entropy_loss_with_logits_grad) {
 
     DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
 
-    Nd4jLong *dLdpShapeInfo = ShapeBuilders::copyShapeInfoAndType(logitsShapeInfo, outType, false, block.getWorkspace());
+    sd::LongType *dLdpShapeInfo = ShapeBuilders::copyShapeInfoAndType(logitsShapeInfo, outType, false, block.getWorkspace());
 
     return SHAPELIST(CONSTANT(dLdpShapeInfo));
 }

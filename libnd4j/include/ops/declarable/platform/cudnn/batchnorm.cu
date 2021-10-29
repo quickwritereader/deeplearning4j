@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include "cudnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
 
@@ -254,12 +253,12 @@ PLATFORM_IMPL(batchnorm, ENGINE_CUDA) {
 
     // evaluate expected shape for mean, variance and gamma. These 3 arrays should have identical shapes
     // for example if input shape is {2,3,4,5,6} and axes = {1,3}, then expected shape would be {1,3,1,5,1}, and if axes = {3}, then expected shape would be {5}
-    std::vector<Nd4jLong> expShape;
+    std::vector<sd::LongType> expShape;
     if(numOfAxes == 1)
         expShape.push_back(input->sizeAt(axes[0]));
     else {      // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
-        expShape = std::vector<Nd4jLong>(inRank, 1);
-        for(uint i = 0; i < numOfAxes; ++i)
+        expShape = std::vector<sd::LongType>(inRank, 1);
+        for(sd::Unsigned i = 0; i < numOfAxes; ++i)
             expShape[axes[i]] = input->sizeAt(axes[i]);
     }
 
@@ -301,7 +300,7 @@ PLATFORM_IMPL(batchnorm, ENGINE_CUDA) {
     // calculations
     batchnormCUDNN(block.launchContext(), input, mean, variance, gamma, beta, output, epsilon, axes.size() == 1);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -412,12 +411,12 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CUDA) {
 
     // evaluate expected shape for mean, variance and gamma. These 3 arrays should have identical shapes
     // for example if input shape is {2,3,4,5,6} and axes = {1,3}, then expected shape would be {1,3,1,5,1}, and if axes = {3}, then expected shape would be {5}
-    std::vector<Nd4jLong> expShape;
+    std::vector<sd::LongType> expShape;
     if(numOfAxes == 1)
         expShape.push_back(input->sizeAt(axes[0]));
     else {      // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
-        expShape = std::vector<Nd4jLong>(inRank, 1);
-        for(uint i = 0; i < numOfAxes; ++i)
+        expShape = std::vector<sd::LongType>(inRank, 1);
+        for(sd::Unsigned i = 0; i < numOfAxes; ++i)
             expShape[axes[i]] = input->sizeAt(axes[i]);
     }
 
@@ -466,7 +465,7 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CUDA) {
     *gradM = 0;      // put zeros so far
     *gradV = 0;      // put zeros so far
 
-    return Status::OK();
+    return sd::Status::OK;
 
 }
 

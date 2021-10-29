@@ -36,7 +36,7 @@ namespace sd {
             auto output = OUTPUT_VARIABLE(0);
 
             if (input->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             const int rank = input->rankOf();
             const int arg_size = block.getIArguments()->size();
@@ -50,7 +50,7 @@ namespace sd {
 
             helpers::transformYiqRgb(block.launchContext(), input, output, dimC);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
          
 

@@ -36,13 +36,13 @@ namespace sd {
 
             RandomLauncher::fillExponential(block.launchContext(), rng, z, lambda);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 
         DECLARE_SHAPE_FN(random_exponential) {
             auto in = INPUT_VARIABLE(0);
-            auto shape = in->template asVectorT<Nd4jLong>();
+            auto shape = in->template asVectorT<sd::LongType>();
 
             auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(block.dataType(), 'c', shape);
             return SHAPELIST(newShape);

@@ -44,7 +44,7 @@ namespace sd {
                 output->nullify();
                 helpers::extractPatches(block.launchContext(), input, output, ksizeRows, ksizeCols, kstrideRows, kstrideCols, krateRows, krateCols, isSame);
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(extract_image_patches) {
@@ -57,7 +57,7 @@ namespace sd {
 
             auto in = inputShape->at(0);
             int outRank = shape::rank(in);
-            Nd4jLong *outputShape = nullptr;
+            sd::LongType *outputShape = nullptr;
 
             int ksizeRowsEffective = INT_ARG(0) + (INT_ARG(0) - 1) * (INT_ARG(4) - 1);
             int ksizeColsEffective = INT_ARG(1) + (INT_ARG(1) - 1) * (INT_ARG(5) - 1);
@@ -69,8 +69,8 @@ namespace sd {
 
             auto inputRowSize = inputRowsDim; //shape::sizeAt(in, inputRowsDim);
             auto inputColSize = inputColsDim; //shape::sizeAt(in, inputColsDim);
-            Nd4jLong outRowSize;
-            Nd4jLong outColSize;
+            sd::LongType outRowSize;
+            sd::LongType outColSize;
             if (INT_ARG(6) == 0) {
                 // Padding is "VALID":
                 outRowSize = (inputRowSize - ksizeRowsEffective + INT_ARG(2)) / INT_ARG(2);
@@ -82,7 +82,7 @@ namespace sd {
             }
 
 
-            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
 
             outputShape[0] = outRank;
             outputShape[1] = batchSizeDim;

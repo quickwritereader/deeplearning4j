@@ -35,7 +35,7 @@ namespace sd {
             input->applyTransform(sd::transform::HardSigmoid, *output);
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(hardsigmoid) {
@@ -52,7 +52,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::HardSigmoidDerivativeE, epsilon, z, nullptr);
             helpers::hardSigmoidDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(hardsigmoid_bp) {

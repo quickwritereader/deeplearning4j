@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/helpers.h>
 #include <ops/declarable/helpers/hamming.h>
 
@@ -27,18 +26,18 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename X, typename Z>
-            static _CUDA_G void _hammingKernel(const void *vx, const Nd4jLong *xShapeInfo, const void *vy, const Nd4jLong *yShapeInfo, void *vz, void *reductionBuffer, Nd4jLong length) {
+            static SD_KERNEL void _hammingKernel(const void *vx, const sd::LongType *xShapeInfo, const void *vy, const sd::LongType *yShapeInfo, void *vz, void *reductionBuffer, sd::LongType length) {
                 auto x = reinterpret_cast<const X*>(vx);
                 auto y = reinterpret_cast<const X*>(vy);
                 auto z = reinterpret_cast<Z*>(vz);
 
-                __shared__ Nd4jLong shared[CUDA_BLOCK_SIZE];
+                __shared__ sd::LongType shared[SD_CUDA_BLOCK_SIZE];
 
                 // we want to nullify temporary memory before accumulating intermediate results
                 shared[threadIdx.x] = 0;
 
                 auto tid = threadIdx.x + blockIdx.x * blockDim.x;
-                for (Nd4jLong e = tid; e < length; e += blockDim.x * gridDim.x) {
+                for (sd::LongType e = tid; e < length; e += blockDim.x * gridDim.x) {
                     auto _x = static_cast<unsigned long long>(x[shape::getIndexOffset(e, xShapeInfo)]);
                     auto _y = static_cast<unsigned long long>(y[shape::getIndexOffset(e, yShapeInfo)]);
 
@@ -48,7 +47,7 @@ namespace sd {
                 __syncthreads();
 
                 // now we accumulate values
-                auto numItems = sd::math::nd4j_min<Nd4jLong>(blockDim.x, length);
+                auto numItems = sd::math::sd_min<sd::LongType>(blockDim.x, length);
                 auto floorPow2 = numItems;
                 if (floorPow2 & (floorPow2 - 1)) {
 
@@ -62,7 +61,7 @@ namespace sd {
                 }
                 __syncthreads();
 
-                for (Nd4jLong activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
+                for (sd::LongType activeThreads = floorPow2 >> 1; activeThreads; activeThreads >>= 1) {
                     if (threadIdx.x < activeThreads && threadIdx.x + activeThreads < numItems)
                         shared[threadIdx.x] = shared[threadIdx.x] + shared[threadIdx.x + activeThreads];
 
@@ -73,17 +72,17 @@ namespace sd {
                 // FIXME: do we really want atomicAdd on global memory here
                 // and store them to output
                 if (threadIdx.x == 0 && shared[0] > 0)
-                    sd::math::atomics::nd4j_atomicAdd<Z>(&z[0], static_cast<Z>(shared[threadIdx.x]));
+                    sd::math::atomics::sd_atomicAdd<Z>(&z[0], static_cast<Z>(shared[threadIdx.x]));
             }
 
             template <typename X, typename Z>
             static void _hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &z) {
-                _hammingKernel<X, Z><<<256, CUDA_BLOCK_SIZE, 1024, *context->getCudaStream()>>>(x.specialBuffer(), x.specialShapeInfo(), y.specialBuffer(), y.specialShapeInfo(), z.specialBuffer(), nullptr, x.lengthOf());
+                _hammingKernel<X, Z><<<256, SD_CUDA_BLOCK_SIZE, 1024, *context->getCudaStream()>>>(x.specialBuffer(), x.specialShapeInfo(), y.specialBuffer(), y.specialShapeInfo(), z.specialBuffer(), nullptr, x.lengthOf());
             }
 
-            ND4J_LOCAL void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output) {
+            void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output) {
                 NDArray::prepareSpecialUse({&output}, {&x, &y});
-                BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (context, x, y, output), INTEGER_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (context, x, y, output), SD_INTEGER_TYPES, SD_INDEXING_TYPES);
                 NDArray::registerSpecialUse({&output}, {&x, &y});
             }
         }

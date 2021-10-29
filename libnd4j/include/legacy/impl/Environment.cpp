@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 06.10.2017.
 //
-
 #include <iostream>
 #include <cstdlib>
 #include <stdexcept>
@@ -31,13 +30,11 @@
 #include <memory/MemoryCounter.h>
 
 #ifdef _OPENMP
-
 #include <omp.h>
 
 #endif
 
 #ifdef __CUDABLAS__
-
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <system/BlasVersionHelper.h>
@@ -105,7 +102,7 @@ namespace sd {
         }
 
         if (_maxMasterThreads.load() > _maxThreads.load()) {
-            nd4j_printf("Warning! MAX_MASTER_THREADS > MAX_THREADS, tuning them down to match each other\n","");
+            sd_printf("Warning! MAX_MASTER_THREADS > MAX_THREADS, tuning them down to match each other\n","");
             _maxMasterThreads.store(_maxThreads.load());
         }
 
@@ -173,24 +170,24 @@ namespace sd {
 
 #ifdef __CUDABLAS__
         int devCnt = 0;
-	    cudaGetDeviceCount(&devCnt);
-	    auto devProperties = new cudaDeviceProp[devCnt];
-	    for (int i = 0; i < devCnt; i++) {
-		    cudaSetDevice(i);
-		    cudaGetDeviceProperties(&devProperties[i], i);
+        cudaGetDeviceCount(&devCnt);
+        auto devProperties = new cudaDeviceProp[devCnt];
+        for (int i = 0; i < devCnt; i++) {
+            cudaSetDevice(i);
+            cudaGetDeviceProperties(&devProperties[i], i);
 
-		    //cudaDeviceSetLimit(cudaLimitStackSize, 4096);
-		    Pair p(devProperties[i].major, devProperties[i].minor);
-		    _capabilities.emplace_back(p);
-	    }
+            //cudaDeviceSetLimit(cudaLimitStackSize, 4096);
+            Pair p(devProperties[i].major, devProperties[i].minor);
+            _capabilities.emplace_back(p);
+        }
 
-	    BlasVersionHelper ver;
+        BlasVersionHelper ver;
         _blasMajorVersion = ver._blasMajorVersion;
         _blasMinorVersion = ver._blasMinorVersion;
         _blasPatchVersion = ver._blasPatchVersion;
 
-	    cudaSetDevice(0);
-	    delete[] devProperties;
+        cudaSetDevice(0);
+        delete[] devProperties;
 #else
 
 #endif
@@ -352,27 +349,27 @@ namespace sd {
         _allowHelpers.store(reallyAllow);
     }
 
-    void Environment::setGroupLimit(int group, Nd4jLong numBytes) {
+    void Environment::setGroupLimit(int group, sd::LongType numBytes) {
         sd::memory::MemoryCounter::getInstance().setGroupLimit((sd::memory::MemoryType) group, numBytes);
     }
 
-    void Environment::setDeviceLimit(int deviceId, Nd4jLong numBytes) {
+    void Environment::setDeviceLimit(int deviceId, sd::LongType numBytes) {
         sd::memory::MemoryCounter::getInstance().setDeviceLimit(deviceId, numBytes);
     }
 
-    Nd4jLong Environment::getGroupLimit(int group) {
+    sd::LongType Environment::getGroupLimit(int group) {
         return sd::memory::MemoryCounter::getInstance().groupLimit((sd::memory::MemoryType) group);
     }
 
-    Nd4jLong Environment::getDeviceLimit(int deviceId) {
+    sd::LongType Environment::getDeviceLimit(int deviceId) {
         return sd::memory::MemoryCounter::getInstance().deviceLimit(deviceId);
     }
 
-    Nd4jLong Environment::getGroupCounter(int group) {
+    sd::LongType Environment::getGroupCounter(int group) {
         return sd::memory::MemoryCounter::getInstance().allocatedGroup((sd::memory::MemoryType) group);
     }
 
-    Nd4jLong Environment::getDeviceCounter(int deviceId) {
+    sd::LongType Environment::getDeviceCounter(int deviceId) {
         return sd::memory::MemoryCounter::getInstance().allocatedDevice(deviceId);
     }
 

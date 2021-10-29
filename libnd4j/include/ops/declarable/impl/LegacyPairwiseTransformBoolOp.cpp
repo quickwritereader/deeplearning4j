@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <helpers/ShapeUtils.h>
 #include <ops/declarable/LegacyPairwiseTransformBoolOp.h>
 
@@ -38,7 +37,7 @@ namespace sd {
             return new LegacyPairwiseTransformBoolOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyPairwiseTransformBoolOp::validateAndExecute(Context &block) {
+        sd::Status LegacyPairwiseTransformBoolOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
             auto y = INPUT_VARIABLE(1);
             auto z = OUTPUT_VARIABLE(0);
@@ -61,7 +60,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         /**

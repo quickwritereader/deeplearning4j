@@ -21,9 +21,7 @@
 //
 #ifndef SD_U32_H
 #define SD_U32_H
-
 #include <cstdint>
-#include <system/pointercast.h>
 
 
 namespace sd {

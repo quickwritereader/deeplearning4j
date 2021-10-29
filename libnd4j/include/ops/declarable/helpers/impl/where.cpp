@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 24/09/18.
 //
-
 #include <ops/declarable/helpers/where.h>
 #include <array/NDArrayList.h>
 
@@ -31,9 +30,9 @@ namespace sd {
                 NDArrayList list(0, true);
                 int cnt = 0;
 
-                int idx[MAX_RANK];
+                int idx[SD_MAX_RANK];
 
-                for (Nd4jLong e = 0; e < condition.lengthOf(); e++) {
+                for (sd::LongType e = 0; e < condition.lengthOf(); e++) {
 
                     shape::index2coordsCPU(0, e, condition.shapeInfo(), idx);
 
@@ -52,11 +51,11 @@ namespace sd {
                 output.assign(s);
                 delete s;
             }
-            BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void __where,(NDArray &condition, NDArray& output, memory::Workspace *workspace), LIBND4J_TYPES);
+            BUILD_SINGLE_TEMPLATE(template void __where,(NDArray &condition, NDArray& output, memory::Workspace *workspace), SD_COMMON_TYPES);
 
              void _where(sd::LaunchContext * context, NDArray &condition, NDArray& output, memory::Workspace *workspace) {
                 condition.syncToHost();
-                BUILD_SINGLE_SELECTOR(output.dataType(), __where, (condition, output, workspace), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(output.dataType(), __where, (condition, output, workspace), SD_COMMON_TYPES);
                 output.syncToDevice();
             }
         }

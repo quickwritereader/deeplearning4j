@@ -37,8 +37,8 @@
 #include "config.h"
 #endif
 
-#include <system/dll.h>
 #include <memory>
+#include <system/common.h>
 #include <system/op_boilerplate.h>
 #include <memory/Workspace.h>
 #include <vector>
@@ -47,16 +47,15 @@
 #include <execution/ErrorReference.h>
 
 
-
 namespace sd  {
 
-class ND4J_EXPORT LaunchContext {
+class SD_LIB_EXPORT LaunchContext {
 
-	private:
+    private:
         static std::vector<std::shared_ptr<LaunchContext>> _contexts;
         static std::mutex _mutex;
 
-        static MAP_IMPL<int, std::mutex*> _deviceMutexes;
+        static SD_MAP_IMPL<int, std::mutex*> _deviceMutexes;
 
         // used for MKLDNN
         void *_engine = nullptr;
@@ -65,69 +64,69 @@ class ND4J_EXPORT LaunchContext {
 
 #ifndef __JAVACPP_HACK__
 
-		void* _cublasHandle = nullptr;
-		void* _cusolverHandle = nullptr;
+        void* _cublasHandle = nullptr;
+        void* _cusolverHandle = nullptr;
 
 #endif // JCPP
 
-		bool _isAllocated = false;
+        bool _isAllocated = false;
 #endif // CUDA
-	    sd::memory::Workspace* _workspace = nullptr;
+        sd::memory::Workspace* _workspace = nullptr;
         int _deviceID = 0;
 
-	public:
+    public:
 #ifdef __CUDABLAS__
 
 #ifndef __JAVACPP_HACK__
-		LaunchContext(cudaStream_t* cudaStream, cudaStream_t& specialCudaStream, void* reductionPointer = nullptr,  void* scalarPointer = nullptr,  int* allocationPointer = nullptr);
+        LaunchContext(cudaStream_t* cudaStream, cudaStream_t& specialCudaStream, void* reductionPointer = nullptr,  void* scalarPointer = nullptr,  int* allocationPointer = nullptr);
 
-		void* getReductionPointer () const;
-		void* getScalarPointer() const;
-		int* getAllocationPointer() const;
-		void* getCublasHandle() const;
-		void* getCusolverHandle() const;
-		void* getCuDnnHandle() const;
-		cudaStream_t* getCudaStream() const;
-		cudaStream_t* getCudaSpecialStream() const;
+        void* getReductionPointer () const;
+        void* getScalarPointer() const;
+        int* getAllocationPointer() const;
+        void* getCublasHandle() const;
+        void* getCusolverHandle() const;
+        void* getCuDnnHandle() const;
+        cudaStream_t* getCudaStream() const;
+        cudaStream_t* getCudaSpecialStream() const;
 
-		void setReductionPointer (void* reductionPointer);
-		void setScalarPointer(void* scalarPointer);
-		void setAllocationPointer(int* allocationPointer);
-		void setCudaStream(cudaStream_t* cudaStream);
-		void setCudaSpecialStream(cudaStream_t* cudaStream);
-		void setCublasHandle(void *handle);
+        void setReductionPointer (void* reductionPointer);
+        void setScalarPointer(void* scalarPointer);
+        void setAllocationPointer(int* allocationPointer);
+        void setCudaStream(cudaStream_t* cudaStream);
+        void setCudaSpecialStream(cudaStream_t* cudaStream);
+        void setCublasHandle(void *handle);
 
 #endif // JCPP
 
 #endif // CUDA
-		LaunchContext(Nd4jPointer cudaStream, Nd4jPointer reductionPointer = nullptr, Nd4jPointer scalarPointer = nullptr, Nd4jPointer allocationPointer = nullptr);
-    	LaunchContext();
-    	~LaunchContext();
-    	sd::memory::Workspace* getWorkspace() const { return _workspace; }
-    	void setWorkspace(sd::memory::Workspace* theWorkspace) {
-    	    _workspace = theWorkspace;
-    	}
+        LaunchContext(sd::Pointer cudaStream, sd::Pointer reductionPointer = nullptr, sd::Pointer scalarPointer = nullptr, sd::Pointer allocationPointer = nullptr);
+        LaunchContext();
+        ~LaunchContext();
+        sd::memory::Workspace* getWorkspace() const { return _workspace; }
+        void setWorkspace(sd::memory::Workspace* theWorkspace) {
+            _workspace = theWorkspace;
+        }
 
-    	void* engine();
+        void* engine();
 
-    	int getDeviceID() const {return _deviceID;}
-    	void setDeviceID(int deviceID) { _deviceID = deviceID; }
+        int getDeviceID() const {return _deviceID;}
+        void setDeviceID(int deviceID) { _deviceID = deviceID; }
         sd::ErrorReference* errorReference();
 
 #ifndef __JAVACPP_HACK__
-    	// this method returns mutex shared between all threads that use the same device
-    	static std::mutex* deviceMutex();
+        // this method returns mutex shared between all threads that use the same device
+        static std::mutex* deviceMutex();
 
 #endif
 
-    	static bool isInitialized();
-    	static void releaseBuffers();
+        static bool isInitialized();
+        static void releaseBuffers();
 
 
-	    static LaunchContext* defaultContext();
+        static LaunchContext* defaultContext();
 
 
-    	static void swapContextBuffers(ContextBuffers &buffers);
+        static void swapContextBuffers(ContextBuffers &buffers);
 
 };
 

@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/flatten.h>
 
 namespace sd {
@@ -30,8 +29,8 @@ namespace sd {
             static void flatten_(std::vector<NDArray*> &inputs, NDArray *output, const char order) {
 
                 int numArrays = inputs.size();
-                std::vector<Nd4jLong> offsets(numArrays);
-                Nd4jLong cOffset = 0;
+                std::vector<sd::LongType> offsets(numArrays);
+                sd::LongType cOffset = 0;
 
                 // calculating offsets in output
                 for (int e = 0; e < numArrays; e++) {
@@ -47,13 +46,13 @@ namespace sd {
                     auto xShapeInfo = inputs[e]->shapeInfo();
                     auto xLength = inputs[e]->lengthOf();
 
-                    for (Nd4jLong i = 0; i < xLength; i++)
+                    for (sd::LongType i = 0; i < xLength; i++)
                         z[i] = xBuffer[getIndexOffsetOrdered(i, xShapeInfo, order)];
                 }
             }
 
-            ND4J_LOCAL void flatten(sd::LaunchContext *context, std::vector<NDArray*> &inputs, NDArray *output, char order) {
-                BUILD_SINGLE_SELECTOR(output->dataType(), flatten_, (inputs, output, order), LIBND4J_TYPES);
+            void flatten(sd::LaunchContext *context, std::vector<NDArray*> &inputs, NDArray *output, char order) {
+                BUILD_SINGLE_SELECTOR(output->dataType(), flatten_, (inputs, output, order), SD_COMMON_TYPES);
             }
         }
     }

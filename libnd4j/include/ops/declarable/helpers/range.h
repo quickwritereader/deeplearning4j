@@ -22,15 +22,14 @@
 
 #ifndef LIBND4J_RANGE_H
 #define LIBND4J_RANGE_H
-
 #include <ops/declarable/helpers/helpers.h>
 
 namespace sd    {
 namespace ops     {
 namespace helpers {
 
-	// be careful: outVector must have c-order and ews = 1 !!!
-	void range(sd::LaunchContext * context, const NDArray& start, const NDArray& delta, NDArray& outVector);
+    // be careful: outVector must have c-order and ews = 1 !!!
+SD_LIB_HIDDEN void range(sd::LaunchContext * context, const NDArray& start, const NDArray& delta, NDArray& outVector);
 
 }
 }

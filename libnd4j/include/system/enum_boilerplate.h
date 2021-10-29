@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_ENUM_BOILERPLATE_H
 #define LIBND4J_ENUM_BOILERPLATE_H
-
 #include <system/type_boilerplate.h>
 
 

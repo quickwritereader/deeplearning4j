@@ -51,18 +51,18 @@ namespace sd {
 
             helpers::fillRandomGamma(block.launchContext(), rng, alpha, beta, output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(random_gamma) {
             auto in = INPUT_VARIABLE(0);
-            auto shape = in->template asVectorT<Nd4jLong>();
+            auto shape = in->template asVectorT<sd::LongType>();
             auto alphaShape = inputShape->at(1);
             auto additionalShape = alphaShape;
             if (inputShape->size() > 2) {
                 auto rest = inputShape->at(2); additionalShape = nullptr;
                 REQUIRE_TRUE(ShapeUtils::areShapesBroadcastable(alphaShape, rest), 0, "random_gamma: alpha and beta shapes should be broadcastable.");
-                const Nd4jLong* additionalShapeBroadcasted = nullptr;
+                const sd::LongType* additionalShapeBroadcasted = nullptr;
                 ShapeUtils::evalBroadcastShapeInfo(alphaShape, rest, true, additionalShapeBroadcasted, block.workspace());
                 additionalShape = additionalShapeBroadcasted;
             }

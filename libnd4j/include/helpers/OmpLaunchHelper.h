@@ -23,47 +23,45 @@
 
 #ifndef LIBND4J_OMPLAUNCHHELPER_H
 #define LIBND4J_OMPLAUNCHHELPER_H
-
 #include <vector>
-#include <system/pointercast.h>
 #include <system/op_boilerplate.h>
 
 namespace sd {
 
-class ND4J_EXPORT OmpLaunchHelper {
-	
-    public:				
+class SD_LIB_EXPORT OmpLaunchHelper {
+    
+    public:                
         
-		OmpLaunchHelper() = delete;
+        OmpLaunchHelper() = delete;
         
-        OmpLaunchHelper(const Nd4jLong N, float desiredNumThreads = -1);
+        OmpLaunchHelper(const sd::LongType N, float desiredNumThreads = -1);
 
-        FORCEINLINE Nd4jLong getThreadOffset(const int threadNum);
-        FORCEINLINE Nd4jLong getItersPerThread(const int threadNum);
+        SD_INLINE sd::LongType getThreadOffset(const int threadNum);
+        SD_INLINE sd::LongType getItersPerThread(const int threadNum);
 
-        static Nd4jLong betterSpan(Nd4jLong N);
-        static Nd4jLong betterSpan(Nd4jLong N, Nd4jLong numThreads);
+        static sd::LongType betterSpan(sd::LongType N);
+        static sd::LongType betterSpan(sd::LongType N, sd::LongType numThreads);
         
-        static int betterThreads(Nd4jLong N);
-        static int betterThreads(Nd4jLong N, int maxThreads);
+        static int betterThreads(sd::LongType N);
+        static int betterThreads(sd::LongType N, int maxThreads);
 
-        static int tadThreads(Nd4jLong tadLength, Nd4jLong numTads);
+        static int tadThreads(sd::LongType tadLength, sd::LongType numTads);
 
         int _numThreads;
-		unsigned int _itersPerThread;
+        unsigned int _itersPerThread;
         unsigned int _remainder;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-FORCEINLINE Nd4jLong OmpLaunchHelper::getThreadOffset(const int threadNum) {
-	
-		return threadNum * _itersPerThread;
+SD_INLINE sd::LongType OmpLaunchHelper::getThreadOffset(const int threadNum) {
+    
+        return threadNum * _itersPerThread;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-FORCEINLINE Nd4jLong OmpLaunchHelper::getItersPerThread(const int threadNum) {
-	
-	return (threadNum == _numThreads - 1) ? _itersPerThread + _remainder : _itersPerThread;		// last thread may contain bigger number of iterations    	 
+SD_INLINE sd::LongType OmpLaunchHelper::getItersPerThread(const int threadNum) {
+    
+    return (threadNum == _numThreads - 1) ? _itersPerThread + _remainder : _itersPerThread;        // last thread may contain bigger number of iterations         
 }
 
 }

@@ -21,7 +21,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/ArrayOptions.h>
 #include <execution/AffinityManager.h>
@@ -47,7 +46,7 @@ void createArrays(int limit, std::vector<NDArray*> &arrays) {
         auto value = deviceId * limit + e;
         arrays[value] = NDArrayFactory::create_<float>('c', {10});
         arrays[value]->assign(value);
-        //nd4j_printf("device_%i; value: [%i]; mean: [%f]\n", deviceId, value, arrays[value]->meanNumber().e<float>(0));
+        //sd_printf("device_%i; value: [%i]; mean: [%f]\n", deviceId, value, arrays[value]->meanNumber().e<float>(0));
     }
 }
 

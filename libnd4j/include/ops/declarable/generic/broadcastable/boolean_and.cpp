@@ -36,11 +36,11 @@ namespace sd {
 
             auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::custom(scalar::LogicalAnd, pairwise::LogicalAnd, broadcast::LogicalAnd), x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z)
                 throw std::runtime_error("boolean_and: result was overwritten");
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(boolean_and) {

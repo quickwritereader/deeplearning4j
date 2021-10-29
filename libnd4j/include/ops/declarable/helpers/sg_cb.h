@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_SG_CB_H
 #define DEV_TESTS_SG_CB_H
-
 #include <system/op_boilerplate.h>
 #include <types/types.h>
 #include <array/NDArray.h>
@@ -30,11 +29,11 @@
 namespace sd {
     namespace ops {
         namespace helpers {
-            void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &inferenceVector, const bool preciseMode, const int numWorkers);
+        SD_LIB_HIDDEN void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &inferenceVector, const bool preciseMode, const int numWorkers);
 
-            void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &numLabels, NDArray &inferenceVector, const bool trainWords, const int numWorkers);
+        SD_LIB_HIDDEN void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target, NDArray &ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue, NDArray &numLabels, NDArray &inferenceVector, const bool trainWords, const int numWorkers);
 
-            int binarySearch(const int *haystack, const int needle, const int totalElements);
+        SD_LIB_HIDDEN int binarySearch(const int *haystack, const int needle, const int totalElements);
         }
     }
 }

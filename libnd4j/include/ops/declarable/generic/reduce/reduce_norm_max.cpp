@@ -56,7 +56,7 @@ CUSTOM_OP_IMPL(reduce_norm_max, -1, 1, false, 0, 0) {
 
     input->reduceAlongDimension(reduce::NormMax, *output, dimensions, keepDims);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_norm_max) {
@@ -119,7 +119,7 @@ CUSTOM_OP_IMPL(reduce_norm_max_bp, -1, 1, false, 0, 0) {
     if(gradO->lengthOf() == 1) {
 
         auto indOfAbsMaxElem = input->indexReduceNumber(sd::indexreduce::IndexAbsoluteMax);
-        const Nd4jLong ind = indOfAbsMaxElem.t<Nd4jLong>(0);
+        const sd::LongType ind = indOfAbsMaxElem.t<sd::LongType>(0);
         const int sign = input->e<float>(ind) >= 0 ? 1 : -1;
         gradI->p(ind, sign * gradO->e(0));
     }
@@ -130,7 +130,7 @@ CUSTOM_OP_IMPL(reduce_norm_max_bp, -1, 1, false, 0, 0) {
         *gradI *= input->transform(sd::transform::Sign);
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_norm_max_bp) {
@@ -146,7 +146,7 @@ DECLARE_SHAPE_FN(reduce_norm_max_bp) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_NORM_MAX_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-    Nd4jLong* outShapeInfo;
+    sd::LongType* outShapeInfo;
     COPY_SHAPE(inputShape->at(0), outShapeInfo);
 
     return SHAPELIST(CONSTANT(outShapeInfo));

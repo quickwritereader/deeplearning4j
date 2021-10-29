@@ -20,16 +20,15 @@
 // @author GS (sgazeos@gmail.com), created on 10/1/2018
 //
 
-
 #include<ops/declarable/helpers/cross.h>
 #include <helpers/ShapeUtils.h>
 #include <ops/declarable/CustomOperations.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
- void crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
+void crossBatched(sd::LaunchContext * context, NDArray *a, NDArray *b, NDArray *o) {
     auto _a = a->reshape(a->ordering(), {-1, 3});
     auto _b = b->reshape(b->ordering(), {-1, 3});
     auto _o = o->reshape(o->ordering(), {-1, 3}, false);

@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
@@ -28,13 +27,13 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
-    __device__ void fillDimensionalIsMax(const void *vdX,
-                                         void *vdZ, const Nd4jLong *zShapeInfo,
-                                         const Nd4jLong *tadOnlyShapeInfo,
+    SD_DEVICE void fillDimensionalIsMax(const void *vdX,
+                                         void *vdZ, const sd::LongType *zShapeInfo,
+                                         const sd::LongType *tadOnlyShapeInfo,
                                          int *dimension, int dimensionLength,
-                                         const Nd4jLong *tadOffsets) {
+                                         const sd::LongType *tadOffsets) {
 
-        auto dX = reinterpret_cast<const Nd4jLong *>(vdX);
+        auto dX = reinterpret_cast<const sd::LongType *>(vdX);
         auto dZ = reinterpret_cast<T *>(vdZ);
 
         __shared__ int tadLength;
@@ -54,12 +53,12 @@ namespace sd {
 
             if (dimensionLength > 1 || tadEWS < 1) {
 
-                for (Nd4jLong e = threadIdx.x; e < tadLength; e += blockDim.x) {
+                for (sd::LongType e = threadIdx.x; e < tadLength; e += blockDim.x) {
                     auto xOffset = tadOffsetForBlock + shape::getIndexOffset(e, tadOnlyShapeInfo);
                     dZ[xOffset] = (e == highestElement ? (T) 1 : (T) 0);
                 }
             } else {
-                for (Nd4jLong e = threadIdx.x; e < tadLength; e += blockDim.x) {
+                for (sd::LongType e = threadIdx.x; e < tadLength; e += blockDim.x) {
                     // so, we just set dZ[e] for each TAD. Sure, e should be replaced with
                     auto idx = tadOffsetForBlock + (e * tadEWS);
                     dZ[idx] = (e == highestElement ? (T) 1 : (T) 0);
@@ -71,26 +70,26 @@ namespace sd {
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
-    __global__ void execfillDimensionalIsMax(const void *dX,
-                                             void *dZ, const Nd4jLong *zShapeInfo,
-                                             const Nd4jLong *tadOnlyShapeInfo,
+    SD_KERNEL void execfillDimensionalIsMax(const void *dX,
+                                             void *dZ, const sd::LongType *zShapeInfo,
+                                             const sd::LongType *tadOnlyShapeInfo,
                                              int *dimension, int dimensionLength,
-                                             const Nd4jLong *tadOffsets) {
+                                             const sd::LongType *tadOffsets) {
 
         fillDimensionalIsMax<T>(dX, dZ, zShapeInfo, tadOnlyShapeInfo, dimension, dimensionLength, tadOffsets);
     }
 
 ////////////////////////////////////////////////////////////////////////
     template <typename T>
-    __host__ void fillDimensionalIsMaxGeneric(dim3 &launchDims, cudaStream_t *stream,
+    SD_HOST void fillDimensionalIsMaxGeneric(dim3 &launchDims, cudaStream_t *stream,
                                               const void *dX,
-                                              void *dZ, const Nd4jLong *zShapeInfo,
-                                              const Nd4jLong *tadOnlyShapeInfo,
+                                              void *dZ, const sd::LongType *zShapeInfo,
+                                              const sd::LongType *tadOnlyShapeInfo,
                                               int *dimension, int dimensionLength,
-                                              const Nd4jLong *tadOffsets) {
+                                              const sd::LongType *tadOffsets) {
 
         execfillDimensionalIsMax<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(dX, dZ, zShapeInfo, tadOnlyShapeInfo, dimension, dimensionLength, tadOffsets);
         sd::DebugHelper::checkErrorCode(stream, "fillDimensionalIsMax(...) failed");
     }
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL fillDimensionalIsMaxGeneric, (dim3& launchDims, cudaStream_t *stream, const void *dX, void *dZ, const Nd4jLong *zShapeInfo, const Nd4jLong *tadOnlyShapeInfo, int *dimension, int dimensionLength, const Nd4jLong *tadOffsets), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN fillDimensionalIsMaxGeneric, (dim3& launchDims, cudaStream_t *stream, const void *dX, void *dZ, const sd::LongType *zShapeInfo, const sd::LongType *tadOnlyShapeInfo, int *dimension, int dimensionLength, const sd::LongType *tadOffsets), SD_COMMON_TYPES);
 }

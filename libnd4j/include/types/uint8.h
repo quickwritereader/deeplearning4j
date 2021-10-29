@@ -22,36 +22,34 @@
 
 #ifndef LIBND4J_UINT8_H
 #define LIBND4J_UINT8_H
-
 #include <stdint.h>
 #include <system/op_boilerplate.h>
 
 
 namespace sd {
 
-    float _CUDA_HD FORCEINLINE cpu_uint82float(uint8_t data);
-    uint8_t _CUDA_HD FORCEINLINE cpu_float2uint8(float data);
+    float SD_INLINE SD_HOST_DEVICE cpu_uint82float(uint8_t data);
+    uint8_t SD_INLINE SD_HOST_DEVICE cpu_float2uint8(float data);
 
     struct uint8 {
         uint8_t data;
 
-        _CUDA_HD FORCEINLINE uint8();
-        _CUDA_HD FORCEINLINE ~uint8() = default;
+        SD_INLINE SD_HOST_DEVICE uint8();
+        SD_INLINE SD_HOST_DEVICE ~uint8() = default;
 
         template <class T>
-        _CUDA_HD FORCEINLINE uint8(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE uint8(const T& rhs);
 
         template <class T>
-        _CUDA_HD FORCEINLINE uint8& operator=(const T& rhs);
+        SD_INLINE SD_HOST_DEVICE uint8& operator=(const T& rhs);
 
 
-        _CUDA_HD FORCEINLINE operator float() const;
+        SD_INLINE SD_HOST_DEVICE operator float() const;
 
-        _CUDA_HD FORCEINLINE void assign(double rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(double rhs);
 
-        _CUDA_HD FORCEINLINE void assign(float rhs);
+        SD_INLINE SD_HOST_DEVICE void assign(float rhs);
     };
-
 
 
     ///////////////////////////

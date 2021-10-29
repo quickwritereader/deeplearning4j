@@ -38,7 +38,7 @@ CONFIGURABLE_OP_IMPL(adjust_hue, 1, 1, true, 0, 0) {
 
     // just skip op if input is empty
     if (input->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     const int rank     = input->rankOf();
     const int arg_size = block.getIArguments()->size();
@@ -67,7 +67,7 @@ CONFIGURABLE_OP_IMPL(adjust_hue, 1, 1, true, 0, 0) {
     if(block.width() == 1)
         delete delta;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(adjust_hue) {

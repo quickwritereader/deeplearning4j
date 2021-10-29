@@ -36,7 +36,7 @@ namespace sd {
 
             output->reshapei({-1});
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(test_output_reshape) {

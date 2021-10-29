@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <types/utf8string.h>
 #include <cstring>
 

@@ -31,7 +31,7 @@ namespace sd {
 
             // just for lulz
             if (!block.isInplace()) {
-                for (Nd4jLong i = 0; i < block.width(); ++i) {
+                for (sd::LongType i = 0; i < block.width(); ++i) {
                     auto x = INPUT_VARIABLE(i);
                     auto z = OUTPUT_VARIABLE(i);
 
@@ -39,13 +39,13 @@ namespace sd {
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(identity_n) {
             auto shapes = SHAPELIST();
             for (size_t i = 0; i < inputShape->size(); ++i) {
-                Nd4jLong* shape;
+                sd::LongType* shape;
                 COPY_SHAPE_EX(inputShape->at(i), shape, block.getWorkspace());
                 shapes->push_back(CONSTANT(shape));
             }

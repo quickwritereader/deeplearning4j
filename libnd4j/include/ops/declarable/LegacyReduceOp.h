@@ -27,9 +27,9 @@
 /*
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT LegacyReduceOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyReduceOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block);
+            sd::Status validateAndExecute(Context& block);
         public:
             LegacyReduceOp();
             LegacyReduceOp(int opNum);

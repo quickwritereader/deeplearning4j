@@ -45,7 +45,7 @@ namespace sd {
 
             const bool dataFormat = (bool)INT_ARG(0);               // 0->NHWC, 1->NCHW
             const bool isTraining = (bool)INT_ARG(1);
-            nd4j_debug("CUSTOM_OP fused_batch_norm: data format, is NCHW: %d, isTraining: %d\n",dataFormat,isTraining);
+            sd_debug("CUSTOM_OP fused_batch_norm: data format, is NCHW: %d, isTraining: %d\n",dataFormat,isTraining);
 
             REQUIRE_TRUE(x->rankOf() == 4, 0, "CUSTOM_OP fused_batch_norm: the rank of input x array must be equal to 4, but got %i instead !", x->rankOf());
 
@@ -88,7 +88,7 @@ namespace sd {
             }
             else {
                 //REQUIRE_TRUE(block.width() == 3, 0, "CUSTOM_OP fused_batch_norm: when isTraining=true then number of input arrays must be equal to 3, but got %i instead !", block.width());
-                std::vector<Nd4jLong> shape = {iD};
+                std::vector<sd::LongType> shape = {iD};
                 mean = NDArrayFactory::create_(scale->ordering(), shape, scale->dataType(), block.launchContext());
                 variance = NDArrayFactory::create_(scale->ordering(), shape, scale->dataType(), block.launchContext());
             }
@@ -154,7 +154,7 @@ namespace sd {
                 delete variance;
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 
@@ -168,7 +168,7 @@ namespace sd {
 
             REQUIRE_TRUE(scaleShapeInfo[0] == 1  && scaleShapeInfo[1] == iD, 0, "CUSTOM_OP fused_batch_norm: wrong shape of input scale array, expected is [%i], but got %s instead", iD, ShapeUtils::shapeAsString(scaleShapeInfo).c_str());
 
-            Nd4jLong* outShapeInfo(nullptr), *batchMeanShapeInfo(nullptr), *batchVarShapeInfo(nullptr);
+            sd::LongType* outShapeInfo(nullptr), *batchMeanShapeInfo(nullptr), *batchVarShapeInfo(nullptr);
 
             COPY_SHAPE(xShapeInfo, outShapeInfo);
             COPY_SHAPE(scaleShapeInfo, batchMeanShapeInfo);

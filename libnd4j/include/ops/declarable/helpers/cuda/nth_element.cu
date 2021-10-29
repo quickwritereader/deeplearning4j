@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/nth_element.h>
 #include <helpers/TAD.h>
 #include <helpers/ShapeUtils.h>
@@ -32,8 +31,8 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    static __global__ void fillUpElementKernel(void* outputBuffer, Nd4jLong const* outputShapeInfo, void* inputBuffer, Nd4jLong const* inputShapeInfo, Nd4jLong const* pTadShape, Nd4jLong const* pTadOffsets, Nd4jLong n) {
-        __shared__ Nd4jLong bufferLength;
+    static SD_KERNEL void fillUpElementKernel(void* outputBuffer, sd::LongType const* outputShapeInfo, void* inputBuffer, sd::LongType const* inputShapeInfo, sd::LongType const* pTadShape, sd::LongType const* pTadOffsets, sd::LongType n) {
+        __shared__ sd::LongType bufferLength;
 
         auto z = reinterpret_cast<T*>(outputBuffer);
         auto x = reinterpret_cast<T*>(inputBuffer);
@@ -52,11 +51,11 @@ namespace helpers {
     }
 
     template <typename T>
-    ND4J_LOCAL void nthElementFunctor_(sd::LaunchContext * context, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
+    void nthElementFunctor_(sd::LaunchContext * context, NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
 
         NDArray::prepareSpecialUse({output}, {input});
         NDArray sortedVals(*input);
-        Nd4jPointer params[2];
+        sd::Pointer params[2];
         params[0] = context;
         params[1] = context->getCudaStream();
         // Nth element in sorted sequence : basic algorithm sort and retrieve nth element in sorted
@@ -81,8 +80,8 @@ namespace helpers {
         }
         NDArray::registerSpecialUse({output}, {input});
     }
-    ND4J_LOCAL void nthElementFunctor(sd::LaunchContext * context, NDArray* input, Nd4jLong n, NDArray* output, bool reverse) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (context, input, n, output, reverse), LIBND4J_TYPES);
+    void nthElementFunctor(sd::LaunchContext * context, NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (context, input, n, output, reverse), SD_COMMON_TYPES);
 
     }
 

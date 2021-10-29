@@ -32,7 +32,7 @@ namespace sd {
             auto updates = OUTPUT_VARIABLE(0);
 
             helpers::decodeBitmap(block.launchContext(), encoded, updates);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(decode_bitmap) {
@@ -70,7 +70,7 @@ namespace sd {
             counter->p(0, result);
             counter->syncToDevice();
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(encode_bitmap) {

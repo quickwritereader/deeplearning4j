@@ -21,7 +21,6 @@
 //
 //  @author Yurii Shyrma, created on 05.12.2017
 //
-
 #include<ops/declarable/helpers/sru.h>
 #include <array/NDArrayFactory.h>
 #include <helpers/MmulHelper.h>
@@ -32,7 +31,7 @@ namespace ops     {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-static FORCEINLINE NDArray activation(const NDArray& arr) {
+static SD_INLINE NDArray activation(const NDArray& arr) {
 
     // return (const_cast<NDArray<T>&>(arr)).template transform<simdOps::Tanh<T>>();
     auto result = NDArray(&arr, false, arr.getContext());
@@ -42,13 +41,13 @@ static FORCEINLINE NDArray activation(const NDArray& arr) {
 
 
 //////////////////////////////////////////////////////////////////////////
-static FORCEINLINE NDArray sigmoid(const NDArray& arr) {
+static SD_INLINE NDArray sigmoid(const NDArray& arr) {
     return (const_cast<NDArray&>(arr)).transform(transform::Sigmoid);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void sruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* c0, const NDArray* w, const NDArray* b, NDArray* h, NDArray* c) {
+void sruCell(sd::LaunchContext * context, const NDArray* x, const NDArray* c0, const NDArray* w, const NDArray* b, NDArray* h, NDArray* c) {
 
     // x   input [bS x inSize], bS - batch size, inSize - number of features
     // c0  previous cell state c  [bS x inSize], that is at previous time step t-1
@@ -80,7 +79,7 @@ ND4J_LOCAL void sruCell(sd::LaunchContext * context, const NDArray* x, const NDA
 
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void sruTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* c0, const NDArray* w, const NDArray* b, NDArray* h, NDArray* c) {
+void sruTimeLoop(sd::LaunchContext * context, const NDArray* x, const NDArray* c0, const NDArray* w, const NDArray* b, NDArray* h, NDArray* c) {
 
     // x   input [bS x inSize x time]
     // c0  initial cell state  (at time step = 0) [bS x inSize],
@@ -121,9 +120,9 @@ static void sruBI_(NDArray* x, const NDArray* w, const NDArray* b, const NDArray
     // ht  [time x bS x 2*K]
     // ct  [time x bS x 2*K]
 
-    const Nd4jLong time = x->sizeAt(0);                     // time - number of time steps
-    const Nd4jLong bS   = x->sizeAt(1);                     // bS - batch size
-    const Nd4jLong K    = x->sizeAt(2) / 2;                 // K - number of features
+    const sd::LongType time = x->sizeAt(0);                     // time - number of time steps
+    const sd::LongType bS   = x->sizeAt(1);                     // bS - batch size
+    const sd::LongType K    = x->sizeAt(2) / 2;                 // K - number of features
 
     //  x = x * mask
     if(mask)
@@ -132,9 +131,9 @@ static void sruBI_(NDArray* x, const NDArray* w, const NDArray* b, const NDArray
     // U = x * w
     NDArray wi = mmul(*x, *w);                    //  U [time x bS x 6*K]
 
-    const Nd4jLong d2      = 2*K;
-    const Nd4jLong ncols   = bS*d2;
-    const Nd4jLong ncolsWi = 3*ncols;
+    const sd::LongType d2      = 2*K;
+    const sd::LongType ncols   = bS*d2;
+    const sd::LongType ncolsWi = 3*ncols;
 
     T* pI    = x->bufferAsT<T>();
     T* pWi   = wi.bufferAsT<T>();
@@ -168,14 +167,14 @@ static void sruBI_(NDArray* x, const NDArray* w, const NDArray* b, const NDArray
             auto ncolsRev = flip ? -ncols : ncols;
             auto ncolsWiRev = flip ? -ncolsWi : ncolsWi;
 
-            for (Nd4jLong t = 0; t < time; ++t) {
+            for (sd::LongType t = 0; t < time; ++t) {
                 // evaluate sigmoids
-                T ft = (1.) / (1. + sd::math::nd4j_exp<T, T>(-(pWiVal[1] + bF)));
-                T rt = (1.) / (1. + sd::math::nd4j_exp<T, T>(-(pWiVal[2] + bR)));
+                T ft = (1.) / (1. + sd::math::sd_exp<T, T>(-(pWiVal[1] + bF)));
+                T rt = (1.) / (1. + sd::math::sd_exp<T, T>(-(pWiVal[2] + bR)));
 
                 cur = (cur - *pWiVal) * ft + *pWiVal;
                 *pCtVal = cur;
-                T val = sd::math::nd4j_tanh<T, T>(cur);
+                T val = sd::math::sd_tanh<T, T>(cur);
                 *pHtVal = (val * maskVal - *pIVal) * rt + *pIVal;
 
                 pIVal += ncolsRev;
@@ -208,9 +207,9 @@ static void sruBIBP_(NDArray* x, const NDArray* w, const NDArray* b, const NDArr
     // gradB  [4*K]
     // gradC0 [bS x 2*K]
 
-    const Nd4jLong time   = x->sizeAt(0);                     // time - number of time steps
-    const Nd4jLong bS     = x->sizeAt(1);
-    const Nd4jLong K = x->sizeAt(2) / 2;
+    const sd::LongType time   = x->sizeAt(0);                     // time - number of time steps
+    const sd::LongType bS     = x->sizeAt(1);
+    const sd::LongType K = x->sizeAt(2) / 2;
 
     //  x = x * mask
     if(mask)
@@ -221,9 +220,9 @@ static void sruBIBP_(NDArray* x, const NDArray* w, const NDArray* b, const NDArr
     NDArray gradBias(x->ordering(), {bS, 4*K}, x->dataType(), x->getContext());
     NDArray gradWi  (x->ordering(), {time, bS, 6*K}, x->dataType(), x->getContext());
 
-    const Nd4jLong d2      = 2*K;
-    const Nd4jLong ncols   = bS*d2;
-    const Nd4jLong ncolsWi = 3*ncols;
+    const sd::LongType d2      = 2*K;
+    const sd::LongType ncols   = bS*d2;
+    const sd::LongType ncolsWi = 3*ncols;
     T* pInput     = x->bufferAsT<T>();
     T* pWi        = wi.bufferAsT<T>();
     T* pBias      = const_cast<NDArray*>(b)->bufferAsT<T>();
@@ -265,15 +264,15 @@ static void sruBIBP_(NDArray* x, const NDArray* w, const NDArray* b, const NDArr
                 pGradWiVal += stepW;
             }
 
-            Nd4jLong ncolsRev = flip ? -ncols : ncols;
-            Nd4jLong ncolsWiRev = flip ? -ncolsWi : ncolsWi;
+            sd::LongType ncolsRev = flip ? -ncols : ncols;
+            sd::LongType ncolsWiRev = flip ? -ncolsWi : ncolsWi;
 
-            for (Nd4jLong t = 0; t < time; ++t) {
+            for (sd::LongType t = 0; t < time; ++t) {
                 // evaluate sigmoids
-                T ft = ((T) 1.) / ((T) 1. + sd::math::nd4j_exp<T, T>(-(*(pWiVal + 1) + bF)));
-                T rt = ((T) 1.) / ((T) 1. + sd::math::nd4j_exp<T, T>(-(*(pWiVal + 2) + bR)));
+                T ft = ((T) 1.) / ((T) 1. + sd::math::sd_exp<T, T>(-(*(pWiVal + 1) + bF)));
+                T rt = ((T) 1.) / ((T) 1. + sd::math::sd_exp<T, T>(-(*(pWiVal + 2) + bR)));
 
-                T val = sd::math::nd4j_tanh<T, T>(*pStateVal);
+                T val = sd::math::sd_tanh<T, T>(*pStateVal);
                 T prevVal = (t < time - 1) ? (*(pStateVal - ncolsRev)) : (*(pInit + col));
                 // grad wrt input
                 *pGradInputVal = *pInGradHtVal - (*pInGradHtVal) * rt;
@@ -316,16 +315,16 @@ static void sruBIBP_(NDArray* x, const NDArray* w, const NDArray* b, const NDArr
 }
 
 
-ND4J_LOCAL void sruBI(sd::LaunchContext * context, NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* mask, NDArray* ht, NDArray* ct) {
-    BUILD_SINGLE_SELECTOR(x->dataType(), sruBI_, (x, w, b, c0, mask, ht, ct), FLOAT_TYPES);
+void sruBI(sd::LaunchContext * context, NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* mask, NDArray* ht, NDArray* ct) {
+    BUILD_SINGLE_SELECTOR(x->dataType(), sruBI_, (x, w, b, c0, mask, ht, ct), SD_FLOAT_TYPES);
 }
-ND4J_LOCAL void sruBIBP(sd::LaunchContext * context, NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* ct, const NDArray* inGradC0, const NDArray* inGradH, const NDArray* mask, NDArray* gradI, NDArray* gradW, NDArray* gradB, NDArray* gradC0) {
-    BUILD_SINGLE_SELECTOR(x->dataType(), sruBIBP_, (x, w, b, c0, ct, inGradC0, inGradH, mask, gradI, gradW, gradB, gradC0), FLOAT_TYPES);
+void sruBIBP(sd::LaunchContext * context, NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* ct, const NDArray* inGradC0, const NDArray* inGradH, const NDArray* mask, NDArray* gradI, NDArray* gradW, NDArray* gradB, NDArray* gradC0) {
+    BUILD_SINGLE_SELECTOR(x->dataType(), sruBIBP_, (x, w, b, c0, ct, inGradC0, inGradH, mask, gradI, gradW, gradB, gradC0), SD_FLOAT_TYPES);
 }
 
 
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void sruBI_,   (NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* mask, NDArray* ht, NDArray* ct), FLOAT_TYPES);
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void sruBIBP_, (NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* ct, const NDArray* inGradC0, const NDArray* inGradH, const NDArray* mask, NDArray* gradI, NDArray* gradW, NDArray* gradB, NDArray* gradC0), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void sruBI_,   (NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* mask, NDArray* ht, NDArray* ct), SD_FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void sruBIBP_, (NDArray* x, const NDArray* w, const NDArray* b, const NDArray* c0, const NDArray* ct, const NDArray* inGradC0, const NDArray* inGradH, const NDArray* mask, NDArray* gradI, NDArray* gradW, NDArray* gradB, NDArray* gradC0), SD_FLOAT_TYPES);
 
 
 }

@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_FLATTEN_H
 #define DEV_TESTS_FLATTEN_H
-
 #include <vector>
 #include <array/NDArray.h>
 
@@ -32,17 +31,17 @@ namespace helpers {
 
 
 //////////////////////////////////////////////////////////////////////
-void flatten(sd::LaunchContext *context, std::vector<NDArray*> &inputs, NDArray *output, char order);
+SD_LIB_HIDDEN void flatten(sd::LaunchContext *context, std::vector<NDArray*> &inputs, NDArray *output, char order);
 
 
 //////////////////////////////////////////////////////////////////////
-INLINEDEF _CUDA_HD Nd4jLong getIndexOffsetOrdered(Nd4jLong index, const Nd4jLong *shapeInfo, const char order) {
+SD_INLINE SD_HOST_DEVICE sd::LongType getIndexOffsetOrdered(sd::LongType index, const sd::LongType *shapeInfo, const char order) {
 
-    Nd4jLong offset = 0;
+    sd::LongType offset = 0;
 
     if (order == 'c') {
 
-        for(uint i = shapeInfo[0]; i > 1; --i) {
+        for(sd::Unsigned i = shapeInfo[0]; i > 1; --i) {
             offset += (index % shapeInfo[i]) * shapeInfo[i + shapeInfo[0]];
             index /= shapeInfo[i];
         }
@@ -51,7 +50,7 @@ INLINEDEF _CUDA_HD Nd4jLong getIndexOffsetOrdered(Nd4jLong index, const Nd4jLong
     }
     else {
 
-        for(uint i = 1; i < shapeInfo[0]; ++i) {
+        for(sd::Unsigned i = 1; i < shapeInfo[0]; ++i) {
             offset += (index % shapeInfo[i]) * shapeInfo[i + shapeInfo[0]];
             index /= shapeInfo[i];
         }

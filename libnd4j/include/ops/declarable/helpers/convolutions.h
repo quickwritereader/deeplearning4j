@@ -22,10 +22,8 @@
 
 #ifndef LIBND4J_CONVOLUTIONS_H
 #define LIBND4J_CONVOLUTIONS_H
-
 #include <array/NDArray.h>
 #include <graph/Context.h>
-#include <system/dll.h>
 
 #include <execution/LaunchContext.h>
 
@@ -38,7 +36,7 @@ namespace sd {
             PNORM_POOL = 2,
         };
 
-        class ND4J_EXPORT ConvolutionUtils {
+        class SD_LIB_HIDDEN ConvolutionUtils {
         public:
             static inline void calcOutSizePool2D(int& oH, int& oW, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const int iH, const int iW, const int paddingMode) {
 
@@ -49,8 +47,8 @@ namespace sd {
                     oW = (iW - ((kW - 1) * dW + 1) + 2 * pW) / sW + 1;
                 }
                 else if (paddingMode == 1) {       // same
-                    oH = (int) math::nd4j_ceil<double, double>(iH * 1. / sH);
-                    oW = (int) math::nd4j_ceil<double, double>(iW * 1. / sW);
+                    oH = (int) math::sd_ceil<double, double>(iH * 1. / sH);
+                    oW = (int) math::sd_ceil<double, double>(iW * 1. / sW);
                 }
                 else {                      // causal
                     oH = (iH - 1) / sH + 1;     // 2*pH = (kH-1)*dH
@@ -66,9 +64,9 @@ namespace sd {
                     oW = (iW - ((kW - 1) * dW + 1) + 2 * pW) / sW + 1;
                 }
                 else if(paddingMode == 1) {        // same
-                    oD = (int) sd::math::nd4j_ceil<double, double>(iD * 1. / sD);
-                    oH = (int) sd::math::nd4j_ceil<double, double>(iH * 1. / sH);
-                    oW = (int) sd::math::nd4j_ceil<double, double>(iW * 1. / sW);
+                    oD = (int) sd::math::sd_ceil<double, double>(iD * 1. / sD);
+                    oH = (int) sd::math::sd_ceil<double, double>(iH * 1. / sH);
+                    oW = (int) sd::math::sd_ceil<double, double>(iW * 1. / sW);
 
                 }
                 else {                      // causal
@@ -160,7 +158,7 @@ namespace sd {
                 getSizesAndIndexesConv2d(isNCHW, wFormat, input.shapeInfo(), output.shapeInfo(), bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH, indWiC, indWoC, indWkH, indOoH);
             }
 
-            static inline void getSizesAndIndexesConv2d(const bool isNCHW, const int wFormat, const Nd4jLong* inShapeInfo, const Nd4jLong* outShapeInfo, int& bS, int& iC, int& iH, int& iW, int& oC, int& oH, int& oW, int& indIOioC, int& indIiH, int& indWiC, int& indWoC, int& indWkH, int& indOoH) {
+            static inline void getSizesAndIndexesConv2d(const bool isNCHW, const int wFormat, const sd::LongType* inShapeInfo, const sd::LongType* outShapeInfo, int& bS, int& iC, int& iH, int& iW, int& oC, int& oH, int& oW, int& indIOioC, int& indIiH, int& indWiC, int& indWoC, int& indWkH, int& indOoH) {
                 // input   [bS, iH, iW, iC] (NHWC) or [bS, iC, iH, iW] (NCHW)
                 // weights [kH, kW, iC, oC] (wFormat = 0), [oC, iC, kH, kW] (wFormat = 1), [oC, kH, kW, iC] (wFormat = 2)
                 // output  [bS, oH, oW, oC] (NHWC) or [bS, oC, oH, oW] (NCHW)
@@ -273,26 +271,26 @@ namespace sd {
             //     }
             // }
 
-            static std::vector<Nd4jLong> expectWeightsShape(const int wFormat, const int kH, const int kW, const int iC, const int oC) {
+            static std::vector<sd::LongType> expectWeightsShape(const int wFormat, const int kH, const int kW, const int iC, const int oC) {
 
                 if(0 == wFormat)
-                    return std::vector<Nd4jLong>({kH, kW, iC, oC});
+                    return std::vector<sd::LongType>({kH, kW, iC, oC});
 
                 if(1 == wFormat)
-                    return std::vector<Nd4jLong>({oC, iC, kH, kW});
+                    return std::vector<sd::LongType>({oC, iC, kH, kW});
 
-                return std::vector<Nd4jLong>({oC, kH, kW, iC});
+                return std::vector<sd::LongType>({oC, kH, kW, iC});
             }
 
-            static std::vector<Nd4jLong> expectWeightsShape(const int wFormat, const int kD, const int kH, const int kW, const int iC, const int oC) {
+            static std::vector<sd::LongType> expectWeightsShape(const int wFormat, const int kD, const int kH, const int kW, const int iC, const int oC) {
 
                 if(0 == wFormat)
-                    return std::vector<Nd4jLong>({kD, kH, kW, iC, oC});
+                    return std::vector<sd::LongType>({kD, kH, kW, iC, oC});
 
                 if(1 == wFormat)
-                    return std::vector<Nd4jLong>({oC, iC, kD, kH, kW});
+                    return std::vector<sd::LongType>({oC, iC, kD, kH, kW});
 
-                return std::vector<Nd4jLong>({oC, kD, kH, kW, iC});
+                return std::vector<sd::LongType>({oC, kD, kH, kW, iC});
             }
 
             static void conv2d(sd::graph::Context  &context, const NDArray* input, const NDArray* weights, const NDArray* bias, NDArray* output, const int kH, const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode, const int isNCHW, const int wFormat);

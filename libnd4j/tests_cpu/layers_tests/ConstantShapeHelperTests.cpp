@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <helpers/ConstantShapeHelper.h>
@@ -114,15 +113,15 @@ TEST_F(ConstantShapeHelperTests, stress_test_1) {
         ConstantShapeHelper::getInstance().createShapeInfo(descriptor);
         delete [] ptr;
     }
-    ShapeDescriptor aShape(sd::DataType::FLOAT32, 'c',  {(Nd4jLong)5, (Nd4jLong)382, (Nd4jLong)373});
-//    nd4j_printf("%d\n", ConstantShapeHelper::getInstance().cachedEntriesForDevice(0));
+    ShapeDescriptor aShape(sd::DataType::FLOAT32, 'c',  {(sd::LongType)5, (sd::LongType)382, (sd::LongType)373});
+//    sd_printf("%d\n", ConstantShapeHelper::getInstance().cachedEntriesForDevice(0));
 
     auto timeStart = std::chrono::system_clock::now();
     ASSERT_TRUE(ConstantShapeHelper::getInstance().checkBufferExistenceForShapeInfo(aShape));
     auto timeEnd = std::chrono::system_clock::now();
 
     auto outerTime = std::chrono::duration_cast<std::chrono::nanoseconds>(timeEnd - timeStart).count();
-    nd4j_printf("Total time (us) %lld\n", outerTime);
+    sd_printf("Total time (us) %lld\n", outerTime);
 }
 
 TEST_F(ConstantShapeHelperTests, basic_test_3) {
@@ -148,7 +147,7 @@ TEST_F(ConstantShapeHelperTests, basic_test_4) {
 #ifdef __CUDABLAS__
     ASSERT_TRUE(dup->specialShapeInfo() != nullptr);
     PointersManager manager(sd::LaunchContext ::defaultContext(), "test");
-    // manager.printDevContentOnDev<Nd4jLong>(dup->special(), shape::shapeInfoLength(2), 0);
+    // manager.printDevContentOnDev<sd::LongType>(dup->special(), shape::shapeInfoLength(2), 0);
 #endif
 
     delete array;
@@ -235,8 +234,8 @@ TEST_F(ConstantHelperTests, basic_test_2) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(ConstantShapeHelperTests, ShapeDescriptor_1) {
 
-    Nd4jLong shapeInfo1[] = {4, 2, 5, 5, 2, 25, 5, 1, 50, 8192, 0, 99};
-    Nd4jLong shapeInfo2[] = {4, 2, 5, 5, 2, 50, 10, 2, 1, 8192, 1, 99};
+    sd::LongType shapeInfo1[] = {4, 2, 5, 5, 2, 25, 5, 1, 50, 8192, 0, 99};
+    sd::LongType shapeInfo2[] = {4, 2, 5, 5, 2, 50, 10, 2, 1, 8192, 1, 99};
 
     ShapeDescriptor descr1(shapeInfo1);
     ShapeDescriptor descr2(shapeInfo2);
@@ -247,12 +246,12 @@ TEST_F(ConstantShapeHelperTests, ShapeDescriptor_1) {
 TEST_F(ConstantShapeHelperTests, ShapeDescriptor_validation) {
 
     //for c order
-    std::vector<Nd4jLong> shape{ 2,3,4,5 };
-    std::vector<Nd4jLong> incorrectStride1{ 20,20,5,1 };
-    std::vector<Nd4jLong> incorrectStride2{ 60,20,5,5 };
-    std::vector<Nd4jLong> correctStride1{ 60,20,5,1 };
-    std::vector<Nd4jLong> correctStride2{ 300,100,25,5 };
-    std::vector<Nd4jLong> correctStride3{ 800, 200, 40, 5 }; 
+    std::vector<sd::LongType> shape{ 2,3,4,5 };
+    std::vector<sd::LongType> incorrectStride1{ 20,20,5,1 };
+    std::vector<sd::LongType> incorrectStride2{ 60,20,5,5 };
+    std::vector<sd::LongType> correctStride1{ 60,20,5,1 };
+    std::vector<sd::LongType> correctStride2{ 300,100,25,5 };
+    std::vector<sd::LongType> correctStride3{ 800, 200, 40, 5 }; 
 
     auto shapeDesc = ShapeDescriptor(DataType::FLOAT32, 'c', shape, incorrectStride1, 1);
     ASSERT_TRUE(shapeDesc.validate() == SHAPE_DESC_INCORRECT_STRIDES);
@@ -292,8 +291,8 @@ TEST_F(ConstantShapeHelperTests, ShapeDescriptor_validation) {
     shapeDesc = ShapeDescriptor(DataType::FLOAT32, 'f', shape, correctStride3, 0);
     ASSERT_TRUE(shapeDesc.validate() == SHAPE_DESC_OK);
 
-    std::vector<Nd4jLong> shape1;
-    shape1.resize(MAX_RANK+1);
+    std::vector<sd::LongType> shape1;
+    shape1.resize(SD_MAX_RANK+1);
     shapeDesc = ShapeDescriptor(DataType::FLOAT32, 'f', shape1, correctStride3, 0);
     ASSERT_TRUE( (shapeDesc.validate() & SHAPE_DESC_INCORRECT_RANK) == SHAPE_DESC_INCORRECT_RANK);
 
@@ -346,6 +345,6 @@ TEST_F(ConstantShapeHelperTests, ShapeDescriptor_paddedBuffer) {
         for (int i = 0; i < v5.size(); i++) {
             ASSERT_TRUE(v5[i] == v6[i]);
         }
-	}
+    }
 
 }

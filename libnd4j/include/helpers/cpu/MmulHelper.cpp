@@ -46,21 +46,21 @@ static  void usualGemm(const NDArray* vA, const NDArray* vB, NDArray* vC,
 
     const bool betaPersent = beta;
 
-    const Nd4jLong* aShapeInfo = vA->shapeInfo();
-    const Nd4jLong* bShapeInfo = vB->shapeInfo();
-    const Nd4jLong* cShapeInfo = vC->shapeInfo();
+    const sd::LongType* aShapeInfo = vA->shapeInfo();
+    const sd::LongType* bShapeInfo = vB->shapeInfo();
+    const sd::LongType* cShapeInfo = vC->shapeInfo();
 
     const int aRank = vA->rankOf();
     const int bRank = vB->rankOf();
     const int cRank = vC->rankOf();
 
-    const Nd4jLong cLen = vC->lengthOf();
+    const sd::LongType cLen = vC->lengthOf();
 
     const int K = vA->sizeAt(aKaxis);
 
     auto func = PRAGMA_THREADS_FOR {
 
-        std::vector<Nd4jLong> aCoords(2), bCoords(2), cCoords(2);
+        std::vector<sd::LongType> aCoords(2), bCoords(2), cCoords(2);
 
         for (auto i = start; i < stop; ++i) {
 
@@ -113,9 +113,9 @@ static  void usualGemv(const NDArray* vA, const NDArray* vX, NDArray* vY, const 
 
     const bool betaPersent = beta;
 
-    const Nd4jLong* aShapeInfo = vA->shapeInfo();
-    const Nd4jLong* xShapeInfo = vX->shapeInfo();
-    const Nd4jLong* yShapeInfo = vY->shapeInfo();
+    const sd::LongType* aShapeInfo = vA->shapeInfo();
+    const sd::LongType* xShapeInfo = vX->shapeInfo();
+    const sd::LongType* yShapeInfo = vY->shapeInfo();
 
     const int N = vX->lengthOf();
     const int M = vY->lengthOf();
@@ -154,7 +154,7 @@ static  void usualGemv(const NDArray* vA, const NDArray* vX, NDArray* vY, const 
 //////////////////////////////////////////////////////////////////////////////
 // (X*Y) = Z[0]
 template <typename T1, typename T2, typename T3>
-static void usualDot(const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ) {
+static void usualDot(const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ) {
 
     T1* X = reinterpret_cast<T1*>(const_cast<void*>(vX));
     T2* Y = reinterpret_cast<T2*>(const_cast<void*>(vY));
@@ -165,7 +165,7 @@ static void usualDot(const Nd4jLong length, const double alpha, const void* vX, 
 
     T3 sum = 0;
 PRAGMA_SUM_ENV(length,sum)
-    for(Nd4jLong i = 0; i < length; ++i)
+    for(sd::LongType i = 0; i < length; ++i)
             sum += X[i * incx] * Y[i * incy];
 
     if(betaPersent)
@@ -218,8 +218,8 @@ NDArray* MmulHelper::mmulMxM(const NDArray* A, const NDArray* B, NDArray* C, con
     const bool typeFloat  = hasGemm && ABC &&  aType == DataType::FLOAT32;
 
     if(!typeFloat && !typeDouble) {
-        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemm, (A, B, C, 0, 1, 0, 1, 0, 1, alpha, beta), NUMERIC_TYPES);
-        // BUILD_TRIPLE_SELECTOR(aType, bType, cType, usualGemm, (A, B, C, 0, 1, 0, 1, 0, 1, alpha, beta), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemm, (A, B, C, 0, 1, 0, 1, 0, 1, alpha, beta), SD_NUMERIC_TYPES);
+        // BUILD_TRIPLE_SELECTOR(aType, bType, cType, usualGemm, (A, B, C, 0, 1, 0, 1, 0, 1, alpha, beta), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     }
     else {
 
@@ -329,8 +329,8 @@ NDArray* MmulHelper::mmulMxV(const NDArray* A, const NDArray* X, sd::NDArray* Y,
     const bool typeFloat  = hasGemv && AXY && aType == DataType::FLOAT32;
 
     if(!typeDouble && !typeFloat) {
-        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemv, (A, X, Y, incx, incy, 0, alpha, beta), NUMERIC_TYPES);
-        // BUILD_TRIPLE_SELECTOR(aType, xType, yType, usualGemv, (A, X, Y, incx, incy, 0, alpha, beta), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemv, (A, X, Y, incx, incy, 0, alpha, beta), SD_NUMERIC_TYPES);
+        // BUILD_TRIPLE_SELECTOR(aType, xType, yType, usualGemv, (A, X, Y, incx, incy, 0, alpha, beta), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     }
     else {
 
@@ -388,15 +388,15 @@ NDArray* MmulHelper::dot(const NDArray* X, const NDArray* Y, sd::NDArray* Z, con
     if(Z == nullptr)
         Z = new NDArray(DataTypeUtils::pickPairwiseResultType(X->dataType(), Y->dataType()), X->getContext());
 
-    const Nd4jLong incx = X->stridesOf()[xLenDim];
-    const Nd4jLong incy = Y->stridesOf()[yLenDim];
+    const sd::LongType incx = X->stridesOf()[xLenDim];
+    const sd::LongType incy = Y->stridesOf()[yLenDim];
 
     const auto xType = X->dataType();
     const auto yType = Y->dataType();
     const auto zType = Z->dataType();
 
-    BUILD_SINGLE_SELECTOR_THRICE(xType, usualDot, (length, alpha, X->buffer(), incx, Y->buffer(), incy, beta, Z->buffer()), NUMERIC_TYPES);
-        //BUILD_TRIPLE_SELECTOR(xType, yType, zType, usualDot, (length, alpha, X->buffer(), incx, Y->buffer(), incy, beta, Z->buffer()), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR_THRICE(xType, usualDot, (length, alpha, X->buffer(), incx, Y->buffer(), incy, beta, Z->buffer()), SD_NUMERIC_TYPES);
+        //BUILD_TRIPLE_SELECTOR(xType, yType, zType, usualDot, (length, alpha, X->buffer(), incx, Y->buffer(), incy, beta, Z->buffer()), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
 
     return Z;
 }
@@ -421,15 +421,15 @@ static void batchedGemm(const NDArray* vA, const NDArray* vB,  NDArray* vC,
 
     const bool betaPersent = beta;
 
-    const Nd4jLong* aShapeInfo = vA->shapeInfo();
-    const Nd4jLong* bShapeInfo = vB->shapeInfo();
-    const Nd4jLong* cShapeInfo = vC->shapeInfo();
+    const sd::LongType* aShapeInfo = vA->shapeInfo();
+    const sd::LongType* bShapeInfo = vB->shapeInfo();
+    const sd::LongType* cShapeInfo = vC->shapeInfo();
 
     const int aRank = vA->rankOf();
     const int bRank = vB->rankOf();
     const int cRank = vC->rankOf();
 
-    const Nd4jLong cLen = vC->lengthOf();
+    const sd::LongType cLen = vC->lengthOf();
 
     const int K = vA->sizeAt(aKaxis);
 
@@ -443,7 +443,7 @@ static void batchedGemm(const NDArray* vA, const NDArray* vB,  NDArray* vC,
             shape::index2coordsCPU(start, i, cShapeInfo, cCoords.data());
 
             // calculate index of current batch
-            Nd4jLong batchInd;
+            sd::LongType batchInd;
             if(cRank > 2)
                 batchInd = shape::coords2index(cShapeInfo, cBatchDims, cRank - 2, cCoords.data());
 
@@ -507,7 +507,7 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
         throw std::runtime_error("MmulHelper::mmulNxN: shapes of A and B arrays are not suitable for matrix multiplication !");
 
     // validation of C array
-    std::vector<Nd4jLong> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
+    std::vector<sd::LongType> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
     cExpectedShape[cExpectedShape.size() - 2] = A->sizeAt(-2);
     cExpectedShape[cExpectedShape.size() - 1] = B->sizeAt(-1);
 
@@ -535,8 +535,8 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
     if(cRank > 2)
         cBatchDims = ShapeUtils::evalDimsToExclude(cRank, {cMaxis, cNaxis});
 
-    // BUILD_TRIPLE_SELECTOR(A->dataType(), B->dataType(), C->dataType(), batchedGemm, (A, B, C, aBatchDims.data(), bBatchDims.data(), cBatchDims.data(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-    BUILD_SINGLE_SELECTOR_THRICE(A->dataType(), batchedGemm, (A, B, C, aBatchDims.data(), bBatchDims.data(), cBatchDims.data(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), NUMERIC_TYPES);
+    // BUILD_TRIPLE_SELECTOR(A->dataType(), B->dataType(), C->dataType(), batchedGemm, (A, B, C, aBatchDims.data(), bBatchDims.data(), cBatchDims.data(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR_THRICE(A->dataType(), batchedGemm, (A, B, C, aBatchDims.data(), bBatchDims.data(), cBatchDims.data(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), SD_NUMERIC_TYPES);
 
     return C;
 }
@@ -563,7 +563,7 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
         throw std::runtime_error("MmulHelper::mmulNxN: shapes of A and B arrays are not suitable for matrix multiplication !");
 
     // validation of C array
-    std::vector<Nd4jLong> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
+    std::vector<sd::LongType> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
     cExpectedShape[cExpectedShape.size() - 2] = A->sizeAt(-2);
     cExpectedShape[cExpectedShape.size() - 1] = B->sizeAt(-1);
 
@@ -578,11 +578,11 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
 
     // multiplication
     const std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(C->rankOf(), {-2, -1});
-    const Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(C->shapeInfo(), dimsToExclude);
-    std::vector<Nd4jLong> idxRanges(2 * C->rankOf());
+    const sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(C->shapeInfo(), dimsToExclude);
+    std::vector<sd::LongType> idxRanges(2 * C->rankOf());
 
 // #pragma omp parallel for schedule(guided) firstprivate(idxRanges)
-        for(Nd4jLong i = 0; i < numOfSubArrs; ++i) {
+        for(sd::LongType i = 0; i < numOfSubArrs; ++i) {
 
             ShapeUtils::evalIdxRangesForSubArr(i, C->shapeInfo(), dimsToExclude, idxRanges.data());
             NDArray cSubArr = (*C)(idxRanges);
@@ -620,20 +620,20 @@ static void usualGemm(const char cOrder, const bool transA, const bool transB, c
     const bool flagB = (flagC && transB) || (!flagC && !transB);
 
     // PRAGMA_OMP_PARALLEL_FOR_ARGS(OMP_IF(M*N > Environment::getInstance().elementwiseThreshold()) schedule(guided))
-    // for(uint row = 0; row < M; ++row) {
+    // for(sd::Unsigned row = 0; row < M; ++row) {
 
     //     T3* c = flagC ? (C + row) : (C + row * ldc);
 
-    //     for(uint col = 0; col < N; ++col)
+    //     for(sd::Unsigned col = 0; col < N; ++col)
     //         c[flagC ? col * ldc : col] = 0;
 
-    //     for(uint i = 0; i < K; ++i) {
+    //     for(sd::Unsigned i = 0; i < K; ++i) {
 
     //         T3* b = flagB ? (B + i * ldb) : (B + i);
     //         T3* a = flagA ? (A + row * lda + i) : (A + row + i * lda);
 
     //         if(flagC) {
-    //             for(uint col = 0; col < N; ++col) {
+    //             for(sd::Unsigned col = 0; col < N; ++col) {
     //                 if(betaZ)
     //                     c[col * ldc] += a * b[flagB ? col : col * ldb] + betaZ * c[col * ldc];
     //                 else
@@ -641,7 +641,7 @@ static void usualGemm(const char cOrder, const bool transA, const bool transB, c
     //             }
     //         }
     //         else {
-    //             for(uint col = 0; col < N; ++col) {
+    //             for(sd::Unsigned col = 0; col < N; ++col) {
     //                 if(betaZ)
     //                     c[col] += a * b[flagB ? col : col * ldb] + betaZ * c[col];
     //                 else
@@ -657,7 +657,7 @@ static void usualGemm(const char cOrder, const bool transA, const bool transB, c
                 T3 *c = flagC ? (C + row + col * ldc) : (C + row * ldc + col);
                 T3 val = 0;
 
-                for (uint i = 0; i < K; ++i) {
+                for (sd::Unsigned i = 0; i < K; ++i) {
                     T3 a = flagA ? *(A + row * lda + i) : *(A + row + i * lda);
                     T3 b = flagB ? *(B + col + i * ldb) : *(B + col * ldb + i);
                     val += alphaZ * a * b;
@@ -709,8 +709,8 @@ static void usualGemv(const char aOrder, const int M, const int N, const double 
 }
 */
 
-//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const char cOrder, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* A, const int lda, const void* B, const int ldb, const double beta, void* C, const int ldc), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const char aOrder, const int M, const int N, const double alpha, const void* A, const int lda, const void* B, const int incx, const double beta, void* C, const int incy), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const char cOrder, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* A, const int lda, const void* B, const int ldb, const double beta, void* C, const int ldc), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const char aOrder, const int M, const int N, const double alpha, const void* A, const int lda, const void* B, const int incx, const double beta, void* C, const int incy), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
 
 }

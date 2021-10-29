@@ -26,26 +26,15 @@
 #ifndef SUMMARYSTATSREDUCE_H_
 #define SUMMARYSTATSREDUCE_H_
 #include <math/templatemath.h>
-#include <system/dll.h>
 
 #include <helpers/shape.h>
-#ifdef __CUDACC__
-#include <cuda.h>
-#include <cuda_runtime.h>
-
-#define host_and_device inline __host__  __device__
-#else
-#define host_and_device inline
-#endif
 
 #ifdef __JNI__
 #include <jni.h>
 #endif
-
 #include <ops/ops.h>
 #include <system/op_boilerplate.h>
-
-#include "legacy_ops.h"
+#include <loops/legacy_ops.h>
 
 namespace functions {
     namespace summarystats {
@@ -72,17 +61,17 @@ namespace functions {
             double M4;
             double bias;
 
-            _CUDA_HD SummaryStatsData() {
+            SD_HOST_DEVICE SummaryStatsData() {
                 initialize();
             }
 
             // initialize to the identity element
 
-            _CUDA_HD void initialize() {
+            SD_HOST_DEVICE void initialize() {
                 n = mean = M2 = M3 = M4 = bias = 0;
             }
 
-            _CUDA_HD void initWithValue(X val) {
+            SD_HOST_DEVICE void initWithValue(X val) {
                 n = 1;
                 min = val;
                 max = val;
@@ -93,7 +82,7 @@ namespace functions {
                 bias = 0;
             }
 
-            _CUDA_HD void setValues(SummaryStatsData<X> *target) {
+            SD_HOST_DEVICE void setValues(SummaryStatsData<X> *target) {
                 n = target->n;
                 min = target->min;
                 max = target->max;
@@ -104,13 +93,13 @@ namespace functions {
                 bias = target->bias;
             }
 
-            _CUDA_HD double variance() {
+            SD_HOST_DEVICE double variance() {
                 if (n <= 1.0)
                     return 0.0;
                 return M2 / (n);
             }
 
-            _CUDA_HD double varianceBiasCorrected() {
+            SD_HOST_DEVICE double varianceBiasCorrected() {
                 if (this->n <= 1.0) {
                     return 0.0;
                 }
@@ -119,69 +108,69 @@ namespace functions {
             }
 
 
-            _CUDA_HD double variance_n() {
+            SD_HOST_DEVICE double variance_n() {
                 if (n <= 1.0)
                     return 0.0;
                 return M2 / n;
             }
 
-            _CUDA_HD double skewness() { return M2 > 0.0 ? sd::math::nd4j_sqrt<double, double>(n) * M3 / sd::math::nd4j_pow<double, double, double>(M2, 1.5) : 0.0; }
+            SD_HOST_DEVICE double skewness() { return M2 > 0.0 ? sd::math::sd_sqrt<double, double>(n) * M3 / sd::math::sd_pow<double, double, double>(M2, 1.5) : 0.0; }
 
-            _CUDA_HD double kurtosis() { return M2 > 0.0 ? n * M4 / (M2 * M2) : 0; }
+            SD_HOST_DEVICE double kurtosis() { return M2 > 0.0 ? n * M4 / (M2 * M2) : 0; }
 
-            _CUDA_HD double getM2() {
+            SD_HOST_DEVICE double getM2() {
                 return M2;
             }
 
-            _CUDA_HD void setM2(X m2) {
+            SD_HOST_DEVICE void setM2(X m2) {
                 M2 = m2;
             }
 
-            _CUDA_HD double getM3() {
+            SD_HOST_DEVICE double getM3() {
                 return M3;
             }
 
-            _CUDA_HD void setM3(X m3) {
+            SD_HOST_DEVICE void setM3(X m3) {
                 M3 = m3;
             }
 
-            _CUDA_HD double getM4() {
+            SD_HOST_DEVICE double getM4() {
                 return M4;
             }
 
-            _CUDA_HD void setM4(X m4) {
+            SD_HOST_DEVICE void setM4(X m4) {
                 M4 = m4;
             }
 
-            _CUDA_HD double getMax() {
+            SD_HOST_DEVICE double getMax() {
                 return max;
             }
 
-            _CUDA_HD void setMax(X max) {
+            SD_HOST_DEVICE void setMax(X max) {
                 this->max = max;
             }
 
-            _CUDA_HD double getMean() {
+            SD_HOST_DEVICE double getMean() {
                 return mean;
             }
 
-            _CUDA_HD void setMean(X mean) {
+            SD_HOST_DEVICE void setMean(X mean) {
                 this->mean = mean;
             }
 
-            _CUDA_HD double getMin() {
+            SD_HOST_DEVICE double getMin() {
                 return min;
             }
 
-            _CUDA_HD void setMin(X min) {
+            SD_HOST_DEVICE void setMin(X min) {
                 this->min = min;
             }
 
-            _CUDA_HD double getN() {
+            SD_HOST_DEVICE double getN() {
                 return n;
             }
 
-            _CUDA_HD void setN(X n) {
+            SD_HOST_DEVICE void setN(X n) {
                 this->n = n;
             }
         };
@@ -189,38 +178,38 @@ namespace functions {
 #ifdef __CUDACC__
         // This is the un-specialized struct.  Note that we prevent instantiation of this
 // struct by putting an undefined symbol in the function body so it won't compile.
-		template<typename T>
-		struct SharedSummaryStatsData {
-			// Ensure that we won't compile any un-specialized types
-			__device__ T * getPointer() {
-				extern __device__ void error(void);
-				error();
-				return 0;
-			}
-		};
+        template<typename T>
+        struct SharedSummaryStatsData {
+            // Ensure that we won't compile any un-specialized types
+            SD_DEVICE T * getPointer() {
+                extern SD_DEVICE void error(void);
+                error();
+                return 0;
+            }
+        };
 
-		// Following are the specializations for the following types.
-		// int, uint, char, uchar, short, ushort, long long, ulong long, bool, float, and double
-		// One could also specialize it for user-defined types.
+        // Following are the specializations for the following types.
+        // int, sd::Unsigned, char, uchar, short, ushort, long long, ulong long, bool, float, and double
+        // One could also specialize it for user-defined types.
 
-		template<>
-		struct SharedSummaryStatsData<float> {
-			__device__ SummaryStatsData<float> * getPointer() {
-				extern __shared__ SummaryStatsData<float> s_int2[];
-				return s_int2;
-			}
-		};
-		// Following are the specializations for the following types.
-		// int, uint, char, uchar, short, ushort, long long, ulong long, bool, float, and double
-		// One could also specialize it for user-defined types.
+        template<>
+        struct SharedSummaryStatsData<float> {
+            SD_DEVICE SummaryStatsData<float> * getPointer() {
+                extern __shared__ SummaryStatsData<float> s_int2[];
+                return s_int2;
+            }
+        };
+        // Following are the specializations for the following types.
+        // int, sd::Unsigned, char, uchar, short, ushort, long long, ulong long, bool, float, and double
+        // One could also specialize it for user-defined types.
 
-		template<>
-		struct SharedSummaryStatsData<double> {
-			__device__ SummaryStatsData<double> * getPointer() {
-				extern __shared__ SummaryStatsData<double> s_int6[];
-				return s_int6;
-			}
-		};
+        template<>
+        struct SharedSummaryStatsData<double> {
+            SD_DEVICE SummaryStatsData<double> * getPointer() {
+                extern __shared__ SummaryStatsData<double> s_int6[];
+                return s_int6;
+            }
+        };
 #endif
 
         /**
@@ -230,7 +219,7 @@ namespace functions {
         class SummaryStatsReduce {
         public:
             //calculate an update of the reduce operation
-            _CUDA_HD static SummaryStatsData<X> update(SummaryStatsData<X> x, SummaryStatsData<X> y,
+            SD_HOST_DEVICE static SummaryStatsData<X> update(SummaryStatsData<X> x, SummaryStatsData<X> y,
                                                               void* extraParams) {
                 if ((long) x.n == 0 && (long) y.n > 0)
                     return y;
@@ -249,8 +238,8 @@ namespace functions {
 
                 //Basic number of samples (n), min, and max
                 vz.n = n;
-                vz.min = sd::math::nd4j_min(x.min, y.min);
-                vz.max = sd::math::nd4j_max(x.max, y.max);
+                vz.min = sd::math::sd_min(x.min, y.min);
+                vz.max = sd::math::sd_max(x.max, y.max);
                 double meanD = x.mean + delta * y.n / n;
                 vz.mean = meanD;
                 double M2D = x.M2 + y.M2;
@@ -269,62 +258,61 @@ namespace functions {
             }
 
 
-
 #ifdef __CUDACC__
 
-            static inline _CUDA_D Z startingValue(X const* input) {
+            static SD_INLINE SD_DEVICE Z startingValue(X const* input) {
                 return static_cast<Z>(0);
             }
 
             template<typename OpType>
-            static _CUDA_D void aggregatePartials(SummaryStatsData<X> *sPartials, Nd4jLong tid, Nd4jLong numElements, void *extraParams);
+            static SD_DEVICE void aggregatePartials(SummaryStatsData<X> *sPartials, sd::LongType tid, sd::LongType numElements, void *extraParams);
 
 
             template<typename OpType>
-	        static _CUDA_D void transform(void const* dx, Nd4jLong const* xShapeInfo, void *extraParams, void *vz, Nd4jLong const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets);
+            static SD_DEVICE void transform(void const* dx, sd::LongType const* xShapeInfo, void *extraParams, void *vz, sd::LongType const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets);
 
-            static _CUDA_D void transform(const int opNum, void const* dx, Nd4jLong const* xShapeInfo, void *extraParams, void *vz, Nd4jLong const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, Nd4jLong const* tadOnlyShapeInfo, Nd4jLong const* tadOffsets);
+            static SD_DEVICE void transform(const int opNum, void const* dx, sd::LongType const* xShapeInfo, void *extraParams, void *vz, sd::LongType const* zShapeInfo, int *dimension, int dimensionLength, int postProcessOrNot, int *allocationBuffer, void *reductionBuffer, sd::LongType const* tadOnlyShapeInfo, sd::LongType const* tadOffsets);
 
-            static _CUDA_H void execSummaryStatsReduceScalar(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *extraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer);
-            static _CUDA_H void execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *extraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer);
-            static _CUDA_H void execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, Nd4jLong const* xShapeInfo, Nd4jLong const* hxShapeInfo, void *extraParams, void *vz, Nd4jLong const* zShapeInfo, Nd4jLong const* hzShapeInfo, int *dimension, int dimensionLength, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, bool biasCorrected, void *reductionBuffer);
+            static SD_HOST void execSummaryStatsReduceScalar(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *extraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer);
+            static SD_HOST void execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *extraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer);
+            static SD_HOST void execSummaryStatsReduce(dim3& launchDims, cudaStream_t *stream, int opNum, void const* x, sd::LongType const* xShapeInfo, sd::LongType const* hxShapeInfo, void *extraParams, void *vz, sd::LongType const* zShapeInfo, sd::LongType const* hzShapeInfo, int *dimension, int dimensionLength, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, bool biasCorrected, void *reductionBuffer);
 #else
 
             static Z execScalar(int opNum,
                                 bool biasCorrected,
-                                const void *x, const Nd4jLong *xShapeInfo,
+                                const void *x, const sd::LongType *xShapeInfo,
                                 void *extraParams);
 
             static void execScalar(int opNum,
                                    bool biasCorrected,
-                                   const void *x, const Nd4jLong *xShapeInfo,
+                                   const void *x, const sd::LongType *xShapeInfo,
                                    void *extraParams,
-                                   void *vz, const Nd4jLong *resultShapeInfoBuffer);
+                                   void *vz, const sd::LongType *resultShapeInfoBuffer);
 
             static void exec(int opNum,
                              bool biasCorrected,
-                             const void *x, const Nd4jLong *xShapeInfo,
+                             const void *x, const sd::LongType *xShapeInfo,
                              void *extraParams,
-                             void *vz, const Nd4jLong *resultShapeInfoBuffer,
+                             void *vz, const sd::LongType *resultShapeInfoBuffer,
                              int *dimension, int dimensionLength);
 
             template<typename OpType>
             static Z execScalar(bool biasCorrected,
-                                const void *x, const Nd4jLong *xShapeInfo,
+                                const void *x, const sd::LongType *xShapeInfo,
                                 void *extraParams);
 
             template<typename OpType>
             static void execScalar(bool biasCorrected,
-                                   const void *x, const Nd4jLong *xShapeInfo,
+                                   const void *x, const sd::LongType *xShapeInfo,
                                    void *extraParams,
-                                   void *vz, const Nd4jLong *resultShapeInfoBuffer);
+                                   void *vz, const sd::LongType *resultShapeInfoBuffer);
 
 
             template<typename OpType>
             static void exec(bool biasCorrected,
-                             const void *x, const Nd4jLong *xShapeInfo,
+                             const void *x, const sd::LongType *xShapeInfo,
                              void *extraParams,
-                             void *vz, const Nd4jLong *resultShapeInfoBuffer,
+                             void *vz, const sd::LongType *resultShapeInfoBuffer,
                              int *dimension, int dimensionLength);
 #endif
         };

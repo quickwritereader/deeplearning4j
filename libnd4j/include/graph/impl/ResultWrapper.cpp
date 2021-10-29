@@ -19,14 +19,13 @@
 //
 // Created by raver119 on 11/06/18.
 //
-
 #include <graph/ResultWrapper.h>
 #include <stdexcept>
 
 
 namespace sd {
     namespace graph {
-        ResultWrapper::ResultWrapper(Nd4jLong size, Nd4jPointer ptr) {
+        ResultWrapper::ResultWrapper(sd::LongType size, sd::Pointer ptr) {
             if (size <= 0)
                 throw std::runtime_error("FlatResult size should be > 0");
 
@@ -42,11 +41,11 @@ namespace sd {
         }
 
 
-        Nd4jLong ResultWrapper::size() {
+        sd::LongType ResultWrapper::size() {
             return _size;
         }
 
-        Nd4jPointer ResultWrapper::pointer() {
+        sd::Pointer ResultWrapper::pointer() {
             return _pointer;
         }
     }

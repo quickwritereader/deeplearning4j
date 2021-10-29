@@ -41,12 +41,12 @@ BROADCASTABLE_OP_IMPL(tf_atan2, 0, 0) {
     x->applyTrueBroadcast(sd::BroadcastOpsTuple::custom(scalar::Atan2, pairwise::Atan2, broadcast::Atan2), *y, *z, true);
 
     // if (tZ == nullptr)
-    //     return ND4J_STATUS_KERNEL_FAILURE;
+    //     return sd::Status::KERNEL_FAILURE;
     // else if (tZ != z) {
     //     OVERWRITE_RESULT(tZ);
     // }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(tf_atan2) {

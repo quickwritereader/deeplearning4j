@@ -40,7 +40,7 @@ namespace sd {
             output->p(0, input->sizeAt(dim));
             output->syncToDevice();
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(size_at) {

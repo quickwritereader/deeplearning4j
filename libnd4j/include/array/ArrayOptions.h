@@ -23,9 +23,8 @@
 #ifndef ND4J_ARRAY_OPTIONS_H
 #define ND4J_ARRAY_OPTIONS_H
 
+#include <system/common.h>
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
 #include <array/DataType.h>
 #include <array/ArrayType.h>
 #include <array/SpaceType.h>
@@ -92,78 +91,78 @@
 #define ARRAY_HAS_PADDED_BUFFER  (1<<25)
 
 namespace sd {
-    class ND4J_EXPORT ArrayOptions {
+    class SD_LIB_EXPORT ArrayOptions {
 
     private:
-        static FORCEINLINE _CUDA_HD Nd4jLong& extra(Nd4jLong* shape);
+        static SD_INLINE SD_HOST_DEVICE sd::LongType& extra(sd::LongType* shape);
 
     public:
-        static FORCEINLINE _CUDA_HD bool isNewFormat(const Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD bool hasPropertyBitSet(const Nd4jLong *shapeInfo, int property);
-        static FORCEINLINE _CUDA_HD bool togglePropertyBit(Nd4jLong *shapeInfo, int property);
-        static FORCEINLINE _CUDA_HD void unsetPropertyBit(Nd4jLong *shapeInfo, int property);
+        static SD_INLINE SD_HOST_DEVICE bool isNewFormat(const sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE bool hasPropertyBitSet(const sd::LongType *shapeInfo, int property);
+        static SD_INLINE SD_HOST_DEVICE bool togglePropertyBit(sd::LongType *shapeInfo, int property);
+        static SD_INLINE SD_HOST_DEVICE void unsetPropertyBit(sd::LongType *shapeInfo, int property);
 
-        static FORCEINLINE _CUDA_HD void setPropertyBit(Nd4jLong *shapeInfo, int property);
-        static FORCEINLINE _CUDA_HD void setPropertyBits(Nd4jLong *shapeInfo, std::initializer_list<int> properties);
+        static SD_INLINE SD_HOST_DEVICE void setPropertyBit(sd::LongType *shapeInfo, int property);
+        static SD_INLINE SD_HOST_DEVICE void setPropertyBits(sd::LongType *shapeInfo, std::initializer_list<int> properties);
 
-        static FORCEINLINE _CUDA_HD bool isSparseArray(Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD bool isUnsigned(Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE bool isSparseArray(sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE bool isUnsigned(sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD sd::DataType dataType(const Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE sd::DataType dataType(const sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD SpaceType spaceType(Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD SpaceType spaceType(const Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE SpaceType spaceType(sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE SpaceType spaceType(const sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD ArrayType arrayType(Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD ArrayType arrayType(const Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE ArrayType arrayType(sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE ArrayType arrayType(const sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD SparseType sparseType(Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD SparseType sparseType(const Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE SparseType sparseType(sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE SparseType sparseType(const sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD bool hasExtraProperties(Nd4jLong *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE bool hasExtraProperties(sd::LongType *shapeInfo);
 
-        static FORCEINLINE _CUDA_HD bool hasPaddedBuffer(const Nd4jLong* shapeInfo);
-        static FORCEINLINE _CUDA_HD void flagAsPaddedBuffer(Nd4jLong* shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE bool hasPaddedBuffer(const sd::LongType* shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE void flagAsPaddedBuffer(sd::LongType* shapeInfo);
 
-        static FORCEINLINE _CUDA_HD void resetDataType(Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD Nd4jLong propertyWithoutDataType(const Nd4jLong *shapeInfo);
-        static FORCEINLINE _CUDA_HD void setDataType(Nd4jLong *shapeInfo, const sd::DataType dataType);
+        static SD_INLINE SD_HOST_DEVICE void resetDataType(sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE sd::LongType propertyWithoutDataType(const sd::LongType *shapeInfo);
+        static SD_INLINE SD_HOST_DEVICE void setDataType(sd::LongType *shapeInfo, const sd::DataType dataType);
 
-        static FORCEINLINE _CUDA_HD void copyDataType(Nd4jLong* to, const Nd4jLong* from);
+        static SD_INLINE SD_HOST_DEVICE void copyDataType(sd::LongType* to, const sd::LongType* from);
     };
 
-    FORCEINLINE _CUDA_HD Nd4jLong& ArrayOptions::extra(Nd4jLong* shape) {
+    SD_INLINE SD_HOST_DEVICE sd::LongType& ArrayOptions::extra(sd::LongType* shape) {
         return shape[shape[0] + shape[0] + 1];
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::isNewFormat(const Nd4jLong *shapeInfo) {
-        return (extra(const_cast<Nd4jLong*>(shapeInfo)) != 0);
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::isNewFormat(const sd::LongType *shapeInfo) {
+        return (extra(const_cast<sd::LongType*>(shapeInfo)) != 0);
     }
 
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::isSparseArray(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::isSparseArray(sd::LongType *shapeInfo) {
         return hasPropertyBitSet(shapeInfo, ARRAY_SPARSE);
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::hasExtraProperties(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::hasExtraProperties(sd::LongType *shapeInfo) {
         return hasPropertyBitSet(shapeInfo, ARRAY_EXTRAS);
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::hasPropertyBitSet(const Nd4jLong *shapeInfo, int property) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::hasPropertyBitSet(const sd::LongType *shapeInfo, int property) {
         if (!isNewFormat(shapeInfo))
             return false;
 
-        return ((extra(const_cast<Nd4jLong*>(shapeInfo)) & property) == property);
+        return ((extra(const_cast<sd::LongType*>(shapeInfo)) & property) == property);
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::isUnsigned(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::isUnsigned(sd::LongType *shapeInfo) {
         if (!isNewFormat(shapeInfo))
             return false;
 
         return hasPropertyBitSet(shapeInfo, ARRAY_UNSIGNED);
     }
 
-    FORCEINLINE _CUDA_HD sd::DataType ArrayOptions::dataType(const Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE sd::DataType ArrayOptions::dataType(const sd::LongType *shapeInfo) {
         /*if (hasPropertyBitSet(shapeInfo, ARRAY_QUANTIZED))
             return sd::DataType::QINT8;
         else */if (hasPropertyBitSet(shapeInfo, ARRAY_FLOAT))
@@ -192,7 +191,7 @@ namespace sd {
             else if (hasPropertyBitSet(shapeInfo, ARRAY_UTF32))
                 return sd::DataType ::UTF32;
             else {
-                //shape::printShapeInfoLinear("Bad unsigned datatype (not)stored in shape", const_cast<Nd4jLong*>(shapeInfo));
+                //shape::printShapeInfoLinear("Bad unsigned datatype (not)stored in shape", const_cast<sd::LongType*>(shapeInfo));
 #ifndef __CUDA_ARCH__
                 throw std::runtime_error("Bad datatype A");
 #endif
@@ -213,18 +212,18 @@ namespace sd {
         else if (hasPropertyBitSet(shapeInfo, ARRAY_UTF32))
             return sd::DataType::UTF32;
         else {
-            //shape::printShapeInfoLinear("Bad signed datatype (not)stored in shape", const_cast<Nd4jLong*>(shapeInfo));
+            //shape::printShapeInfoLinear("Bad signed datatype (not)stored in shape", const_cast<sd::LongType*>(shapeInfo));
 #ifndef __CUDA_ARCH__
             throw std::runtime_error("Bad datatype B");
 #endif
         }
     }
 
-    FORCEINLINE _CUDA_HD SpaceType ArrayOptions::spaceType(const Nd4jLong *shapeInfo) {
-        return spaceType(const_cast<Nd4jLong *>(shapeInfo));
+    SD_INLINE SD_HOST_DEVICE SpaceType ArrayOptions::spaceType(const sd::LongType *shapeInfo) {
+        return spaceType(const_cast<sd::LongType *>(shapeInfo));
     }
 
-    FORCEINLINE _CUDA_HD SpaceType ArrayOptions::spaceType(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE SpaceType ArrayOptions::spaceType(sd::LongType *shapeInfo) {
         if (hasPropertyBitSet(shapeInfo, ARRAY_QUANTIZED))
             return SpaceType::QUANTIZED;
         if (hasPropertyBitSet(shapeInfo, ARRAY_COMPLEX))
@@ -233,11 +232,11 @@ namespace sd {
             return SpaceType::CONTINUOUS;
     }
 
-    FORCEINLINE _CUDA_HD ArrayType ArrayOptions::arrayType(const Nd4jLong *shapeInfo) {
-        return arrayType(const_cast<Nd4jLong *>(shapeInfo));
+    SD_INLINE SD_HOST_DEVICE ArrayType ArrayOptions::arrayType(const sd::LongType *shapeInfo) {
+        return arrayType(const_cast<sd::LongType *>(shapeInfo));
     }
 
-    FORCEINLINE _CUDA_HD ArrayType ArrayOptions::arrayType(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE ArrayType ArrayOptions::arrayType(sd::LongType *shapeInfo) {
         if (hasPropertyBitSet(shapeInfo, ARRAY_SPARSE))
             return ArrayType::SPARSE;
         else if (hasPropertyBitSet(shapeInfo, ARRAY_COMPRESSED))
@@ -250,25 +249,25 @@ namespace sd {
             return ArrayType::DENSE;
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::togglePropertyBit(Nd4jLong *shapeInfo, int property) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::togglePropertyBit(sd::LongType *shapeInfo, int property) {
         extra(shapeInfo) ^= property;
 
         return hasPropertyBitSet(shapeInfo, property);
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::setPropertyBit(Nd4jLong *shapeInfo, int property) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::setPropertyBit(sd::LongType *shapeInfo, int property) {
         extra(shapeInfo) |= property;
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::unsetPropertyBit(Nd4jLong *shapeInfo, int property) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::unsetPropertyBit(sd::LongType *shapeInfo, int property) {
         extra(shapeInfo) &= ~property;
     }
 
-    FORCEINLINE _CUDA_HD SparseType ArrayOptions::sparseType(const Nd4jLong *shapeInfo) {
-        return sparseType(const_cast<Nd4jLong *>(shapeInfo));
+    SD_INLINE SD_HOST_DEVICE SparseType ArrayOptions::sparseType(const sd::LongType *shapeInfo) {
+        return sparseType(const_cast<sd::LongType *>(shapeInfo));
     }
 
-    FORCEINLINE _CUDA_HD SparseType ArrayOptions::sparseType(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE SparseType ArrayOptions::sparseType(sd::LongType *shapeInfo) {
 #ifndef __CUDA_ARCH__
         if (!isSparseArray(shapeInfo))
             throw std::runtime_error("Not a sparse array");
@@ -284,29 +283,29 @@ namespace sd {
             return SparseType::LIL;
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::setPropertyBits(Nd4jLong *shapeInfo, std::initializer_list<int> properties) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::setPropertyBits(sd::LongType *shapeInfo, std::initializer_list<int> properties) {
         for (auto v: properties) {
             if (!hasPropertyBitSet(shapeInfo, v))
                 setPropertyBit(shapeInfo, v);
         }
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::flagAsPaddedBuffer(Nd4jLong* shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::flagAsPaddedBuffer(sd::LongType* shapeInfo) {
         if (!isNewFormat(shapeInfo))
             return ;
 
         return setPropertyBit(shapeInfo, ARRAY_HAS_PADDED_BUFFER);
     }
 
-    FORCEINLINE _CUDA_HD bool ArrayOptions::hasPaddedBuffer(const Nd4jLong* shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE bool ArrayOptions::hasPaddedBuffer(const sd::LongType* shapeInfo) {
         if (!isNewFormat(shapeInfo))
             return false;
 
         return hasPropertyBitSet(shapeInfo, ARRAY_HAS_PADDED_BUFFER);
     }
 
-    FORCEINLINE _CUDA_HD Nd4jLong ArrayOptions::propertyWithoutDataType(const Nd4jLong *shapeInfo){
-        Nd4jLong property = shapeInfo[shapeInfo[0] + shapeInfo[0] + 1];
+    SD_INLINE SD_HOST_DEVICE sd::LongType ArrayOptions::propertyWithoutDataType(const sd::LongType *shapeInfo){
+        sd::LongType property = shapeInfo[shapeInfo[0] + shapeInfo[0] + 1];
         property = property & (~ARRAY_BOOL);
         property = property & (~ARRAY_HALF);
         property = property & (~ARRAY_BHALF);
@@ -320,11 +319,11 @@ namespace sd {
         return property;
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::resetDataType(Nd4jLong *shapeInfo) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::resetDataType(sd::LongType *shapeInfo) {
         extra(shapeInfo) = propertyWithoutDataType(shapeInfo);
     }
 
-    FORCEINLINE _CUDA_HD void ArrayOptions::setDataType(Nd4jLong *shapeInfo, const sd::DataType dataType) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::setDataType(sd::LongType *shapeInfo, const sd::DataType dataType) {
         resetDataType(shapeInfo);
         if (dataType == sd::DataType::UINT8 ||
             dataType == sd::DataType::UINT16 ||
@@ -393,7 +392,7 @@ namespace sd {
     }
 
 ////////////////////////////////////////////////////////////////////////////////
-    FORCEINLINE _CUDA_HD void ArrayOptions::copyDataType(Nd4jLong* to, const Nd4jLong* from) {
+    SD_INLINE SD_HOST_DEVICE void ArrayOptions::copyDataType(sd::LongType* to, const sd::LongType* from) {
         setDataType(to, dataType(from));
     }
 }

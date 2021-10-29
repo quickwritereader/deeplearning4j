@@ -20,7 +20,6 @@
 // Created by raver119 on 09.02.18.
 //
 
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <helpers/helper_hash.h>
@@ -53,7 +52,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_1) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -74,7 +73,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_2) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -95,7 +94,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_3) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printShapeInfo("SS OS shape");
@@ -117,7 +116,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_4) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -137,7 +136,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_04) {
     //auto exp = NDArrayFactory::create<double>('c', {2}, {1.0f, 2.0f});
     auto onesRes = opOnes.evaluate({&matrix});
     //matrix.linspace(1);
-    ASSERT_EQ(onesRes.status(), Status::OK());
+    ASSERT_EQ(onesRes.status(), sd::Status::OK);
 
     auto ones = onesRes.at(0);
     *ones *= 10;
@@ -182,7 +181,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_5) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_TRUE(exp.equalsTo(z));
@@ -202,7 +201,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_6) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {0, 0, 0, 0, 2});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_TRUE(exp.equalsTo(z));
@@ -223,7 +222,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_Once_Again_7) {
 
     sd::ops::strided_slice op;
     auto result = op.evaluate({&matrix, &b, &e, &s}, {}, {1, 0, 0, 0, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //ASSERT_TRUE(exp.equalsTo(z));
@@ -245,7 +244,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_BP_1) {
 
     sd::ops::strided_slice_bp op;
     auto result = op.evaluate({&matrix, &grad}, {}, {1, 0, 1, 0, 2, 0, 0, 0, 1, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //ASSERT_TRUE(exp.equalsTo(z));
@@ -267,7 +266,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_BP_2) {
 
     sd::ops::strided_slice_bp op;
     auto result = op.evaluate({&matrix, &grad}, {}, {1, 0, 1, 0, 2, 0, 0, 0, 1, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //ASSERT_TRUE(exp.equalsTo(z));
@@ -289,7 +288,7 @@ TEST_F(DeclarableOpsTests6, Test_StridedSlice_BP_3) {
 
     sd::ops::strided_slice_bp op;
     auto result = op.evaluate({&matrix, &grad}, {}, {1, 0, 1, 0, 0, 0, 0, 0, 256, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //ASSERT_TRUE(exp.equalsTo(z));
@@ -304,7 +303,7 @@ TEST_F(DeclarableOpsTests6, Test_Simple_Scalar_1) {
     sd::ops::test_scalar op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -322,7 +321,7 @@ TEST_F(DeclarableOpsTests6, Test_Order_1) {
 
     sd::ops::order op;
     auto result = op.evaluate({&x}, {}, {0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_TRUE(exp.equalsTo(z));
@@ -337,7 +336,7 @@ TEST_F(DeclarableOpsTests6, cumSum_1) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -353,7 +352,7 @@ TEST_F(DeclarableOpsTests6, cumSum_2) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0, 1});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -370,7 +369,7 @@ TEST_F(DeclarableOpsTests6, cumSum_3) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0, 0});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -386,7 +385,7 @@ TEST_F(DeclarableOpsTests6, cumSum_4) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 1, 0}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printBuffer();
@@ -402,7 +401,7 @@ TEST_F(DeclarableOpsTests6, cumSum_5) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 1, 1}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -417,7 +416,7 @@ TEST_F(DeclarableOpsTests6, cumSum_6) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 1, 0}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -432,7 +431,7 @@ TEST_F(DeclarableOpsTests6, cumSum_7) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 1, 1}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -443,12 +442,12 @@ TEST_F(DeclarableOpsTests6, cumSum_7) {
 
 TEST_F(DeclarableOpsTests6, cumSum_8) {
     auto x = NDArrayFactory::create<double>('c', {3, 3}, {1, 2, 3, 4, 5, 6, 7, 8, 9});
-    auto axis = NDArrayFactory::create<Nd4jLong>('c', {1}, {1});
+    auto axis = NDArrayFactory::create<sd::LongType>('c', {1}, {1});
     auto exp = NDArrayFactory::create<double>('c', {3, 3}, {5.f, 3.f, 0.f, 11.f, 6.f, 0.f, 17.f, 9.f, 0.f});
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x, &axis}, {}, {1, 1}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -461,7 +460,7 @@ TEST_F(DeclarableOpsTests6, cumSum_8) {
 TEST_F(DeclarableOpsTests6, cumSum_9) {
 
     auto inputC = NDArrayFactory::create<double>('c', {3, 5},   {1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.});
-    auto axis = NDArrayFactory::create<Nd4jLong>(1);
+    auto axis = NDArrayFactory::create<sd::LongType>(1);
 
     auto expFF = NDArrayFactory::create<double>('c', {3, 5}, {1.,  3.,  6., 10., 15., 6., 13., 21., 30., 40., 11., 23., 36., 50., 65.});
     auto expTF = NDArrayFactory::create<double>('c', {3, 5}, {0., 1., 3.,  6., 10., 0.,  6., 13., 21., 30., 0., 11., 23., 36., 50.});
@@ -476,7 +475,7 @@ TEST_F(DeclarableOpsTests6, cumSum_9) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&inputC, &axis}, {}, {exclusive, reverse}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     auto z = result.at(0);
     ASSERT_TRUE(expFF.equalsTo(z));
 
@@ -485,7 +484,7 @@ TEST_F(DeclarableOpsTests6, cumSum_9) {
     exclusive = 1; reverse = 0;
 
     result = op.evaluate({&inputC, &axis}, {}, {exclusive, reverse});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     z = result.at(0);
     ASSERT_TRUE(expTF.equalsTo(z));
 
@@ -494,7 +493,7 @@ TEST_F(DeclarableOpsTests6, cumSum_9) {
     exclusive = 0; reverse = 1;
 
     result = op.evaluate({&inputC, &axis}, {}, {exclusive, reverse});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     z = result.at(0);
     ASSERT_TRUE(expFT.equalsTo(z));
 
@@ -503,7 +502,7 @@ TEST_F(DeclarableOpsTests6, cumSum_9) {
     exclusive = 1; reverse = 1;
 
     result = op.evaluate({&inputC, &axis}, {}, {exclusive, reverse});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
     z = result.at(0);
     ASSERT_TRUE(expTT.equalsTo(z));
 
@@ -517,7 +516,7 @@ TEST_F(DeclarableOpsTests6, cumSum_10) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x, &y}, {}, {1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
 
 }
@@ -532,7 +531,7 @@ TEST_F(DeclarableOpsTests6, cumSum_11) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -551,7 +550,7 @@ TEST_F(DeclarableOpsTests6, cumSum_12) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -570,7 +569,7 @@ TEST_F(DeclarableOpsTests6, cumSum_13) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -589,7 +588,7 @@ TEST_F(DeclarableOpsTests6, cumSum_14) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 1, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -608,7 +607,7 @@ TEST_F(DeclarableOpsTests6, cumSum_15) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 1, 2});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -624,7 +623,7 @@ TEST_F(DeclarableOpsTests6, cumSum_16) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printShapeInfo();
@@ -660,7 +659,7 @@ TEST_F(DeclarableOpsTests6, cumSum_17) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -693,7 +692,7 @@ TEST_F(DeclarableOpsTests6, cumSum_18) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 0, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -726,7 +725,7 @@ TEST_F(DeclarableOpsTests6, cumSum_19) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {0, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // exp0.printBuffer();
@@ -760,7 +759,7 @@ TEST_F(DeclarableOpsTests6, cumSum_20) {
 
     sd::ops::cumsum op;
     auto result = op.evaluate({&x}, {}, {1, 1, 1});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -780,7 +779,7 @@ TEST_F(DeclarableOpsTests6, TestMergeMaxIndex_1) {
 
     auto res = op.evaluate({&x, &y, &z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(res.at(0)->equalsTo(exp));
 
 }
@@ -791,12 +790,12 @@ TEST_F(DeclarableOpsTests6, TestMergeMaxIndex_2) {
     auto x = NDArrayFactory::create<double>('c', {2, 2, 2}, {1.f,  2.f,  3.f,   4.f,  5.f,  60.f,  7.f,  8.f});
     auto y = NDArrayFactory::create<double>('c', {2, 2, 2}, {10.f, 2.f,  30.f,  4.f,  50.f, 6.f,  70.f, 8.f});
     auto z = NDArrayFactory::create<double>('c', {2, 2, 2}, {1.f,  20.f, 3.f,   40.f, 5.f,  6.f, 7.f,  80.f});
-    auto exp = NDArrayFactory::create<Nd4jLong>('c', {2, 2, 2}, {1, 2,     1,    2,    1,    0,   1,    2});
+    auto exp = NDArrayFactory::create<sd::LongType>('c', {2, 2, 2}, {1, 2,     1,    2,    1,    0,   1,    2});
     sd::ops::mergemaxindex op;
 
     auto ress = op.evaluate({&x, &y, &z}, {}, {sd::DataType::INT64});
 
-    ASSERT_EQ(ND4J_STATUS_OK, ress.status());
+    ASSERT_EQ(sd::Status::OK, ress.status());
     ASSERT_TRUE(ress.at(0)->equalsTo(exp));
 
 }
@@ -813,7 +812,7 @@ TEST_F(DeclarableOpsTests6, TestMergeMaxIndex_3) {
     sd::ops::mergemaxindex op;
     auto result = op.execute({&x1, &x2, &x3}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
     ASSERT_TRUE(z.equalsTo(expZ));
 }
 
@@ -821,12 +820,12 @@ TEST_F(DeclarableOpsTests6, TestMergeMaxIndex_3) {
 TEST_F(DeclarableOpsTests6, TestDropout_1) {
 
     auto x = NDArrayFactory::create<double>('c', {2, 2, 2}, {1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f});
-    auto shape = NDArrayFactory::create<Nd4jLong>({2, 2});
+    auto shape = NDArrayFactory::create<sd::LongType>({2, 2});
     sd::ops::dropout op;
 
     auto res = op.evaluate({&x, &shape}, {0.2f}, {113});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     //res.at(0)->printIndexedBuffer("Result is ");
     //x.printIndexedBuffer("Input is");
 
@@ -842,7 +841,7 @@ TEST_F(DeclarableOpsTests6, TestMod_1) {
 
     auto res = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
 //    res.at(0)->printIndexedBuffer("MOD Result is ");
 //    x.printIndexedBuffer("Input is");
     ASSERT_TRUE(res.at(0)->equalsTo(exp));
@@ -860,7 +859,7 @@ TEST_F(DeclarableOpsTests6, TestMod_BP_1) {
 
     auto res = op.evaluate({&x, &y, &eps});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
 //    res.at(0)->printIndexedBuffer("MOD_BP Result is ");
 
     //    x.printIndexedBuffer("Input is");
@@ -879,7 +878,7 @@ TEST_F(DeclarableOpsTests6, TestRank_1) {
 
     auto res = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
 
     ASSERT_TRUE(res.at(0)->equalsTo(exp));
 
@@ -893,7 +892,7 @@ TEST_F(DeclarableOpsTests6, TestDropout_2) {
 
     auto res = op.evaluate({&x}, {0.4f}, {113});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
 
 
 }
@@ -908,7 +907,7 @@ TEST_F(DeclarableOpsTests6, TestDropout_3) {
 
     auto res = op.evaluate({&x, &shape}, {0.4f}, {113});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
 
 
 }
@@ -918,14 +917,14 @@ TEST_F(DeclarableOpsTests6, MaxPoolWithArgmax_1) {
 
     auto x = NDArrayFactory::create<double>('c', {2, 2, 2, 4}, {5.5, 0.,   0.3,  5.5,1.5, 0.,   1.3,  6.5,8.6, 0.,    0.,  0.4,2.5, 1.,   0.3,  4.5,
                                                                 1.5, 1.,   1.3,  1.5, 3.5, 0.,   1.3,  2.5, 2.6, 2.,    3.,  1.4, 4.5, 1.,   0.3,  0.5});
-    auto expI = NDArrayFactory::create<Nd4jLong>('c', {2, 2, 2, 4}, {0,  1,  2,  3,4,  5,  6,  7,8,  9, 10, 11,12, 13, 14, 15,
+    auto expI = NDArrayFactory::create<sd::LongType>('c', {2, 2, 2, 4}, {0,  1,  2,  3,4,  5,  6,  7,8,  9, 10, 11,12, 13, 14, 15,
                                                                 0,  1,  2,  3,4,  5,  6,  7,8,  9, 10, 11,12, 13, 14, 15});
 
     sd::ops::max_pool_with_argmax op;
 
     auto res = op.evaluate({&x}, {}, {1,1,1,1,1,1,1,1,1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(expI.isSameShape(res.at(0)));
     ASSERT_TRUE(expI.isSameShape(res.at(1)));
     ASSERT_TRUE(x.equalsTo(res.at(0)));
@@ -948,13 +947,13 @@ TEST_F(DeclarableOpsTests6, SufficientStatistics_1) {
     auto sumExp = NDArrayFactory::create<double>({30.2, 5., 7.8, 22.8});
     auto sqrExp = NDArrayFactory::create<double>({154.22,   7.,    14.34, 103.62});
 
-    auto axis = NDArrayFactory::create<Nd4jLong>({0, 1, 2});
+    auto axis = NDArrayFactory::create<sd::LongType>({0, 1, 2});
 
     sd::ops::sufficient_statistics op;
 
     auto res = op.evaluate({&x, &axis});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_EQ(res.at(0)->e<double>(0), count);
     ASSERT_TRUE(sumExp.equalsTo(res.at(1)));
     ASSERT_TRUE(sqrExp.equalsTo(res.at(2)));
@@ -986,7 +985,7 @@ TEST_F(DeclarableOpsTests6, SufficientStatistics_2) {
 
     auto res = op.evaluate({&x, &axis});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_EQ(res.at(0)->e<double>(0), count);
     ASSERT_TRUE(sumExp.equalsTo(res.at(1)));
     ASSERT_TRUE(sqrExp.equalsTo(res.at(2)));
@@ -1008,7 +1007,7 @@ TEST_F(DeclarableOpsTests6, BinCount_1) {
 
     auto res = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
 }
@@ -1032,7 +1031,7 @@ TEST_F(DeclarableOpsTests6, BinCount_2) {
 
     auto res = op.evaluate({&x, &weights});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 }
 
@@ -1055,7 +1054,7 @@ TEST_F(DeclarableOpsTests6, BinCount_3) {
 
     auto res = op.evaluate({&x, &weights}, {}, {0, 2});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
 }
@@ -1079,7 +1078,7 @@ TEST_F(DeclarableOpsTests6, BinCount_4) {
 
     auto res = op.evaluate({&x, &weights}, {}, {4, 4});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 }
 
@@ -1102,7 +1101,7 @@ TEST_F(DeclarableOpsTests6, BinCount_5) {
     sd::ops::bincount op;
 
     auto res = op.evaluate({&x, &weights, &minV, &maxV});
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     // res->at(0)->printBuffer("BC out");
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
@@ -1121,7 +1120,7 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_1) {
 
     auto res = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
 }
@@ -1129,16 +1128,16 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_1) {
 /////////////////////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_2) {
 
-    auto x = NDArrayFactory::create<Nd4jLong>( {2, 2} );
+    auto x = NDArrayFactory::create<sd::LongType>( {2, 2} );
 
-    auto y = NDArrayFactory::create<Nd4jLong>({2, 1, 2});
+    auto y = NDArrayFactory::create<sd::LongType>({2, 1, 2});
 
-    auto exp = NDArrayFactory::create<Nd4jLong>({2, 2, 2});
+    auto exp = NDArrayFactory::create<sd::LongType>({2, 2, 2});
 
     sd::ops::broadcast_dynamic_shape op;
 
     auto res = op.evaluate({&x, &y});
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
 }
@@ -1156,24 +1155,24 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_3) {
 
     auto res = op.evaluate({&x, &y}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 }
 
 /////////////////////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_4) {
 
-    auto x = NDArrayFactory::create<Nd4jLong>( {2, 1} );
+    auto x = NDArrayFactory::create<sd::LongType>( {2, 1} );
 
-    auto y = NDArrayFactory::create<Nd4jLong>('c', {1}, {4});
+    auto y = NDArrayFactory::create<sd::LongType>('c', {1}, {4});
 
-    auto exp = NDArrayFactory::create<Nd4jLong>({2, 4});
+    auto exp = NDArrayFactory::create<sd::LongType>({2, 4});
 
     sd::ops::broadcast_dynamic_shape op;
 
     auto res = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     //res->at(0)->printBuffer("Shape SGO 4");
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 }
@@ -1181,16 +1180,16 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_4) {
 /////////////////////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_6) {
 
-    auto x = NDArrayFactory::create<Nd4jLong>({2, 1, 4});
+    auto x = NDArrayFactory::create<sd::LongType>({2, 1, 4});
 
-    auto y = NDArrayFactory::create<Nd4jLong>({2, 2, 4});
+    auto y = NDArrayFactory::create<sd::LongType>({2, 2, 4});
 
-    auto exp = NDArrayFactory::create<Nd4jLong>({2, 2, 4});
+    auto exp = NDArrayFactory::create<sd::LongType>({2, 2, 4});
 
     sd::ops::broadcast_dynamic_shape op;
     auto res = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 
 }
@@ -1198,16 +1197,16 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_6) {
 /////////////////////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_7) {
 
-    auto x = NDArrayFactory::create<Nd4jLong>({1, 1, 3});
+    auto x = NDArrayFactory::create<sd::LongType>({1, 1, 3});
 
-    auto y = NDArrayFactory::create<Nd4jLong>({2, 4, 1});
+    auto y = NDArrayFactory::create<sd::LongType>({2, 4, 1});
 
-    auto exp = NDArrayFactory::create<Nd4jLong>({2, 4, 3});
+    auto exp = NDArrayFactory::create<sd::LongType>({2, 4, 3});
 
     sd::ops::broadcast_dynamic_shape op;
     auto res = op.evaluate({&x, &y});
 
-    ASSERT_EQ(ND4J_STATUS_OK, res.status());
+    ASSERT_EQ(sd::Status::OK, res.status());
     ASSERT_TRUE(exp.equalsTo(res.at(0)));
 }
 
@@ -1225,7 +1224,7 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_8) {
     sd::ops::broadcast_dynamic_shape op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(exp.equalsTo(z));
 }
 
@@ -1236,14 +1235,14 @@ TEST_F(DeclarableOpsTests6, BroadcastDynamicShape_SGO_9) {
 
     auto y = NDArrayFactory::create<int>('c', {1}, {1});
 
-    auto z = NDArrayFactory::create<Nd4jLong>('c', {2});
+    auto z = NDArrayFactory::create<sd::LongType>('c', {2});
 
-    auto exp = NDArrayFactory::create<Nd4jLong>('c', {2}, {2,2});
+    auto exp = NDArrayFactory::create<sd::LongType>('c', {2}, {2,2});
 
     sd::ops::broadcast_dynamic_shape op;
     auto status = op.execute({&x, &y}, {&z}, {}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     // ASSERT_TRUE(exp.equalsTo(z));
 
 }
@@ -1270,7 +1269,7 @@ TEST_F(DeclarableOpsTests6, ClipByGlobalNorm_1) {
     sd::ops::clip_by_global_norm op;
     auto result = op.evaluate({&x}, {0.8}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     auto norm = result.at(1);
@@ -1312,7 +1311,7 @@ TEST_F(DeclarableOpsTests6, ClipByGlobalNorm_2) {
     sd::ops::clip_by_global_norm op;
     auto result = op.evaluate({&x, &a}, {1.8}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     auto y = result.at(1);
@@ -1342,7 +1341,7 @@ TEST_F(DeclarableOpsTests6, ClipByGlobalNorm_3) {
     sd::ops::clip_by_global_norm op;
     auto result = op.evaluate({&x, &a}, {0.8}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     auto y = result.at(1);
@@ -1368,7 +1367,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_1) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printIndexedBuffer("Output ");
@@ -1389,7 +1388,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_2) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printIndexedBuffer("Output ");
@@ -1410,7 +1409,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_3) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printIndexedBuffer("Output ");
@@ -1431,7 +1430,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_4) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printIndexedBuffer("Output ");
@@ -1455,7 +1454,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_5) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printIndexedBuffer("Output ");
@@ -1479,7 +1478,7 @@ TEST_F(DeclarableOpsTests6, MatrixDeterminant_6) {
     sd::ops::matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     //z->printIndexedBuffer("Output ");
@@ -1501,7 +1500,7 @@ TEST_F(DeclarableOpsTests6, LogMatrixDeterminant_1) {
     sd::ops::log_matrix_determinant op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1520,7 +1519,7 @@ TEST_F(DeclarableOpsTests6, LogDet_1) {
     sd::ops::logdet op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_TRUE(exp.isSameShape(z));
@@ -1538,7 +1537,7 @@ TEST_F(DeclarableOpsTests6, LogDet_2) {
     sd::ops::logdet op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1557,7 +1556,7 @@ TEST_F(DeclarableOpsTests6, LogDet_3) {
     sd::ops::logdet op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1601,7 +1600,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_1) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1620,7 +1619,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_010) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1639,7 +1638,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_01) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1658,7 +1657,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_02) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -1703,7 +1702,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_2) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     z->printIndexedBuffer("Output ");
@@ -1736,7 +1735,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_03) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 //    z->printIndexedBuffer("Output ");
@@ -1770,7 +1769,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_3) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 //    exp.printIndexedBuffer("Expected ");
@@ -1804,7 +1803,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_4) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 //    z->printIndexedBuffer("Output ");
@@ -1838,7 +1837,7 @@ TEST_F(DeclarableOpsTests6, MatrixInverse_04) {
     sd::ops::matrix_inverse op;
     auto result = op.evaluate({&x});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 //    z->printIndexedBuffer("Output ");
@@ -1857,7 +1856,6 @@ TEST_F(DeclarableOpsTests6, ReluLayer_1) {
     auto b = NDArrayFactory::create<double>({20.0, 30.0, 50.0});
 
 
-
     auto exp = NDArrayFactory::create<double>('c', {3, 3}, {
                         21.4,  30.45, 52.3,
                         23.8,  31.05, 56.5,
@@ -1866,7 +1864,7 @@ TEST_F(DeclarableOpsTests6, ReluLayer_1) {
     sd::ops::relu_layer op;
     auto result = op.evaluate({&x, &w, &b});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printShapeInfo("Output shape");
@@ -1919,7 +1917,7 @@ TEST_F(DeclarableOpsTests6, static_rnn_test1) {
     sd::ops::static_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -1962,7 +1960,7 @@ TEST_F(DeclarableOpsTests6, static_rnn_test2) {
     sd::ops::static_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2005,7 +2003,7 @@ TEST_F(DeclarableOpsTests6, static_rnn_test3) {
     sd::ops::static_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2047,7 +2045,7 @@ TEST_F(DeclarableOpsTests6, static_rnn_test4) {
     sd::ops::static_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2089,7 +2087,7 @@ TEST_F(DeclarableOpsTests6, static_rnn_test5) {
     sd::ops::static_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2140,7 +2138,7 @@ TEST_F(DeclarableOpsTests6, static_bidir_rnn_test1) {
     sd::ops::static_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &h0FW, &h0BW, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFWfinal = results.at(1);
@@ -2193,7 +2191,7 @@ TEST_F(DeclarableOpsTests6, static_bidir_rnn_test2) {
     sd::ops::static_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFWfinal = results.at(1);
@@ -2246,7 +2244,7 @@ TEST_F(DeclarableOpsTests6, static_bidir_rnn_test3) {
     sd::ops::static_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFWfinal = results.at(1);
@@ -2275,7 +2273,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test1) {
     auto Wh = NDArrayFactory::create<double>('c', {numUnits, numUnits});
     auto b  = NDArrayFactory::create<double>('c', {2*numUnits});
     auto h0 = NDArrayFactory::create<double>('c', {bS, numUnits});
-    auto maxTimeStep = NDArrayFactory::create<Nd4jLong>('c', {bS}, {time-1, time-3});
+    auto maxTimeStep = NDArrayFactory::create<sd::LongType>('c', {bS}, {time-1, time-3});
 
     x.linspace(0.01, 0.01);
     h0 = 0.2;
@@ -2292,7 +2290,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test1) {
     sd::ops::dynamic_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0, &maxTimeStep}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2337,7 +2335,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test2) {
     sd::ops::dynamic_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2379,7 +2377,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test3) {
     sd::ops::dynamic_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &h0}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2420,7 +2418,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test4) {
     sd::ops::dynamic_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2461,7 +2459,7 @@ TEST_F(DeclarableOpsTests6, dynamic_rnn_test5) {
     sd::ops::dynamic_rnn op;
     auto results = op.evaluate({&x, &Wx, &Wh, &b}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto h = results.at(0);
     auto hFinal = results.at(1);
@@ -2517,7 +2515,7 @@ TEST_F(DeclarableOpsTests6, dynamic_bidir_rnn_test1) {
     sd::ops::dynamic_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &h0FW, &h0BW, &maxTimeStep}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto hFW = results.at(0);
     auto hBW = results.at(1);
@@ -2577,7 +2575,7 @@ TEST_F(DeclarableOpsTests6, dynamic_bidir_rnn_test2) {
     sd::ops::dynamic_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &h0FW, &h0BW, &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto hFW = results.at(0);
     auto hBW = results.at(1);
@@ -2633,7 +2631,7 @@ TEST_F(DeclarableOpsTests6, dynamic_bidir_rnn_test3) {
     sd::ops::dynamic_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &maxTimeStep}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto hFW = results.at(0);
     auto hBW = results.at(1);
@@ -2692,7 +2690,7 @@ TEST_F(DeclarableOpsTests6, dynamic_bidir_rnn_test4) {
     sd::ops::dynamic_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW,  &h0FW, &h0BW}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto hFW = results.at(0);
     auto hBW = results.at(1);
@@ -2745,7 +2743,7 @@ TEST_F(DeclarableOpsTests6, dynamic_bidir_rnn_test5) {
     sd::ops::dynamic_bidirectional_rnn op;
     auto results = op.evaluate({&x, &WxFW,&WhFW,&bFW,  &WxFW,&WhFW,&bFW}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, results.status());
+    ASSERT_EQ(sd::Status::OK, results.status());
 
     auto hFW = results.at(0);
     auto hBW = results.at(1);
@@ -2771,7 +2769,7 @@ TEST_F(DeclarableOpsTests6, Test_Diag_119_1) {
 
     sd::ops::diag op;
     auto result = op.evaluate({&x}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_EQ(e, *result.at(0));
 
@@ -2784,7 +2782,7 @@ TEST_F(DeclarableOpsTests6, Test_Diag_119_2) {
 
     sd::ops::diag op;
     auto result = op.evaluate({&x}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_EQ(e, *result.at(0));
 
@@ -2797,7 +2795,7 @@ TEST_F(DeclarableOpsTests6, Test_Diag_119_3) {
 
     sd::ops::diag op;
     auto result = op.evaluate({&x}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     ASSERT_EQ(e, *result.at(0));
 

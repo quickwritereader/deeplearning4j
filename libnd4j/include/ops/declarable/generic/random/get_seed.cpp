@@ -32,9 +32,9 @@ namespace sd {
             auto rng = block.getRng();
             auto z = OUTPUT_VARIABLE(0);
 
-            z->p(Nd4jLong(0), rng.rootState());
+            z->p(sd::LongType(0), rng.rootState());
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(get_seed) {

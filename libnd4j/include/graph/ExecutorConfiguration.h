@@ -22,21 +22,19 @@
 
 #ifndef LIBND4J_EXECUTORCONFIGURATION_H
 #define LIBND4J_EXECUTORCONFIGURATION_H
-
 #include <graph/generated/config_generated.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT ExecutorConfiguration {
+        class SD_LIB_EXPORT ExecutorConfiguration {
         public:
             sd::graph::ProfilingMode _profilingMode;
             sd::graph::ExecutionMode _executionMode;
             sd::graph::OutputMode _outputMode;
             bool _timestats;
-            Nd4jLong _footprintForward = 0L;
-            Nd4jLong _footprintBackward = 0L;
+            sd::LongType _footprintForward = 0L;
+            sd::LongType _footprintBackward = 0L;
             Direction _direction = Direction_FORWARD_ONLY;
 
             explicit ExecutorConfiguration(const sd::graph::FlatConfiguration *conf = nullptr);

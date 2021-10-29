@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_PREDEFINEDPARAMETERS_H
 #define DEV_TESTS_PREDEFINEDPARAMETERS_H
-
 #include "ParametersSpace.h"
 
 namespace sd {

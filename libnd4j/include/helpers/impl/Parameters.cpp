@@ -21,7 +21,6 @@
 //
 // Created by raver on 2/28/2019.
 //
-
 #include "../benchmark/Parameters.h"
 #include <stdexcept>
 

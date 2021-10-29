@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_OPDESCRIPTOR_H
 #define LIBND4J_OPDESCRIPTOR_H
-
 #include <string>
 #include <vector>
 #include <initializer_list>
@@ -38,7 +37,7 @@ namespace sd {
         *   This class is very basic info holder for ops. bean/pojo pretty much.
         *
         */
-        class ND4J_EXPORT OpDescriptor {
+        class SD_LIB_EXPORT OpDescriptor {
         protected:
             // opNum for legacy XYZ ops
             int _opNum = 0;
@@ -47,7 +46,7 @@ namespace sd {
             std::string _opName;
 
             // hash is used for ops lookup in OpRegistrator
-            Nd4jLong _hash = -1;
+            sd::LongType _hash = -1;
 
             // minimal required/expected number of inputs/outpus for this given op
             int _numInputs = 1;
@@ -85,8 +84,8 @@ namespace sd {
             std::vector<sd::DataType> _allowedOuts;
 
             // optional per-input configuration
-            MAP_IMPL<int, std::vector<sd::DataType>> _outputTypes;
-            MAP_IMPL<int, std::vector<sd::DataType>> _inputTypes;
+            SD_MAP_IMPL<int, std::vector<sd::DataType>> _outputTypes;
+            SD_MAP_IMPL<int, std::vector<sd::DataType>> _inputTypes;
 
 
             // field for ops that allow data type override at runtime
@@ -134,7 +133,7 @@ namespace sd {
             int getNumberOfInputs();
 
             // this method returns hash code for this operation
-            Nd4jLong getHash();
+            sd::LongType getHash();
 
             // this method returns minimal expected number of outputs
             int getNumberOfOutputs();
@@ -157,10 +156,9 @@ namespace sd {
             // this method allows to set specifc opNum
             void setOpNum(int opNum);
 
-            void setHash(Nd4jLong hash);
+            void setHash(sd::LongType hash);
 
             InputType inputType();
-
 
 
             OpDescriptor* setInputType(InputType type);

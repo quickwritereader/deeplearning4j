@@ -23,7 +23,6 @@
 // @author Oleg Semeniv <oleg.semeniv@gmail.com>
 //
 
-
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
 #include "testlayers.h"

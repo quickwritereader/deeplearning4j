@@ -23,7 +23,6 @@
 #ifndef LIBND4J_LOGICSWITCH_H
 #define LIBND4J_LOGICSWITCH_H
 
-#include <system/pointercast.h>
 #include <graph/Node.h>
 #include <graph/Graph.h>
 
@@ -38,7 +37,7 @@ namespace sd {
          */
         class LogicSwitch {
         public:
-            static Nd4jStatus processNode(Graph* graph, Node* node);
+            static sd::Status processNode(Graph* graph, Node* node);
         };
     }
 }

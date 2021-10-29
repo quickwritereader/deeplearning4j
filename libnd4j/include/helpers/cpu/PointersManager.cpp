@@ -21,7 +21,6 @@
 //
 
 #ifndef __CUDABLAS__
-
 #include <helpers/PointersManager.h>
 #include <exceptions/cuda_exception.h>
 #include <helpers/logger.h>

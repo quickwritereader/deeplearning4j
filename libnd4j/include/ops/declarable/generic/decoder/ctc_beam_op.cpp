@@ -74,7 +74,7 @@ CUSTOM_OP_IMPL(ctc_beam, 2, 3, false, 0, -2) {
 
     sd::ops::helpers::beamSearch(*logit, *sequence_length, *result_sequences, *result_probs, *result_sequences_length, blank_index, beam_width, nbest_len, normalize_logits);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

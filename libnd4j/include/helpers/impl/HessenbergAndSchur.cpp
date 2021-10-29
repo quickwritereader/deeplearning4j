@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/HessenbergAndSchur.h>
 #include <helpers/householder.h>
 #include <helpers/hhSequence.h>
@@ -63,7 +62,7 @@ void Hessenberg<T>::evalData() {
     NDArray hhCoeffs(_H.ordering(), {rows - 1}, _H.dataType(), _H.getContext());
 
     // calculate _H
-    for(uint i = 0; i < rows - 1; ++i) {
+    for(sd::Unsigned i = 0; i < rows - 1; ++i) {
 
         T coeff, norm;
 
@@ -150,7 +149,7 @@ void Schur<T>::splitTwoRows(const int ind, const T shift) {
 
     if (q >= (T)0) {
 
-        T z = math::nd4j_sqrt<T,T>(math::nd4j_abs<T>(q));
+        T z = math::sd_sqrt<T,T>(math::sd_abs<T>(q));
 
         NDArray rotation(_T.ordering(), {2, 2}, _T.dataType(), _T.getContext());
 
@@ -191,7 +190,7 @@ void Schur<T>::calcShift(const int ind, const int iter, T& shift, NDArray& shift
         for (int i = 0; i <= ind; ++i)
             _T.r<T>(i,i) -= shiftVec.t<T>(0);
 
-        T s = math::nd4j_abs<T>(_T.t<T>(ind, ind-1)) + math::nd4j_abs<T>(_T.t<T>(ind-1, ind-2));
+        T s = math::sd_abs<T>(_T.t<T>(ind, ind-1)) + math::sd_abs<T>(_T.t<T>(ind-1, ind-2));
 
         shiftVec.r<T>(0) = T(0.75) * s;
         shiftVec.r<T>(1) = T(0.75) * s;
@@ -205,7 +204,7 @@ void Schur<T>::calcShift(const int ind, const int iter, T& shift, NDArray& shift
 
         if (s > T(0)) {
 
-            s = math::nd4j_sqrt<T,T>(s);
+            s = math::sd_sqrt<T,T>(s);
 
             if (shiftVec.t<T>(1) < shiftVec.t<T>(0))
                 s = -s;
@@ -241,10 +240,10 @@ void Schur<T>::initFrancisQR(const int ind1,  const int ind2, const NDArray& shi
         if (ind3 == ind1)
           break;
 
-        const T lhs = _T.t<T>(ind3,ind3-1) * (math::nd4j_abs<T>(householderVec.t<T>(1)) + math::nd4j_abs<T>(householderVec.t<T>(2)));
-        const T rhs = householderVec.t<T>(0) * (math::nd4j_abs<T>(_T.t<T>(ind3-1, ind3-1)) + math::nd4j_abs<T>(mm) + math::nd4j_abs<T>(_T.t<T>(ind3+1, ind3+1)));
+        const T lhs = _T.t<T>(ind3,ind3-1) * (math::sd_abs<T>(householderVec.t<T>(1)) + math::sd_abs<T>(householderVec.t<T>(2)));
+        const T rhs = householderVec.t<T>(0) * (math::sd_abs<T>(_T.t<T>(ind3-1, ind3-1)) + math::sd_abs<T>(mm) + math::sd_abs<T>(_T.t<T>(ind3+1, ind3+1)));
 
-        if(math::nd4j_abs<T>(lhs) < DataTypeUtils::eps<T>() * rhs)
+        if(math::sd_abs<T>(lhs) < DataTypeUtils::eps<T>() * rhs)
             break;
     }
 }
@@ -278,7 +277,7 @@ void Schur<T>::doFrancisQR(const int ind1, const int ind2, const int ind3, const
             NDArray block1 = _T({k,k+3, k,numCols}, true);
             Householder<T>::mulLeft(block1, tail, coeff);
 
-            NDArray block2 = _T({0,math::nd4j_min<int>(ind3,k+3)+1, k,k+3}, true);
+            NDArray block2 = _T({0,math::sd_min<int>(ind3,k+3)+1, k,k+3}, true);
             Householder<T>::mulRight(block2, tail, coeff);
 
             NDArray block3 = _U({0,numCols, k,k+3}, true);
@@ -326,7 +325,7 @@ void Schur<T>::calcFromHessenberg() {
 
     T norm = 0;
     for (int j = 0; j < numCols; ++j)
-        norm += _T({0,math::nd4j_min<int>(numCols,j+2), j,j+1}).reduceNumber(reduce::ASum).template t<T>(0);
+        norm += _T({0,math::sd_min<int>(numCols,j+2), j,j+1}).reduceNumber(reduce::ASum).template t<T>(0);
 
     if(norm != T(0)) {
 
@@ -370,8 +369,8 @@ void Schur<T>::calcFromHessenberg() {
     }
 }
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL Hessenberg,,FLOAT_TYPES);
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL Schur,,FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template class  Hessenberg,,SD_FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template class  Schur,,SD_FLOAT_TYPES);
 
 }
 }

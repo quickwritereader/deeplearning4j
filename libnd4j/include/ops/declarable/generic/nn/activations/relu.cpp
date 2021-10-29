@@ -38,7 +38,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(relu) {
@@ -55,7 +55,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::RELUDerivativeE, epsilon, z, nullptr);
             helpers::reluDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(ReluGrad, relu_bp);
 

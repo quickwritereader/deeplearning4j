@@ -37,12 +37,12 @@ namespace sd {
 
             auto tZ = BroadcastHelper::broadcastApply(sd::BroadcastOpsTuple::Add(), x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z)
                 throw std::runtime_error("add: result was replaced");
 
 
-    		return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(add) {
@@ -94,7 +94,7 @@ namespace sd {
                     gradY->assign(epsNext);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(add_bp) {
@@ -105,8 +105,8 @@ namespace sd {
             // eps always has shape of x
             // grad always has shape of y
 
-            Nd4jLong *shapeE;
-            Nd4jLong *shapeG;
+            sd::LongType *shapeE;
+            sd::LongType *shapeG;
 
             COPY_SHAPE(x, shapeE);
             COPY_SHAPE(y, shapeG);

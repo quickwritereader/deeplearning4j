@@ -23,7 +23,6 @@
 //
 
 #ifndef __CUDABLAS__
-
 #include <helpers/ConstantHelper.h>
 #include <execution/AffinityManager.h>
 #include <types/types.h>
@@ -39,7 +38,7 @@ namespace sd {
         _cache.resize(numDevices);
         _counters.resize(numDevices);
         for (int e = 0; e < numDevices; e++) {
-            MAP_IMPL<ConstantDescriptor, ConstantHolder*> map;
+            SD_MAP_IMPL<ConstantDescriptor, ConstantHolder*> map;
 
             _cache[e] = map;
             _counters[e] = 0L;
@@ -110,9 +109,9 @@ ConstantHelper& ConstantHelper::getInstance() {
 
             // create buffer with this dtype
             if (descriptor.isFloat()) {
-                BUILD_DOUBLE_SELECTOR(sd::DataType::DOUBLE, dataType, sd::TypeCast::convertGeneric, (nullptr, const_cast<double *>(descriptor.floatValues().data()), descriptor.length(), cbuff->pointer()), (sd::DataType::DOUBLE, double), COMMON_TYPES_LIST);
+                BUILD_DOUBLE_SELECTOR(sd::DataType::DOUBLE, dataType, sd::TypeCast::convertGeneric, (nullptr, const_cast<double *>(descriptor.floatValues().data()), descriptor.length(), cbuff->pointer()), (sd::DataType::DOUBLE, double), SD_COMMON_TYPES_ALL);
             } else if (descriptor.isInteger()) {
-                BUILD_DOUBLE_SELECTOR(sd::DataType::INT64, dataType, sd::TypeCast::convertGeneric, (nullptr, const_cast<Nd4jLong *>(descriptor.integerValues().data()), descriptor.length(), cbuff->pointer()), (sd::DataType::INT64, Nd4jLong), COMMON_TYPES_LIST);
+                BUILD_DOUBLE_SELECTOR(sd::DataType::INT64, dataType, sd::TypeCast::convertGeneric, (nullptr, const_cast<sd::LongType *>(descriptor.integerValues().data()), descriptor.length(), cbuff->pointer()), (sd::DataType::INT64, sd::LongType), SD_COMMON_TYPES_ALL);
             }
 
             ConstantDataBuffer dataBuffer(cbuff, descriptor.length(), dataType);
@@ -125,7 +124,7 @@ ConstantHelper& ConstantHelper::getInstance() {
         return result;
     }
 
-    Nd4jLong ConstantHelper::getCachedAmount(int deviceId) {
+    sd::LongType ConstantHelper::getCachedAmount(int deviceId) {
         int numDevices = getNumberOfDevices();
         if (deviceId > numDevices || deviceId < 0)
             return 0L;

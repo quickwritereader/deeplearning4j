@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 13.10.2017.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 
@@ -97,11 +96,11 @@ TEST_F(SwitchTests, SwitchTest1) {
     ASSERT_EQ(3, nodeZ1->getLayer());
 
     // executing graph
-    Nd4jStatus status = GraphExecutioner::execute(&graph);
+    sd::Status status = GraphExecutioner::execute(&graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
-    // nd4j_printf("Z0: [%i]; Z1: [%i]\n", flowPath.isNodeActive(nodeZ0->id()), flowPath.isNodeActive(nodeZ1->id()));
+    // sd_printf("Z0: [%i]; Z1: [%i]\n", flowPath.isNodeActive(nodeZ0->id()), flowPath.isNodeActive(nodeZ1->id()));
 
     // we know that Switch got TRUE evaluation, so :0 should be inactive
     ASSERT_FALSE(flowPath.isNodeActive(nodeZ0->id()));
@@ -173,9 +172,9 @@ TEST_F(SwitchTests, SwitchTest2) {
     graph.addNode(nodeZ0);
     graph.addNode(nodeZ1);
 
-    Nd4jStatus status = GraphExecutioner::execute(&graph);
+    sd::Status status = GraphExecutioner::execute(&graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(!flowPath.isNodeActive(nodeZ0->id()));
     ASSERT_TRUE(flowPath.isNodeActive(nodeZ1->id()));
@@ -239,9 +238,9 @@ TEST_F(SwitchTests, SwitchTest3) {
     graph.addNode(nodeZ0);
     graph.addNode(nodeZ1);
 
-    Nd4jStatus status = GraphExecutioner::execute(&graph);
+    sd::Status status = GraphExecutioner::execute(&graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(flowPath.isNodeActive(nodeZ0->id()));
     ASSERT_TRUE(!flowPath.isNodeActive(nodeZ1->id()));

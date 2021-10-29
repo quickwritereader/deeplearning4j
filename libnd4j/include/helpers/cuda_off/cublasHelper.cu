@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 //
 
-
 #include <cublas_v2.h>
 #include <cusolverDn.h>
 #include "../cublasHelper.h"
@@ -30,7 +29,6 @@
 #include "config.h"
 
 #ifdef HAVE_CUDNN
-
 #include <cudnn.h>
 
 #endif
@@ -78,7 +76,7 @@ namespace sd {
     }
 
     CublasHelper::CublasHelper() {
-        //nd4j_printf("Initializing cuBLAS\n","");
+        //sd_printf("Initializing cuBLAS\n","");
         auto numDevices = AffinityManager::numberOfDevices();
         auto currentDevice = AffinityManager::currentDeviceId();
         _cache.resize(numDevices);

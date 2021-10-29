@@ -19,13 +19,12 @@
 //
 // Created by raver119 on 06.02.2018.
 //
-
 #include <graph/FrameState.h>
 
 
 namespace sd {
     namespace graph {
-        FrameState::FrameState(Nd4jLong id) {
+        FrameState::FrameState(sd::LongType id) {
             this->_id = id;
         }
 

@@ -42,7 +42,7 @@ OP_IMPL(mergemax, -1, 1, false) {
 
     helpers::mergeMax(block.launchContext(), inArrs, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 DECLARE_SYN(MergeMax, mergemax);
 
@@ -71,7 +71,7 @@ DECLARE_SYN(MergeMax, mergemax);
 
         helpers::mergeMaxBp(block.launchContext(), inArrs, outArrs);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(mergemax_bp) {

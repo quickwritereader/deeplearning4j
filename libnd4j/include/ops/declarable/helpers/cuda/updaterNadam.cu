@@ -19,7 +19,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <helpers/PointersManager.h>
@@ -32,9 +31,9 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL __global__ void nadamUpdaterCuda(const void* vx, const Nd4jLong* xShapeInfo, const void* vinv, const Nd4jLong* invShapeInfo,
-                                 const void* vinm, const Nd4jLong* inmShapeInfo, void* vz, const Nd4jLong* zShapeInfo, 
-                                 void* vstV, const Nd4jLong* stvShapeInfo, void* vstM, const Nd4jLong* stmShapeInfo,
+SD_KERNEL void nadamUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vinv, const sd::LongType* invShapeInfo,
+                                 const void* vinm, const sd::LongType* inmShapeInfo, void* vz, const sd::LongType* zShapeInfo, 
+                                 void* vstV, const sd::LongType* stvShapeInfo, void* vstM, const sd::LongType* stmShapeInfo,
                                 const T lr, const T beta1, const T beta2, const T epsilon, const T iteration) {
 
     const auto grad = reinterpret_cast<const T*>(vx);
@@ -45,14 +44,14 @@ ND4J_LOCAL __global__ void nadamUpdaterCuda(const void* vx, const Nd4jLong* xSha
     auto stV = reinterpret_cast<T*>(vstV);
     auto stM = reinterpret_cast<T*>(vstM);
 
-    __shared__ Nd4jLong xLen;
+    __shared__ sd::LongType xLen;
     __shared__ T mbeta1T, mbeta1, mbeta2;
     __shared__ bool bEWS, bOrdering, bXZsame, bXInUSame, bXStUSame, bXInMSame, bXStMSame;
 
     if (threadIdx.x == 0) {
         xLen = shape::length(xShapeInfo);
         
-        mbeta1T = 1.0 - sd::math::nd4j_pow<T, T, T>(beta1, (iteration + 1));
+        mbeta1T = 1.0 - sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
         mbeta1 = (1 - beta1);
         mbeta2 = (1 - beta2);
 
@@ -71,9 +70,9 @@ ND4J_LOCAL __global__ void nadamUpdaterCuda(const void* vx, const Nd4jLong* xSha
     }
     __syncthreads();
 
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
 
-    for (Nd4jLong i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
 
         auto xOffset = i, zOffset = i, initMOffset = i, initUOffset = i, stMOffset = i, stUOffset = i;
 
@@ -93,16 +92,16 @@ ND4J_LOCAL __global__ void nadamUpdaterCuda(const void* vx, const Nd4jLong* xSha
         stM[stMOffset] = beta1 * initM[initMOffset] + oneMinusBeta1Grad;
         stV[stUOffset] = beta2 * initV[initUOffset] + grad[xOffset] * grad[xOffset] * mbeta2;
 
-        up[zOffset] = (lr * ((stM[stMOffset] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::nd4j_sqrt<T, T>(stV[stUOffset]) + epsilon);
+        up[zOffset] = (lr * ((stM[stMOffset] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::sd_sqrt<T, T>(stV[stUOffset]) + epsilon);
     }
 }
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-ND4J_LOCAL linkage void nadamUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const Nd4jLong* xShapeInfo,
-    const void* vinv, const Nd4jLong* invShapeInfo, const void* vinm, const Nd4jLong* inmShapeInfo,
-    void* vz, const Nd4jLong* zShapeInfo, void* vstV, const Nd4jLong* stvShapeInfo, void* vstM, 
-    const Nd4jLong* stmShapeInfo, const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
+void nadamUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo,
+    const void* vinv, const sd::LongType* invShapeInfo, const void* vinm, const sd::LongType* inmShapeInfo,
+    void* vz, const sd::LongType* zShapeInfo, void* vstV, const sd::LongType* stvShapeInfo, void* vstM, 
+    const sd::LongType* stmShapeInfo, const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
 
     const T lr = static_cast<T>(dLr);
     const T beta1 = static_cast<T>(dBeta1);
@@ -115,19 +114,19 @@ ND4J_LOCAL linkage void nadamUpdaterCudaLauncher(const int blocksPerGrid, const 
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM, 
+void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM, 
      NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
 
     PointersManager manager(context, "nadamUpdater");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
     NDArray::prepareSpecialUse({ &update, &stateV, &stateM }, { &gradient, &initStateV, &initStateM });
     BUILD_SINGLE_SELECTOR(gradient.dataType(), nadamUpdaterCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
         initStateV.specialBuffer(), initStateV.specialShapeInfo(), initStateM.specialBuffer(), initStateM.specialShapeInfo(),
         update.specialBuffer(), update.specialShapeInfo(), stateV.specialBuffer(), stateV.specialShapeInfo(),
-        stateM.specialBuffer(), stateM.specialShapeInfo(), dLr, dBeta1, dBeta2, dEpsilon, nIteration), FLOAT_TYPES);
+        stateM.specialBuffer(), stateM.specialShapeInfo(), dLr, dBeta1, dBeta2, dEpsilon, nIteration), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({ &update, &stateV, &stateM }, { &gradient, &initStateV, &initStateM });
 
     manager.synchronize();

@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/segment.h>
 #include <ops/declarable/helpers/segment_common.h>
 #include <array/NDArrayFactory.h>
@@ -34,8 +33,8 @@ namespace ops {
 namespace helpers {
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void unsortedSegmentSqrtNLinearKernel(T* input, Nd4jLong const* inputShape, I* indices, Nd4jLong const* indicesShape, int* starts, int* lengths, Nd4jLong numOfClasses, T* output, Nd4jLong const* outputShape) {
-        __shared__ Nd4jLong xLen, zLen;
+    static SD_KERNEL void unsortedSegmentSqrtNLinearKernel(T* input, sd::LongType const* inputShape, I* indices, sd::LongType const* indicesShape, int* starts, int* lengths, sd::LongType numOfClasses, T* output, sd::LongType const* outputShape) {
+        __shared__ sd::LongType xLen, zLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -53,15 +52,15 @@ namespace helpers {
             if (lengths[segment] == 0) continue;
             auto xIndex = shape::getIndexOffset(idx, inputShape);
 
-            sd::math::atomics::nd4j_atomicAdd(&output[zIndex],  input[xIndex] / sd::math::nd4j_sqrt<int, T>(lengths[segment]));
+            sd::math::atomics::sd_atomicAdd(&output[zIndex],  input[xIndex] / sd::math::sd_sqrt<int, T>(lengths[segment]));
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
     // SegmentSqrtN kernel
     template <typename T, typename I>
-    static __global__ void segmentSqrtNTadKernel(T* inputBuf, Nd4jLong const* inputShape, Nd4jLong const* inputTads, Nd4jLong const* inputTadOffsets, I* indices, int* starts, int* lengths, Nd4jLong numOfClasses, void* outputBuf, Nd4jLong const* outputShape, Nd4jLong const* outputTads, Nd4jLong const* outputTadOffsets) {
+    static SD_KERNEL void segmentSqrtNTadKernel(T* inputBuf, sd::LongType const* inputShape, sd::LongType const* inputTads, sd::LongType const* inputTadOffsets, I* indices, int* starts, int* lengths, sd::LongType numOfClasses, void* outputBuf, sd::LongType const* outputShape, sd::LongType const* outputTads, sd::LongType const* outputTadOffsets) {
 
-        __shared__ Nd4jLong len, total;
+        __shared__ sd::LongType len, total;
 
         if (threadIdx.x == 0) {
             total = shape::sizeAt(inputShape, 0);
@@ -79,13 +78,13 @@ namespace helpers {
             for (auto e = threadIdx.x; e < len; e += blockDim.x) {
                 auto xIndex = shape::getIndexOffset(e, inputTads);
                 auto zIndex = shape::getIndexOffset(e, outputTads);
-                sd::math::atomics::nd4j_atomicAdd(&z[zIndex], x[xIndex] / sd::math::nd4j_sqrt<int, T>(lengths[segment]));
+                sd::math::atomics::sd_atomicAdd(&z[zIndex], x[xIndex] / sd::math::sd_sqrt<int, T>(lengths[segment]));
             }
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static void unsortedSegmentSqrtNFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    static void unsortedSegmentSqrtNFunctor_(sd::LaunchContext* context, NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
 //        NDArray classes = NDArrayFactory::create<int>('c', {numOfClasses, 2});
         NDArray classesRangesBegs = NDArrayFactory::create<int>('c', {numOfClasses}, context);
@@ -123,22 +122,22 @@ namespace helpers {
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL void unsortedSegmentSqrtNFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, Nd4jLong numOfClasses, NDArray* output) {
+    void unsortedSegmentSqrtNFunctor(sd::LaunchContext* context , NDArray* input, NDArray* indices, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices});
         BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), unsortedSegmentSqrtNFunctor_, (context, input, indices, numOfClasses, output),
-                              FLOAT_TYPES, INDEXING_TYPES);
+                              SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices});
     }
     // -------------------------------------------------------------------------------------------------------------- //
     template <typename T, typename I>
-    static __global__ void segmentSqrtNBPLinearKernel(void* inputBuf, Nd4jLong const*  inputShape, void* eps, Nd4jLong const*  epsShape, void* indicesBuf, Nd4jLong const*  indicesShape,
-                                                      int* lengths, void* outputBuf, Nd4jLong const*  outputShape) {
+    static SD_KERNEL void segmentSqrtNBPLinearKernel(void* inputBuf, sd::LongType const*  inputShape, void* eps, sd::LongType const*  epsShape, void* indicesBuf, sd::LongType const*  indicesShape,
+                                                      int* lengths, void* outputBuf, sd::LongType const*  outputShape) {
         __shared__ T* x;
         __shared__ T* gradIn;
         __shared__ T* gradOut;
         __shared__ I* y;
         __shared__ T* z;
-        __shared__ Nd4jLong xLen, gradLen;
+        __shared__ sd::LongType xLen, gradLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -161,20 +160,20 @@ namespace helpers {
             auto classIndex = y[yOffset];
             auto gradOffsetO = shape::getIndexOffset(classIndex, epsShape);
 
-            z[zOffset] = T(gradOut[gradOffsetO] / math::nd4j_sqrt<int, float>(lengths[classIndex]));
+            z[zOffset] = T(gradOut[gradOffsetO] / math::sd_sqrt<int, float>(lengths[classIndex]));
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
 
     template <typename T, typename I>
-    static __global__ void segmentSqrtNBPTadKernel(void* inputBuf, Nd4jLong const*  inputShape, void* eps, Nd4jLong const*  epsShape,
-                                                   void* indicesBuf, Nd4jLong const*  indicesShape, int* lengths, void* outputBuf, Nd4jLong const*  outputShape,Nd4jLong const*  inputTad,
-                                                   Nd4jLong const*  inputOffsets, Nd4jLong const*  gradOutTad, Nd4jLong const*  gradOutOffsets, Nd4jLong const*  outTad, Nd4jLong const*  outOffsets) {
+    static SD_KERNEL void segmentSqrtNBPTadKernel(void* inputBuf, sd::LongType const*  inputShape, void* eps, sd::LongType const*  epsShape,
+                                                   void* indicesBuf, sd::LongType const*  indicesShape, int* lengths, void* outputBuf, sd::LongType const*  outputShape,sd::LongType const*  inputTad,
+                                                   sd::LongType const*  inputOffsets, sd::LongType const*  gradOutTad, sd::LongType const*  gradOutOffsets, sd::LongType const*  outTad, sd::LongType const*  outOffsets) {
         __shared__ T* x;
         __shared__ T* gradOut;
         __shared__ I* y;
         __shared__ T* z;
-        __shared__ Nd4jLong xLen, yLen, gradLen, currentLen;
+        __shared__ sd::LongType xLen, yLen, gradLen, currentLen;
 
         if (threadIdx.x == 0) {
             xLen = shape::length(inputShape);
@@ -198,14 +197,14 @@ namespace helpers {
                 auto zIndex = shape::getIndexOffset(e, outTad);
                 auto gradIndex = shape::getIndexOffset(e, gradOutTad);
                 if (lengths[segment] > 0)
-                    currentOut[zIndex] = T(outGrad[gradIndex] / math::nd4j_sqrt<int, float>(lengths[segment]));
+                    currentOut[zIndex] = T(outGrad[gradIndex] / math::sd_sqrt<int, float>(lengths[segment]));
             }
         }
     }
     // -------------------------------------------------------------------------------------------------------------- //
 
     template <typename T, typename I>
-    static int unsortedSegmentSqrtNFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    static sd::Status unsortedSegmentSqrtNFunctorBP_(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         auto stream = context->getCudaStream();
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
         auto numClasses = indices->e<int>(indices->lengthOf() - 1) + 1;
@@ -220,8 +219,8 @@ namespace helpers {
         int* lengths = reinterpret_cast<int*>(classesRangesLens.specialBuffer());
 
         if (input->isVector()) {
-            Nd4jLong loop_size = input->lengthOf();
-            auto numOfClasses = gradOut->lengthOf(); //indices->e<Nd4jLong>(loop_size - 1);
+            sd::LongType loop_size = input->lengthOf();
+            auto numOfClasses = gradOut->lengthOf(); //indices->e<sd::LongType>(loop_size - 1);
             segmentSqrtNBPLinearKernel<T,I><<<gradOut->lengthOf(), input->lengthOf(), 256, *stream>>>(input->specialBuffer(),
                     input->specialShapeInfo(), gradOut->specialBuffer(), gradOut->specialShapeInfo(),
                     indices->specialBuffer(), indices->specialShapeInfo(), lengths, output->specialBuffer(), output->specialShapeInfo());
@@ -246,12 +245,12 @@ namespace helpers {
         }
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
 
-        return Status::OK();
+        return sd::Status::OK;
     }
     // -------------------------------------------------------------------------------------------------------------- //
-    ND4J_LOCAL int unsortedSegmentSqrtNFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, Nd4jLong numOfClasses, NDArray* output) {
+    sd::Status unsortedSegmentSqrtNFunctorBP(sd::LaunchContext* context , NDArray* input, NDArray* indices, NDArray* gradOut, sd::LongType numOfClasses, NDArray* output) {
         NDArray::prepareSpecialUse({output}, {input, indices, gradOut});
-        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentSqrtNFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), FLOAT_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(output->dataType(), indices->dataType(), return unsortedSegmentSqrtNFunctorBP_, (context, input, indices, gradOut, numOfClasses, output), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         NDArray::registerSpecialUse({output}, {input, indices, gradOut});
     }
 }

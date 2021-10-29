@@ -23,7 +23,6 @@
 
 #ifndef DEV_TESTS_DECLARABLEBENCHMARK_H
 #define DEV_TESTS_DECLARABLEBENCHMARK_H
-
 #include <array/NDArray.h>
 #include <graph/Context.h>
 #include <helpers/OpBenchmark.h>
@@ -32,7 +31,7 @@
 #include <helpers/PointersManager.h>
 
 namespace sd {
-    class ND4J_EXPORT DeclarableBenchmark : public OpBenchmark  {
+    class SD_LIB_EXPORT DeclarableBenchmark : public OpBenchmark  {
     protected:
         sd::ops::DeclarableOp *_op = nullptr;
         sd::graph::Context *_context = nullptr;

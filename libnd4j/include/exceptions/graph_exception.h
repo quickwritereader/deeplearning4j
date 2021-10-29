@@ -25,35 +25,26 @@
 
 #include <string>
 #include <stdexcept>
-#include <system/pointercast.h>
-#include <system/dll.h>
-
-#if defined(_MSC_VER)
-
-// we're ignoring warning about non-exportable parent class, since std::runtime_error is a part of Standard C++ Library
-#pragma warning( disable : 4275 )
-
-#endif
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT graph_exception : public std::runtime_error {
+    class SD_LIB_EXPORT graph_exception : public std::runtime_error {
     protected:
-        Nd4jLong _graphId;
+        sd::LongType _graphId;
         std::string _message;
         std::string _description;
     public:
-        graph_exception(std::string message, Nd4jLong graphId);
-        graph_exception(std::string message, std::string description, Nd4jLong graphId);
-        graph_exception(std::string message, const char *description, Nd4jLong graphId);
+        graph_exception(std::string message, sd::LongType graphId);
+        graph_exception(std::string message, std::string description, sd::LongType graphId);
+        graph_exception(std::string message, const char *description, sd::LongType graphId);
         ~graph_exception() = default;
 
-        Nd4jLong graphId();
+        sd::LongType graphId();
 
         const char * message();
         const char * description();
     };
 }
-
 
 
 #endif //DEV_TESTS_GRAPH_EXCEPTION_H

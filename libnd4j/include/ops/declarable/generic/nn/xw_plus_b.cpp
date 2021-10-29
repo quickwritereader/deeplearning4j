@@ -39,7 +39,7 @@ namespace sd {
             auto z = OUTPUT_VARIABLE(0);
 
             if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             const bool bTranspose = (block.getIArguments()->size() > 0 ? INT_ARG(0) == 1 : false);
 
@@ -61,7 +61,7 @@ namespace sd {
             if (bTranspose)
                 delete w;
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(xw_plus_b) {
@@ -95,7 +95,7 @@ namespace sd {
             auto dLdb = OUTPUT_VARIABLE(2);
 
             if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty() || dLdz->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             const bool bTranspose = (block.getIArguments()->size() > 0 ? INT_ARG(0) == 1 : false);
 
@@ -119,13 +119,13 @@ namespace sd {
                 delete w;
                 delete dLdw;
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(xw_plus_b_bp) {
-            Nd4jLong* xShapeInfo;
-            Nd4jLong* wShapeInfo;
-            Nd4jLong* bShapeInfo;
+            sd::LongType* xShapeInfo;
+            sd::LongType* wShapeInfo;
+            sd::LongType* bShapeInfo;
 
             COPY_SHAPE(inputShape->at(0), xShapeInfo);
             COPY_SHAPE(inputShape->at(1), wShapeInfo);

@@ -32,7 +32,7 @@ namespace ops {
         auto input = INPUT_VARIABLE(0);
         auto output = OUTPUT_VARIABLE(0);
 
-        std::vector<Nd4jLong> outShape(block.getIArguments()->begin(), block.getIArguments()->end());
+        std::vector<sd::LongType> outShape(block.getIArguments()->begin(), block.getIArguments()->end());
 
         if (block.isInplace()) {
             input->tileToShape(outShape, *input);
@@ -40,7 +40,7 @@ namespace ops {
             input->tileToShape(outShape, *output);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_SHAPE_FN(tile_to_shape) {
@@ -84,13 +84,13 @@ namespace ops {
 
         STORE_RESULT(gradX);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_SHAPE_FN(tile_to_shape_bp) {
         auto in = inputShape->at(0);
 
-        Nd4jLong *newShape;
+        sd::LongType *newShape;
         COPY_SHAPE(in, newShape);
 
         return SHAPELIST(CONSTANT(newShape));

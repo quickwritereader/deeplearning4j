@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYSTATSOP_H
 #define LIBND4J_LEGACYSTATSOP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -30,9 +29,9 @@ namespace sd {
         /**
         *   This class provides wrapper for SummaryStats operations: Variance and Standard Deviation
         */
-        class ND4J_EXPORT LegacyStatsOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyStatsOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context &block) override;
+            sd::Status validateAndExecute(Context &block) override;
         public:
             LegacyStatsOp();
             LegacyStatsOp(int opNum);

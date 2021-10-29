@@ -79,7 +79,7 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
     NDArray *biases, NDArray *prevAct, NDArray *prevMemCell, NDArray *outputActivations, NDArray *finalTimeStepActivations, NDArray *finalMemCellState,
     int maxSeqLength, int batchSize, int inputSize, int hiddenSize, double cellClip, bool isBidirectional){
 
-    nd4j_debug("cudnn rnn api %s \n", "v6");
+    sd_debug("cudnn rnn api %s \n", "v6");
 
     bool training = false;
     cudnnHandle_t handle = *(reinterpret_cast<cudnnHandle_t *>(contextPtr->getCuDnnHandle()));
@@ -210,7 +210,7 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
     NDArray permutedX, outputH;
 
     if(outputActivations!=nullptr && (dataFormat != 0 ||  outputActivations->ordering()!='c')){
-        outputH = NDArray('c',  std::vector<Nd4jLong>{maxSeqLength, batchSize, (numDirections * hiddenSize)}, outputActivations->dataType(), contextPtr);
+        outputH = NDArray('c',  std::vector<sd::LongType>{maxSeqLength, batchSize, (numDirections * hiddenSize)}, outputActivations->dataType(), contextPtr);
         argOutput = &outputH;
     }
 
@@ -254,7 +254,7 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
 void cudnn_rnn_v8(LaunchContext  *contextPtr, int dataFormat,  NDArray *input, NDArray *seqLengthArray, NDArray *inputWeights,  NDArray *recurrentWeights,
     NDArray *biases, NDArray *prevAct, NDArray *prevMemCell, NDArray *outputActivations, NDArray *finalTimeStepActivations, NDArray *finalMemCellState,
     int maxSeqLength, int batchSize, int inputSize, int hiddenSize, double cellClip, bool isBidirectional){
-    nd4j_debug("cudnn rnn api %s \n", "v8");
+    sd_debug("cudnn rnn api %s \n", "v8");
     //seqLengthArray should be int
     NDArray *argSeqNdArray = nullptr;
     NDArray seqArrIntData;
@@ -271,7 +271,7 @@ void cudnn_rnn_v8(LaunchContext  *contextPtr, int dataFormat,  NDArray *input, N
             argSeqNdArray = &seqArrIntData;
         }
     }else{
-        seqArrIntData = NDArray('c', std::vector<Nd4jLong>{batchSize}, DataType::INT32, contextPtr);
+        seqArrIntData = NDArray('c', std::vector<sd::LongType>{batchSize}, DataType::INT32, contextPtr);
         seqArrIntData.assign(maxSeqLength);
         argSeqNdArray = &seqArrIntData;
     }
@@ -441,11 +441,11 @@ void cudnn_rnn_v8(LaunchContext  *contextPtr, int dataFormat,  NDArray *input, N
     REQUIRE_TRUE(cellClip >= 0 , 0, "LSTM_LAYER operation: cell clipping value should be nonnegative (>=0) !");
     REQUIRE_TRUE(retFullSeq || retLastH || retLastC, 0, "LSTM_LAYER operation: please specify what output arrays to produce !");
     // evaluate dimensions
-    const Nd4jLong seqLength = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-    const Nd4jLong nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
-    const Nd4jLong hiddenSize = nOut;
+    const sd::LongType seqLength = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+    const sd::LongType nIn  = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType hiddenSize = nOut;
 
     auto contextPtr = block.launchContext();
     bool isBidirectional =  directionMode >= 2;
@@ -495,7 +495,7 @@ void cudnn_rnn_v8(LaunchContext  *contextPtr, int dataFormat,  NDArray *input, N
     }
 #endif
 
-    return Status::OK();
+    return sd::Status::OK;
  }
 
 // Cudnn Lstm:
@@ -612,9 +612,8 @@ void cudnn_rnn_v8(LaunchContext  *contextPtr, int dataFormat,  NDArray *input, N
     req.logTheSuccess();
     return req;
  }
- 
- 
- 
+
+
  }
  }
  }

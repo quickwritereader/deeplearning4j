@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 06.02.2019
 // @author raver119@gmail.com
 //
-
 #include <helpers/PointersManager.h>
 #include <exceptions/cuda_exception.h>
 #include <helpers/StringUtils.h>
@@ -70,7 +69,7 @@ void PointersManager::synchronize() const {
         if (cudaResult != 0)
             throw cuda_exception::build(_funcName + ": cuda stream synchronization failed !", cudaResult);
     } else {
-        nd4j_printf("<%s> syncStream isn't possible: no stream set!", _funcName.c_str());
+        sd_printf("<%s> syncStream isn't possible: no stream set!", _funcName.c_str());
     }
 }
 
@@ -84,29 +83,29 @@ PointersManager::~PointersManager() {
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
-static __global__ void printDevContentOnDev_(const void* pDev, const Nd4jLong len, const int tid) {
+static SD_KERNEL void printDevContentOnDev_(const void* pDev, const sd::LongType len, const int tid) {
 
     PointersManager::printDevContentOnDev<T>(pDev, len, tid);
 }
 
 ////////////////////////////////////////////////////////////////////////
 template<typename T>
-void PointersManager::printDevContentOnDevFromHost(const void* pDev, const Nd4jLong len, const int tid) {
+void PointersManager::printDevContentOnDevFromHost(const void* pDev, const sd::LongType len, const int tid) {
     printDevContentOnDev_<T><<<512, 512, 1024, *sd::LaunchContext ::defaultContext()->getCudaStream()>>>(pDev, len, tid);
     auto res = cudaStreamSynchronize(*sd::LaunchContext ::defaultContext()->getCudaStream());
     if (res != 0)
         throw std::runtime_error("PointersManager::printDevContentOnDevFromHost: cudaStreamSynchronize failed!");
 }
-template void PointersManager::printDevContentOnDevFromHost<Nd4jLong>(const void* pDev, const Nd4jLong len, const int tid);
-template void PointersManager::printDevContentOnDevFromHost<int>(const void* pDev, const Nd4jLong len, const int tid);
-template void PointersManager::printDevContentOnDevFromHost<float>(const void* pDev, const Nd4jLong len, const int tid);
-template void PointersManager::printDevContentOnDevFromHost<double>(const void* pDev, const Nd4jLong len, const int tid);
+template void PointersManager::printDevContentOnDevFromHost<sd::LongType>(const void* pDev, const sd::LongType len, const int tid);
+template void PointersManager::printDevContentOnDevFromHost<int>(const void* pDev, const sd::LongType len, const int tid);
+template void PointersManager::printDevContentOnDevFromHost<float>(const void* pDev, const sd::LongType len, const int tid);
+template void PointersManager::printDevContentOnDevFromHost<double>(const void* pDev, const sd::LongType len, const int tid);
 
-//BUILD_SINGLE_TEMPLATE(template void PointersManager::printDevContentOnDevFromHost, (void* pDev, Nd4jLong len, int tid), LIBND4J_TYPES);
+//BUILD_SINGLE_TEMPLATE(template void PointersManager::printDevContentOnDevFromHost, (void* pDev, sd::LongType len, int tid), SD_COMMON_TYPES);
 
 ////////////////////////////////////////////////////////////////////////
 template<typename T>
-void PointersManager::printDevContentOnHost(const void* pDev, const Nd4jLong len) const {
+void PointersManager::printDevContentOnHost(const void* pDev, const sd::LongType len) const {
     printf("host print out\n");
     void* pHost = operator new(sizeof(T) * len);
 
@@ -115,7 +114,7 @@ void PointersManager::printDevContentOnHost(const void* pDev, const Nd4jLong len
     if(cudaResult != 0)
         throw std::runtime_error("PointersManager::printCudaHost: cudaStreamSynchronize failed!");
 
-    for(Nd4jLong i = 0; i < len; ++i)
+    for(sd::LongType i = 0; i < len; ++i)
         printf("%f, ", (double)reinterpret_cast<T*>(pHost)[i]);
     printf("\n");
 
@@ -123,10 +122,10 @@ void PointersManager::printDevContentOnHost(const void* pDev, const Nd4jLong len
 }
 
 
-template void PointersManager::printDevContentOnHost<Nd4jLong>(const void* pDev, const Nd4jLong len) const;
-template void PointersManager::printDevContentOnHost<int>(const void* pDev, const Nd4jLong len) const;
-template void PointersManager::printDevContentOnHost<float>(const void* pDev, const Nd4jLong len) const;
-template void PointersManager::printDevContentOnHost<double>(const void* pDev, const Nd4jLong len) const;
+template void PointersManager::printDevContentOnHost<sd::LongType>(const void* pDev, const sd::LongType len) const;
+template void PointersManager::printDevContentOnHost<int>(const void* pDev, const sd::LongType len) const;
+template void PointersManager::printDevContentOnHost<float>(const void* pDev, const sd::LongType len) const;
+template void PointersManager::printDevContentOnHost<double>(const void* pDev, const sd::LongType len) const;
 
 
 }

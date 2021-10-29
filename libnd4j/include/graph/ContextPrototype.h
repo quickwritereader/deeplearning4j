@@ -26,11 +26,9 @@
 
 #ifndef ND4J_CONTEXT_PROTOTYPE_H
 #define ND4J_CONTEXT_PROTOTYPE_H
-
 #include <vector>
 #include <system/Environment.h>
 #include <array/DataType.h>
-#include <system/dll.h>
 #include <graph/RandomGenerator.h>
 #include <ops/declarable/OpDescriptor.h>
 #include <execution/Engine.h>
@@ -43,7 +41,7 @@
 namespace sd {
     namespace graph {
 
-        class ND4J_EXPORT ContextPrototype {
+        class SD_LIB_EXPORT ContextPrototype {
         protected:
             // int ids of the input nodes
             std::vector<std::pair<int, int>> _inputs;
@@ -55,8 +53,8 @@ namespace sd {
             std::vector<sd::DataType> _dArgs;
 
             // TODO: remove this field
-			sd::DataType _dataType = sd::DataType::FLOAT32;
-			bool _isInplace;
+            sd::DataType _dataType = sd::DataType::FLOAT32;
+            bool _isInplace;
 
             // opNum for legacy XYZ ops
             int _opNum = -1;

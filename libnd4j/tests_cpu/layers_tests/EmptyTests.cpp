@@ -19,7 +19,6 @@
 //
 // Created by raver on 6/18/2018.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -62,14 +61,14 @@ TEST_F(EmptyTests, Test_Create_Empty_2) {
 
 TEST_F(EmptyTests, Test_Concat_1) {
 //    auto empty = NDArrayFactory::empty_<float>();
-    auto empty = new NDArray('c',  {0}, sd::DataType::FLOAT32);//NDArrayFactory::create_<float>('c', {(Nd4jLong)0}};
+    auto empty = new NDArray('c',  {0}, sd::DataType::FLOAT32);//NDArrayFactory::create_<float>('c', {(sd::LongType)0}};
     auto vector = NDArrayFactory::create_<float>('c', {1}, {1.0f});
 
     ASSERT_TRUE(empty->isEmpty());
 
     sd::ops::concat op;
     auto result = op.evaluate({empty, vector}, {}, {0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -93,7 +92,7 @@ TEST_F(EmptyTests, Test_Concat_2) {
 
     sd::ops::concat op;
     auto result = op.evaluate({empty, scalar1, scalar2}, {}, {0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -117,7 +116,7 @@ TEST_F(EmptyTests, Test_Concat_3) {
 
     sd::ops::concat op;
     auto result = op.evaluate({&empty, &scalar1, &scalar2}, {}, {0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -135,7 +134,7 @@ TEST_F(EmptyTests, Test_Concat_4) {
 
     sd::ops::concat op;
     auto result = op.evaluate({&scalar1, &empty, &scalar2}, {}, {0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -161,7 +160,7 @@ TEST_F(EmptyTests, test_empty_scatter_1) {
 
     sd::ops::scatter_upd op;
     auto result = op.evaluate({&x, &indices, &updates}, {}, {}, {true});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_EQ(x, *z);
@@ -179,14 +178,14 @@ TEST_F(EmptyTests, test_empty_scatter_2) {
     sd::ops::scatter_upd op;
     auto status = op.execute({&x, &indices, &updates}, {&z}, {}, {}, {true});
 
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(x, z);
 }
 
 TEST_F(EmptyTests, test_shaped_empty_1) {
     auto empty = NDArrayFactory::create<float>('c', {2, 0, 3});
-    std::vector<Nd4jLong> shape = {2, 0, 3};
+    std::vector<sd::LongType> shape = {2, 0, 3};
 
     ASSERT_EQ(sd::DataType::FLOAT32, empty.dataType());
     ASSERT_EQ(0, empty.lengthOf());
@@ -197,7 +196,7 @@ TEST_F(EmptyTests, test_shaped_empty_1) {
 
 TEST_F(EmptyTests, test_shaped_empty_2) {
     auto empty = NDArrayFactory::create<float>('c', {0, 3});
-    std::vector<Nd4jLong> shape = {0, 3};
+    std::vector<sd::LongType> shape = {0, 3};
 
     ASSERT_EQ(sd::DataType::FLOAT32, empty.dataType());
     ASSERT_EQ(0, empty.lengthOf());
@@ -208,7 +207,7 @@ TEST_F(EmptyTests, test_shaped_empty_2) {
 
 TEST_F(EmptyTests, test_shaped_empty_3) {
     auto empty = NDArrayFactory::create<float>('c', {0});
-    std::vector<Nd4jLong> shape = {0};
+    std::vector<sd::LongType> shape = {0};
 
     ASSERT_EQ(sd::DataType::FLOAT32, empty.dataType());
     ASSERT_EQ(0, empty.lengthOf());
@@ -220,7 +219,7 @@ TEST_F(EmptyTests, test_shaped_empty_3) {
 TEST_F(EmptyTests, test_shaped_empty_4) {
     const auto shape = ConstantShapeHelper::getInstance().vectorShapeInfo(0, sd::DataType::FLOAT32);
     NDArray array(shape, true, sd::LaunchContext::defaultContext());
-    std::vector<Nd4jLong> shapeOf({0});
+    std::vector<sd::LongType> shapeOf({0});
 
     ASSERT_TRUE(array.isEmpty());
     ASSERT_EQ(1, array.rankOf());
@@ -235,7 +234,7 @@ TEST_F(EmptyTests, test_empty_matmul_1) {
 
     sd::ops::matmul op;
     auto result = op.evaluate({&x, &y}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_EQ(e, *z);
@@ -249,7 +248,7 @@ TEST_F(EmptyTests, test_empty_matmul_2) {
 
     sd::ops::matmul op;
     auto result = op.evaluate({&x, &y}, {}, {});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     ASSERT_EQ(e, *z);

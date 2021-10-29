@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 21.02.18.
 //
-
 #include <graph/profiling/GraphProfilingHelper.h>
 #include <graph/GraphExecutioner.h>
 

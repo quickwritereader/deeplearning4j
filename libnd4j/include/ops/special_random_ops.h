@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SPECIAL_RANDOM_OPS_H
 #define LIBND4J_SPECIAL_RANDOM_OPS_H
-
 #include <ops/random_ops.h>
 #include <helpers/shape.h>
 #include <graph/RandomGenerator.h>
@@ -44,7 +43,7 @@ namespace randomOps {
 
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const* yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const* yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
             /**
              * X holds data,
              * Y holds probabilities
@@ -54,13 +53,13 @@ namespace randomOps {
             // TODO: we probably might want to skip this sum, and state that probabilities array should be real probabilities, i.e. should sum to 1.0
             //T probSum = extraArguments[0];
 
-            __shared__ Nd4jLong xLength;
-            __shared__ Nd4jLong yLength;
-            __shared__ Nd4jLong zLength;
+            __shared__ sd::LongType xLength;
+            __shared__ sd::LongType yLength;
+            __shared__ sd::LongType zLength;
 
-            __shared__ Nd4jLong xEWS;
-            __shared__ Nd4jLong yEWS;
-            __shared__ Nd4jLong zEWS;
+            __shared__ sd::LongType xEWS;
+            __shared__ sd::LongType yEWS;
+            __shared__ sd::LongType zEWS;
             __shared__ char xOrder;
             __shared__ char yOrder;
             __shared__ char zOrder;
@@ -99,10 +98,10 @@ namespace randomOps {
             int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
             if (zEWS >= 1 && xEWS >= 1 && yEWS >= 1 && xOrder == yOrder && xOrder == zOrder) {
-                for (Nd4jLong e = tid; e < zLength; e+=blockDim.x * gridDim.x) {
+                for (sd::LongType e = tid; e < zLength; e+=blockDim.x * gridDim.x) {
                     T prob = rng->relativeT<T>(e);
                     T cumProb = (T) 0.0f;
-                    for (Nd4jLong f = 0; f < yLength; f++) {
+                    for (sd::LongType f = 0; f < yLength; f++) {
                         T relProb = y[f * yEWS];
                         cumProb += relProb;
 
@@ -117,13 +116,13 @@ namespace randomOps {
             }
             else {
 
-                for (Nd4jLong i = tid; i < zLength; i+=blockDim.x * gridDim.x) {
+                for (sd::LongType i = tid; i < zLength; i+=blockDim.x * gridDim.x) {
 
                     auto zOffset2 = shape::getIndexOffset(i, zShapeBuffer);
                     T prob = rng->relativeT<T>(i);
                     T cumProb = (T) 0.0f;
 
-                    for (Nd4jLong f = 0; f < yLength; f++) {
+                    for (sd::LongType f = 0; f < yLength; f++) {
 
                         auto yOffset2 = shape::getIndexOffset(f, yShapeBuffer);
                         T relProb = y[yOffset2];
@@ -143,7 +142,7 @@ namespace randomOps {
         }
 #endif
 
-        static inline void specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        static inline void specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             /**
              * X holds data,
              * Y holds probabilities
@@ -164,15 +163,15 @@ namespace randomOps {
             auto zEWS = shape::elementWiseStride(zShapeBuffer);
 
             int elementsPerThread = zLength / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             if (zEWS >= 1 && xEWS >= 1 && yEWS >= 1) {
                 auto func = PRAGMA_THREADS_FOR {
                     for (auto e = start; e < stop; e++) {
                         T prob = rng->relativeT<T>(e);
                         T cumProb = (T) 0.0f;
-                        for (Nd4jLong f = 0; f < yLength; f++) {
+                        for (sd::LongType f = 0; f < yLength; f++) {
                             T relProb = y[f * yEWS];
                             cumProb += relProb;
 
@@ -189,13 +188,13 @@ namespace randomOps {
             else {
 
                 auto func = PRAGMA_THREADS_FOR {
-                    for (Nd4jLong i = 0; i < zLength; i++) {
+                    for (sd::LongType i = 0; i < zLength; i++) {
 
                         auto zOffset2 = shape::getIndexOffset(i, zShapeBuffer);
                         T prob = rng->relativeT<T>(i);
                         T cumProb = (T) 0.0f;
 
-                        for (Nd4jLong f = 0; f < yLength; f++) {
+                        for (sd::LongType f = 0; f < yLength; f++) {
 
                             auto yOffset2 = shape::getIndexOffset(f, yShapeBuffer);
                             T relProb = y[yOffset2];
@@ -232,14 +231,14 @@ namespace randomOps {
         static const bool requiresSpecial = true;
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const *yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const *yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
 
             __shared__ T epsilon;
             __shared__ T two_pi;
 
-            __shared__ Nd4jLong zLength;
-            __shared__ Nd4jLong zEWS;
-            __shared__ Nd4jLong yEWS;
+            __shared__ sd::LongType zLength;
+            __shared__ sd::LongType zEWS;
+            __shared__ sd::LongType yEWS;
             __shared__ T mean;
             __shared__ T stddev;
             __shared__ int step;
@@ -294,11 +293,11 @@ namespace randomOps {
 
                 T realMean0 = y == z ? mean : y[e * yEWS];
 
-                z[e * zEWS] = (sd::math::nd4j_sqrt<T,T>(t * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_cos<T,T>(two_pi * r1)) * stddev + realMean0;
+                z[e * zEWS] = (sd::math::sd_sqrt<T,T>(t * sd::math::sd_log<T,T>(r0)) * sd::math::sd_cos<T,T>(two_pi * r1)) * stddev + realMean0;
 
                 if (epm < zLength) {
                     T realMean1 = y == z ? mean : y[epm * yEWS];
-                    z[epm * zEWS] =  (sd::math::nd4j_sqrt<T,T>(t * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_sin<T,T>(two_pi * r1)) * stddev + realMean1;
+                    z[epm * zEWS] =  (sd::math::sd_sqrt<T,T>(t * sd::math::sd_log<T,T>(r0)) * sd::math::sd_sin<T,T>(two_pi * r1)) * stddev + realMean1;
                 }
             }
         }
@@ -306,7 +305,7 @@ namespace randomOps {
 
 
         static inline void
-        specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             const T two_pi = static_cast<T>(2.0f) * static_cast<T>(3.14159265358979323846);
 
             auto zLength = shape::length(zShapeBuffer);
@@ -316,8 +315,8 @@ namespace randomOps {
             auto middle = zLength % 2  + zLength / 2;
 
             int elementsPerThread = middle / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             int span = (middle / _threads) + 8;
 
@@ -341,14 +340,14 @@ namespace randomOps {
 
                     T realMean0 = y == z ? mean : y[e * yEWS];
 
-                    auto z0 = (sd::math::nd4j_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T, T>(r0)) *
-                               sd::math::nd4j_cos<T, T>(two_pi * r1)) * stddev + realMean0;
+                    auto z0 = (sd::math::sd_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::sd_log<T, T>(r0)) *
+                               sd::math::sd_cos<T, T>(two_pi * r1)) * stddev + realMean0;
                     z[e * zEWS] = z0;
 
                     if (epm < zLength) {
                         T realMean1 = y == z ? mean : y[epm * yEWS];
-                        auto z1 = (sd::math::nd4j_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T, T>(r0)) *
-                                   sd::math::nd4j_sin<T, T>(two_pi * r1)) * stddev + realMean1;
+                        auto z1 = (sd::math::sd_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::sd_log<T, T>(r0)) *
+                                   sd::math::sd_sin<T, T>(two_pi * r1)) * stddev + realMean1;
                         z[epm * zEWS] = z1;
                     }
                 }
@@ -375,11 +374,11 @@ namespace randomOps {
         static const bool requiresSpecial = true;
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const* yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const* yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
             int trials = (int) extraArguments[0];
             T prob = extraArguments[1];
 
-            __shared__ Nd4jLong zLength;
+            __shared__ sd::LongType zLength;
             __shared__ int yEWS;
             __shared__ int zEWS;
 
@@ -408,7 +407,7 @@ namespace randomOps {
 
             int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-            for (Nd4jLong e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+            for (sd::LongType e = tid; e < zLength; e += blockDim.x * gridDim.x) {
                 int success = 0;
                 for (int t = 1; t <= trials; t++) {
                     T randVal = rng->relativeT<T>((e+1) * t);
@@ -426,17 +425,17 @@ namespace randomOps {
         }
 #endif
 
-        static inline void specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        static inline void specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             int trials = (int) extraArguments[0];
 
-            Nd4jLong zLength = shape::length(zShapeBuffer);
+            sd::LongType zLength = shape::length(zShapeBuffer);
 
             auto yEWS = shape::elementWiseStride(yShapeBuffer);
             auto zEWS = shape::elementWiseStride(zShapeBuffer);
 
             int elementsPerThread = zLength / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             T prob = extraArguments[1];
 
@@ -482,11 +481,11 @@ namespace randomOps {
         static const bool requiresSpecial = true;
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const* yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const* yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
             int trials = (int) extraArguments[0];
             T prob = extraArguments[1];
 
-            __shared__ Nd4jLong zLength;
+            __shared__ sd::LongType zLength;
             __shared__ int yEWS;
             __shared__ int zEWS;
 
@@ -515,7 +514,7 @@ namespace randomOps {
 
             int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-            for (Nd4jLong e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+            for (sd::LongType e = tid; e < zLength; e += blockDim.x * gridDim.x) {
                 int success = 0;
                 for (int t = 1; t <= trials; t++) {
                     T randVal = rng->relativeT<T>((e+1) * t);
@@ -534,17 +533,17 @@ namespace randomOps {
         }
 #endif
 
-        static inline void specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        static inline void specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             int trials = (int) extraArguments[0];
 
-            Nd4jLong zLength = shape::length(zShapeBuffer);
+            sd::LongType zLength = shape::length(zShapeBuffer);
 
             auto yEWS = shape::elementWiseStride(yShapeBuffer);
             auto zEWS = shape::elementWiseStride(zShapeBuffer);
 
             int elementsPerThread = zLength / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             T prob = extraArguments[1];
 
@@ -578,7 +577,7 @@ namespace randomOps {
     template<typename T>
     class TruncatedNormalDistribution {
     private:
-        static inline _CUDA_HD T step(sd::graph::RandomGenerator* rng, T mean, T stddev, Nd4jLong e, Nd4jLong middle, T& z) {
+        static SD_INLINE SD_HOST_DEVICE T step(sd::graph::RandomGenerator* rng, T mean, T stddev, sd::LongType e, sd::LongType middle, T& z) {
             auto epm = e + middle;
             const T two_pi = static_cast<T>(2.0f) * static_cast<T>(3.14159265358979323846);
             const T epsilon = static_cast<T>(1.e-5f);
@@ -588,12 +587,12 @@ namespace randomOps {
 
             T realMean0 = mean;
 
-            auto z0 =  (sd::math::nd4j_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_cos<T,T>(two_pi * r1)) * stddev + realMean0;
+            auto z0 =  (sd::math::sd_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::sd_log<T,T>(r0)) * sd::math::sd_cos<T,T>(two_pi * r1)) * stddev + realMean0;
             z = z0;
             if (epm < middle) {
                 T realMean1 = mean;
-                auto z1 = (sd::math::nd4j_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T, T>(r0)) *
-                           sd::math::nd4j_sin<T, T>(two_pi * r1)) * stddev + realMean1;
+                auto z1 = (sd::math::sd_sqrt<T, T>(static_cast<T>(-2.0f) * sd::math::sd_log<T, T>(r0)) *
+                           sd::math::sd_sin<T, T>(two_pi * r1)) * stddev + realMean1;
                 z = z1;
             }
             return z;
@@ -607,13 +606,13 @@ namespace randomOps {
         static const bool requiresSpecial = true;
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const* yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const* yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
             __shared__ T epsilon;
             __shared__ T two_pi;
 
-            __shared__ Nd4jLong zLength;
-            __shared__ Nd4jLong zEWS;
-            __shared__ Nd4jLong yEWS;
+            __shared__ sd::LongType zLength;
+            __shared__ sd::LongType zEWS;
+            __shared__ sd::LongType yEWS;
             __shared__ T mean;
             __shared__ T stddev;
             __shared__ int step;
@@ -624,7 +623,7 @@ namespace randomOps {
             __shared__ unsigned char *cB;
             __shared__ unsigned char *dB;
             __shared__ sd::graph::RandomGenerator* devRng;
-            __shared__ Nd4jLong middle;
+            __shared__ sd::LongType middle;
 
             if (threadIdx.x == 0) {
                 extern __shared__ unsigned char shmem[];
@@ -661,8 +660,8 @@ namespace randomOps {
             GaussianDistribution<T>::specialOpCuda(state, x, xShapeBuffer, y, yShapeBuffer, z, zShapeBuffer, extraArguments);
             __syncthreads();
 
-            T ds = sd::math::nd4j_abs<T>(stddev) * static_cast<T>(2.0f);
-            for (Nd4jLong e = tid; e < zLength; e += step) {
+            T ds = sd::math::sd_abs<T>(stddev) * static_cast<T>(2.0f);
+            for (sd::LongType e = tid; e < zLength; e += step) {
                 if (z[e] > mean + ds || z[e] < mean - ds) {
                     z[e] = TruncatedNormalDistribution<T>::step(rng, mean, stddev, e, middle, z[e]);
 
@@ -674,19 +673,19 @@ namespace randomOps {
 #endif
 
         static inline void
-        specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             GaussianDistribution<T>::specialOp(state, x, xShapeBuffer, y, yShapeBuffer, z, zShapeBuffer, extraArguments);
-            Nd4jLong zLength = shape::length(zShapeBuffer);
+            sd::LongType zLength = shape::length(zShapeBuffer);
             //auto yEWS = shape::elementWiseStride(yShapeBuffer);
             //auto zEWS = shape::elementWiseStride(zShapeBuffer);
             auto rng = reinterpret_cast<sd::graph::RandomGenerator*>(state);
             T mean = extraArguments[0];
             T stddev = extraArguments[1];
-            T ds = sd::math::nd4j_abs<T>(stddev) * (T) 2.0f;
-            Nd4jLong middle = zLength / 2 + (zLength % 2);
+            T ds = sd::math::sd_abs<T>(stddev) * (T) 2.0f;
+            sd::LongType middle = zLength / 2 + (zLength % 2);
             int elementsPerThread = middle / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             const T epsilon = static_cast<T>(1e-5);
 
@@ -719,13 +718,13 @@ namespace randomOps {
 
 
 #ifdef __CUDACC__
-        __device__ static inline void specialOpCuda(Nd4jPointer state, T const* x, Nd4jLong const* xShapeBuffer, T const* y, Nd4jLong const* yShapeBuffer, T *z, Nd4jLong const* zShapeBuffer, T *extraArguments) {
+        static SD_INLINE SD_DEVICE void specialOpCuda(sd::Pointer state, T const* x, sd::LongType const* xShapeBuffer, T const* y, sd::LongType const* yShapeBuffer, T *z, sd::LongType const* zShapeBuffer, T *extraArguments) {
             __shared__ T epsilon;
             __shared__ T two_pi;
 
-            __shared__ Nd4jLong zLength;
-            __shared__ Nd4jLong zEWS;
-            __shared__ Nd4jLong yEWS;
+            __shared__ sd::LongType zLength;
+            __shared__ sd::LongType zEWS;
+            __shared__ sd::LongType yEWS;
             __shared__ T mean;
             __shared__ T stddev;
             __shared__ int step;
@@ -772,7 +771,7 @@ namespace randomOps {
 
             int middle = zLength % 2 == 0 ? zLength / 2 : zLength / 2 + 1;
 
-            for (Nd4jLong e = tid; e < middle; e += step) {
+            for (sd::LongType e = tid; e < middle; e += step) {
                 auto epm = e + middle;
 
                 // we need to get random values
@@ -781,29 +780,29 @@ namespace randomOps {
 
                 T realMean = y == z ? mean : y[e * yEWS];
 
-                z[e *zEWS] =  sd::math::nd4j_exp<T,T>((sd::math::nd4j_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_cos<T,T>(two_pi * r1)) * stddev + realMean);
+                z[e *zEWS] =  sd::math::sd_exp<T,T>((sd::math::sd_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::sd_log<T,T>(r0)) * sd::math::sd_cos<T,T>(two_pi * r1)) * stddev + realMean);
 
                 if (epm < zLength) {
                     realMean = y == z ? mean : y[epm * yEWS];
-                    z[epm *zEWS] =  sd::math::nd4j_exp<T,T>((sd::math::nd4j_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_sin<T,T>(two_pi * r1)) * stddev + realMean);
+                    z[epm *zEWS] =  sd::math::sd_exp<T,T>((sd::math::sd_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::sd_log<T,T>(r0)) * sd::math::sd_sin<T,T>(two_pi * r1)) * stddev + realMean);
                 }
             }
         }
 #endif
 
         static inline void
-        specialOp(Nd4jPointer state, const T *x, const Nd4jLong *xShapeBuffer, const T *y, const Nd4jLong *yShapeBuffer, T *z, const Nd4jLong *zShapeBuffer, T *extraArguments) {
+        specialOp(sd::Pointer state, const T *x, const sd::LongType *xShapeBuffer, const T *y, const sd::LongType *yShapeBuffer, T *z, const sd::LongType *zShapeBuffer, T *extraArguments) {
             const T two_pi = static_cast<T>(2.0f) * static_cast<T>(3.14159265358979323846);
 
-            Nd4jLong zLength = shape::length(zShapeBuffer);
+            sd::LongType zLength = shape::length(zShapeBuffer);
             auto yEWS = shape::elementWiseStride(yShapeBuffer);
             auto zEWS = shape::elementWiseStride(zShapeBuffer);
 
             auto middle = zLength % 2 == 0 ? zLength / 2 : zLength / 2 + 1;
 
             int elementsPerThread = middle / TAD_THRESHOLD;
-            int _threads = sd::math::nd4j_max<int>(1, elementsPerThread);
-            _threads = sd::math::nd4j_min<int>(_threads, sd::Environment::getInstance().maxThreads());
+            int _threads = sd::math::sd_max<int>(1, elementsPerThread);
+            _threads = sd::math::sd_min<int>(_threads, sd::Environment::getInstance().maxThreads());
 
             int span = (zLength / _threads) + 8;
 
@@ -827,11 +826,11 @@ namespace randomOps {
 
                     T realMean = y == z ? mean : y[e * yEWS];
 
-                    z[e * zEWS] =  sd::math::nd4j_exp<T,T>((sd::math::nd4j_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_cos<T,T>(two_pi * r1)) * stddev + realMean);
+                    z[e * zEWS] =  sd::math::sd_exp<T,T>((sd::math::sd_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::sd_log<T,T>(r0)) * sd::math::sd_cos<T,T>(two_pi * r1)) * stddev + realMean);
 
                     if (epm < zLength) {
                         realMean = y == z ? mean : y[epm * yEWS];
-                        z[epm * zEWS] =  sd::math::nd4j_exp<T,T>((sd::math::nd4j_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::nd4j_log<T,T>(r0)) * sd::math::nd4j_sin<T,T>(two_pi * r1)) * stddev + realMean);
+                        z[epm * zEWS] =  sd::math::sd_exp<T,T>((sd::math::sd_sqrt<T,T>(static_cast<T>(-2.0f) * sd::math::sd_log<T,T>(r0)) * sd::math::sd_sin<T,T>(two_pi * r1)) * stddev + realMean);
                     }
                 }
             };

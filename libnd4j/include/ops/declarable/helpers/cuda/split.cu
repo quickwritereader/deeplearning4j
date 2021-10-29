@@ -22,7 +22,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
 
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <helpers/ShapeUtils.h>
@@ -40,11 +39,11 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ static void splitCuda(const void* vx, const Nd4jLong* xShapeInfo, void* pVz, const Nd4jLong* zTadShapeInfo, const int axis) {
+SD_KERNEL static void splitCuda(const void* vx, const sd::LongType* xShapeInfo, void* pVz, const sd::LongType* zTadShapeInfo, const int axis) {
 
     const T* x = reinterpret_cast<const T*>(vx);
 
-    __shared__ Nd4jLong xLen, totalThreads;
+    __shared__ sd::LongType xLen, totalThreads;
     __shared__ int xRank, zDim;
 
     if (threadIdx.x == 0) {
@@ -57,7 +56,7 @@ __global__ static void splitCuda(const void* vx, const Nd4jLong* xShapeInfo, voi
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int coords[MAX_RANK];
+    int coords[SD_MAX_RANK];
 
     for (uint64_t i = tid; i < xLen; i += totalThreads) {
 
@@ -77,15 +76,15 @@ __global__ static void splitCuda(const void* vx, const Nd4jLong* xShapeInfo, voi
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ static void splitCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
-                                       const void* vx, const Nd4jLong* xShapeInfo, void* pVz, const Nd4jLong* zTadShapeInfo, const int axis) {
+SD_HOST static void splitCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
+                                       const void* vx, const sd::LongType* xShapeInfo, void* pVz, const sd::LongType* zTadShapeInfo, const int axis) {
 
     splitCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, pVz, zTadShapeInfo, axis);
 }
-BUILD_SINGLE_TEMPLATE(template void splitCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void* vx, const Nd4jLong* xShapeInfo, void* pVz, const Nd4jLong* zTadShapeInfo, const int axis), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void splitCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream, const void* vx, const sd::LongType* xShapeInfo, void* pVz, const sd::LongType* zTadShapeInfo, const int axis), SD_COMMON_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vector<NDArray*>& outArrs, const int axis) {
+void split(sd::LaunchContext* context, const NDArray& input, std::vector<NDArray*>& outArrs, const int axis) {
 
     const int numOfSubArrs = outArrs.size();
     const auto sizeofT     = input.sizeOfT();
@@ -97,7 +96,7 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
     bool luckCase1 = ((axis == 0 && input.ordering() == 'c') || (axis == input.rankOf() - 1 && input.ordering() == 'f')) && input.ews() == 1;
 
     if(luckCase1) {
-        for (uint i = 0; i < numOfSubArrs; ++i) {
+        for (sd::Unsigned i = 0; i < numOfSubArrs; ++i) {
             luckCase1 &= outArrs[i]->ordering() == input.ordering() && outArrs[i]->ews() == 1;
             if(!luckCase1)
                 break;
@@ -108,7 +107,7 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
 
         auto x = static_cast<const int8_t*>(input.specialBuffer());
 
-        for (uint i = 0; i < numOfSubArrs; ++i) {
+        for (sd::Unsigned i = 0; i < numOfSubArrs; ++i) {
             const auto memAmountToCopy = outArrs[i]->lengthOf() * sizeofT;
             cudaMemcpyAsync(static_cast<int8_t*>(outArrs[i]->specialBuffer()), x, memAmountToCopy, cudaMemcpyDeviceToDevice, *context->getCudaStream());
             x = static_cast<const int8_t*>(x) + memAmountToCopy;
@@ -127,11 +126,11 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
     // const bool isXcontin = input.strideAt(axis) == 1;
     // bool areOutputsContin = true;
     // bool allSameOrder    = true;
-    // std::vector<Nd4jLong> strideOfContigStride(outArrs.size());
+    // std::vector<sd::LongType> strideOfContigStride(outArrs.size());
 
     // if(isXcontin) {
 
-    //     for (uint i = 0; i < outArrs.size(); ++i) {
+    //     for (sd::Unsigned i = 0; i < outArrs.size(); ++i) {
 
     //         areOutputsContin &= outArrs[i]->strideAt(axis) == 1;
     //         allSameOrder     &= input.ordering() == outArrs[i]->ordering();
@@ -149,12 +148,12 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
     //     const auto xStep = shape::strideOverContigAxis(axis, input.shapeInfo());
     //     const auto zDim = outArrs[0]->sizeAt(axis);     // same for all outArrs
 
-    //     for (uint i = 0; i < input.lengthOf() / input.sizeAt(axis); ++i) {
+    //     for (sd::Unsigned i = 0; i < input.lengthOf() / input.sizeAt(axis); ++i) {
 
     //         const auto iShift = i * sizeofT;
     //         void* x = static_cast<int8_t*>(input.specialBuffer()) + xStep * iShift;
 
-    //         for (uint j = 0; j < numOfSubArrs; ++j) {
+    //         for (sd::Unsigned j = 0; j < numOfSubArrs; ++j) {
     //             void* z = static_cast<int8_t*>(outArrs[j]->specialBuffer()) + strideOfContigStride[j] * iShift;
     //             const auto memSizeToCopy = zDim * sizeofT;
     //             cudaMemcpyAsync(z, x, memSizeToCopy, cudaMemcpyDeviceToDevice, *context->getCudaStream());
@@ -167,7 +166,7 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
     // }
     // else {      // general (slower) case
 
-        const int threadsPerBlock = MAX_NUM_THREADS / 2;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
         const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
         // prepare arrays of pointers on buffers and shapes
@@ -180,7 +179,7 @@ ND4J_LOCAL void split(sd::LaunchContext* context, const NDArray& input, std::vec
 
         void* dOutBuffers = manager.replicatePointer(hOutBuffers.data(), hOutBuffers.size() * sizeof(void*));
 
-        BUILD_SINGLE_SELECTOR(input.dataType(), splitCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), dOutBuffers, outArrs[0]->specialShapeInfo(), axis), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input.dataType(), splitCudaLauncher, (blocksPerGrid, threadsPerBlock, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), dOutBuffers, outArrs[0]->specialShapeInfo(), axis), SD_COMMON_TYPES);
 
         manager.synchronize();
     // }

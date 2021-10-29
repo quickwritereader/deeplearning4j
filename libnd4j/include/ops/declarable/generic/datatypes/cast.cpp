@@ -34,14 +34,14 @@ namespace sd {
 
             if(input->isEmpty()){
                 REQUIRE_TRUE(output->isEmpty(), 0, "If input is empty, output array must also be empty");
-                return Status::OK();
-			}
+                return sd::Status::OK;
+            }
 
             if (!block.isInplace())
                 output->assign(input);
             
             STORE_RESULT(output);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(Cast, cast);
 

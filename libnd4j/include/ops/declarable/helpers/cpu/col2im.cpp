@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 30.11.17.
 //
-
 #include <ops/declarable/helpers/col2im.h>
 #include <execution/Threads.h>
 
@@ -29,16 +28,16 @@ namespace helpers {
 
 // [bS, iC, kH, kW, oH, oW] is de-convoluted to [bS, iC, iH, iW]
 template <typename T>
- void col2im_(sd::LaunchContext & context, const NDArray& input,  NDArray& output, const int sH, const int sW, const int pH, const int pW, const int iH, const int iW, const int dH, const int dW) {
+static void col2im_(sd::LaunchContext & context, const NDArray& input,  NDArray& output, const int sH, const int sW, const int pH, const int pW, const int iH, const int iW, const int dH, const int dW) {
 
     auto imBuff         = output.bufferAsT<T>();
-	auto colBuff        = input.bufferAsT<T>();
-	auto imShapeBuffer  = output.shapeInfo();
-	auto colShapeBuffer = input.shapeInfo();
-    auto colShape  		= shape::shapeOf(colShapeBuffer);
-    auto colStride 		= shape::stride(colShapeBuffer);
-    auto imShape  	    = shape::shapeOf(imShapeBuffer);
-    auto imStride 	    = shape::stride(imShapeBuffer);            
+    auto colBuff        = input.bufferAsT<T>();
+    auto imShapeBuffer  = output.shapeInfo();
+    auto colShapeBuffer = input.shapeInfo();
+    auto colShape          = shape::shapeOf(colShapeBuffer);
+    auto colStride         = shape::stride(colShapeBuffer);
+    auto imShape          = shape::shapeOf(imShapeBuffer);
+    auto imStride         = shape::stride(imShapeBuffer);            
 
     const int bS = imShape[0];
     const int iC = imShape[1];
@@ -46,16 +45,16 @@ template <typename T>
     const int kW = colShape[3];                    
     const int oH = colShape[4];
     const int oW = colShape[5];
-    const Nd4jLong colStride0 = colStride[0];
-    const Nd4jLong colStride1 = colStride[1];
-    const Nd4jLong colStride2 = colStride[2];
-    const Nd4jLong colStride3 = colStride[3];
-    const Nd4jLong colStride4 = colStride[4];
-    const Nd4jLong colStride5 = colStride[5];
-    const Nd4jLong imStride0  = imStride[0];
-    const Nd4jLong imStride1  = imStride[1];
-    const Nd4jLong imStride2  = imStride[2];
-    const Nd4jLong imStride3  = imStride[3];
+    const sd::LongType colStride0 = colStride[0];
+    const sd::LongType colStride1 = colStride[1];
+    const sd::LongType colStride2 = colStride[2];
+    const sd::LongType colStride3 = colStride[3];
+    const sd::LongType colStride4 = colStride[4];
+    const sd::LongType colStride5 = colStride[5];
+    const sd::LongType imStride0  = imStride[0];
+    const sd::LongType imStride1  = imStride[1];
+    const sd::LongType imStride2  = imStride[2];
+    const sd::LongType imStride3  = imStride[3];
 
 
     // if (shape::order(colShapeBuffer) == 'c' &&  shape::order(imShapeBuffer) == 'c' && shape::strideDescendingCAscendingF(colShapeBuffer) && shape::strideDescendingCAscendingF(imShapeBuffer)) {
@@ -135,7 +134,7 @@ template <typename T>
 
 
  void col2im(sd::LaunchContext & context, const NDArray& input,  NDArray& output, const int sH, const int sW, const int pH, const int pW, const int iH, const int iW, const int dH, const int dW) {
-	BUILD_SINGLE_SELECTOR(input.dataType(), col2im_, (context, input, output, sH, sW, pH, pW, iH, iW, dH, dW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), col2im_, (context, input, output, sH, sW, pH, pW, iH, iW, dH, dW), SD_FLOAT_TYPES);
 }
 
 }

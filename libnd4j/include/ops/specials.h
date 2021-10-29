@@ -29,7 +29,6 @@
 #define TAD_THRESHOLD 2
 #endif
 
-#include <system/pointercast.h>
 #include <vector>
 
 namespace sd {
@@ -43,45 +42,45 @@ namespace sd {
     } FloatBits2;
 
 
-    class ND4J_EXPORT SpecialTypeConverter {
+    class SD_LIB_EXPORT SpecialTypeConverter {
     public:
         template<typename S, typename T>
-        static void convertGeneric(Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz);
+        static void convertGeneric(sd::Pointer * extras, void *dx, sd::LongType N, void *dz);
     };
 
     template <typename T>
-    class ND4J_EXPORT SpecialMethods {
+    class SD_LIB_EXPORT SpecialMethods {
     public:
         static void concatCpuGeneric(const std::vector<const NDArray*>& inArrs, NDArray& output, int axis);
-        static void concatCpuGeneric(int dimension, int numArrays, Nd4jPointer *data, Nd4jPointer *inputShapeInfo, void *result, Nd4jLong const* resultShapeInfo);
+        static void concatCpuGeneric(int dimension, int numArrays, sd::Pointer *data, sd::Pointer *inputShapeInfo, void *result, sd::LongType const* resultShapeInfo);
         static void splitCpuGeneric(const NDArray& input, const std::vector<NDArray*>& outArrs, int axis);
-        static void accumulateGeneric(void **x, void *z, const Nd4jLong *zShapeInfo, int n, Nd4jLong length);
-        static void averageGeneric(void **x, void *z, const Nd4jLong  *zShapeInfo, int n, Nd4jLong length, bool propagate);
+        static void accumulateGeneric(void **x, void *z, const sd::LongType *zShapeInfo, int n, sd::LongType length);
+        static void averageGeneric(void **x, void *z, const sd::LongType  *zShapeInfo, int n, sd::LongType length, bool propagate);
 
-        static Nd4jLong getPosition(const Nd4jLong *xShapeInfo, Nd4jLong index);
-        static void quickSort_parallel_internal(T* array, const Nd4jLong *xShapeInfo, int left, int right, int cutoff, bool descending);
-        static void quickSort_parallel(void* array, const Nd4jLong *xShapeInfo, Nd4jLong lenArray, int numThreads, bool descending);
+        static sd::LongType getPosition(const sd::LongType *xShapeInfo, sd::LongType index);
+        static void quickSort_parallel_internal(T* array, const sd::LongType *xShapeInfo, int left, int right, int cutoff, bool descending);
+        static void quickSort_parallel(void* array, const sd::LongType *xShapeInfo, sd::LongType lenArray, int numThreads, bool descending);
 
         static int nextPowerOf2(int number);
         static int lastPowerOf2(int number);
 
-        static void sortGeneric(void *x, const Nd4jLong *xShapeInfo, bool descending);
-        static void sortTadGeneric(void *x, const Nd4jLong *xShapeInfo, int *dimension, int dimensionLength, const Nd4jLong *tadShapeInfo, const Nd4jLong *tadOffsets, bool descending);
+        static void sortGeneric(void *x, const sd::LongType *xShapeInfo, bool descending);
+        static void sortTadGeneric(void *x, const sd::LongType *xShapeInfo, int *dimension, int dimensionLength, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets, bool descending);
 
-        static void decodeBitmapGeneric(const void *dx, Nd4jLong N, void *dz, const Nd4jLong *zShapeInfo);
-        static Nd4jLong encodeBitmapGeneric(void *dx, const Nd4jLong *zShapeInfo, Nd4jLong N, int *dz, float threshold);
+        static void decodeBitmapGeneric(const void *dx, sd::LongType N, void *dz, const sd::LongType *zShapeInfo);
+        static sd::LongType encodeBitmapGeneric(void *dx, const sd::LongType *zShapeInfo, sd::LongType N, int *dz, float threshold);
 
     };
 
     template <typename X, typename Y>
-    class ND4J_EXPORT DoubleMethods{
+    class SD_LIB_EXPORT DoubleMethods{
     public:
-        static void sortByKey(void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, bool descending);
-        static void sortByValue(void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, bool descending);
+        static void sortByKey(void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, bool descending);
+        static void sortByValue(void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, bool descending);
 
 
-        static void sortTadByKey(void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int *dimension, int dimensionLength, bool descending);
-        static void sortTadByValue(void *vx, Nd4jLong const* xShapeInfo, void *vy, Nd4jLong const* yShapeInfo, int *dimension, int dimensionLength, bool descending);
+        static void sortTadByKey(void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int *dimension, int dimensionLength, bool descending);
+        static void sortTadByValue(void *vx, sd::LongType const* xShapeInfo, void *vy, sd::LongType const* yShapeInfo, int *dimension, int dimensionLength, bool descending);
     };
 }
 

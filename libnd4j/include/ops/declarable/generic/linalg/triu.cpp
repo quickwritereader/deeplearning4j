@@ -38,9 +38,9 @@ CUSTOM_OP_IMPL(triu, 1, 1, false, 0, 0) {
 
     const int diag = block.getIArguments()->size() > 0 ? INT_ARG(0) : 0;
 
-    BUILD_SINGLE_SELECTOR(input->dataType(), input->fillAsTriangular, (0, diag, 0, *output, 'l' ), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(input->dataType(), input->fillAsTriangular, (0, diag, 0, *output, 'l' ), SD_COMMON_TYPES);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(triu) {
@@ -50,15 +50,15 @@ CUSTOM_OP_IMPL(triu, 1, 1, false, 0, 0) {
 
 DECLARE_SHAPE_FN(triu) {
 
-	auto inShapeInfo = inputShape->at(0);
+    auto inShapeInfo = inputShape->at(0);
 
     REQUIRE_TRUE(inShapeInfo[0] > 0, 0, "TRIU OP: the rank of input array must be > 0, but got %i instead !", inShapeInfo[0]);
 
     int rank = (inShapeInfo[0] == 1) ? 2 : inShapeInfo[0];
 
-    Nd4jLong *outShapeInfo = nullptr;
-	ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);
-    memcpy(outShapeInfo, inShapeInfo, (1 + rank) * sizeof(Nd4jLong));                     // copy rank and dimensions values only
+    sd::LongType *outShapeInfo = nullptr;
+    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);
+    memcpy(outShapeInfo, inShapeInfo, (1 + rank) * sizeof(sd::LongType));                     // copy rank and dimensions values only
 
     if(inShapeInfo[0] == 1) {
         outShapeInfo[0] = rank;
@@ -66,7 +66,7 @@ DECLARE_SHAPE_FN(triu) {
         outShapeInfo[2] = inShapeInfo[1];
     }
 
-	ShapeUtils::updateStridesAndType(outShapeInfo, inShapeInfo, shape::order(inShapeInfo));
+    ShapeUtils::updateStridesAndType(outShapeInfo, inShapeInfo, shape::order(inShapeInfo));
 
     return SHAPELIST(CONSTANT(outShapeInfo));
 }
@@ -87,7 +87,7 @@ CUSTOM_OP_IMPL(triu_bp, 2, 1, false, 0, 0) {
 
     helpers::triuBP(block.launchContext(), *input, *gradO, *gradI, diag);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(triu_bp) {
@@ -101,9 +101,9 @@ DECLARE_SHAPE_FN(triu_bp) {
     auto gradOShapeInfo = inputShape->at(1);
     int rank = gradOShapeInfo[0];
 
-    Nd4jLong* outShapeInfo = nullptr;
-    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);
-    memcpy(outShapeInfo, gradOShapeInfo, (1 + rank) * sizeof(Nd4jLong));                     // copy rank and dimensions values only
+    sd::LongType* outShapeInfo = nullptr;
+    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);
+    memcpy(outShapeInfo, gradOShapeInfo, (1 + rank) * sizeof(sd::LongType));                     // copy rank and dimensions values only
 
     auto in = inputShape->at(0);
     ShapeUtils::updateStridesAndType(outShapeInfo, in, shape::order(in));

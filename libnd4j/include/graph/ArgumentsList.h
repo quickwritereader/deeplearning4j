@@ -23,15 +23,14 @@
 #ifndef LIBND4J_INPUTLIST_H
 #define LIBND4J_INPUTLIST_H
 
+#include <system/common.h>
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
 #include <vector>
 #include <types/pair.h>
 
 namespace sd {
 namespace graph {
-    class ND4J_EXPORT ArgumentsList {
+    class SD_LIB_EXPORT ArgumentsList {
     protected:
         std::vector<Pair> _arguments;
     public:

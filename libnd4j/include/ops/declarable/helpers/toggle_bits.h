@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/helpers.h>
 
 #ifndef DEV_TESTS_TOGGLE_BITS_H
@@ -31,7 +30,7 @@ namespace sd {
             template <typename T>
             static void toggle_bits__(sd::LaunchContext * context, NDArray& in, NDArray& out);
 
-            void __toggle_bits(sd::LaunchContext * context, NDArray& in, NDArray& out);
+            SD_LIB_HIDDEN void __toggle_bits(sd::LaunchContext * context, NDArray& in, NDArray& out);
         }
     }
 }

@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 #include <helpers/ShapeUtils.h>
@@ -30,7 +29,7 @@ namespace sd {
         namespace helpers {
 
             template <typename T>
-            ND4J_LOCAL void maximumBPFunctor_(NDArray* x, NDArray* y, NDArray* epsNext, NDArray* gradX, NDArray* gradY) {
+            void maximumBPFunctor_(NDArray* x, NDArray* y, NDArray* epsNext, NDArray* gradX, NDArray* gradY) {
 
                 auto lambdaX = LAMBDA_TTT(_e, _x, _y) {
                     return _x >= _y ? _e : (T) 0.;
@@ -96,10 +95,10 @@ namespace sd {
                 }
             }
 
-            ND4J_LOCAL void maximumBPFunctor(sd::LaunchContext * context, NDArray* x, NDArray* y, NDArray* epsNext, NDArray* gradX, NDArray* gradY) {
+            void maximumBPFunctor(sd::LaunchContext * context, NDArray* x, NDArray* y, NDArray* epsNext, NDArray* gradX, NDArray* gradY) {
                 NDArray::prepareSpecialUse({gradX, gradY}, {x, y, epsNext});
 
-                BUILD_SINGLE_SELECTOR(x->dataType(), maximumBPFunctor_, (x, y, epsNext, gradX, gradY), NUMERIC_TYPES);
+                BUILD_SINGLE_SELECTOR(x->dataType(), maximumBPFunctor_, (x, y, epsNext, gradX, gradY), SD_NUMERIC_TYPES);
 
                 NDArray::registerSpecialUse({gradX, gradY}, {x, y, epsNext});
             }

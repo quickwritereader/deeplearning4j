@@ -43,7 +43,7 @@ namespace sd {
             auto output = OUTPUT_VARIABLE(0);
 
             if (output->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             auto axis = *block.getIArguments();
  
@@ -59,7 +59,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(argmax) {

@@ -20,19 +20,16 @@
 // @author raver119@gmail.com, created on 6/30/2018
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/OmpLaunchHelper.h>
 #include <system/Environment.h>
 #include <math/templatemath.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
 
 namespace sd {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-OmpLaunchHelper::OmpLaunchHelper(const Nd4jLong N, float desiredNumThreads) {            
+OmpLaunchHelper::OmpLaunchHelper(const sd::LongType N, float desiredNumThreads) {            
 
     auto maxItersPerThread = Environment::getInstance().elementwiseThreshold();
         
@@ -45,11 +42,11 @@ OmpLaunchHelper::OmpLaunchHelper(const Nd4jLong N, float desiredNumThreads) {
             else if(desiredNumThreads < 1) 
                 desiredNumThreads = 1;
             else
-                desiredNumThreads = sd::math::nd4j_min<int>(omp_get_max_threads(), desiredNumThreads);
+                desiredNumThreads = sd::math::sd_min<int>(omp_get_max_threads(), desiredNumThreads);
         #else
             desiredNumThreads = sd::Environment::getInstance().maxThreads();
         #endif
-        _numThreads = sd::math::nd4j_min<int>(N / maxItersPerThread, desiredNumThreads);
+        _numThreads = sd::math::sd_min<int>(N / maxItersPerThread, desiredNumThreads);
     }
 
     _itersPerThread = N / _numThreads;
@@ -57,11 +54,11 @@ OmpLaunchHelper::OmpLaunchHelper(const Nd4jLong N, float desiredNumThreads) {
 }
 
 
-Nd4jLong OmpLaunchHelper::betterSpan(Nd4jLong N) {
+sd::LongType OmpLaunchHelper::betterSpan(sd::LongType N) {
         return OmpLaunchHelper::betterSpan(N, OmpLaunchHelper::betterThreads(N));
     }
 
-    Nd4jLong OmpLaunchHelper::betterSpan(Nd4jLong N, Nd4jLong numThreads) {
+    sd::LongType OmpLaunchHelper::betterSpan(sd::LongType N, sd::LongType numThreads) {
         auto r = N % numThreads;
         auto t = N / numThreads;
         
@@ -73,7 +70,7 @@ Nd4jLong OmpLaunchHelper::betterSpan(Nd4jLong N) {
         }
     }
 
-    int OmpLaunchHelper::betterThreads(Nd4jLong N) {
+    int OmpLaunchHelper::betterThreads(sd::LongType N) {
         #ifdef _OPENMP
             return betterThreads(N, omp_get_max_threads());
         #else
@@ -81,16 +78,16 @@ Nd4jLong OmpLaunchHelper::betterSpan(Nd4jLong N) {
         #endif
     }
 
-    int OmpLaunchHelper::betterThreads(Nd4jLong N, int maxThreads) {
+    int OmpLaunchHelper::betterThreads(sd::LongType N, int maxThreads) {
         auto t = Environment::getInstance().elementwiseThreshold();
         if (N < t)
             return 1;
         else {
-            return static_cast<int>(sd::math::nd4j_min<Nd4jLong>(N / t, maxThreads));
+            return static_cast<int>(sd::math::sd_min<sd::LongType>(N / t, maxThreads));
         }
     }
 
-    int OmpLaunchHelper::tadThreads(Nd4jLong tadLength, Nd4jLong numTads) {
+    int OmpLaunchHelper::tadThreads(sd::LongType tadLength, sd::LongType numTads) {
 #ifdef _OPENMP
         auto maxThreads = omp_get_max_threads();
 #else
@@ -108,6 +105,6 @@ Nd4jLong OmpLaunchHelper::betterSpan(Nd4jLong N) {
             return 1;
 
         // by default we're spawning as many threads we can, but not more than number of TADs
-        return sd::math::nd4j_min<int>(numTads, maxThreads);
+        return sd::math::sd_min<int>(numTads, maxThreads);
     }
 }

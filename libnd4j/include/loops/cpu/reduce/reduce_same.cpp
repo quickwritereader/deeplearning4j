@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //  @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <types/types.h>
 #include <system/op_boilerplate.h>
 #include <loops/reduce_same.h>
@@ -36,9 +35,9 @@ namespace functions {
     namespace reduce {
         template <typename X>
         template <typename OpType>
-        void _CUDA_H ReduceSameFunction<X>::execScalar(const void *vx, const Nd4jLong *xShapeInfo,
+        void SD_HOST ReduceSameFunction<X>::execScalar(const void *vx, const sd::LongType *xShapeInfo,
                                                        void *vextraParams,
-                                                       void *vz, const Nd4jLong *zShapeInfo) {
+                                                       void *vz, const sd::LongType *zShapeInfo) {
             auto x = reinterpret_cast<const X *>(vx);
             auto z = reinterpret_cast<X *>(vz);
             auto extraParams = reinterpret_cast<X *>(vextraParams);
@@ -57,7 +56,7 @@ namespace functions {
                     return;
                 const auto startingVal = OpType::startingValue(x);
 
-                for (Nd4jLong i = 0; i < length; i++)
+                for (sd::LongType i = 0; i < length; i++)
                     z[i] = startingVal;
                 return;
             }
@@ -67,9 +66,9 @@ namespace functions {
             }
             else {
                 auto startingValue = OpType::startingValue(x);
-                uint xShapeInfoCast[MAX_RANK];
+                sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                 const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-                int maxThreads = sd::math::nd4j_min<int>(64, sd::Environment::getInstance().maxThreads());
+                int maxThreads = sd::math::sd_min<int>(64, sd::Environment::getInstance().maxThreads());
                 X intermediate[64];
 
                 PRAGMA_OMP_SIMD
@@ -95,21 +94,21 @@ namespace functions {
 
         template <typename X>
         template <typename OpType>
-            X _CUDA_H ReduceSameFunction<X>::execScalar(const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams) {
+            X SD_HOST ReduceSameFunction<X>::execScalar(const void *vx, const sd::LongType *xShapeInfo, void *vextraParams) {
                 auto x = reinterpret_cast<const X *>(vx);
                 auto extraParams = reinterpret_cast<X *>(vextraParams);
 
-                const Nd4jLong length = shape::length(xShapeInfo);
+                const sd::LongType length = shape::length(xShapeInfo);
                 const auto xEws = shape::elementWiseStride(xShapeInfo);
 
                 if (xEws >= 1) {
                     return execScalar<OpType>(x, xEws, length, extraParams);
                 } else {
                     auto startingValue = OpType::startingValue(x);
-                    uint xShapeInfoCast[MAX_RANK];
+                    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
                     bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
 
-                    for (Nd4jLong i = 0; i < length; i++)
+                    for (sd::LongType i = 0; i < length; i++)
                         startingValue = OpType::update(startingValue, OpType::op(x[shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX)], extraParams), extraParams);
 
                     return OpType::postProcess(startingValue, length, extraParams);
@@ -118,36 +117,36 @@ namespace functions {
 
         template <typename X>
         X ReduceSameFunction<X>::execScalar(const int opNum,
-                                            const void *x, const Nd4jLong *xShapeInfo,
+                                            const void *x, const sd::LongType *xShapeInfo,
                                             void *extraParams) {
                 RETURNING_DISPATCH_BY_OPNUM_T(execScalar, PARAMS(x, xShapeInfo, extraParams), REDUCE_SAME_OPS);
         }
 
         template <typename X>
         void ReduceSameFunction<X>::execScalar(const int opNum,
-                                               const void *x, const Nd4jLong *xShapeInfo,
+                                               const void *x, const sd::LongType *xShapeInfo,
                                                void *extraParams,
-                                               void *z, const Nd4jLong *zShapeInfo) {
+                                               void *z, const sd::LongType *zShapeInfo) {
             DISPATCH_BY_OPNUM_T(execScalar, PARAMS(x, xShapeInfo, extraParams, z, zShapeInfo), REDUCE_SAME_OPS);
         }
 
 
         template <typename X>
         template<typename OpType>
-        void _CUDA_H ReduceSameFunction<X>::exec(const void *x, const Nd4jLong *xShapeInfo,
+        void SD_HOST ReduceSameFunction<X>::exec(const void *x, const sd::LongType *xShapeInfo,
                                                  void *extraParams,
-                                                 void *vz, const Nd4jLong *zShapeInfo) {
+                                                 void *vz, const sd::LongType *zShapeInfo) {
                 auto z = reinterpret_cast<X*>(vz);
                 z[0] = execScalar<OpType>(x, xShapeInfo, extraParams);
         }
 
         template <typename X>
         template <typename OpType>
-        X _CUDA_H ReduceSameFunction<X>::execScalar(const void *vx, Nd4jLong xEws, Nd4jLong length, void *vextraParams) {
+        X SD_HOST ReduceSameFunction<X>::execScalar(const void *vx, sd::LongType xEws, sd::LongType length, void *vextraParams) {
 
             auto x = reinterpret_cast<const X *>(vx);
             auto extraParams = reinterpret_cast<X *>(vextraParams);
-            int maxThreads = sd::math::nd4j_min<int>(64, sd::Environment::getInstance().maxThreads());
+            int maxThreads = sd::math::sd_min<int>(64, sd::Environment::getInstance().maxThreads());
             X intermediate[64];
 
             PRAGMA_OMP_SIMD
@@ -177,7 +176,7 @@ namespace functions {
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
 template <typename OpType>
-void _CUDA_H ReduceSameFunction<X>::exec(sd::memory::Workspace* workspace, const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams, void *vz, const Nd4jLong *zShapeInfo, const int* dims) {
+void SD_HOST ReduceSameFunction<X>::exec(sd::memory::Workspace* workspace, const void *vx, const sd::LongType *xShapeInfo, void *vextraParams, void *vz, const sd::LongType *zShapeInfo, const int* dims) {
 
     const X* x = reinterpret_cast<const X*>(vx);
           X* z = reinterpret_cast<X*>(vz);
@@ -191,7 +190,7 @@ void _CUDA_H ReduceSameFunction<X>::exec(sd::memory::Workspace* workspace, const
         const auto startingVal = OpType::startingValue(x);
         const auto zLen = shape::length(zShapeInfo);
 
-        for (Nd4jLong i = 0; i < zLen; i++)
+        for (sd::LongType i = 0; i < zLen; i++)
             z[i] = startingVal;
         return;
     }
@@ -206,7 +205,7 @@ void _CUDA_H ReduceSameFunction<X>::exec(sd::memory::Workspace* workspace, const
         return;
     }
 
-#ifdef INLINE_LOOPS
+#ifdef SD_LOOPS_INLINED
     sd::ReductionLoops<X,X,X>::template loopReduce<OpType>(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams);
 #else
     sd::ReductionSameLoops<X>::template innerloopReduce<OpType>(workspace, x, xShapeInfo, z, zShapeInfo, dims, extraParams);
@@ -216,14 +215,13 @@ void _CUDA_H ReduceSameFunction<X>::exec(sd::memory::Workspace* workspace, const
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X>
-void ReduceSameFunction<X>::exec(const int opNum, sd::memory::Workspace* workspace, const void *vx, const Nd4jLong *xShapeInfo, void *vextraParams, void *vz, const Nd4jLong *zShapeInfo, const int *dims) {
+void ReduceSameFunction<X>::exec(const int opNum, sd::memory::Workspace* workspace, const void *vx, const sd::LongType *xShapeInfo, void *vextraParams, void *vz, const sd::LongType *zShapeInfo, const int *dims) {
 
     DISPATCH_BY_OPNUM_T(exec, PARAMS(workspace, vx, xShapeInfo, vextraParams, vz, zShapeInfo, dims), REDUCE_SAME_OPS);
 }
 
 
-
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL ReduceSameFunction, , LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN ReduceSameFunction, , SD_COMMON_TYPES);
 }
 }
 

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <helpers/ShapeUtils.h>
 #include <ops/declarable/LegacyPairwiseTransformOp.h>
 
@@ -38,7 +37,7 @@ namespace sd {
             return new LegacyPairwiseTransformOp(this->_opNum);
         }
 
-        Nd4jStatus LegacyPairwiseTransformOp::validateAndExecute(Context &block) {
+        sd::Status LegacyPairwiseTransformOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
             auto y = INPUT_VARIABLE(1);
             auto z = OUTPUT_VARIABLE(0);
@@ -61,7 +60,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         /**
@@ -70,7 +69,7 @@ namespace sd {
         ShapeList *LegacyPairwiseTransformOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
 
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             COPY_SHAPE(inShape, newShape);
 
             return SHAPELIST(CONSTANT(newShape));

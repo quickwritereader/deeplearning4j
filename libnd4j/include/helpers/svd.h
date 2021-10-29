@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SVD_H
 #define LIBND4J_SVD_H
-
 #include <helpers/hhSequence.h>
 #include "array/NDArray.h"
 
@@ -79,31 +78,30 @@ class SVD {
 
     void evalData(const NDArray& matrix);
 
-    FORCEINLINE NDArray& getS();
-    FORCEINLINE NDArray& getU();
-    FORCEINLINE NDArray& getV();
+    SD_INLINE NDArray& getS();
+    SD_INLINE NDArray& getU();
+    SD_INLINE NDArray& getV();
 
 };
 
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-FORCEINLINE NDArray& SVD<T>::getS() {
+SD_INLINE NDArray& SVD<T>::getS() {
   return _s;
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-FORCEINLINE NDArray& SVD<T>::getU() {
+SD_INLINE NDArray& SVD<T>::getU() {
   return _u;
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-FORCEINLINE NDArray& SVD<T>::getV() {
+SD_INLINE NDArray& SVD<T>::getV() {
   return _v;
 }
-
 
 
 }

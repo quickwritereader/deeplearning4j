@@ -39,7 +39,7 @@ namespace sd {
             int width;
             int height;
             auto inRank = image->rankOf();
-            if (output->isEmpty()) return Status::OK();
+            if (output->isEmpty()) return sd::Status::OK;
 
             REQUIRE_TRUE(inRank == 3 || inRank == 4, 0, "resize_bicubic: Source tensor should have rank 4, but %i given.", inRank);
             REQUIRE_TRUE(output->rankOf() == inRank, 0, "resize_bicubic: Source tensor and output should have the same rank, but  %i and %i given.", inRank, output->rankOf());
@@ -79,7 +79,7 @@ namespace sd {
             auto shapeList = SHAPELIST();
             auto in = inputShape->at(0);
 
-            Nd4jLong* outputShape;
+            sd::LongType* outputShape;
             auto inRank = shape::rank(in);
             int width;
             int height;
@@ -91,7 +91,7 @@ namespace sd {
 
             REQUIRE_TRUE(inRank == 4 || inRank == 3, 0, "resize_bicubic: Source tensor should have rank 4, but %i given.", inRank);
 
-            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), Nd4jLong);
+            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), sd::LongType);
             outputShape[0] = inRank;
             if (inRank == 4) {
                 outputShape[1] = in[1];

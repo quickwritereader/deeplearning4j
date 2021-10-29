@@ -33,7 +33,6 @@
 #endif
 
 
-
 #ifdef HAVE_OPENBLAS
 // include CBLAS from OpenBLAS
 #ifdef __GNUC__
@@ -45,7 +44,7 @@
 #endif
 
 #ifndef CBLAS_H
-#include <system/dll.h>
+
 
 #ifdef __cplusplus
 extern "C" {

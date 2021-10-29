@@ -20,16 +20,15 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include <ops/declarable/helpers/transforms.h>
 #include <helpers/Loops.h>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////
- void invertPermutation(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
+void invertPermutation(sd::LaunchContext * context, const NDArray& input, NDArray& output) {
 
     std::set<int> uniqueElems;
     const int length = input.lengthOf();

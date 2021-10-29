@@ -20,8 +20,7 @@
 //  @author raver119@gmail.com
 //
 
-#include <system/pointercast.h>
-#include <system/dll.h>
+
 #include <types/float16.h>
 #include <graph/ContextPrototype.h>
 

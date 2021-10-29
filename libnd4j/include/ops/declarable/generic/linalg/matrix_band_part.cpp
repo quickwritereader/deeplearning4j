@@ -33,8 +33,8 @@ namespace sd {
 
             auto output   = OUTPUT_VARIABLE(0);
 
-            Nd4jLong minLower(0LL);
-            Nd4jLong maxUpper(0LL);
+            sd::LongType minLower(0LL);
+            sd::LongType maxUpper(0LL);
             if (block.width() == 1) {
                 REQUIRE_TRUE(block.numI() == 2, 0, "matrix_band_part: min and max band numbers should be given before.");
                 minLower = INT_ARG(0);
@@ -45,19 +45,19 @@ namespace sd {
                 auto minLowerT = INPUT_VARIABLE(1);
                 auto maxUpperT = INPUT_VARIABLE(2);
                 REQUIRE_TRUE(minLowerT->isScalar() && maxUpperT->isScalar(), 0, "matrix_band_part: min and max should be scalars, but %i and %i ranks given", minLowerT->rankOf(), maxUpperT->rankOf());
-                minLower = minLowerT->e<Nd4jLong>(0);
-                maxUpper = maxUpperT->e<Nd4jLong>(0);
+                minLower = minLowerT->e<sd::LongType>(0);
+                maxUpper = maxUpperT->e<sd::LongType>(0);
             }
             REQUIRE_TRUE(input->rankOf() >= 2, 0, "matrix_band_part: Input rank should be 2 or greater.");
-            Nd4jLong N = input->sizeAt(-2);
-            Nd4jLong M = input->sizeAt(-1);
+            sd::LongType N = input->sizeAt(-2);
+            sd::LongType M = input->sizeAt(-1);
             REQUIRE_TRUE(minLower > -N && minLower < N, 0, "matrix_band_part: lower diagonal count %i should be less than %i.",
                     minLower, N);
             REQUIRE_TRUE(maxUpper > -M && maxUpper < M, 0, "matrix_band_part: upper diagonal count %i should be less than %i.",
                     maxUpper, M);
 
             helpers::matrixBandPart(block.launchContext(), input, output, minLower, maxUpper);
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
         DECLARE_SYN(band_part, matrix_band_part);
     }

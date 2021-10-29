@@ -49,7 +49,7 @@ namespace sd {
                 shift->assign(T_ARG(0));
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(sufficient_statistics) {

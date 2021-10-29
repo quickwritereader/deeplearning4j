@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <chrono>
@@ -35,13 +34,11 @@
 #include <ops/declarable/helpers/im2col.h>
 #include <helpers/Loops.h>
 #include <helpers/RandomLauncher.h>
-
 #include <helpers/BenchmarkHelper.h>
 #include <ops/declarable/helpers/scatter.h>
 #include <helpers/ConstantShapeHelper.h>
 #include <helpers/ConstantTadHelper.h>
 #include <array>
-
 
 #include <ops/declarable/helpers/legacy_helpers.h>
 #include <execution/ThreadPool.h>
@@ -104,20 +101,20 @@ TEST_F(PerformanceTests, test_matmul_c_f_1) {
     std::sort(valuesF.begin(), valuesF.end());
 
 
-    nd4j_printf("Median time C: [%lld]; Median time F: [%lld];", valuesC[valuesC.size() / 2], valuesF[valuesF.size() / 2]);
+    sd_printf("Median time C: [%lld]; Median time F: [%lld];", valuesC[valuesC.size() / 2], valuesF[valuesF.size() / 2]);
 }
 
 TEST_F(PerformanceTests, test_maxpooling2d_1) {
-    std::vector<Nd4jLong> valuesX;
+    std::vector<sd::LongType> valuesX;
     // auto x = NDArrayFactory::create<float>('c', {32, 3, 224, 224});
     // auto z = NDArrayFactory::create<float>('c', {32, 3, 224, 224});
     auto x = NDArrayFactory::create<float>('c', {8, 3, 64, 64});
     auto z = NDArrayFactory::create<float>('c', {8, 3, 64, 64});
     x.linspace(1.0f);
-    Nd4jLong k = 5;
+    sd::LongType k = 5;
 
 
-    Nd4jLong iArgs[] {k,k, 1,1, 0,0, 1,1, 1};
+    sd::LongType iArgs[] {k,k, 1,1, 0,0, 1,1, 1};
     Context ctx(1);
     ctx.setInputArray(0, &x);
     ctx.setOutputArray(0, &z);
@@ -135,11 +132,11 @@ TEST_F(PerformanceTests, test_maxpooling2d_1) {
         valuesX.emplace_back(outerTime);
 
         if ((i + 1) % 1000 == 0)
-            nd4j_printf("Iteration %i finished...\n", i + 1);
+            sd_printf("Iteration %i finished...\n", i + 1);
     }
 
     std::sort(valuesX.begin(), valuesX.end());
-    nd4j_printf("Execution time: %lld; Min: %lld; Max: %lld;\n", valuesX[valuesX.size() / 2], valuesX[0], valuesX[valuesX.size() - 1]);
+    sd_printf("Execution time: %lld; Min: %lld; Max: %lld;\n", valuesX[valuesX.size() / 2], valuesX[0], valuesX[valuesX.size() - 1]);
 }
 
 #endif

@@ -23,16 +23,14 @@
 
 #ifndef CUDAMANAGER_H
 #define CUDAMANAGER_H
-
 #include <vector>
 #include <string>
 #include <execution/LaunchContext.h>
-
 #include <types/types.h>
 
 namespace sd {
 
-class ND4J_EXPORT PointersManager {
+class SD_LIB_EXPORT PointersManager {
 
     private:
 
@@ -53,22 +51,22 @@ class ND4J_EXPORT PointersManager {
         void synchronize() const;
 
         template<typename T>
-        void printDevContentOnHost(const void* pDev, const Nd4jLong len) const;
+        void printDevContentOnHost(const void* pDev, const sd::LongType len) const;
 
 
 #ifdef __CUDABLAS__
         template<typename T>
-        static void printDevContentOnDevFromHost(const void* pDev, const Nd4jLong len, const int tid = 0);
+        static void printDevContentOnDevFromHost(const void* pDev, const sd::LongType len, const int tid = 0);
 #endif
 
 #ifdef __CUDACC__
         template<typename T>
-        static FORCEINLINE __device__ void printDevContentOnDev(const void* pDev, const Nd4jLong len, const int tid = 0) {
+        static SD_INLINE SD_DEVICE void printDevContentOnDev(const void* pDev, const sd::LongType len, const int tid = 0) {
             if(blockIdx.x * blockDim.x + threadIdx.x != tid)
                 return;
 
             printf("device print out: \n");
-            for(Nd4jLong i = 0; i < len; ++i)
+            for(sd::LongType i = 0; i < len; ++i)
                 printf("%f, ", (double)reinterpret_cast<const T*>(pDev)[i]);
 
             printf("\n");
@@ -79,7 +77,6 @@ class ND4J_EXPORT PointersManager {
 };
 
 }
-
 
 
 #endif // CUDAMANAGER_H

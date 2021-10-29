@@ -20,19 +20,18 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __device__ void pullRowsKernel(void *vx,
+    SD_DEVICE void pullRowsKernel(void *vx,
                                    void *vz,
-                                   Nd4jLong len,
-                                   Nd4jLong *indexes,
-                                   Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
-                                   Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets) {
+                                   sd::LongType len,
+                                   sd::LongType *indexes,
+                                   sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
+                                   sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets) {
 
         auto x = reinterpret_cast<T *>(vx);
         auto z = reinterpret_cast<T *>(vz);
@@ -65,30 +64,30 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __global__ void execPullRowsKernel(void *vx,
+    SD_KERNEL void execPullRowsKernel(void *vx,
                                        void *vz,
-                                       Nd4jLong len,
-                                       Nd4jLong *indexes,
-                                       Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
-                                       Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets) {
+                                       sd::LongType len,
+                                       sd::LongType *indexes,
+                                       sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
+                                       sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets) {
 
         pullRowsKernel<T>(vx, vz, len, indexes, tadShapeInfo, tadOffsets, zTadShapeInfo, zTadOffsets);
     }
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __host__ void pullRowsKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
+    SD_HOST void pullRowsKernelGeneric(dim3 &launchDims, cudaStream_t *stream,
                                         void *vx,
                                         void *vz,
-                                        Nd4jLong len,
-                                        Nd4jLong *indexes,
-                                        Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets,
-                                        Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets) {
+                                        sd::LongType len,
+                                        sd::LongType *indexes,
+                                        sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets,
+                                        sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets) {
 
         execPullRowsKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vx, vz, len, indexes, tadShapeInfo, tadOffsets, zTadShapeInfo, zTadOffsets);
         sd::DebugHelper::checkErrorCode(stream, "pullRows(...) failed");
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL pullRowsKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * vx, void * vz, Nd4jLong len, Nd4jLong * indexes, Nd4jLong const* tadShapeInfo, Nd4jLong const* tadOffsets, Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN pullRowsKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * vx, void * vz, sd::LongType len, sd::LongType * indexes, sd::LongType const* tadShapeInfo, sd::LongType const* tadOffsets, sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets), SD_COMMON_TYPES);
 }
 

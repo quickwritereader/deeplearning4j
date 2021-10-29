@@ -67,7 +67,7 @@ namespace sd {
             sd::ops::helpers::cbow(*syn0, *syn1, *syn1neg, *expTable, *negTable, *target, *ngStarter, nsRounds, *context, *lockedWords, *indices, *codes, *alpha, *randomValue, *numLabels, *inferenceVector, trainWords, numWorkers);
 
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(cbow) {

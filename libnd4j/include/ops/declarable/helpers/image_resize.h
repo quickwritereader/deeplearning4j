@@ -104,25 +104,25 @@ namespace helpers {
         static constexpr T KEYS_CUBIC_COEF = static_cast<T>(-0.5);
         static constexpr T ORDINARY_COEF = static_cast<T>(-0.75);
 
-        _CUDA_HD KeysCubicKernelFunc():_coef(KEYS_CUBIC_COEF){}
+        SD_HOST_DEVICE KeysCubicKernelFunc():_coef(KEYS_CUBIC_COEF){}
 
-        _CUDA_HD KeysCubicKernelFunc(T coef):_coef(coef){}
+        SD_HOST_DEVICE KeysCubicKernelFunc(T coef):_coef(coef){}
 
-        FORCEINLINE _CUDA_HD T calc_less2pt0(T x) const{
+        SD_INLINE SD_HOST_DEVICE T calc_less2pt0(T x) const{
             //original: coef*|s|^3-5*coef*|s|^2+8*coef*|s| - 4coef 
             // => ( (coef*|s|-5*coef)*|s|)+8*coef)*|s| - 4coef
             return ((_coef * x - T(5) * _coef) * x + T(8) * _coef) * x - T(4) * _coef;
         }
 
-        FORCEINLINE _CUDA_HD T calc_less1pt0(T x) const{
+        SD_INLINE SD_HOST_DEVICE T calc_less1pt0(T x) const{
             //original: (coef+2)*|s|^3-(coef+3)*|s|^2 + 1
             // =>((coef + 2) * |s| - (coef + 3)) * |s| * |s| + 1
             return ((_coef + T(2)) * x - (_coef + T(3))) * x * x + T(1);
         }
 
 
-        _CUDA_HD T operator()(T s) const {
-            auto abs_s = math::nd4j_abs(s);
+        SD_HOST_DEVICE T operator()(T s) const {
+            auto abs_s = math::sd_abs(s);
             if (abs_s >= T(2)) {
                 return T(0.0);
             } else if (abs_s >= T(1)) {
@@ -132,7 +132,7 @@ namespace helpers {
             }
         }
 
-        _CUDA_HD T radius() const { return T(2); }
+        SD_HOST_DEVICE T radius() const { return T(2); }
 
          T _coef = KEYS_CUBIC_COEF;
     };
@@ -145,9 +145,9 @@ namespace helpers {
      {
         // Pass 1 for Lanczos1 kernel, 3 for Lanczos3 etc.
         explicit LanczosKernelFunc(float const radius) : _radius(radius) {}
-        _CUDA_HD float operator()(float x) const {
+        SD_HOST_DEVICE float operator()(float x) const {
             float const kPI = 3.141592653589793f;
-            x = math::nd4j_abs(x);
+            x = math::sd_abs(x);
             if (x > _radius) return 0.f;
             // Need to special case the limit case of sin(x) / x when x is zero.
             if (x <= 1.e-3f) {
@@ -155,7 +155,7 @@ namespace helpers {
             }
             return _radius * std::sin(kPI * x) * std::sin(kPI * x / _radius) / (kPI * kPI * x * x);
         }
-        _CUDA_HD float radius() const { return _radius; }
+        SD_HOST_DEVICE float radius() const { return _radius; }
         const float _radius;
     };
 
@@ -172,12 +172,12 @@ namespace helpers {
         // This implies a radius of 1.5,
         explicit GaussianKernelFunc(float radius = 1.5f)
                 : _radius(radius), _sigma(radius / kRadiusMultiplier) {}
-        _CUDA_HD float operator()(float x) const {
-            x = math::nd4j_abs(x);
+        SD_HOST_DEVICE float operator()(float x) const {
+            x = math::sd_abs(x);
             if (x >= _radius) return 0.0f;
             return std::exp(-x * x / (2.0 * _sigma * _sigma));
         }
-        _CUDA_HD float radius() const { return _radius; }
+        SD_HOST_DEVICE float radius() const { return _radius; }
         const float _radius;
         const float _sigma;  // Gaussian standard deviation
     };
@@ -187,11 +187,11 @@ namespace helpers {
       : public IKernelFunc<float> 
 #endif
      {
-        _CUDA_HD float operator()(float x) const {
-            x = math::nd4j_abs(x);
+        SD_HOST_DEVICE float operator()(float x) const {
+            x = math::sd_abs(x);
             return x < 0.5f ? 1.f : x == 0.5f ? 0.5f : 0.f;
         }
-        _CUDA_HD float radius() const { return 1.f; }
+        SD_HOST_DEVICE float radius() const { return 1.f; }
     };
 
     struct TriangleKernelFunc
@@ -200,11 +200,11 @@ namespace helpers {
 #endif
      {
         // https://en.wikipedia.org/wiki/Triangle_function
-        _CUDA_HD float operator()(float x) const {
-            x = math::nd4j_abs(x);
+        SD_HOST_DEVICE float operator()(float x) const {
+            x = math::sd_abs(x);
             return x < 1.f ? 1.f - x : 0.f;
         }
-        _CUDA_HD float radius() const { return 1.f; }
+        SD_HOST_DEVICE float radius() const { return 1.f; }
     };
 
 
@@ -217,8 +217,8 @@ namespace helpers {
         // D. P. Mitchell and A. N. Netravali. Reconstruction filters in computer
         // graphics.  Computer Graphics (Proceedings of ACM SIGGRAPH 1988),
         // 22(4):221–228, 1988.
-        _CUDA_HD float operator()(float x) const {
-            x = math::nd4j_abs(x);
+        SD_HOST_DEVICE float operator()(float x) const {
+            x = math::sd_abs(x);
             if (x >= 2.f) {
                 return 0.f;
             } else if (x >= 1.f) {
@@ -227,7 +227,7 @@ namespace helpers {
                 return (((7.f / 6.f) * x - 2.f) * x) * x + 8.f / 9.f;
             }
         }
-        _CUDA_HD float radius() const { return 2.f; }
+        SD_HOST_DEVICE float radius() const { return 2.f; }
     };
 
     // A pre-computed span of pixels along a single dimension.
@@ -245,15 +245,14 @@ namespace helpers {
     };
 
 
-
     template <typename I, typename F>
     struct ImageResizerStateCommon {
-        explicit _CUDA_HD ImageResizerStateCommon(bool alignCorners, bool halfPixelCenters)
+        explicit SD_HOST_DEVICE ImageResizerStateCommon(bool alignCorners, bool halfPixelCenters)
                 : _alignCorners(alignCorners),
                   _halfPixelCenters(halfPixelCenters) {}
 
 #if defined(__CUDACC__)
-        explicit _CUDA_HD ImageResizerStateCommon(bool alignCorners, bool halfPixelCenters, cudaStream_t* cudaStream)
+        explicit SD_HOST_DEVICE ImageResizerStateCommon(bool alignCorners, bool halfPixelCenters, cudaStream_t* cudaStream)
                 : _alignCorners(alignCorners),
                   _halfPixelCenters(halfPixelCenters),
                   stream(cudaStream)  {}
@@ -262,7 +261,7 @@ namespace helpers {
 
 
         // calculateResizeScale determines the F scaling factor.
-        static _CUDA_HD inline F calculateResizeScale(I inSize, I outSize,
+        static SD_HOST_DEVICE inline F calculateResizeScale(I inSize, I outSize,
                                         bool alignCorners) {
             return (alignCorners && outSize > 1)
                 ? (inSize - 1) / static_cast<F>(outSize - 1)
@@ -274,7 +273,7 @@ namespace helpers {
         // heightScale and widthScale, and calculates the output size.
         // If any of these operations fails, it sets an error status in
         // the context, which the caller must check.
-        int validateAndCalculateOutputSize(NDArray const* input, int const width, int const height) {
+        sd::Status validateAndCalculateOutputSize(NDArray const* input, int const width, int const height) {
             //
             batchSize = input->sizeAt(0);//.dim_size(0);
             outHeight = static_cast<I>(height);
@@ -291,19 +290,19 @@ namespace helpers {
             cStride = input->strideAt(3);
             // Guard against overflows
             if (ceilf((outHeight - 1) * heightScale) > static_cast<float>(DataTypeUtils::max<int>())) {
-                nd4j_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize height");
+                sd_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
+                return Logger::logStatusMsg(sd::Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize height");
             }
             if (ceilf((outWidth - 1) * heightScale) > static_cast<float>(DataTypeUtils::max<int>())) {
-                nd4j_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
-                return Status::CODE(ND4J_STATUS_BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize width");
+                sd_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
+                return Logger::logStatusMsg(sd::Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize width");
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         // Calculates all the required variables, and allocates the output.
-        int validateAndCreateOutput(NDArray const* input, int const width, int const height) {
+        sd::Status validateAndCreateOutput(NDArray const* input, int const width, int const height) {
             return validateAndCalculateOutputSize(input, width, height);
         }
 
@@ -329,17 +328,17 @@ namespace helpers {
         bool _halfPixelCenters;
     };
 
-    using ImageResizerState = ImageResizerStateCommon<Nd4jLong, float>;
+    using ImageResizerState = ImageResizerStateCommon<sd::LongType, float>;
 
     struct BilinearInterpolationData {
-        Nd4jLong bottomIndex;  // Lower source index used in the interpolation
-        Nd4jLong topIndex;  // Upper source index used in the interpolation
+        sd::LongType bottomIndex;  // Lower source index used in the interpolation
+        sd::LongType topIndex;  // Upper source index used in the interpolation
         // 1-D linear iterpolation scale (see:
         // https://en.wikipedia.org/wiki/Bilinear_interpolation)
         double interpolarValue;
     };
 
-    inline _CUDA_HD float legacy_scaler(const int x, const float scale)  {
+    SD_INLINE SD_HOST_DEVICE float legacy_scaler(const int x, const float scale)  {
         return static_cast<float>(x) * scale;
     }
 
@@ -347,8 +346,8 @@ namespace helpers {
     // translation leading to inconsistent results. For example, a flip then a
     // resize gives different results then a resize then a flip.
     struct LegacyScaler {
-        _CUDA_HD LegacyScaler(){};
-        inline _CUDA_HD float operator()(const int x, const float scale) const {
+        SD_HOST_DEVICE LegacyScaler(){};
+        SD_INLINE SD_HOST_DEVICE float operator()(const int x, const float scale) const {
 
             return static_cast<float>(x) * scale;
         }
@@ -357,8 +356,8 @@ namespace helpers {
     // Half pixel scaler scales assuming that the pixel centers are at 0.5, i.e. the
     // floating point coordinates of the top,left pixel is 0.5,0.5.
     struct HalfPixelScaler {
-        _CUDA_HD HalfPixelScaler(){};
-        inline _CUDA_HD float operator()(const int x, const float scale) const {
+        SD_HOST_DEVICE HalfPixelScaler(){};
+        SD_INLINE SD_HOST_DEVICE float operator()(const int x, const float scale) const {
             // Note that we subtract 0.5 from the return value, as the existing bilinear
             // sampling code etc assumes pixels are in the old coordinate system.
             return (static_cast<float>(x) + 0.5f) * scale - 0.5f;
@@ -368,35 +367,35 @@ namespace helpers {
     // Half pixel scaler scales assuming that the pixel centers are at 0.5, i.e. the
     // floating point coordinates of the top,left pixel is 0.5,0.5.
     struct HalfPixelScalerNN {
-        _CUDA_HD HalfPixelScalerNN(){};
-        inline _CUDA_HD float operator()(const int x, const float scale) const {
+        SD_HOST_DEVICE HalfPixelScalerNN(){};
+        SD_INLINE SD_HOST_DEVICE float operator()(const int x, const float scale) const {
             // Note that we subtract 0.5 from the return value, as the existing bilinear
             // sampling code etc assumes pixels are in the old coordinate system.
             return (static_cast<float>(x) + 0.5f) * scale;
         }
     };
 
-    constexpr Nd4jLong kTableSize = (1 << 10);
+    constexpr sd::LongType kTableSize = (1 << 10);
 
     struct WeightsAndIndices {
         float _weight0;
         float _weight1;
         float _weight2;
         float _weight3;
-        Nd4jLong _index0;
-        Nd4jLong _index1;
-        Nd4jLong _index2;
-        Nd4jLong _index3;
+        sd::LongType _index0;
+        sd::LongType _index1;
+        sd::LongType _index2;
+        sd::LongType _index3;
 
         int _advance;  // advance value.
     };
 
-    inline _CUDA_HD Nd4jLong bound(Nd4jLong val, Nd4jLong limit) {
-        return math::nd4j_min(limit - 1ll, math::nd4j_max(Nd4jLong{0}, val));
+    SD_INLINE SD_HOST_DEVICE sd::LongType bound(sd::LongType val, sd::LongType limit) {
+        return math::sd_min(limit - 1ll, math::sd_max(sd::LongType{0}, val));
     }
 
     template <typename T>
-    inline _CUDA_HD float interpolate1D(const float weight0, const float weight1, const float weight2, const float weight3,
+    SD_INLINE SD_HOST_DEVICE float interpolate1D(const float weight0, const float weight1, const float weight2, const float weight3,
                                const T value0, const T value1, const T value2, const T value3) {
 
         auto ret = static_cast<float>(value0) * weight0 +
@@ -408,12 +407,12 @@ namespace helpers {
     }
 
     // Compute the 1D interpolation for a given X index using the y_weights
-    static _CUDA_HD float compute(float values[4], const float xW0, const float xW1, const float xW2, const float xW3) {
+    static SD_HOST_DEVICE float compute(float values[4], const float xW0, const float xW1, const float xW2, const float xW3) {
         return interpolate1D(xW0, xW1, xW2, xW3, values[0], values[1],values[2], values[3]);
     }
 
     template <typename T>
-    static _CUDA_HD FORCEINLINE float computeYInterpolation(
+    static SD_INLINE SD_HOST_DEVICE float computeYInterpolation(
             int which, int channelNum, const WeightsAndIndices& yWai,
             const T* pY0, const T* pY1, const T* pY2, const T* pY3,
             const WeightsAndIndices& xWai) {
@@ -440,12 +439,12 @@ namespace helpers {
     }
 
     template <typename Scaler>
-    inline _CUDA_HD void getWeightsAndIndices(const float* coeffs_table, const float scale, const Nd4jLong out_loc, const Nd4jLong limit, WeightsAndIndices* out, bool exclude_outside) {
+    SD_INLINE SD_HOST_DEVICE void getWeightsAndIndices(const float* coeffs_table, const float scale, const sd::LongType out_loc, const sd::LongType limit, WeightsAndIndices* out, bool exclude_outside) {
         const Scaler scaler;
         const float in_loc_f = scaler(out_loc, scale);
-        const Nd4jLong in_loc = math::nd4j_floor<float, Nd4jLong>(in_loc_f);
+        const sd::LongType in_loc = math::sd_floor<float, sd::LongType>(in_loc_f);
         const float delta = in_loc_f - in_loc;
-        const Nd4jLong offset = math::nd4j_round<float, Nd4jLong>(delta * kTableSize);
+        const sd::LongType offset = math::sd_round<float, sd::LongType>(delta * kTableSize);
 
         if (exclude_outside) {
             // The legacy code placed more weight on the edge pixels, since bounding
@@ -467,7 +466,7 @@ namespace helpers {
 
             const float weight_sum =
                     out->_weight0 + out->_weight1 + out->_weight2 + out->_weight3;
-            if (math::nd4j_abs(weight_sum) >= 1000.0f * DataTypeUtils::min<float>()) {
+            if (math::sd_abs(weight_sum) >= 1000.0f * DataTypeUtils::min<float>()) {
                 const float one_over_weight_sum = 1.0f / weight_sum;
                 out->_weight0 *= one_over_weight_sum;
                 out->_weight1 *= one_over_weight_sum;
@@ -490,18 +489,18 @@ namespace helpers {
 
     class CachedInterpolationCalculator {
     public:
-        _CUDA_HD CachedInterpolationCalculator() : _indexes{-1, -1, -1, -1} {}
+        SD_HOST_DEVICE CachedInterpolationCalculator() : _indexes{-1, -1, -1, -1} {}
 
         // Advances iteration. Returns the number of values that should be copied from
         // the current point to the next point. The copying should always be done by
         // copying the last <retval> values from the old point to the first <retval>
         // values of the new point.
-        inline _CUDA_HD int Advance(const Nd4jLong x0, const Nd4jLong x1, const Nd4jLong x2,
-                           const Nd4jLong x3) {
+        SD_INLINE SD_HOST_DEVICE int Advance(const sd::LongType x0, const sd::LongType x1, const sd::LongType x2,
+                           const sd::LongType x3) {
             // We use 2 hands and walk through, copying from one to another where
             // we already have values.
             // Invariant, new_indicies_hand <= cached_values_hand
-            const Nd4jLong new_x_indices[4] = {x0, x1, x2, x3};
+            const sd::LongType new_x_indices[4] = {x0, x1, x2, x3};
             int cachedValuesHand = 0;
             int newIndiciesHand = 0;
 
@@ -529,7 +528,7 @@ namespace helpers {
         }
 
     private:
-        Nd4jLong _indexes[4];
+        sd::LongType _indexes[4];
     };
 
     template<typename F, typename I>
@@ -541,7 +540,7 @@ namespace helpers {
         bool needsBounding;
     };
     
-    using CachedInterpolation = CachedInterpolationT<float, Nd4jLong>;
+    using CachedInterpolation = CachedInterpolationT<float, sd::LongType>;
     //ResizeArea
     template <typename T>
     struct ScaleCache {
@@ -557,7 +556,7 @@ namespace helpers {
     // Note that <NeedsXBounding> is a template parameter to avoid a performance
     // penalty from dynamically checking it.
     template <typename F, typename I, typename T=typename ScaleCache<F>::workType>
-    _CUDA_HD void computePatchSumOf3Channels(T scale,
+    SD_HOST_DEVICE void computePatchSumOf3Channels(T scale,
                                            const ImageResizerState& st,
                                            const ScaleCache<F>* yScaleCache,
                                            I ptrsLen,
@@ -566,7 +565,7 @@ namespace helpers {
 
         bool const needsXBounding = xCache.needsBounding;
 
-        auto boundIfNeeded = [needsXBounding](Nd4jLong x, Nd4jLong y) -> Nd4jLong {
+        auto boundIfNeeded = [needsXBounding](sd::LongType x, sd::LongType y) -> sd::LongType {
             return (needsXBounding ? bound(x, y) : (x));
         };
 
@@ -612,26 +611,26 @@ namespace helpers {
     // Note that <NeedsXBounding> is a template parameter to avoid a performance
     // penalty from dynamically checking it.
     template <typename F, typename I, typename T=typename ScaleCache<F>::workType>
-    _CUDA_HD void computePatchSum(T scale, const ImageResizerState& st,
+    SD_HOST_DEVICE void computePatchSum(T scale, const ImageResizerState& st,
                                 const ScaleCache<F>* yScaleCache, I ptrsLen,
                                 const CachedInterpolationT<T,I>& xCache,
                                 T* outputPtr) {
 
         bool const needsXBounding = xCache.needsBounding;
 
-        auto boundIfNeeded = [needsXBounding](Nd4jLong x, Nd4jLong y) -> Nd4jLong {
+        auto boundIfNeeded = [needsXBounding](sd::LongType x, sd::LongType y) -> sd::LongType {
             return (needsXBounding ? bound(x, y) : (x));
         };
 
         const auto numChannels = st.channels;
-        for (Nd4jLong c = 0; c < numChannels; ++c) {
+        for (sd::LongType c = 0; c < numChannels; ++c) {
             T sum = T(0);
             for (int i = 0; i < ptrsLen; ++i) {
                 F const* ptr = yScaleCache[i].yPtr;
                 T scaleX = xCache.startScale;
                 T sumY = static_cast<T>(ptr[st.wStride * boundIfNeeded(xCache.start, st.inWidth) + c*st.cStride]) * scaleX;
                 if (xCache.start + 1 != xCache.end) {
-                    for (Nd4jLong x = xCache.start + 1; x < xCache.end - 1; ++x) {
+                    for (sd::LongType x = xCache.start + 1; x < xCache.end - 1; ++x) {
                         sumY += static_cast<T>(ptr[st.wStride * boundIfNeeded(x, st.inWidth) + c*st.cStride]);
                     }
                     scaleX = xCache.endMinusOneScale;
@@ -645,8 +644,8 @@ namespace helpers {
 
 
     template <typename X, typename Z>
-    _CUDA_HD void gatherRows( int const spanSize, int const* starts, Z const* weights, X const* imagePtr, Nd4jLong const inputHeight, Nd4jLong const inputWidth, Nd4jLong const outputHeight,
-                       Nd4jLong const outputWidth, Nd4jLong const channels, Z* outputPtr, bool inputEws1, Nd4jLong inRowStride, Nd4jLong wStride, Nd4jLong cStride) {
+    SD_HOST_DEVICE void gatherRows( int const spanSize, int const* starts, Z const* weights, X const* imagePtr, sd::LongType const inputHeight, sd::LongType const inputWidth, sd::LongType const outputHeight,
+                       sd::LongType const outputWidth, sd::LongType const channels, Z* outputPtr, bool inputEws1, sd::LongType inRowStride, sd::LongType wStride, sd::LongType cStride) {
         auto inRowSize = inputWidth * channels;
         auto outRowSize = outputWidth * channels;
 
@@ -664,7 +663,7 @@ namespace helpers {
                 int inRow = starts[y];
                 auto inRowData = imagePtr + inRowSize * inRow;
                 auto weightsStart = weights + y * spanSize;
-                auto realSpanSize = math::nd4j_min(starts[y] + spanSize, static_cast<int>(inputHeight)) - starts[y];
+                auto realSpanSize = math::sd_min(starts[y] + spanSize, static_cast<int>(inputHeight)) - starts[y];
                 auto weightsEnd = weightsStart + realSpanSize;
                 for (auto weightPtr = weightsStart; weightPtr != weightsEnd; ++weightPtr) {
                     addScaledVector(inRowData, inRowSize, *weightPtr, outRowData);
@@ -674,7 +673,7 @@ namespace helpers {
 
         }else{
 
-            auto addScaledVector = [](const X* inVector,   int inputWidth, int channels, const Nd4jLong wStride, const Nd4jLong cStride, Z weight, Z* outVector) {
+            auto addScaledVector = [](const X* inVector,   int inputWidth, int channels, const sd::LongType wStride, const sd::LongType cStride, Z weight, Z* outVector) {
                 const X* inVec = inVector;
                 for (int i=0; i<inputWidth; i++){
                     for(int c=0; c<channels; c++){
@@ -691,7 +690,7 @@ namespace helpers {
                 int inRow = starts[y];
                 auto inRowData = imagePtr + inRowStride * inRow;
                 auto weightsStart = weights + y * spanSize;
-                auto realSpanSize = math::nd4j_min(starts[y] + spanSize, static_cast<int>(inputHeight)) - starts[y];
+                auto realSpanSize = math::sd_min(starts[y] + spanSize, static_cast<int>(inputHeight)) - starts[y];
                 auto weightsEnd = weightsStart + realSpanSize;
                 for (auto weightPtr = weightsStart; weightPtr != weightsEnd; ++weightPtr) {
                     addScaledVector(inRowData, inputWidth, channels, wStride, cStride, *weightPtr, outRowData);
@@ -703,7 +702,7 @@ namespace helpers {
     }
 
     template <typename Z>
-    _CUDA_HD void gatherColumns(int const spanSize, int const* starts, Z const* weights, Z const* imagesPtr, Nd4jLong const inputHeight, Nd4jLong const inputWidth, Nd4jLong const outputHeight, Nd4jLong const outputWidth, Nd4jLong channels, Z* outputPtr) {
+    SD_HOST_DEVICE void gatherColumns(int const spanSize, int const* starts, Z const* weights, Z const* imagesPtr, sd::LongType const inputHeight, sd::LongType const inputWidth, sd::LongType const outputHeight, sd::LongType const outputWidth, sd::LongType channels, Z* outputPtr) {
         auto inRowSize = inputWidth * channels;
         auto outRowSize = outputWidth * channels;
 
@@ -713,7 +712,7 @@ namespace helpers {
             for (auto x = 0LL; x < outputWidth; ++x, outPixels += channels) {
                 auto inPixels = inputRowStart + starts[x] * channels;
                 auto weightsStart = weights + x * spanSize;
-                auto realSpanSize = math::nd4j_min(starts[x] + spanSize, static_cast<int>(inputWidth)) - starts[x];
+                auto realSpanSize = math::sd_min(starts[x] + spanSize, static_cast<int>(inputWidth)) - starts[x];
                 auto weightsEnd = weightsStart + realSpanSize;
                 for (int c = 0; c < channels; ++c) {
                     outPixels[c] = 0.0f;
@@ -730,23 +729,22 @@ namespace helpers {
     }
 
 
-
-    int resizeBilinearFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeBilinearFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
             bool const alignCorners, bool const halfPixelCenter, NDArray* output);
-    int resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeNeighborFunctor(sd::LaunchContext * context, NDArray const *images, int const width, int const height,
             CoordinateTransformationMode coorMode, NearestMode nearestMode, bool alignCorner, NDArray *output);
-    int resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeBicubicFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                       bool preserveAspectRatio, bool antialias, NDArray* output);
-    int resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeBicubicFunctorA(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                             bool const alignCorners, CoordinateTransformationMode coorMode, bool exclude_outside,
                             double coefficient, NDArray* output);
-    int resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeAreaFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                              bool const alignCorners, NDArray* output);
 
-    int resizeFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                       ImageResizeMethods method, CoordinateTransformationMode coorMode, bool exclude_outside,  NearestMode nearestMode, double coefficient, bool antialias, NDArray* output);
 
-    int resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
+SD_LIB_HIDDEN sd::Status resizeImagesFunctor(sd::LaunchContext * context, NDArray const* image, int const width, int const height,
                       ImageResizeMethods method, bool alignCorners, NDArray* output);
 }
 }

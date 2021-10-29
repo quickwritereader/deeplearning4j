@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 04.08.17.
 //
-
 #include "testlayers.h"
 #include <memory>
 #include <array/NDArray.h>
@@ -32,14 +31,14 @@ class NDArrayTest : public testing::Test {
 public:
     int alpha = 0;
 
-    Nd4jLong *cShape = new Nd4jLong[8]{2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong *fShape = new Nd4jLong[8]{2, 2, 2, 1, 2, 8192, 1, 102};
+    sd::LongType *cShape = new sd::LongType[8]{2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType *fShape = new sd::LongType[8]{2, 2, 2, 1, 2, 8192, 1, 102};
 
-	float arr1[6] = {1,2,3,4,5,6};
-	Nd4jLong shape1[8] = {2,2,3,3,1,8192,1,99};
-	float arr2[48] = {1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6};
-	Nd4jLong shape2[10] = {3,2,4,6,24,6,1,8192,1,99};
-	const std::vector<Nd4jLong> tileShape1 = {2,2,2};
+    float arr1[6] = {1,2,3,4,5,6};
+    sd::LongType shape1[8] = {2,2,3,3,1,8192,1,99};
+    float arr2[48] = {1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6};
+    sd::LongType shape2[10] = {3,2,4,6,24,6,1,8192,1,99};
+    const std::vector<sd::LongType> tileShape1 = {2,2,2};
 
 
     ~NDArrayTest() {
@@ -126,7 +125,7 @@ TEST_F(NDArrayTest, NDArrayOrder1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestGetScalar1) {
     auto c = new float[4] {1, 2, 3, 4};
-    auto cShape = new Nd4jLong[8]{2, 2, 2, 2, 1, 8192, 1, 99};
+    auto cShape = new sd::LongType[8]{2, 2, 2, 2, 1, 8192, 1, 99};
 
     auto arrayC = new NDArray(c, cShape);
 
@@ -180,16 +179,16 @@ TEST_F(NDArrayTest, EqualityTest1) {
         }
     }
 
-    //nd4j_printf("A B\n","");
+    //sd_printf("A B\n","");
     ASSERT_TRUE(arrayA->equalsTo(arrayB, 1e-5));
 
-    //nd4j_printf("C B\n","");
+    //sd_printf("C B\n","");
     ASSERT_FALSE(arrayC->equalsTo(arrayB, 1e-5));
 
-    //nd4j_printf("D B\n","");
+    //sd_printf("D B\n","");
     ASSERT_FALSE(arrayD->equalsTo(arrayB, 1e-5));
 
-    //nd4j_printf("E B\n","");
+    //sd_printf("E B\n","");
     ASSERT_FALSE(arrayE->equalsTo(arrayB, 1e-5));
 
     delete arrayA;
@@ -279,7 +278,7 @@ TEST_F(NDArrayTest, TestPermuteReshape2) {
 TEST_F(NDArrayTest, TestRepeat1) {
 
     auto eBuffer = new float[8] {1.0,2.0,1.0,2.0,3.0,4.0,3.0,4.0};
-    auto eShape = new Nd4jLong[8]{2, 4, 2, 2, 1, 8192, 1, 99};
+    auto eShape = new sd::LongType[8]{2, 4, 2, 2, 1, 8192, 1, 99};
     NDArray array('c', {2, 2}, sd::DataType::FLOAT32);
     auto exp = new NDArray(eBuffer, eShape);
     for (int e = 0; e < array.lengthOf(); e++)
@@ -302,7 +301,7 @@ TEST_F(NDArrayTest, TestRepeat1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestRepeat2) {
     auto eBuffer = new float[8] {1.0,2.0,1.0,2.0,3.0,4.0,3.0,4.0};
-    auto eShape = new Nd4jLong[8]{2, 4, 2, 2, 1, 8192, 1, 99};
+    auto eShape = new sd::LongType[8]{2, 4, 2, 2, 1, 8192, 1, 99};
     auto array = NDArrayFactory::create_<float>('c', {2, 2});
     auto exp = new NDArray(eBuffer, eShape);
     for (int e = 0; e < array->lengthOf(); e++)
@@ -342,7 +341,7 @@ TEST_F(NDArrayTest, TestIndexedPut1) {
 
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestSum1) {
-    // Nd4jLong *cShape = new Nd4jLong[8]{2, 2, 2, 2, 1, 8192, 1, 99};
+    // sd::LongType *cShape = new sd::LongType[8]{2, 2, 2, 2, 1, 8192, 1, 99};
     float *c = new float[4] {1, 2, 3, 4};
 
     auto array = new NDArray(c, cShape);
@@ -380,15 +379,15 @@ TEST_F(NDArrayTest, TestAddiRowVector) {
 TEST_F(NDArrayTest, TestAddiColumnVector) {
     float arr1[] = {1, 2, 3, 4};
     float arr2[] = {5, 6};
-	float arr3[] = {6, 7, 9, 10};
-	Nd4jLong shape1[] = {2,2,2,2,1,8192,1,99};
-	Nd4jLong shape2[] = {2,2,1,1,1,8192,1,99};
-	NDArray matrix(arr1, shape1);
-	NDArray column(arr2, shape2);
-	NDArray exp(arr3, shape1);
+    float arr3[] = {6, 7, 9, 10};
+    sd::LongType shape1[] = {2,2,2,2,1,8192,1,99};
+    sd::LongType shape2[] = {2,2,1,1,1,8192,1,99};
+    NDArray matrix(arr1, shape1);
+    NDArray column(arr2, shape2);
+    NDArray exp(arr3, shape1);
 
     matrix.addiColumnVector(column);
-	ASSERT_TRUE(exp.isSameShapeStrict(matrix));
+    ASSERT_TRUE(exp.isSameShapeStrict(matrix));
     ASSERT_TRUE(exp.equalsTo(&matrix));
 }
 
@@ -397,16 +396,16 @@ TEST_F(NDArrayTest, TestAddiColumnVector) {
 TEST_F(NDArrayTest, TestMuliColumnVector) {
     float arr1[] = {1, 2, 3, 4};
     float arr2[] = {5, 6};
-	float arr3[] = {5, 10, 18, 24};
-	Nd4jLong shape1[] = {2,2,2,2,1,8192,1,99};
-	Nd4jLong shape2[] = {2,2,1,1,1,8192,1,99};
-	NDArray matrix(arr1, shape1);
-	NDArray column(arr2, shape2);
-	NDArray exp(arr3, shape1);
+    float arr3[] = {5, 10, 18, 24};
+    sd::LongType shape1[] = {2,2,2,2,1,8192,1,99};
+    sd::LongType shape2[] = {2,2,1,1,1,8192,1,99};
+    NDArray matrix(arr1, shape1);
+    NDArray column(arr2, shape2);
+    NDArray exp(arr3, shape1);
 
     matrix.muliColumnVector(column);
 
-	ASSERT_TRUE(exp.isSameShapeStrict(matrix));
+    ASSERT_TRUE(exp.isSameShapeStrict(matrix));
     ASSERT_TRUE(exp.equalsTo(&matrix));
 }
 
@@ -429,8 +428,8 @@ TEST_F(NDArrayTest, Test3D_1) {
 TEST_F(NDArrayTest, TestTranspose1) {
     auto arrayC = NDArrayFactory::create_<double>('c', {2, 5, 10});
 
-    auto expC = new Nd4jLong[10] {3, 2, 5, 10, 50, 10, 1, 16384, 1, 99};
-    auto expT = new Nd4jLong[10] {3, 10, 5, 2, 1, 10, 50, 16384, 1, 102};
+    auto expC = new sd::LongType[10] {3, 2, 5, 10, 50, 10, 1, 16384, 1, 99};
+    auto expT = new sd::LongType[10] {3, 10, 5, 2, 1, 10, 50, 16384, 1, 102};
 
     auto arrayT = arrayC->transpose();
 
@@ -448,8 +447,8 @@ TEST_F(NDArrayTest, TestTranspose1) {
 TEST_F(NDArrayTest, TestTranspose2) {
     auto arrayC = NDArrayFactory::create_<double>('c', {2, 5, 10});
 
-    auto expC = new Nd4jLong[10] {3, 2, 5, 10, 50, 10, 1, 16384, 1, 99};
-    auto expT = new Nd4jLong[10] {3, 10, 5, 2, 1, 10, 50, 16384, 1, 102};
+    auto expC = new sd::LongType[10] {3, 2, 5, 10, 50, 10, 1, 16384, 1, 99};
+    auto expT = new sd::LongType[10] {3, 10, 5, 2, 1, 10, 50, 16384, 1, 102};
 
     arrayC->transposei();
 
@@ -686,12 +685,12 @@ TEST_F(NDArrayTest, TestChecks5) {
 TEST_F(NDArrayTest, TestTile1) {
 
     // float arr1[6] = {1,2,3,4,5,6};
-    // Nd4jLong shape1[8] = {2,2,3,3,1,8192,1,99};
+    // sd::LongType shape1[8] = {2,2,3,3,1,8192,1,99};
     // float arr2[48] = {1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6,1,2,3,1,2,3,4,5,6,4,5,6};
-    // Nd4jLong shape2[10] = {3,2,4,6,24,6,1,8192,1,99};
+    // sd::LongType shape2[10] = {3,2,4,6,24,6,1,8192,1,99};
 
-	NDArray array1(arr1,shape1);   // {2,3}
-	NDArray array2(arr2,shape2);   // {2,4,6}
+    NDArray array1(arr1,shape1);   // {2,3}
+    NDArray array2(arr2,shape2);   // {2,4,6}
     auto expA = new NDArray(array1.dup('c'));
 
     auto tiled = array1.tile(tileShape1);
@@ -700,38 +699,38 @@ TEST_F(NDArrayTest, TestTile1) {
     // tiled.printShapeInfo("Tiled shape");
     // tiled.printBuffer();
 
-	ASSERT_TRUE(tiled.isSameShape(&array2));
-	ASSERT_TRUE(tiled.equalsTo(&array2));
+    ASSERT_TRUE(tiled.isSameShape(&array2));
+    ASSERT_TRUE(tiled.equalsTo(&array2));
 
     ASSERT_TRUE(expA->isSameShape(&array1));
     ASSERT_TRUE(expA->equalsTo(&array1));
 
-	// delete tiled;
-	delete expA;
+    // delete tiled;
+    delete expA;
 }
 
 TEST_F(NDArrayTest, TestTile2) {
 
-	NDArray array1(arr1,shape1);
-	NDArray array2(arr2,shape2);
+    NDArray array1(arr1,shape1);
+    NDArray array2(arr2,shape2);
 
     auto tiled = array1.tile(tileShape1);
 
-	ASSERT_TRUE(tiled.isSameShape(&array2));
-	ASSERT_TRUE(tiled.equalsTo(&array2));
-	// delete tiled;
+    ASSERT_TRUE(tiled.isSameShape(&array2));
+    ASSERT_TRUE(tiled.equalsTo(&array2));
+    // delete tiled;
 }
 
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestTile3) {
 
-	NDArray array1(arr1,shape1);
-	NDArray array2(arr2,shape2);
+    NDArray array1(arr1,shape1);
+    NDArray array2(arr2,shape2);
 
     array1.tilei(tileShape1);
 
-	ASSERT_TRUE(array1.isSameShapeStrict(array2));
-	ASSERT_TRUE(array1.equalsTo(&array2));
+    ASSERT_TRUE(array1.isSameShapeStrict(array2));
+    ASSERT_TRUE(array1.equalsTo(&array2));
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -784,11 +783,11 @@ TEST_F(NDArrayTest, TestTile6)
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper1) {
     auto xBuffer = new float[3]{1.f, 2.f, 3.f};
-    auto xShape = new Nd4jLong[8] {2, 1, 3, 1, 1, 8192, 1, 99};
+    auto xShape = new sd::LongType[8] {2, 1, 3, 1, 1, 8192, 1, 99};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[3]{2.f, 4.f, 6.f};
-    auto yShape = new Nd4jLong[8] {2, 1, 3, 1, 1, 8192, 1, 99};
+    auto yShape = new sd::LongType[8] {2, 1, 3, 1, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = MmulHelper::mmul(x, y);
@@ -810,7 +809,7 @@ TEST_F(NDArrayTest, TestPermuteReshapeMmul1) {
     auto x = NDArrayFactory::create<float>('c', {6, 3});
     auto y = NDArrayFactory::create<float>('c', {3, 6});
 
-    Nd4jLong _expS[] = {2, 3, 3, 1, 3, 8192, 1, 102};
+    sd::LongType _expS[] = {2, 3, 3, 1, 3, 8192, 1, 102};
     float _expB[] = {231.0f, 252.0f, 273.0f, 537.0f, 594.0f, 651.0f, 843.0f, 936.0f, 1029.0f};
     NDArray exp(_expB, _expS);
 
@@ -835,7 +834,7 @@ TEST_F(NDArrayTest, TestPermuteReshapeMmul2) {
     auto x = NDArrayFactory::create<float>('c', {6, 3});
     auto y = NDArrayFactory::create<float>('c', {3, 6});
 
-    Nd4jLong _expS[] = {2, 3, 3, 1, 3, 8192, 1, 102};
+    sd::LongType _expS[] = {2, 3, 3, 1, 3, 8192, 1, 102};
     float _expB[] = {231.0f, 252.0f, 273.0f, 537.0f, 594.0f, 651.0f, 843.0f, 936.0f, 1029.0f};
     NDArray exp(_expB, _expS);
 
@@ -866,7 +865,7 @@ TEST_F(NDArrayTest, TestPermuteReshapeMmul3) {
     auto x = NDArrayFactory::create<float>('c', {2, 2, 2, 3, 2, 2});
     auto y = NDArrayFactory::create<float>('c', {2, 3, 2 ,2});
 
-    Nd4jLong _expS[] = {2, 8, 2, 1, 8, 8192, 1, 102};
+    sd::LongType _expS[] = {2, 8, 2, 1, 8, 8192, 1, 102};
     float _expB[] = {1624.0f, 1858.0f, 2092.0f, 2326.0f, 5368.0f, 5602.0f, 5836.0f, 6070.0f, 4504.0f, 5170.0f, 5836.0f, 6502.0f, 15160.0f, 15826.0f, 16492.0f, 17158.0f};
     NDArray exp(_expB, _expS);
 
@@ -894,7 +893,7 @@ TEST_F(NDArrayTest, TestPermuteReshapeMmul4) {
     auto x = NDArrayFactory::create<float>('c', {2, 2, 2, 3, 2, 2});
     auto y = NDArrayFactory::create<float>('c', {2, 3, 2 ,2});
 
-    Nd4jLong _expS[] = {2, 8, 2, 1, 8, 8192, 1, 102};
+    sd::LongType _expS[] = {2, 8, 2, 1, 8, 8192, 1, 102};
     float _expB[] = {1624.0f, 1858.0f, 2092.0f, 2326.0f, 5368.0f, 5602.0f, 5836.0f, 6070.0f, 4504.0f, 5170.0f, 5836.0f, 6502.0f, 15160.0f, 15826.0f, 16492.0f, 17158.0f};
     NDArray exp(_expB, _expS);
 
@@ -925,12 +924,12 @@ TEST_F(NDArrayTest, TestPermuteReshapeMmul4) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper2) {
     auto xBuffer = new float[15]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f, 10.f, 11.f, 12.f, 13.f, 14.f, 15.f};
-    Nd4jLong xShape[8] = {2, 5, 3, 3, 1, 8192, 1, 99};
+    sd::LongType xShape[8] = {2, 5, 3, 3, 1, 8192, 1, 99};
     auto x = new NDArray(xBuffer, xShape, sd::LaunchContext ::defaultContext(), true);
 
 
     auto yBuffer = new float[3]{2.f, 4.f, 6.f};
-    Nd4jLong yShape[8] = {2, 3, 1, 1, 1, 8192, 1, 99};
+    sd::LongType yShape[8] = {2, 3, 1, 1, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape, sd::LaunchContext ::defaultContext(), true);
 
     auto z = NDArrayFactory::create_<float>('f', {5, 1});
@@ -955,11 +954,11 @@ TEST_F(NDArrayTest, TestMmulHelper2) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper3) {
     auto xBuffer = new float[15]{1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f, 10.f, 11.f, 12.f, 13.f, 14.f, 15.f};
-    auto xShape = new Nd4jLong[8] {2, 5, 3, 1, 5, 8192, 1, 102};
+    auto xShape = new sd::LongType[8] {2, 5, 3, 1, 5, 8192, 1, 102};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[3]{2.f, 4.f, 6.f};
-    auto yShape = new Nd4jLong[8] {2, 3, 1, 1, 1, 8192, 1, 99};
+    auto yShape = new sd::LongType[8] {2, 3, 1, 1, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = NDArrayFactory::create_<float>('f', {5, 1});
@@ -990,11 +989,11 @@ TEST_F(NDArrayTest, TestMmulHelper3) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper4) {
     auto xBuffer = new float[6]{1, 2, 3, 4, 5, 6};
-    auto xShape = new Nd4jLong[8] {2, 3, 2, 2, 1, 8192, 1, 99};
+    auto xShape = new sd::LongType[8] {2, 3, 2, 2, 1, 8192, 1, 99};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[6]{7, 8, 9, 0, 1, 2};
-    auto yShape = new Nd4jLong[8] {2, 2, 3, 3, 1, 8192, 1, 99};
+    auto yShape = new sd::LongType[8] {2, 2, 3, 3, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = NDArrayFactory::create_<float>('f', {3, 3});
@@ -1020,11 +1019,11 @@ TEST_F(NDArrayTest, TestMmulHelper4) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper5) {
     auto xBuffer = new float[6]{1, 2, 3, 4, 5, 6};
-    auto xShape = new Nd4jLong[8] {2, 3, 2, 1, 3, 8192, 1, 102};
+    auto xShape = new sd::LongType[8] {2, 3, 2, 1, 3, 8192, 1, 102};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[6]{7, 8, 9, 0, 1, 2};
-    auto yShape = new Nd4jLong[8] {2, 2, 3, 3, 1, 8192, 1, 99};
+    auto yShape = new sd::LongType[8] {2, 2, 3, 3, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = NDArrayFactory::create_<float>('f', {3, 3});
@@ -1050,11 +1049,11 @@ TEST_F(NDArrayTest, TestMmulHelper5) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper6) {
     auto xBuffer = new float[6]{1, 2, 3, 4, 5, 6};
-    auto xShape = new Nd4jLong[8] {2, 3, 2, 1, 3, 8192, 1, 102};
+    auto xShape = new sd::LongType[8] {2, 3, 2, 1, 3, 8192, 1, 102};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[6]{7, 8, 9, 0, 1, 2};
-    auto yShape = new Nd4jLong[8] {2, 2, 3, 1, 2, 8192, 1, 102};
+    auto yShape = new sd::LongType[8] {2, 2, 3, 1, 2, 8192, 1, 102};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = NDArrayFactory::create_<float>('f', {3, 3});
@@ -1081,11 +1080,11 @@ TEST_F(NDArrayTest, TestMmulHelper6) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestMmulHelper7) {
     auto xBuffer = new float[15]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-    auto xShape = new Nd4jLong[8] {2, 5, 3, 1, 5, 8192, 1, 102};
+    auto xShape = new sd::LongType[8] {2, 5, 3, 1, 5, 8192, 1, 102};
     auto x = new NDArray(xBuffer, xShape);
 
     auto yBuffer = new float[5]{2, 4, 6, 8, 10};
-    auto yShape = new Nd4jLong[8] {2, 1, 5, 1, 1, 8192, 1, 99};
+    auto yShape = new sd::LongType[8] {2, 1, 5, 1, 1, 8192, 1, 99};
     auto y = new NDArray(yBuffer, yShape);
 
     auto z = NDArrayFactory::create_<float>('f', {1, 3});
@@ -1112,7 +1111,7 @@ TEST_F(NDArrayTest, TestMmulHelper7) {
 
 
 TEST_F(NDArrayTest, TestMmulHelper_ND_1) {
-    Nd4jLong _expS[] = {3, 2, 3, 3, 9, 3, 1, 8192, 1, 99};
+    sd::LongType _expS[] = {3, 2, 3, 3, 9, 3, 1, 8192, 1, 99};
     float _expB[] = {70.f, 80.f, 90.f, 158.f, 184.f, 210.f, 246.f, 288.f, 330.f, 1030.f, 1088.f, 1146.f, 1310.f, 1384.f, 1458.f, 1590.f, 1680.f, 1770.f};
 
     auto a = NDArrayFactory::create<float>('c', {2, 3, 4});
@@ -1134,7 +1133,7 @@ TEST_F(NDArrayTest, TestMmulHelper_ND_1) {
 
 
 TEST_F(NDArrayTest, TestMmulHelper_ND_2) {
-    Nd4jLong _expS[] = {3, 2, 72, 2, 144, 2, 1, 8192, 1, 99};
+    sd::LongType _expS[] = {3, 2, 72, 2, 144, 2, 1, 8192, 1, 99};
     float _expB[] = {
          1.07250000e+04f,   1.10500000e+04f,   2.63500000e+04f,    2.73000000e+04f,   4.19750000e+04f, 4.35500000e+04f,
          5.76000000e+04f,   5.98000000e+04f,   7.32250000e+04f,    7.60500000e+04f,   8.88500000e+04f, 9.23000000e+04f,
@@ -1220,30 +1219,30 @@ TEST_F(NDArrayTest, TestNegSize1) {
 // not-in-place
 TEST_F(NDArrayTest, Permute1) {
 
-    Nd4jLong shape1[] = {3, 5, 10, 15, 150, 15, 1, 8192, 1, 99};
-	Nd4jLong shape2[] = {3, 15, 5, 10, 1, 150, 15, 8192, 0, 99};
+    sd::LongType shape1[] = {3, 5, 10, 15, 150, 15, 1, 8192, 1, 99};
+    sd::LongType shape2[] = {3, 15, 5, 10, 1, 150, 15, 8192, 0, 99};
     const std::initializer_list<int> perm = {2, 0, 1};
 
     NDArray arr1(shape1,true);
     NDArray arr2(shape2,true);
 
-	auto result = arr1.permute(perm);
-	ASSERT_TRUE(result.isSameShapeStrict(arr2));
+    auto result = arr1.permute(perm);
+    ASSERT_TRUE(result.isSameShapeStrict(arr2));
 }
 
 //////////////////////////////////////////////////////////////////////
 // in-place
 TEST_F(NDArrayTest, Permute2) {
 
-    Nd4jLong shape1[] = {3, 5, 10, 15, 150, 15, 1, 8192, 1, 99};
-	Nd4jLong shape2[] = {3, 15, 5, 10, 1, 150, 15, 8192, 0, 99};
+    sd::LongType shape1[] = {3, 5, 10, 15, 150, 15, 1, 8192, 1, 99};
+    sd::LongType shape2[] = {3, 15, 5, 10, 1, 150, 15, 8192, 0, 99};
     const std::initializer_list<int> perm = {2, 0, 1};
 
     NDArray arr1(shape1,true);
     NDArray arr2(shape2,true);
 
-	ASSERT_TRUE(arr1.permutei(perm));
-	ASSERT_TRUE(arr1.isSameShapeStrict(arr2));
+    ASSERT_TRUE(arr1.permutei(perm));
+    ASSERT_TRUE(arr1.isSameShapeStrict(arr2));
 }
 
 TEST_F(NDArrayTest, RSubScalarTest1) {
@@ -1262,9 +1261,9 @@ TEST_F(NDArrayTest, BroadcastOpsTest1) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
     auto row = NDArrayFactory::linspace(1.0f, 5.0f, 5);
     float *brow = new float[5]{1,2,3,4,5};
-    auto bshape = new Nd4jLong[8]{2, 1, 5, 1, 1, 8192, 1, 99};
+    auto bshape = new sd::LongType[8]{2, 1, 5, 1, 1, 8192, 1, 99};
     float *ebuf = new float[25] {1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5};
-    auto eshape = new Nd4jLong[8] {2, 5, 5, 5, 1, 8192, 1, 99};
+    auto eshape = new sd::LongType[8] {2, 5, 5, 5, 1, 8192, 1, 99};
     NDArray expRow(brow, bshape);
     NDArray exp(ebuf, eshape);
 
@@ -1409,24 +1408,24 @@ TEST_F(NDArrayTest, TestReshapeNegative2) {
 // TEST_F(NDArrayTest, SVD1) {
 
 //     double arrA[8]  = {1, 2, 3, 4, 5, 6, 7, 8};
-// 	double arrU[8]  = {-0.822647, 0.152483, -0.421375, 0.349918, -0.020103, 0.547354, 0.381169, 0.744789};
-// 	double arrS[2]  = {0.626828, 14.269095};
-// 	double arrVt[4] = {0.767187,-0.641423, 0.641423, 0.767187};
+//     double arrU[8]  = {-0.822647, 0.152483, -0.421375, 0.349918, -0.020103, 0.547354, 0.381169, 0.744789};
+//     double arrS[2]  = {0.626828, 14.269095};
+//     double arrVt[4] = {0.767187,-0.641423, 0.641423, 0.767187};
 
-// 	int shapeA[8]  = {2, 4, 2, 2, 1, 0, 1, 99};
-// 	int shapeS[8]  = {2, 1, 2, 2, 1, 0, 1, 99};
-// 	int shapeVt[8] = {2, 2, 2, 2, 1, 0, 1, 99};
+//     int shapeA[8]  = {2, 4, 2, 2, 1, 0, 1, 99};
+//     int shapeS[8]  = {2, 1, 2, 2, 1, 0, 1, 99};
+//     int shapeVt[8] = {2, 2, 2, 2, 1, 0, 1, 99};
 
-// 	auto a(arrA,   shapeA);
+//     auto a(arrA,   shapeA);
 //     auto u(arrU,   shapeA);
-// 	auto s(arrS,   shapeS);
-// 	auto vt(arrVt, shapeVt);
-// 	auto expU, expS(shapeS), expVt(shapeVt);
+//     auto s(arrS,   shapeS);
+//     auto vt(arrVt, shapeVt);
+//     auto expU, expS(shapeS), expVt(shapeVt);
 
-// 	a.svd(expU, expS, expVt);
-// 	ASSERT_TRUE(u.equalsTo(&expU));
-// 	ASSERT_TRUE(s.equalsTo(&expS));
-// 	ASSERT_TRUE(vt.equalsTo(&expVt));
+//     a.svd(expU, expS, expVt);
+//     ASSERT_TRUE(u.equalsTo(&expU));
+//     ASSERT_TRUE(s.equalsTo(&expS));
+//     ASSERT_TRUE(vt.equalsTo(&expVt));
 
 // }
 
@@ -1434,24 +1433,24 @@ TEST_F(NDArrayTest, TestReshapeNegative2) {
 // TEST_F(NDArrayTest, SVD2) {
 
 //     double arrA[6]  = {1, 2, 3, 4, 5, 6};
-// 	double arrU[6]  = {-0.386318, -0.922366, 0.000000, -0.922366, 0.386318, 0.000000};
-// 	double arrS[3]  = {9.508032, 0.77287, 0.000};
-// 	double arrVt[9] = {-0.428667, -0.566307, -0.703947, 0.805964, 0.112382,  -0.581199, 0.408248, -0.816497, 0.408248};
+//     double arrU[6]  = {-0.386318, -0.922366, 0.000000, -0.922366, 0.386318, 0.000000};
+//     double arrS[3]  = {9.508032, 0.77287, 0.000};
+//     double arrVt[9] = {-0.428667, -0.566307, -0.703947, 0.805964, 0.112382,  -0.581199, 0.408248, -0.816497, 0.408248};
 
-// 	int shapeA[8]  = {2, 2, 3, 3, 1, 0, 1, 99};
-// 	int shapeS[8]  = {2, 1, 3, 3, 1, 0, 1, 99};
-// 	int shapeVt[8] = {2, 3, 3, 3, 1, 0, 1, 99};
+//     int shapeA[8]  = {2, 2, 3, 3, 1, 0, 1, 99};
+//     int shapeS[8]  = {2, 1, 3, 3, 1, 0, 1, 99};
+//     int shapeVt[8] = {2, 3, 3, 3, 1, 0, 1, 99};
 
-// 	auto a(arrA,   shapeA);
+//     auto a(arrA,   shapeA);
 //     auto u(arrU,   shapeA);
-// 	auto s(arrS,   shapeS);
-// 	auto vt(arrVt, shapeVt);
-// 	auto expU, expS(shapeS), expVt(shapeVt);
+//     auto s(arrS,   shapeS);
+//     auto vt(arrVt, shapeVt);
+//     auto expU, expS(shapeS), expVt(shapeVt);
 
-// 	a.svd(expU, expS, expVt);
-// 	ASSERT_TRUE(u.equalsTo	(&expU));
-// 	ASSERT_TRUE(s.equalsTo(&expS));
-// 	ASSERT_TRUE(vt.equalsTo(&expVt));
+//     a.svd(expU, expS, expVt);
+//     ASSERT_TRUE(u.equalsTo    (&expU));
+//     ASSERT_TRUE(s.equalsTo(&expS));
+//     ASSERT_TRUE(vt.equalsTo(&expVt));
 
 // }
 
@@ -1459,50 +1458,50 @@ TEST_F(NDArrayTest, TestReshapeNegative2) {
 // TEST_F(NDArrayTest, SVD3) {
 
 //    double arrA[8]  = {1, 2, 3, 4, 5, 6, 7, 8};
-// 	double arrU[8]  = {-0.822647, 0.152483, -0.421375, 0.349918, -0.020103, 0.547354, 0.381169, 0.744789};
-// 	double arrS[2]  = {0.626828, 14.269095};
-// 	double arrVt[4] = {0.767187,-0.641423, 0.641423, 0.767187};
+//     double arrU[8]  = {-0.822647, 0.152483, -0.421375, 0.349918, -0.020103, 0.547354, 0.381169, 0.744789};
+//     double arrS[2]  = {0.626828, 14.269095};
+//     double arrVt[4] = {0.767187,-0.641423, 0.641423, 0.767187};
 
-// 	int shapeA[8]  = {2, 4, 2, 2, 1, 0, 1, 99};
-// 	int shapeS[8]  = {2, 1, 2, 2, 1, 0, 1, 99};
-// 	int shapeVt[8] = {2, 2, 2, 2, 1, 0, 1, 99};
+//     int shapeA[8]  = {2, 4, 2, 2, 1, 0, 1, 99};
+//     int shapeS[8]  = {2, 1, 2, 2, 1, 0, 1, 99};
+//     int shapeVt[8] = {2, 2, 2, 2, 1, 0, 1, 99};
 
-// 	auto a(arrA,   shapeA);
+//     auto a(arrA,   shapeA);
 //    auto u(arrU,   shapeA);
-// 	auto s(arrS,   shapeS);
-// 	auto vt(arrVt, shapeVt);
-// 	auto expU, expS(shapeS), expVt(shapeVt);
+//     auto s(arrS,   shapeS);
+//     auto vt(arrVt, shapeVt);
+//     auto expU, expS(shapeS), expVt(shapeVt);
 
-// 	a.svd(expU, expS, expVt);
-// 	ASSERT_TRUE(expU.hasOrthonormalBasis(1));
-// 	ASSERT_TRUE(expVt.hasOrthonormalBasis(0));
-// 	ASSERT_TRUE(expVt.hasOrthonormalBasis(1));
-// 	ASSERT_TRUE(expVt.isUnitary());
+//     a.svd(expU, expS, expVt);
+//     ASSERT_TRUE(expU.hasOrthonormalBasis(1));
+//     ASSERT_TRUE(expVt.hasOrthonormalBasis(0));
+//     ASSERT_TRUE(expVt.hasOrthonormalBasis(1));
+//     ASSERT_TRUE(expVt.isUnitary());
 // }
 
 // //////////////////////////////////////////////////////////////////////
 // TEST_F(NDArrayTest, SVD4) {
 
 //     double arrA[6]  = {1, 2, 3, 4, 5, 6};
-// 	double arrU[6]  = {-0.386318, -0.922366, 0.000000, -0.922366, 0.386318, 0.000000};
-// 	double arrS[3]  = {9.508032, 0.77287, 0.000};
-// 	double arrVt[9] = {-0.428667, -0.566307, -0.703947, 0.805964, 0.112382,  -0.581199, 0.408248, -0.816497, 0.408248};
+//     double arrU[6]  = {-0.386318, -0.922366, 0.000000, -0.922366, 0.386318, 0.000000};
+//     double arrS[3]  = {9.508032, 0.77287, 0.000};
+//     double arrVt[9] = {-0.428667, -0.566307, -0.703947, 0.805964, 0.112382,  -0.581199, 0.408248, -0.816497, 0.408248};
 
-// 	int shapeA[8]  = {2, 2, 3, 3, 1, 0, 1, 99};
-// 	int shapeS[8]  = {2, 1, 3, 3, 1, 0, 1, 99};
-// 	int shapeVt[8] = {2, 3, 3, 3, 1, 0, 1, 99};
+//     int shapeA[8]  = {2, 2, 3, 3, 1, 0, 1, 99};
+//     int shapeS[8]  = {2, 1, 3, 3, 1, 0, 1, 99};
+//     int shapeVt[8] = {2, 3, 3, 3, 1, 0, 1, 99};
 
-// 	auto a(arrA,   shapeA);
+//     auto a(arrA,   shapeA);
 //     auto u(arrU,   shapeA);
-// 	auto s(arrS,   shapeS);
-// 	auto vt(arrVt, shapeVt);
-// 	auto expU, expS(shapeS), expVt(shapeVt);
+//     auto s(arrS,   shapeS);
+//     auto vt(arrVt, shapeVt);
+//     auto expU, expS(shapeS), expVt(shapeVt);
 
-// 	a.svd(expU, expS, expVt);
-// 	ASSERT_TRUE(expU.hasOrthonormalBasis(1));
-// 	ASSERT_TRUE(expVt.hasOrthonormalBasis(0));
-// 	ASSERT_TRUE(expVt.hasOrthonormalBasis(1));
-// 	ASSERT_TRUE(expVt.isUnitary());
+//     a.svd(expU, expS, expVt);
+//     ASSERT_TRUE(expU.hasOrthonormalBasis(1));
+//     ASSERT_TRUE(expVt.hasOrthonormalBasis(0));
+//     ASSERT_TRUE(expVt.hasOrthonormalBasis(1));
+//     ASSERT_TRUE(expVt.isUnitary());
 // }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1537,7 +1536,7 @@ TEST_F(NDArrayTest, TestStdDev3) {
         array.p(e, 1.f + (e%2?0.5f:-0.5f));
 
     auto std = array.varianceNumber(variance::SummaryStatsStandardDeviation, true).e<double>(0);
-    // nd4j_printf("Variance is %f\n", std);
+    // sd_printf("Variance is %f\n", std);
     ASSERT_NEAR(std, 0.5f, 1.0e-5f);
 }
 
@@ -1558,7 +1557,7 @@ TEST_F(NDArrayTest, TestStdDev4) {
     float y = 0;
     double M2 = 0;
     for (int e = 0; e < total; ++e) {
-    //    y += sd::math::nd4j_abs(array(e) - x);
+    //    y += sd::math::sd_abs(array(e) - x);
         M2 += (array.e<float>(e) - x) * (array.e<float>(e) - x);
     }
     //y /= total;
@@ -1569,7 +1568,7 @@ TEST_F(NDArrayTest, TestStdDev4) {
     auto std = a.e<float>(0);
 //    float bY = array.varianceNumber();
     float bY = 0.3333333f;
-    // nd4j_printf("Variance is %f, res is %f, internal is %f\n, deviance is %f(%f)\n", std, x, bY, y, sd::math::nd4j_sqrt<double>(M2));
+    // sd_printf("Variance is %f, res is %f, internal is %f\n, deviance is %f(%f)\n", std, x, bY, y, sd::math::sd_sqrt<double>(M2));
     ASSERT_NEAR(std, 0.3333333f, 1.0e-5f);
 }
 
@@ -1582,7 +1581,7 @@ TEST_F(NDArrayTest, TestStdDev5) {
     }
     float stdF = array.varianceNumber(variance::SummaryStatsStandardDeviation, false).e<float>(0);
     double stdD = arrayD.varianceNumber(variance::SummaryStatsStandardDeviation, false).e<double>(0);
-    // nd4j_printf("Variance is %f(%f)\n", stdF, stdD);
+    // sd_printf("Variance is %f(%f)\n", stdF, stdD);
     ASSERT_NEAR(stdD, 0.2, 1.0e-8); // 1/5 = 0.2
     ASSERT_NEAR(stdF, 0.2f, 1.0e-5f); // 1/5 = 0.2
 }
@@ -1590,11 +1589,11 @@ TEST_F(NDArrayTest, TestStdDev5) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestApplyIndexReduce1) {
     float xBuff[] = {1, 5, 2, 12, 9, 3, 10, 7, 4, 11, 6, 8};
-    Nd4jLong xShapeInfo[] = {3, 2, 3, 2, 6, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] = {3, 2, 3, 2, 6, 2, 1, 8192, 1, 99};
     std::vector<int> dim = {0,1};
 
     NDArray x(xBuff, xShapeInfo);
-    auto exp = NDArrayFactory::create<Nd4jLong>({3, 1});
+    auto exp = NDArrayFactory::create<sd::LongType>({3, 1});
 
     auto result = x.applyIndexReduce(indexreduce::IndexMax, dim);
     ASSERT_TRUE(exp.isSameShapeStrict(result));
@@ -1605,7 +1604,7 @@ TEST_F(NDArrayTest, TestApplyIndexReduce1) {
 TEST_F(NDArrayTest, applyReduce3Dot) {
     float xBuff[] = {1, 2, 3, 4, 5, 6};
     float yBuff[] = {2, 2, 2, 2, 2, 2};
-    Nd4jLong xShapeInfo[] = {2, 2, 3, 3, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] = {2, 2, 3, 3, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, xShapeInfo);
@@ -1620,8 +1619,8 @@ TEST_F(NDArrayTest, applyAllReduce3EuclideanDistance) {
     float xBuff[] =   {1, 2, 3, 4, 5, 6};
     float yBuff[] =   {2, 2, 2, 2, 2, 2};
     float expBuff[] = {1.414214f, 1.414214f, 5.385165f, 5.385165f};
-    Nd4jLong expShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
+    sd::LongType expShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, xShapeInfo);
@@ -1638,8 +1637,8 @@ TEST_F(NDArrayTest, applyReduce3EuclideanDistance) {
     float xBuff[] =   {1, 2, 3, 4, 5, 6};
     float yBuff[] =   {2, 2, 2, 2, 2, 2};
     float expBuff[] = {1.414214f, 1.414214f, 5.385165f, 5.385165f};
-    Nd4jLong expShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
+    sd::LongType expShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, xShapeInfo);
@@ -1657,8 +1656,8 @@ TEST_F(NDArrayTest, TestVarianceAlongDimension1) {
 
     float xBuff[] =   {1, 2, 3, 4, 5, 6};
     float expBuff[] = {0.816497f, 0.816497f};
-    Nd4jLong xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
-    Nd4jLong expShapeInfo[] = {1, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
+    sd::LongType expShapeInfo[] = {1, 2, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray exp(expBuff, expShapeInfo);
@@ -1673,8 +1672,8 @@ TEST_F(NDArrayTest, TestVarianceAlongDimension1) {
 TEST_F(NDArrayTest, TestVarianceAlongDimension2) {
     float xBuff[] =   {1, 2, 3, 4, 5, 6};
     float expBuff[] = {0.666667f, 0.666667f};
-    Nd4jLong xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
-    Nd4jLong expShapeInfo[] = {1, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] =   {2, 2, 3, 3, 1, 8192, 1, 99};
+    sd::LongType expShapeInfo[] = {1, 2, 1, 8192, 1, 99};
 
 
     NDArray x(xBuff, xShapeInfo);
@@ -1715,8 +1714,8 @@ TEST_F(NDArrayTest, TestSubRowVector1) {
     float xBuff[] = {6, 7, 8, 9};
     float yBuff[] = {1, 2};
     float expBuff[] =  {5, 5, 7, 7};
-    Nd4jLong xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, yShapeInfo);
@@ -1734,8 +1733,8 @@ TEST_F(NDArrayTest, TestDivRowVector1) {
     float xBuff[] = {6, 8, 10, 12};
     float yBuff[] = {2, 4};
     float expBuff[] =  {3, 2, 5, 3};
-    Nd4jLong xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, yShapeInfo);
@@ -1753,8 +1752,8 @@ TEST_F(NDArrayTest, TestMulRowVector1) {
     float xBuff[] = {6, 8, 10, 12};
     float yBuff[] = {2, 4};
     float expBuff[] =  {12, 32, 20, 48};
-    Nd4jLong xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
+    sd::LongType xShapeInfo[] = {2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType yShapeInfo[] = {2, 1, 2, 2, 1, 8192, 1, 99};
 
     NDArray x(xBuff, xShapeInfo);
     NDArray y(yBuff, yShapeInfo);
@@ -1790,7 +1789,7 @@ TEST_F(NDArrayTest, TestTensorDotAgain_1) {
      */
     double _expB[] = {96.0,  116.0,  136.0,  156.0,  256.0,  276.0,  296.0,  316.0,  102.0,  124.0,  146.0,  168.0,    278.0,  300.0,  322.0,  344.0,  108.0,  132.0,  156.0,  180.0,  300.0,  324.0,  348.0,  372.0,    114.0,  140.0,  166.0,  192.0,  322.0,  348.0,  374.0,  400.0,  120.0,  148.0,  176.0,  204.0,    344.0,  372.0,  400.0,  428.0,  126.0,  156.0,  186.0,  216.0,  366.0,  396.0,  426.0,  456.0,    132.0,  164.0,  196.0,  228.0,  388.0,  420.0,  452.0,  484.0,  138.0,  172.0,  206.0,  240.0,    410.0,  444.0,  478.0,  512.0,  144.0,  180.0,  216.0,  252.0,  432.0,  468.0,  504.0,  540.0,    150.0,  188.0,  226.0,  264.0,  454.0,  492.0,  530.0,  568.0,  156.0,  196.0,  236.0,  276.0,    476.0,  516.0,  556.0,  596.0,  162.0,  204.0,  246.0,  288.0,  498.0,  540.0,  582.0,  624.0,    168.0,  212.0,  256.0,  300.0,  520.0,  564.0,  608.0,  652.0,  174.0,  220.0,  266.0,  312.0,    542.0,  588.0,  634.0,  680.0,  180.0,  228.0,  276.0,  324.0,  564.0,  612.0,  660.0,  708.0,    186.0,  236.0,  286.0,  336.0,  586.0,  636.0,  686.0,  736.0,  192.0,  244.0,  296.0,  348.0,    608.0,  660.0,  712.0,  764.0,  198.0,  252.0,  306.0,  360.0,  630.0,  684.0,  738.0,  792.0};
 
-    Nd4jLong _expS[] = {6, 2, 3, 3, 2, 2, 2, 72, 24, 8, 4, 2, 1, 16384, 1, 99};
+    sd::LongType _expS[] = {6, 2, 3, 3, 2, 2, 2, 72, 24, 8, 4, 2, 1, 16384, 1, 99};
     NDArray exp(_expB, _expS, sd::LaunchContext ::defaultContext(), false);
 
     auto input = NDArrayFactory::create<double>('c', {B, iC, iY, iX});
@@ -1814,7 +1813,7 @@ TEST_F(NDArrayTest, TestTensorDotAgain_1) {
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, TestBroadcast_1) {
     double _expB[] = {1.000000, 1.000000, 1.000000, 1.000000, 2.000000, 2.000000, 2.000000, 2.000000, 3.000000, 3.000000, 3.000000, 3.000000, 1.000000, 1.000000, 1.000000, 1.000000, 2.000000, 2.000000, 2.000000, 2.000000, 3.000000, 3.000000, 3.000000, 3.000000};
-    Nd4jLong _expS[] = {4, 2, 3, 2, 2, 12, 4, 2, 1, 16384, 1, 99};
+    sd::LongType _expS[] = {4, 2, 3, 2, 2, 12, 4, 2, 1, 16384, 1, 99};
     NDArray exp(_expB, _expS, sd::LaunchContext ::defaultContext(), false);
 
     auto input = NDArrayFactory::create<double>('c',{ 2, 3, 2, 2});
@@ -1901,7 +1900,7 @@ TEST_F(NDArrayTest, TestMatmMul_Again_1) {
     b.linspace(1);
 
     float _expB[] = {1.f,    2.f,    3.f,    4.f,    5.f,    2.f,    4.f,    6.f,    8.f,   10.f,    3.f,    6.f,    9.f,   12.f,   15.f,    4.f,    8.f,   12.f,   16.f,   20.f,   30.f,   35.f,   40.f,   45.f,    50.f,   36.f,   42.f,   48.f,   54.f,   60.f,   42.f,   49.f,   56.f,   63.f,   70.f,   48.f,    56.f,   64.f,   72.f,   80.f,   99.f,  108.f,  117.f,  126.f,  135.f,  110.f,  120.f,  130.f,    140.f,  150.f,  121.f,  132.f,  143.f,  154.f,  165.f,  132.f,  144.f,  156.f,  168.f,  180.f};
-    Nd4jLong _expS[] = {3, 3, 4, 5, 20, 5, 1, 8192, 1, 99};
+    sd::LongType _expS[] = {3, 3, 4, 5, 20, 5, 1, 8192, 1, 99};
     NDArray c(_expB, _expS, sd::LaunchContext ::defaultContext(), false);
 
     auto c_ = MmulHelper::mmul(&a, &b);
@@ -1921,7 +1920,7 @@ TEST_F(NDArrayTest, TestMatmMul_Again_2) {
     b.linspace(1);
 
     double _expB[] = {30.f,    70.f,   110.f,   150.f,   190.f,   590.f,   694.f,   798.f,   902.f,  1006.f};
-    Nd4jLong _expS[] = {3, 2, 5, 1, 5, 1, 1, 16384, 1, 99};
+    sd::LongType _expS[] = {3, 2, 5, 1, 5, 1, 1, 16384, 1, 99};
     NDArray c(_expB, _expS);
 
     auto c_ = MmulHelper::mmul(&a, &b);
@@ -2202,7 +2201,6 @@ TEST_F(NDArrayTest, Operator_Multiply_Test_4)
 }
 
 
-
 //////////////////////////////////////////////////////////////////////
 TEST_F(NDArrayTest, Operator_Multiply_Test_5)
 {
@@ -2220,7 +2218,6 @@ TEST_F(NDArrayTest, Operator_Multiply_Test_5)
     ASSERT_TRUE(expected.isSameShape(&result));
     ASSERT_TRUE(expected.equalsTo(&result));
 }
-
 
 
 //////////////////////////////////////////////////////////////////////

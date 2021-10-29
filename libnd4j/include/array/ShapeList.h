@@ -22,32 +22,32 @@
 
 #ifndef LIBND4J_SHAPELIST_H
 #define LIBND4J_SHAPELIST_H
-
 #include <vector>
+#include <system/common.h>
 #include <helpers/shape.h>
-#include <system/dll.h>
+
 
 namespace sd {
-    class ND4J_EXPORT ShapeList {
+    class SD_LIB_EXPORT ShapeList {
     protected:
-        std::vector<const Nd4jLong*> _shapes;
+        std::vector<const sd::LongType*> _shapes;
 
         bool _destroyed = false;
         bool _autoremovable = false;
         bool _workspace = false;
     public:
-        ShapeList(const Nd4jLong* shape = nullptr);
-        ShapeList(const std::vector<const Nd4jLong*> &shapes, bool isWorkspace);
-        ShapeList(const std::vector<const Nd4jLong*>& shapes);
+        ShapeList(const sd::LongType* shape = nullptr);
+        ShapeList(const std::vector<const sd::LongType*> &shapes, bool isWorkspace);
+        ShapeList(const std::vector<const sd::LongType*>& shapes);
         //ShapeList(bool autoRemovable);
 
         ~ShapeList();
 
-        std::vector<const Nd4jLong*>* asVector();
+        std::vector<const sd::LongType*>* asVector();
         void destroy();
         int size() const;
-        const Nd4jLong* at(int idx);
-        void push_back(const Nd4jLong *shape);
+        const sd::LongType* at(int idx);
+        void push_back(const sd::LongType *shape);
 
         /**
          * PLEASE NOTE: This method should be called ONLY if shapes were generated at workspaces. Otherwise you'll get memory leak

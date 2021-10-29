@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/ResultSet.h>
 #include <graph/FlatUtils.h>
 
@@ -37,7 +36,7 @@ namespace sd {
             if (var->ndarray() != nullptr) {
                 array = sd::graph::FlatUtils::fromFlatArray(var->ndarray());
             } else if (var->shape() != nullptr) {
-                std::vector<Nd4jLong> shapeInfo;
+                std::vector<sd::LongType> shapeInfo;
                 for (int i = 0; i < var->shape()->size(); i++) {
                     shapeInfo.emplace_back(var->shape()->Get(i));
                 }
@@ -45,14 +44,14 @@ namespace sd {
                 // we just create empty array here
                 int s0 = shapeInfo.at(0);
 
-                std::vector<Nd4jLong> shape;
+                std::vector<sd::LongType> shape;
                 for (int i = 0; i < s0; i++) {
                     shape.emplace_back(shapeInfo.at(i + 1));
                 }
 
                 array = new NDArray((char) shapeInfo.at(shapeInfo.size() - 1), shape, DataTypeUtils::fromFlatDataType(var->dtype()));
             } else {
-                nd4j_printf("Either shape or NDArray should be defined in FlatResult variable\n","");
+                sd_printf("Either shape or NDArray should be defined in FlatResult variable\n","");
                 throw std::runtime_error("Empty variable");
             }
 
@@ -143,11 +142,11 @@ namespace sd {
         _content.emplace_back(array);
     }
 
-    Nd4jStatus ResultSet::status() {
+    sd::Status ResultSet::status() {
         return _status;
     }
 
-    void ResultSet::setStatus(Nd4jStatus status) {
+    void ResultSet::setStatus(sd::Status status) {
         _status = status;
     }
 

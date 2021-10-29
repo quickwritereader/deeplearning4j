@@ -19,7 +19,6 @@
 //
 // Created by Yurii Shyrma on 11.01.2018
 //
-
 #include <helpers/hhColPivQR.h>
 #include <helpers/householder.h>
 
@@ -32,7 +31,7 @@ namespace helpers {
 HHcolPivQR::HHcolPivQR(const NDArray& matrix) {
 
     _qr = matrix.dup();
-    _diagSize = math::nd4j_min<int>(matrix.sizeAt(0), matrix.sizeAt(1));
+    _diagSize = math::sd_min<int>(matrix.sizeAt(0), matrix.sizeAt(1));
     _coeffs = NDArray(matrix.ordering(), {1, _diagSize}, matrix.dataType(), matrix.getContext());
 
     _permut = NDArray(matrix.ordering(), {matrix.sizeAt(1), matrix.sizeAt(1)}, matrix.dataType(), matrix.getContext());
@@ -41,7 +40,7 @@ HHcolPivQR::HHcolPivQR(const NDArray& matrix) {
 }
 
     void HHcolPivQR::evalData() {
-        BUILD_SINGLE_SELECTOR(_qr.dataType(), _evalData, (), FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR(_qr.dataType(), _evalData, (), SD_FLOAT_TYPES);
     }
 
 //////////////////////////////////////////////////////////////////////////
@@ -62,7 +61,7 @@ void HHcolPivQR::_evalData() {
 
     T normScaled = (normsUpd.reduceNumber(reduce::Max)).t<T>(0) * DataTypeUtils::eps<T>();
     T threshold1 = normScaled * normScaled / (T)rows;
-    T threshold2 = math::nd4j_sqrt<T,T>(DataTypeUtils::eps<T>());
+    T threshold2 = math::sd_sqrt<T,T>(DataTypeUtils::eps<T>());
 
     T nonZeroPivots = _diagSize;
     T maxPivot = 0.;
@@ -85,8 +84,8 @@ void HHcolPivQR::_evalData() {
             NDArray temp2(_qr({0,0, biggestColIndex,biggestColIndex+1}));
             temp1.swapUnsafe(temp2);
 
-            math::nd4j_swap<T>(normsUpd.r<T>(k), normsUpd.r<T>(biggestColIndex));
-            math::nd4j_swap<T>(normsDir.r<T>(k), normsDir.r<T>(biggestColIndex));
+            math::sd_swap<T>(normsUpd.r<T>(k), normsUpd.r<T>(biggestColIndex));
+            math::sd_swap<T>(normsDir.r<T>(k), normsDir.r<T>(biggestColIndex));
 
             ++transpNum;
         }
@@ -99,7 +98,7 @@ void HHcolPivQR::_evalData() {
 
         _qr.r<T>(k,k) = normX;
 
-        T max = math::nd4j_abs<T>(normX);
+        T max = math::sd_abs<T>(normX);
         if(max > maxPivot)
             maxPivot = max;
 
@@ -113,7 +112,7 @@ void HHcolPivQR::_evalData() {
 
             if (normsUpd.t<T>(j) != (T)0.f) {
 
-                T temp = math::nd4j_abs<T>(_qr.t<T>(k, j)) / normsUpd.t<T>(j);
+                T temp = math::sd_abs<T>(_qr.t<T>(k, j)) / normsUpd.t<T>(j);
                 temp = ((T)1. + temp) * ((T)1. - temp);
                 temp = temp < (T)0. ? (T)0. : temp;
                 T temp2 = temp * normsUpd.t<T>(j) * normsUpd.t<T>(j) / (normsDir.t<T>(j)*normsDir.t<T>(j));
@@ -125,7 +124,7 @@ void HHcolPivQR::_evalData() {
                     normsUpd.r<T>(j) = normsDir.t<T>(j);
                 }
                 else
-                    normsUpd.r<T>(j) = normsUpd.t<T>(j) * math::nd4j_sqrt<T, T>(temp);
+                    normsUpd.r<T>(j) = normsUpd.t<T>(j) * math::sd_sqrt<T, T>(temp);
             }
         }
     }
@@ -141,7 +140,7 @@ void HHcolPivQR::_evalData() {
     }
 }
 
-BUILD_SINGLE_TEMPLATE(template void HHcolPivQR::_evalData, (), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void HHcolPivQR::_evalData, (), SD_FLOAT_TYPES);
 
 }
 }

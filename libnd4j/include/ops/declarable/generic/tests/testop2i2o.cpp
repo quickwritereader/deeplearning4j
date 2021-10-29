@@ -30,7 +30,7 @@ namespace sd {
         //////////////////////////////////////////////////////////////////////////
         // test op, non-divergent
         OP_IMPL(testop2i2o, 2, 2, true) {
-            //nd4j_printf("CPU op used!\n","");
+            //sd_printf("CPU op used!\n","");
             auto x = INPUT_VARIABLE(0);
             auto y = INPUT_VARIABLE(1);
 
@@ -42,7 +42,7 @@ namespace sd {
 
             STORE_2_RESULTS(*xO, *yO);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TestOp2i2o, testop2i2o);
 

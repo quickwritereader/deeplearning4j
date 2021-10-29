@@ -27,7 +27,7 @@
 using namespace sd::graph;
 
 namespace sd {
-    class ND4J_EXPORT TransformBenchmark : public OpBenchmark {
+    class SD_LIB_EXPORT TransformBenchmark : public OpBenchmark {
 
     protected:
         int _opType;        // 0=StrictOps, 1=Same, 2=Any, 3=Float

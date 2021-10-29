@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(softsign) {
@@ -54,7 +54,7 @@ namespace sd {
             //input->applyPairwiseTransform(pairwise::SoftsignDerivativeE, epsilon, z, nullptr);
             helpers::softSignDerivative(block.launchContext(), input, epsilon, z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(SoftsignGrad, softsign_bp);
 

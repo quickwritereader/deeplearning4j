@@ -70,7 +70,7 @@ namespace sd {
 
             helpers::onehot(block.launchContext(), input, output, axis, depth, on, off);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(onehot) {
@@ -79,7 +79,7 @@ namespace sd {
             sd::DataType dtype = block.numD() > 0 ? D_ARG(0) : sd::DataType::FLOAT32;
 
             int depth = -1;
-            Nd4jLong axis = -1;
+            sd::LongType axis = -1;
 
             if (block.numI() > 0)
                 axis = INT_ARG(0);
@@ -97,7 +97,7 @@ namespace sd {
             if (axis < 0)
                 axis = rank + 1 + axis;
 
-            std::vector<Nd4jLong> shape;
+            std::vector<sd::LongType> shape;
             for (int e = 0; e < rank; e++)
                 shape.push_back(shape::shapeOf(inShape)[e]);
 

@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_CUSTOMOPERATIONS_H
 #define LIBND4J_CUSTOMOPERATIONS_H
-
 #include <ops/declarable/headers/activations.h>
 #include <ops/declarable/headers/boolean.h>
 #include <ops/declarable/headers/broadcastable.h>
@@ -50,10 +49,9 @@
 #include <ops/declarable/headers/images.h>
 #include <ops/declarable/headers/updaters.h>
 #include <ops/declarable/headers/decoder.h>
-#include <system/dll.h>
 #include <helpers/shape.h>
 #include <helpers/TAD.h>
-#include <graph/Status.h>
+
 #include <helpers/ArrayUtils.h>
 #include <helpers/ShapeBuilders.h>
 #include <array/NDArrayFactory.h>
@@ -63,7 +61,7 @@
 
 
 namespace sd {
-    struct ND4J_EXPORT _loader {
+    struct _loader {
         _loader();
     };
 

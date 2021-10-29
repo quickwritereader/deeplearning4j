@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_INTPOWERPARAMETERS_H
 #define DEV_TESTS_INTPOWERPARAMETERS_H
-
 #include <map>
 #include <vector>
 #include <string>
@@ -49,7 +48,7 @@ namespace sd {
         std::vector<int> evaluate() override {
             std::vector<int> result;
             for (int e = _start; e <= _stop; e += _step) {
-               result.emplace_back(sd::math::nd4j_pow<double, double, int>(_base, e));
+               result.emplace_back(sd::math::sd_pow<double, double, int>(_base, e));
             }
             return result;
         }

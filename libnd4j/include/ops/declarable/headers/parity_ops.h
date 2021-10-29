@@ -24,7 +24,6 @@
 
 #ifndef LIBND4J_HEADERS_PARITY_H
 #define LIBND4J_HEADERS_PARITY_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {
@@ -477,11 +476,11 @@ namespace sd {
         #endif
 
         /**
-		 * This operation stacks a list of rank tensors into one rank-(R+1) tensor.
-		 * Expected arguments:
-		 * 0...: N-Dimensional arrays to stack
-		 *
-		 */
+         * This operation stacks a list of rank tensors into one rank-(R+1) tensor.
+         * Expected arguments:
+         * 0...: N-Dimensional arrays to stack
+         *
+         */
         #if NOT_EXCLUDED(OP_stack)
         DECLARE_CUSTOM_OP(stack, -1, 1, false, 0, 0);
         #endif
@@ -690,8 +689,6 @@ namespace sd {
         DECLARE_CONFIGURABLE_OP(adjust_contrast, 1, 1, true, 0, 0);
         DECLARE_CONFIGURABLE_OP(adjust_contrast_v2, 1, 1, true, 0, 0);
         #endif
-
-
 
 
         /**

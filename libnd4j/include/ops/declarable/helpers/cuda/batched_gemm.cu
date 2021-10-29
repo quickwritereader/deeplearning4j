@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //  @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <exceptions/cuda_exception.h>
 #include <cublas_v2.h>
 #include <ops/specials_cuda.h>
@@ -36,7 +35,7 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////
 // bsxMXK x bSxKxN = bSxMxN
-ND4J_LOCAL void bgemm(const std::vector<NDArray*>& vA, const std::vector<NDArray*>& vB, std::vector<NDArray*>& vC, const NDArray* alphas, const NDArray* betas, int transA, int transB, int M, int N, int K, const int lda, const int ldb, const int ldc) {
+void bgemm(const std::vector<NDArray*>& vA, const std::vector<NDArray*>& vB, std::vector<NDArray*>& vC, const NDArray* alphas, const NDArray* betas, int transA, int transB, int M, int N, int K, const int lda, const int ldb, const int ldc) {
 
     const auto bS = vA.size();      // batch size
 

@@ -54,8 +54,8 @@ namespace sd {
 
             // now let's build subarrays
             int cnt = 0;
-            std::vector<Nd4jLong> indices(2 * array->rankOf(), 0);
-            for (Nd4jLong e = 0; e < sizes->lengthOf(); e++) {
+            std::vector<sd::LongType> indices(2 * array->rankOf(), 0);
+            for (sd::LongType e = 0; e < sizes->lengthOf(); e++) {
                 int c_size = sizes->e<int>(e);
 
                 REQUIRE_TRUE(c_size > 0, 0, "Slice size should have postive value, but got %i instead", c_size);
@@ -70,7 +70,7 @@ namespace sd {
 
                 auto status = list->write(e, new NDArray(subarray.dup(array->ordering())));
 
-                if (status != ND4J_STATUS_OK)
+                if (status != sd::Status::OK)
                     return status;
             }
 
@@ -79,7 +79,7 @@ namespace sd {
                 setupResultList(list, block);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArraySplitV3, split_list);
         DECLARE_SYN(tensorarraysplitv3, split_list);

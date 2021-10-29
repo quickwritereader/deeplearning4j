@@ -24,7 +24,6 @@
 
 #ifndef LIBND4J_CONSTANTHOLDER_H
 #define LIBND4J_CONSTANTHOLDER_H
-
 #include <map>
 #include <array/ConstantDescriptor.h>
 #include <array/ConstantDataBuffer.h>

@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <graph/GraphHolder.h>
 #include <graph/GraphExecutioner.h>
 #include <exceptions/graph_exists_exception.h>
@@ -32,7 +31,7 @@ namespace sd {
           return instance;
         };
 
-        void GraphHolder::registerGraph(Nd4jLong graphId, Graph* graph) {
+        void GraphHolder::registerGraph(sd::LongType graphId, Graph* graph) {
             if (hasGraphAny(graphId))
                 throw graph_exists_exception(graphId);
 
@@ -42,9 +41,9 @@ namespace sd {
             _locks[graphId] = lock;
         }
 
-        Graph* GraphHolder::cloneGraph(Nd4jLong graphId) {
+        Graph* GraphHolder::cloneGraph(sd::LongType graphId) {
             if (!this->hasGraph(graphId)) {
-                nd4j_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
+                sd_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
                 throw std::runtime_error("Bad argument");
             }
 
@@ -53,9 +52,9 @@ namespace sd {
             return graph;
         }
 
-        Graph* GraphHolder::pullGraph(Nd4jLong graphId) {
+        Graph* GraphHolder::pullGraph(sd::LongType graphId) {
             if (!this->hasGraph(graphId)) {
-                nd4j_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
+                sd_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
                 throw std::runtime_error("Bad argument");
             }
 
@@ -64,12 +63,12 @@ namespace sd {
             return graph;
         }
 
-        void GraphHolder::forgetGraph(Nd4jLong graphId) {
+        void GraphHolder::forgetGraph(sd::LongType graphId) {
             if (this->hasGraph(graphId))
                 _graphF.erase(graphId);
         }
 
-        void GraphHolder::dropGraph(Nd4jLong graphId) {
+        void GraphHolder::dropGraph(sd::LongType graphId) {
             if (this->hasGraph(graphId)) {
                 auto g = _graphF[graphId];
                 forgetGraph(graphId);
@@ -77,7 +76,7 @@ namespace sd {
             }
         }
 
-        void GraphHolder::dropGraphAny(Nd4jLong graphId) {
+        void GraphHolder::dropGraphAny(sd::LongType graphId) {
             if (!hasGraphAny(graphId))
                 return;
 
@@ -88,15 +87,15 @@ namespace sd {
             this->unlockWrite(graphId);
         }
 
-        bool GraphHolder::hasGraphAny(Nd4jLong graphId) {
+        bool GraphHolder::hasGraphAny(sd::LongType graphId) {
             return this->hasGraph(graphId);
         }
 
-        bool GraphHolder::hasGraph(Nd4jLong graphId) {
+        bool GraphHolder::hasGraph(sd::LongType graphId) {
                 return _graphF.count(graphId) > 0;
         }
 
-        void GraphHolder::replaceGraph(Nd4jLong graphId, Graph* graph) {
+        void GraphHolder::replaceGraph(sd::LongType graphId, Graph* graph) {
             if (!hasGraph(graphId)) {
                 registerGraph(graphId, graph);
                 return;
@@ -110,9 +109,7 @@ namespace sd {
         }
 
 
-
-
-        flatbuffers::Offset<FlatResult> GraphHolder::execute(Nd4jLong graphId, flatbuffers::FlatBufferBuilder &builder, const FlatInferenceRequest* request) {
+        flatbuffers::Offset<FlatResult> GraphHolder::execute(sd::LongType graphId, flatbuffers::FlatBufferBuilder &builder, const FlatInferenceRequest* request) {
             if (!hasGraph(graphId))
                 throw unknown_graph_exception(graphId);
 

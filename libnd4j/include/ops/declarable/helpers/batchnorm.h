@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_BATCHNORM_H
 #define LIBND4J_BATCHNORM_H
-
 #include <ops/declarable/helpers/helpers.h>
 
 namespace sd    {
@@ -30,8 +29,8 @@ namespace ops     {
 namespace helpers {
 
 
-	void batchnorm(const NDArray* input, const NDArray* mean, const NDArray* variance, const NDArray* gamma, const NDArray* beta, NDArray* output, const std::vector<int>& axes, const double epsilon);
-    
+SD_LIB_HIDDEN void batchnorm(const NDArray* input, const NDArray* mean, const NDArray* variance, const NDArray* gamma, const NDArray* beta, NDArray* output, const std::vector<int>& axes, const double epsilon);
+
 
 }
 }

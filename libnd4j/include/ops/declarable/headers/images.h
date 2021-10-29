@@ -25,7 +25,6 @@
 
 #ifndef LIBND4J_HEADERS_IMAGES_H
 #define LIBND4J_HEADERS_IMAGES_H
-
 #include <ops/declarable/headers/common.h>
 #include <ops/declarable/CustomOperations.h>  
 #include <helpers/ConstantTadHelper.h>
@@ -248,15 +247,23 @@ namespace ops {
     *
     * optional float args:
     *    0 -bicubicCoefficient - only effective for the bicubic method
+    *
     * optional int args:
     *    0 - algorithm - bilinear by default
-    *    1 - nearestMode - only effective for the nearest_neighbor method
-    * optional bool args:
+    *    1 - coordinateTransformationMode - Transformation function of the coordinate in the resized NdArray
+    *    to the coordinate in the original NdArray
+    *    2 - nearestMode - Effective only for the ResizeNearest interpolation.
+    *    Indicates how to get "nearest" pixel in NDArray from original coordinate
+    *
+    *    optional bool args:
     *    0 - preserve_aspect_ratio - default False
     *    1 - antialias - default False
-    * 
+    *    2 - exclude_outside - only effective for the bicubic method when antialias is False
+    *    If set to true, the weight of sampling locations outside the NdArray will be set to 0 
+    *    and the weight will be renormalized so that their sum is 1.0
+    *
     * output array:
-    *   the 4D-Tensor with resized by given algorithm image (shape is {batch, newWidth, newHeight, channels})
+    *    the 4D-Tensor with resized by given algorithm image (shape is {batch, newWidth, newHeight, channels})
     *
     */
 

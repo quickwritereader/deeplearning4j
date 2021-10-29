@@ -19,32 +19,31 @@
 #ifndef CUDA_LAMBDA_HELPER
 #define CUDA_LAMBDA_HELPER
 
-#include <system/pointercast.h>
 #include <system/op_boilerplate.h>
 #include <helpers/shape.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-static Nd4jLong __device__ __noinline__ getIndexOffset(Nd4jLong index, const Nd4jLong *shapeInfo) {
+static sd::LongType SD_DEVICE __noinline__ getIndexOffset(sd::LongType index, const sd::LongType *shapeInfo) {
     return shape::getIndexOffset(index, shapeInfo);
 }
 
-static Nd4jLong __device__ __noinline__ length(const Nd4jLong *shapeInfo) {
+static sd::LongType SD_DEVICE __noinline__ length(const sd::LongType *shapeInfo) {
     return shape::length(shapeInfo);
 }
 
-template <typename T, typename Lambda> static _CUDA_G void lambdaKernel(const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda);
-template <typename T, typename Lambda> static _CUDA_G void lambdaIndexedKernel(const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda);
-template <typename T, typename Lambda> static _CUDA_G void lambdaIndexedPairwiseKernel(const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda);
-template <typename T, typename Lambda> static _CUDA_G void lambdaPairwiseKernel(const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda);
-template <typename T, typename Lambda> static _CUDA_G void lambdaTriplewiseKernel(const void* vw, const Nd4jLong *wShapeInfo, const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda);
+template <typename T, typename Lambda> static SD_KERNEL void lambdaKernel(const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda);
+template <typename T, typename Lambda> static SD_KERNEL void lambdaIndexedKernel(const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda);
+template <typename T, typename Lambda> static SD_KERNEL void lambdaIndexedPairwiseKernel(const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda);
+template <typename T, typename Lambda> static SD_KERNEL void lambdaPairwiseKernel(const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda);
+template <typename T, typename Lambda> static SD_KERNEL void lambdaTriplewiseKernel(const void* vw, const sd::LongType *wShapeInfo, const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda);
 
 template <typename T>
 class LambdaHelper {
 public:
 
     template <typename Lambda>
-    FORCEINLINE static void lambdaLauncher(cudaStream_t *stream, const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+    SD_INLINE static void lambdaLauncher(cudaStream_t *stream, const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
         lambdaKernel<T, Lambda><<<256, 512, 1024, *stream>>>(vx, xShapeInfo, vz, zShapeInfo, lambda);
         auto err = cudaStreamSynchronize(*stream);
         if (err != 0)
@@ -52,7 +51,7 @@ public:
     }
 
     template <typename Lambda>
-    FORCEINLINE static void lambdaIndexedLauncher(cudaStream_t *stream, const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+    SD_INLINE static void lambdaIndexedLauncher(cudaStream_t *stream, const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
         lambdaIndexedKernel<T, Lambda><<<256, 512, 1024, *stream>>>(vx, xShapeInfo, vz, zShapeInfo, lambda);
         auto err = cudaStreamSynchronize(*stream);
         if (err != 0)
@@ -60,7 +59,7 @@ public:
     }
 
     template <typename Lambda>
-    FORCEINLINE static void lambdaPairwiseLauncher(cudaStream_t *stream, const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+    SD_INLINE static void lambdaPairwiseLauncher(cudaStream_t *stream, const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
         lambdaPairwiseKernel<T, Lambda><<<256, 512, 1024, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, lambda);
         auto err = cudaStreamSynchronize(*stream);
         if (err != 0)
@@ -68,7 +67,7 @@ public:
     }
 
     template <typename Lambda>
-    FORCEINLINE static void lambdaIndexedPairwiseLauncher(cudaStream_t *stream, const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+    SD_INLINE static void lambdaIndexedPairwiseLauncher(cudaStream_t *stream, const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
         lambdaIndexedPairwiseKernel<T, Lambda><<<256, 512, 1024, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, lambda);
         auto err = cudaStreamSynchronize(*stream);
         if (err != 0)
@@ -76,7 +75,7 @@ public:
     }
 
     template <typename Lambda>
-    FORCEINLINE static void lambdaTriplewiseLauncher(cudaStream_t *stream,const  void* vw, const Nd4jLong *wShapeInfo, const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+    SD_INLINE static void lambdaTriplewiseLauncher(cudaStream_t *stream,const  void* vw, const sd::LongType *wShapeInfo, const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
         lambdaTriplewiseKernel<T, Lambda><<<256, 512, 1024, *stream>>>(vw, wShapeInfo, vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, lambda);
         auto err = cudaStreamSynchronize(*stream);
         if (err != 0)
@@ -86,7 +85,7 @@ public:
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T, typename Lambda>
-static _CUDA_G void lambdaKernel(const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+static SD_KERNEL void lambdaKernel(const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
     auto x = reinterpret_cast<const T*>(vx);
     auto z = reinterpret_cast<T*>(vz);
 
@@ -101,10 +100,10 @@ static _CUDA_G void lambdaKernel(const void* vx, const Nd4jLong *xShapeInfo, voi
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (xEws >= 1 && zEws >= 1 && xOrder == zOrder) {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x)
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x)
             z[e * zEws] = lambda(x[e * xEws]);
     } else {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x) {
             auto xOffset = getIndexOffset(e, xShapeInfo);
             auto zOffset = getIndexOffset(e, zShapeInfo);
 
@@ -115,7 +114,7 @@ static _CUDA_G void lambdaKernel(const void* vx, const Nd4jLong *xShapeInfo, voi
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T, typename Lambda>
-static _CUDA_G void lambdaIndexedKernel(const void* vx, const Nd4jLong *xShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+static SD_KERNEL void lambdaIndexedKernel(const void* vx, const sd::LongType *xShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
     auto x = reinterpret_cast<const T*>(vx);
     auto z = reinterpret_cast<T*>(vz);
 
@@ -130,10 +129,10 @@ static _CUDA_G void lambdaIndexedKernel(const void* vx, const Nd4jLong *xShapeIn
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (xEws >= 1 && zEws >= 1 && xOrder == zOrder) {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x)
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x)
             z[e * zEws] = lambda(e, x[e * xEws]);
     } else {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x) {
             auto xOffset = getIndexOffset(e, xShapeInfo);
             auto zOffset = getIndexOffset(e, zShapeInfo);
 
@@ -144,7 +143,7 @@ static _CUDA_G void lambdaIndexedKernel(const void* vx, const Nd4jLong *xShapeIn
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T, typename Lambda>
-static _CUDA_G void lambdaIndexedPairwiseKernel(const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+static SD_KERNEL void lambdaIndexedPairwiseKernel(const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
     auto x = reinterpret_cast<const T*>(vx);
     auto y = reinterpret_cast<const T*>(vy);
     auto z = reinterpret_cast<T*>(vz);
@@ -162,10 +161,10 @@ static _CUDA_G void lambdaIndexedPairwiseKernel(const void* vx, const Nd4jLong *
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (xEws >= 1 && yEws >= 1 && zEws >= 1 && xOrder == zOrder && yOrder == xOrder) {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x)
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x)
             z[e * zEws] = lambda(e, x[e * xEws], y[e * yEws]);
     } else {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x) {
             auto xOffset = getIndexOffset(e, xShapeInfo);
             auto yOffset = getIndexOffset(e, yShapeInfo);
             auto zOffset = getIndexOffset(e, zShapeInfo);
@@ -177,7 +176,7 @@ static _CUDA_G void lambdaIndexedPairwiseKernel(const void* vx, const Nd4jLong *
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T, typename Lambda>
-static _CUDA_G void lambdaPairwiseKernel(const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+static SD_KERNEL void lambdaPairwiseKernel(const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
     auto x = reinterpret_cast<const T*>(vx);
     auto y = reinterpret_cast<const T*>(vy);
     auto z = reinterpret_cast<T*>(vz);
@@ -195,10 +194,10 @@ static _CUDA_G void lambdaPairwiseKernel(const void* vx, const Nd4jLong *xShapeI
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (xEws >= 1 && yEws >= 1 && zEws >= 1 && xOrder == zOrder && yOrder == xOrder) {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x)
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x)
             z[e * zEws] = lambda(x[e * xEws], y[e * yEws]);
     } else {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x) {
             auto xOffset = getIndexOffset(e, xShapeInfo);
             auto yOffset = getIndexOffset(e, yShapeInfo);
             auto zOffset = getIndexOffset(e, zShapeInfo);
@@ -210,7 +209,7 @@ static _CUDA_G void lambdaPairwiseKernel(const void* vx, const Nd4jLong *xShapeI
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T, typename Lambda>
-static _CUDA_G void lambdaTriplewiseKernel(const void* vw, const Nd4jLong *wShapeInfo, const void* vx, const Nd4jLong *xShapeInfo, const void* vy, const Nd4jLong *yShapeInfo, void *vz, const Nd4jLong *zShapeInfo, Lambda lambda) {
+static SD_KERNEL void lambdaTriplewiseKernel(const void* vw, const sd::LongType *wShapeInfo, const void* vx, const sd::LongType *xShapeInfo, const void* vy, const sd::LongType *yShapeInfo, void *vz, const sd::LongType *zShapeInfo, Lambda lambda) {
     auto w = reinterpret_cast<const T*>(vw);
     auto x = reinterpret_cast<const T*>(vx);
     auto y = reinterpret_cast<const T*>(vy);
@@ -231,10 +230,10 @@ static _CUDA_G void lambdaTriplewiseKernel(const void* vw, const Nd4jLong *wShap
     auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
     if (wEws > 1 && xEws >= 1 && yEws >= 1 && zEws >= 1 && xOrder == zOrder && yOrder == xOrder && wOrder == xOrder) {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x)
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x)
             z[e * zEws] = lambda(w[e * wEws], x[e * xEws], y[e * yEws]);
     } else {
-        for (uint e = tid; e < zLength; e += blockDim.x * gridDim.x) {
+        for (sd::Unsigned e = tid; e < zLength; e += blockDim.x * gridDim.x) {
             auto wOffset = getIndexOffset(e, wShapeInfo);
             auto xOffset = getIndexOffset(e, xShapeInfo);
             auto yOffset = getIndexOffset(e, yShapeInfo);
@@ -257,7 +256,7 @@ void NDArray::applyLambda(Lambda func, NDArray& target) {
         throw std::runtime_error("NDArray::applyLambda X/Z data types must be the same");
         //throw datatype_exception::build("NDArray::applyLambda X/Z data types must be the same", dtype, target.dataType());
     prepareSpecialUse({&target}, {this});
-    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), SD_COMMON_TYPES);
     registerSpecialUse({&target}, {this});
 
 }
@@ -273,7 +272,7 @@ void NDArray::applyPairwiseLambda(const NDArray& other, Lambda func, NDArray& ta
     //throw datatype_exception::build("NDArray::applyLambda X/Z data types must be the same", dtype, target.dataType());
 
     prepareSpecialUse({&target}, {this, &other});
-    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaPairwiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), other.specialBuffer(), other.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaPairwiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), other.specialBuffer(), other.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), SD_COMMON_TYPES);
     registerSpecialUse({&target}, {this, &other});
 
 }
@@ -287,7 +286,7 @@ void NDArray::applyIndexedLambda(Lambda func, NDArray& target) {
         throw std::runtime_error("NDArray::applyIndexedLambda X/Z data types must be the same");
 
     prepareSpecialUse({&target}, {this});
-    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaIndexedLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaIndexedLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), SD_COMMON_TYPES);
     registerSpecialUse({&target}, {this});
 }
 
@@ -300,7 +299,7 @@ void NDArray::applyIndexedPairwiseLambda(NDArray& other, Lambda func, NDArray& t
         throw std::runtime_error("NDArray::applyIndexedPairwiseLambda X/Y/Z data types must be the same");
 
     prepareSpecialUse({&target}, {this, &other});
-    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaIndexedPairwiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), other.specialBuffer(), other.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaIndexedPairwiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), other.specialBuffer(), other.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), SD_COMMON_TYPES);
     registerSpecialUse({&target}, {this, &other});
 }
 
@@ -314,11 +313,8 @@ void NDArray::applyTriplewiseLambda(NDArray& second, NDArray& third, Lambda func
         throw std::runtime_error("NDArray::applyTriplewiseLambda X/Y/Z data types must be the same");
 
     prepareSpecialUse({&target}, {this, &second, &third});
-    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaTriplewiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), second.specialBuffer(), second.specialShapeInfo(), third.specialBuffer(), third.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(dtype, LambdaHelper ,::lambdaTriplewiseLauncher(this->_context->getCudaStream(), this->specialBuffer(), this->specialShapeInfo(), second.specialBuffer(), second.specialShapeInfo(), third.specialBuffer(), third.specialShapeInfo(), target.specialBuffer(), target.specialShapeInfo(), func), SD_COMMON_TYPES);
     registerSpecialUse({&target}, {this, &second, &third});
 }
-
-
-
 
 

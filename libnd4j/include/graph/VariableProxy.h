@@ -19,12 +19,11 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <graph/VariableSpace.h>
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT VariableProxy: public VariableSpace {
+        class SD_LIB_EXPORT VariableProxy: public VariableSpace {
         protected:
             VariableSpace* _backed = nullptr;
             VariableSpace* _current = nullptr;
@@ -73,9 +72,9 @@ namespace sd {
             virtual void trackList(sd::NDArrayList *list);
 
             // memory-related statistics
-            virtual Nd4jLong externalMemory();
-            virtual Nd4jLong internalMemory();
-            virtual Nd4jLong totalMemory();
+            virtual sd::LongType externalMemory();
+            virtual sd::LongType internalMemory();
+            virtual sd::LongType totalMemory();
 
             virtual int externalEntries();
             virtual int internalEntries();

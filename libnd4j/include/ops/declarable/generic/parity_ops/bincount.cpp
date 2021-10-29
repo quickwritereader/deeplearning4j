@@ -47,9 +47,9 @@ namespace sd {
             maxLength = values->e<int>(maxIndex)  + 1;
 
             if (block.numI() > 0) {
-                minLength = sd::math::nd4j_max(INT_ARG(0), 0);
+                minLength = sd::math::sd_max(INT_ARG(0), 0);
                 if (block.numI() == 2)
-                    maxLength = sd::math::nd4j_min(maxLength, INT_ARG(1));
+                    maxLength = sd::math::sd_min(maxLength, INT_ARG(1));
             }
 
             if (block.width() == 2) { // the second argument is weights
@@ -98,15 +98,15 @@ namespace sd {
 
             }
 
-            minLength = sd::math::nd4j_max(minLength, 0);
-            maxLength = sd::math::nd4j_min(maxLength, values->e<int>(maxIndex) + 1);
+            minLength = sd::math::sd_max(minLength, 0);
+            maxLength = sd::math::sd_min(maxLength, values->e<int>(maxIndex) + 1);
 
             auto result = OUTPUT_VARIABLE(0);
             result->assign(0.0f);
 
             helpers::adjustWeights(block.launchContext(), values, weights, result, minLength, maxLength);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(bincount) {
@@ -123,10 +123,10 @@ namespace sd {
             int outLength = maxLength;
 
             if (block.numI() > 0)
-                outLength = sd::math::nd4j_max(maxLength, INT_ARG(0));
+                outLength = sd::math::sd_max(maxLength, INT_ARG(0));
 
             if (block.numI() > 1)
-                outLength = sd::math::nd4j_min(outLength, INT_ARG(1));
+                outLength = sd::math::sd_min(outLength, INT_ARG(1));
 
 
             if (block.width() == 3) { // the second argument is min and the third is max
@@ -136,8 +136,8 @@ namespace sd {
                     max = INPUT_VARIABLE(2)->e<int>(0);
                 }
 
-                outLength = sd::math::nd4j_max(maxLength, min);
-                outLength = sd::math::nd4j_min(outLength, max);
+                outLength = sd::math::sd_max(maxLength, min);
+                outLength = sd::math::sd_min(outLength, max);
             }
             else if (block.width() > 3) {
                 auto min= INPUT_VARIABLE(2);
@@ -145,8 +145,8 @@ namespace sd {
                 if(INPUT_VARIABLE(3)->lengthOf() > 0) {
                     max = INPUT_VARIABLE(3);
                 }
-                outLength = sd::math::nd4j_max(maxLength, min->e<int>(0));
-                outLength = sd::math::nd4j_min(outLength, max->e<int>(0));
+                outLength = sd::math::sd_max(maxLength, min->e<int>(0));
+                outLength = sd::math::sd_min(outLength, max->e<int>(0));
             }
 
 

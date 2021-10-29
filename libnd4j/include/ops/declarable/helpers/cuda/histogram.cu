@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/histogram.h>
 #include <array/NDArrayFactory.h>
 
@@ -27,7 +26,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template <typename X, typename Z>
-            static void _CUDA_G histogramKernel(void *xBuffer, const Nd4jLong *xShapeInfo, void *zBuffer, const Nd4jLong *zShapeInfo, void *allocationPointer, void *reductionPointer, Nd4jLong numBins, X* min_val, X* max_val) {
+            static void SD_KERNEL histogramKernel(void *xBuffer, const sd::LongType *xShapeInfo, void *zBuffer, const sd::LongType *zShapeInfo, void *allocationPointer, void *reductionPointer, sd::LongType numBins, X* min_val, X* max_val) {
                 int tid = blockIdx.x * blockDim.x + threadIdx.x;
                 auto dx = reinterpret_cast<X*>(xBuffer);
                 auto result = reinterpret_cast<Z*>(zBuffer);
@@ -54,9 +53,9 @@ namespace sd {
 
                 for (int e = tid; e < length; e += blockDim.x * gridDim.x) {
                     int idx = int((dx[e] - *min_val) / binSize);
-                    idx = math::nd4j_max(idx, 0); //atomicMax(&idx, 0);//atomicMax(&idx, 0);
-                    idx = math::nd4j_min(idx, int(numBins - 1)); //atomicMin(&idx, int(numBins - 1));
-                    sd::math::atomics::nd4j_atomicAdd<Z>(&bins[idx], (Z)1);
+                    idx = math::sd_max(idx, 0); //atomicMax(&idx, 0);//atomicMax(&idx, 0);
+                    idx = math::sd_min(idx, int(numBins - 1)); //atomicMin(&idx, int(numBins - 1));
+                    sd::math::atomics::sd_atomicAdd<Z>(&bins[idx], (Z)1);
                 }
                 __syncthreads();
                 // at this point all bins in shared memory are calculated, so we aggregate them now via threadfence trick
@@ -91,7 +90,7 @@ namespace sd {
                             Z *ptrBuf = ((Z *)allocationPointer) + (r * numBins);
 
                             for (int e = threadIdx.x; e < numBins; e += blockDim.x) {
-                                math::atomics::nd4j_atomicAdd(&bins[e], ptrBuf[e]);
+                                math::atomics::sd_atomicAdd(&bins[e], ptrBuf[e]);
                             }
                         }
                         __syncthreads();
@@ -110,9 +109,9 @@ namespace sd {
             }
 
             template <typename X, typename Z>
-            static void histogram_(sd::LaunchContext *context, void *xBuffer, const Nd4jLong *xShapeInfo, const Nd4jLong *dxShapeInfo, void *zBuffer, const Nd4jLong *zShapeInfo, Nd4jLong numBins, void* min_val, void* max_val) {
+            static void histogram_(sd::LaunchContext *context, void *xBuffer, const sd::LongType *xShapeInfo, const sd::LongType *dxShapeInfo, void *zBuffer, const sd::LongType *zShapeInfo, sd::LongType numBins, void* min_val, void* max_val) {
                 int numThreads = 256;
-                int numBlocks = sd::math::nd4j_max<int>(256, sd::math::nd4j_min<int>(1, shape::length(xShapeInfo) / numThreads));
+                int numBlocks = sd::math::sd_max<int>(256, sd::math::sd_min<int>(1, shape::length(xShapeInfo) / numThreads));
                 int workspaceSize = numBlocks * numBins;
                 auto tmp = NDArrayFactory::create<Z>('c', {workspaceSize}, context);
 
@@ -121,15 +120,15 @@ namespace sd {
                 cudaStreamSynchronize(*context->getCudaStream());
             }
 
-            ND4J_LOCAL void histogramHelper(sd::LaunchContext *context, NDArray &input, NDArray &output) {
-                Nd4jLong numBins = output.lengthOf();
+            void histogramHelper(sd::LaunchContext *context, NDArray &input, NDArray &output) {
+                sd::LongType numBins = output.lengthOf();
                 NDArray::registerSpecialUse({&output}, {&input});
 
                 auto min_val = input.reduceNumber(reduce::SameOps::Min);
                 auto max_val = input.reduceNumber(reduce::SameOps::Max);
 //                min_val.printIndexedBuffer("MIN");
 //                max_val.printIndexedBuffer("MAX");
-                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), histogram_, (context, input.specialBuffer(), input.shapeInfo(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), numBins, min_val.specialBuffer(), max_val.specialBuffer()), LIBND4J_TYPES, INTEGER_TYPES);
+                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), histogram_, (context, input.specialBuffer(), input.shapeInfo(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), numBins, min_val.specialBuffer(), max_val.specialBuffer()), SD_COMMON_TYPES, SD_INTEGER_TYPES);
                 NDArray::registerSpecialUse({&output}, {&input});
             }
         }

@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 30.11.17.
 //
-
 #include <execution/LaunchContext.h>
 #include <execution/AffinityManager.h>
 #include <helpers/logger.h>
@@ -45,7 +44,7 @@ namespace sd {
     }
 
     std::vector<std::shared_ptr<LaunchContext>> LaunchContext::_contexts = std::vector<std::shared_ptr<LaunchContext>>();
-    MAP_IMPL<int, std::mutex*> LaunchContext::_deviceMutexes;
+    SD_MAP_IMPL<int, std::mutex*> LaunchContext::_deviceMutexes;
     std::mutex LaunchContext::_mutex;
 
 ////////////////////////////////////////////////////////////////////////
@@ -59,7 +58,7 @@ namespace sd {
 #endif
     }
 
-    LaunchContext::LaunchContext(Nd4jPointer cudaStream, Nd4jPointer reductionPointer, Nd4jPointer scalarPointer, Nd4jPointer allocationPointer) {
+    LaunchContext::LaunchContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer scalarPointer, sd::Pointer allocationPointer) {
 
     }
 

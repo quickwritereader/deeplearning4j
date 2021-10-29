@@ -19,12 +19,11 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyRandomOp.h>
 #include <helpers/RandomLauncher.h>
 #include <legacy/NativeOpExecutioner.h>
 #include <array/NDArrayFactory.h>
-#include <graph/Status.h>
+
 #include <ops/declarable/CustomOperations.h>
 
 namespace sd {
@@ -42,7 +41,7 @@ namespace sd {
         }
 
         template <typename T>
-        Nd4jStatus LegacyRandomOp::validateAndExecute_(Context &block) {
+        sd::Status LegacyRandomOp::validateAndExecute_(Context &block) {
             auto input = INPUT_VARIABLE(0);
 
             int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
@@ -138,9 +137,9 @@ namespace sd {
 
                     REQUIRE_TRUE(input->isVector(), 0, "Gaussian requires pure shape as first argument");
 
-                    std::vector<Nd4jLong> shape(input->lengthOf());
+                    std::vector<sd::LongType> shape(input->lengthOf());
                     for (int e = 0; e < input->lengthOf(); e++)
-                        shape[e] = input->e<Nd4jLong>(e);
+                        shape[e] = input->e<sd::LongType>(e);
 
                     auto z = OUTPUT_VARIABLE(0);//NDArrayFactory::create_<T>('c', shape, block.getWorkspace());
 
@@ -166,9 +165,9 @@ namespace sd {
 
                     REQUIRE_TRUE(input->isVector(), 0, "Bernoulli requires pure shape as first argument");
 
-                    std::vector<Nd4jLong> shape(input->lengthOf());
+                    std::vector<sd::LongType> shape(input->lengthOf());
                     for (int e = 0; e < input->lengthOf(); e++)
-                        shape[e] = input->e<Nd4jLong>(e);
+                        shape[e] = input->e<sd::LongType>(e);
 
                     auto z = OUTPUT_VARIABLE(0); // NDArrayFactory::create_<T>('c', shape, block.getWorkspace());
 
@@ -199,9 +198,9 @@ namespace sd {
 
                     REQUIRE_TRUE(input->isVector(), 0, "Binomial requires pure shape as first argument");
 
-                    std::vector<Nd4jLong> shape(input->lengthOf());
+                    std::vector<sd::LongType> shape(input->lengthOf());
                     for (int e = 0; e < input->lengthOf(); e++)
-                        shape[e] = input->e<Nd4jLong>(e);
+                        shape[e] = input->e<sd::LongType>(e);
 
                     auto z = OUTPUT_VARIABLE(0);//NDArrayFactory::create_<T>('c', shape, block.getWorkspace());
 
@@ -231,9 +230,9 @@ namespace sd {
 
                     REQUIRE_TRUE(input->isVector(), 0, "LogNormal requires pure shape as first argument");
 
-                    std::vector<Nd4jLong> shape(input->lengthOf());
+                    std::vector<sd::LongType> shape(input->lengthOf());
                     for (int e = 0; e < input->lengthOf(); e++)
-                        shape[e] = input->e<Nd4jLong>(e);
+                        shape[e] = input->e<sd::LongType>(e);
 
                     auto z = OUTPUT_VARIABLE(0);//NDArrayFactory::create_<T>('c', shape, block.getWorkspace());
 
@@ -263,9 +262,9 @@ namespace sd {
 
                     REQUIRE_TRUE(input->isVector(), 0, "TruncatedNormal requires pure shape as first argument");
 
-                    std::vector<Nd4jLong> shape(input->lengthOf());
+                    std::vector<sd::LongType> shape(input->lengthOf());
                     for (int e = 0; e < input->lengthOf(); e++)
-                        shape[e] = input->e<Nd4jLong>(e);
+                        shape[e] = input->e<sd::LongType>(e);
 
                     auto z = OUTPUT_VARIABLE(0); // NDArrayFactory::create_<T>('c', shape, block.getWorkspace());
 
@@ -311,23 +310,23 @@ namespace sd {
                         auto finish = INPUT_VARIABLE(1);
                         auto numOfElements = INPUT_VARIABLE(2);
 
-                        z->linspace(start->e<double>(0), (finish->e<double>(0) - start->e<double>(0)) / (numOfElements->e<Nd4jLong>(0) - 1.));
+                        z->linspace(start->e<double>(0), (finish->e<double>(0) - start->e<double>(0)) / (numOfElements->e<sd::LongType>(0) - 1.));
                     }
                     break;
                 default: {
-                    nd4j_printf("Unknown random op requested: [%i]\n", opNum);
-                    return ND4J_STATUS_KERNEL_FAILURE;
+                    sd_printf("Unknown random op requested: [%i]\n", opNum);
+                    return sd::Status::KERNEL_FAILURE;
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
-        Nd4jStatus LegacyRandomOp::validateAndExecute(Context &block) {
+        sd::Status LegacyRandomOp::validateAndExecute(Context &block) {
 //            REQUIRE_TRUE(block.getRNG() != nullptr, 0, "RNG should be provided for LegacyRandomOp, but got NULL instead at node_%i", block.nodeId())
 
             auto z = OUTPUT_VARIABLE(0);
-            BUILD_SINGLE_SELECTOR(z->dataType(), return validateAndExecute_, (block), FLOAT_TYPES);
+            BUILD_SINGLE_SELECTOR(z->dataType(), return validateAndExecute_, (block), SD_FLOAT_TYPES);
         }
 
         /**
@@ -338,14 +337,14 @@ namespace sd {
         ShapeList *LegacyRandomOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
             auto inShape = inputShape->at(0);
             auto xType = ArrayOptions::dataType(inShape);
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             if (DataTypeUtils::isR(xType)) {
                 COPY_SHAPE(inShape, newShape);
 
                 return SHAPELIST(CONSTANT(newShape));
             } else if (DataTypeUtils::isZ(xType)) {
                 auto zShapeArr = INPUT_VARIABLE(0);
-                auto zShapeVector = zShapeArr->asVectorT<Nd4jLong>();
+                auto zShapeVector = zShapeArr->asVectorT<sd::LongType>();
                 auto dtype = block.dataType();
 
                 return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', zShapeVector));
@@ -353,7 +352,7 @@ namespace sd {
                 throw std::runtime_error("LegacyRandomOp: Unknown input data type!");
         }
 
-        Nd4jStatus LegacyRandomOp::execute(Context* block) {
+        sd::Status LegacyRandomOp::execute(Context* block) {
             return DeclarableOp::execute(block);
         }
 
@@ -397,9 +396,9 @@ namespace sd {
             for (int e = 0; e < iArgs.size(); e++)
                 block.getIArguments()->emplace_back(iArgs.at(e));
 
-            Nd4jStatus status = this->execute(&block);
+            sd::Status status = this->execute(&block);
             arrayList.setStatus(status);
-            if (status != ND4J_STATUS_OK)
+            if (status != sd::Status::OK)
                 return arrayList;
 
 
@@ -421,14 +420,14 @@ namespace sd {
             return arrayList;
         }
 
-        Nd4jStatus LegacyRandomOp::validateDataTypes(Context& block) {
+        sd::Status LegacyRandomOp::validateDataTypes(Context& block) {
             if (block.isFastPath()) {
                 // in this case we'll roll through pre-defined outputs
                 auto fpo = block.fastpath_out();
                 for (auto v:fpo) {
                     if (v != nullptr) {
                         if (!v->isR())
-                            return ND4J_STATUS_BAD_ARGUMENTS;
+                            return sd::Status::BAD_ARGUMENTS;
                     }
                 }
             } else {
@@ -436,17 +435,17 @@ namespace sd {
                 if (block.getVariableSpace()->hasVariable(pair)) {
                     auto var = block.variable(pair);
                     if (!var->hasNDArray())
-                        return ND4J_STATUS_BAD_ARGUMENTS;
+                        return sd::Status::BAD_ARGUMENTS;
 
                     auto arr = var->getNDArray();
                     if (!arr->isR())
-                        return ND4J_STATUS_BAD_ARGUMENTS;
+                        return sd::Status::BAD_ARGUMENTS;
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
-        BUILD_SINGLE_TEMPLATE(template Nd4jStatus LegacyRandomOp::validateAndExecute_, (Context&), FLOAT_TYPES);
+        BUILD_SINGLE_TEMPLATE(template sd::Status LegacyRandomOp::validateAndExecute_, (Context&), SD_FLOAT_TYPES);
     }
 }

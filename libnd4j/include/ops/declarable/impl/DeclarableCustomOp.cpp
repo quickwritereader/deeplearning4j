@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 07.10.2017.
 //
-
 #include <ops/declarable/DeclarableCustomOp.h>
 #include <ops/declarable/DeclarableOp.h>
 

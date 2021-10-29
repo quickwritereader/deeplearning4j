@@ -39,7 +39,7 @@ namespace sd {
             if (!block.isInplace())
                 output->assign(input);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(check_numerics) {

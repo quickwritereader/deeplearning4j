@@ -38,7 +38,7 @@ namespace sd {
             REQUIRE_TRUE(!x->isB(), 0, "REVERSEDIVIDE OP: you can't divide by bool array!");
             x->applyTrueBroadcast(BROADCAST(ReverseDivide), *y, *z, true);
 
-			return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(RDiv, reversedivide);
 
@@ -105,7 +105,7 @@ namespace sd {
                     gradY->assign(preY);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(reversedivide_bp) {
@@ -116,8 +116,8 @@ namespace sd {
             // eps always has shape of x
             // grad always has shape of y
 
-            Nd4jLong *shapeE;
-            Nd4jLong *shapeG;
+            sd::LongType *shapeE;
+            sd::LongType *shapeG;
 
             COPY_SHAPE(x, shapeE);
             COPY_SHAPE(y, shapeG);

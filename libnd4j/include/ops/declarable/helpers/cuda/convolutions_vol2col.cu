@@ -21,7 +21,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <helpers/PointersManager.h>
 
@@ -31,17 +30,17 @@ namespace ops  {
 //////////////////////////////////////////////////////////////////////////
 // vol [bS, iC, iD, iH, iW] is convoluted to col [bS, iC, kD, kH, kW, oD, oH, oW]
 template <typename T>
-static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeInfo, void* columns, const Nd4jLong* colShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+static SD_KERNEL void vol2colCuda(const void* volume, const sd::LongType* volShapeInfo, void* columns, const sd::LongType* colShapeInfo,  const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     const T* vol = reinterpret_cast<const T*>(volume);
           T* col = reinterpret_cast<T*>(columns);
 
     __shared__ int colRank, volRank;
-    __shared__ Nd4jLong colLen, iD, iH, iW, *sharedMem;
+    __shared__ sd::LongType colLen, iD, iH, iW, *sharedMem;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+        sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
         volRank = 5;
         colRank = 8;
@@ -87,24 +86,24 @@ static __global__ void vol2colCuda(const void* volume, const Nd4jLong* volShapeI
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void vol2colCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                const void* volume, const Nd4jLong* volShapeInfo,
-                                      void* columns, const Nd4jLong* colShapeInfo,
+                                const void* volume, const sd::LongType* volShapeInfo,
+                                      void* columns, const sd::LongType* colShapeInfo,
                                 const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     vol2colCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(volume, volShapeInfo, columns, colShapeInfo,  sD, sH, sW, pD, pH, pW, dD, dH, dW);
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void ConvolutionUtils::vol2col(sd::graph::Context& block, const NDArray& vol, NDArray& col, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+void ConvolutionUtils::vol2col(sd::graph::Context& block, const NDArray& vol, NDArray& col, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
 
     PointersManager manager(block.launchContext(), "vol2col");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 4;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
     const int blocksPerGrid = (col.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-    const int sharedMem = col.rankOf() * sizeof(Nd4jLong) * threadsPerBlock  + 128;
+    const int sharedMem = col.rankOf() * sizeof(sd::LongType) * threadsPerBlock  + 128;
 
     NDArray::prepareSpecialUse({&col}, {&vol});
-    BUILD_SINGLE_SELECTOR(vol.dataType(), vol2colCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), vol.specialBuffer(), vol.specialShapeInfo(), col.specialBuffer(), col.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(vol.dataType(), vol2colCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), vol.specialBuffer(), vol.specialShapeInfo(), col.specialBuffer(), col.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({&col}, {&vol});
 
     manager.synchronize();

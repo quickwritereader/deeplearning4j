@@ -22,17 +22,16 @@
 
 #ifndef LIBND4J_DECLARABLE_REDUCTION_OP_H
 #define LIBND4J_DECLARABLE_REDUCTION_OP_H
-
 #include <ops/declarable/DeclarableOp.h>
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT DeclarableReductionOp : public sd::ops::DeclarableOp {
+        class SD_LIB_EXPORT DeclarableReductionOp : public sd::ops::DeclarableOp {
         protected:
             /**
              * This method executes this Op
              */
-            Nd4jStatus validateAndExecute(Context& block) override = 0;
+            sd::Status validateAndExecute(Context& block) override = 0;
         public:
             DeclarableReductionOp(int numInputs, int numOutputs, const char *opName, bool allowsInplace, int tArgs, int iArgs);
 

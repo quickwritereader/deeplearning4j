@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HEADERS_BROADCASTABLE_H
 #define LIBND4J_HEADERS_BROADCASTABLE_H
-
 #include <ops/declarable/BroadcastableOp.h>
 #include <ops/declarable/BroadcastableBoolOp.h>
 #include <ops/declarable/headers/common.h>

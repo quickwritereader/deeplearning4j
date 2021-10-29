@@ -54,10 +54,10 @@ namespace sd {
             REQUIRE_TRUE(inputSamples->lengthOf() == 1, 0, "RANDOM_MULTINOMIAL OP: Have to be specified at least one sample,"
                 " but got no argumets instead.");
             
-            Nd4jLong numOfSamples = static_cast<Nd4jLong>(inputSamples->e<int>(0));
+            sd::LongType numOfSamples = static_cast<sd::LongType>(inputSamples->e<int>(0));
             // do nothing if number of samples = 0
             if (0 == numOfSamples)
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(numOfSamples > 0, 0, "RANDOM_MULTINOMIAL OP: Number of samples should be greater then 0, got %i. ", numOfSamples);
 
@@ -70,12 +70,12 @@ namespace sd {
             auto dimA = (0 == dimC) ? 1 : 0;
             if (1 == input->sizeAt(dimA)) {
                 *output = 0;
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             auto rng = block.randomGenerator();
             helpers::fillRandomMultiNomial(block.launchContext(), rng, *input, *output, numOfSamples, dimC);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 
@@ -87,7 +87,7 @@ namespace sd {
             REQUIRE_TRUE(inputSamples->lengthOf() == 1, 0, "RANDOM_MULTINOMIAL OP: Have to be specified at least one sample,"
                 " but got no argumets instead.");
 
-            Nd4jLong numOfSamples = static_cast<Nd4jLong>(inputSamples->e<int>(0));
+            sd::LongType numOfSamples = static_cast<sd::LongType>(inputSamples->e<int>(0));
 
             REQUIRE_TRUE(numOfSamples > 0, 0, "RANDOM_MULTINOMIAL OP: Number of samples should be greater then 0, got %i. ", numOfSamples);
 

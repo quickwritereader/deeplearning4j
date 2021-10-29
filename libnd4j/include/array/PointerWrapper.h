@@ -25,13 +25,12 @@
 #ifndef SD_ARRAY_POINTER_H_
 #define SD_ARRAY_POINTER_H_
 
-#include <system/dll.h>
-#include <system/pointercast.h>
+
 #include <array/PointerDeallocator.h>
 #include <memory>
 
 namespace sd {
-class ND4J_EXPORT PointerWrapper {
+class SD_LIB_EXPORT PointerWrapper {
  private:
   void* _pointer = nullptr;
   std::shared_ptr<PointerDeallocator> _deallocator;

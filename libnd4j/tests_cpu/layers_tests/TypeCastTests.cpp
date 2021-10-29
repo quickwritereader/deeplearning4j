@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 02/07/18.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <loops/type_conversions.h>

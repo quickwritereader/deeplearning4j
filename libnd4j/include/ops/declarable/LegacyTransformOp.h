@@ -31,9 +31,9 @@ namespace sd {
         /**
         *   This class provides wrapper for Transform operations (i.e. Pow or OneMinus)
         */
-        class ND4J_EXPORT LegacyTransformOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyTransformOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context &block);
+            sd::Status validateAndExecute(Context &block);
         public:
             LegacyTransformOp();
             LegacyTransformOp(int opNum);
@@ -44,7 +44,6 @@ namespace sd {
     }
 }
 #endif
-
 #include <ops/declarable/LegacyTransformFloatOp.h>
 #include <ops/declarable/LegacyTransformSameOp.h>
 #include <ops/declarable/LegacyTransformBoolOp.h>

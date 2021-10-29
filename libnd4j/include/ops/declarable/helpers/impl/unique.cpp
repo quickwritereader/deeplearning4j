@@ -19,9 +19,8 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/unique.h>
-#include <graph/Status.h>
+
 #include <execution/Threads.h>
 #include <graph/Variable.h>
 
@@ -30,12 +29,12 @@ namespace ops {
 namespace helpers {
 
     template <typename T>
-    static Nd4jLong uniqueCount_(NDArray* input) {
-        Nd4jLong count = 0;
+    static sd::LongType uniqueCount_(NDArray* input) {
+        sd::LongType count = 0;
 
         std::vector<T> values;
 
-        for (Nd4jLong e = 0; e < input->lengthOf(); e++) {
+        for (sd::LongType e = 0; e < input->lengthOf(); e++) {
             T v = input->e<T>(e);
             if (std::find(values.begin(), values.end(), v) == values.end()) {
                 values.push_back(v);
@@ -45,20 +44,20 @@ namespace helpers {
         return count;
     }
 
-     Nd4jLong uniqueCount(sd::LaunchContext * context, NDArray* input) {
-        BUILD_SINGLE_SELECTOR(input->dataType(), return uniqueCount_, (input), LIBND4J_TYPES);
+    sd::LongType uniqueCount(sd::LaunchContext * context, NDArray* input) {
+        BUILD_SINGLE_SELECTOR(input->dataType(), return uniqueCount_, (input), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL Nd4jLong uniqueCount_, (NDArray* input), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::LongType uniqueCount_, (NDArray* input), SD_COMMON_TYPES);
 
     template <typename T>
-    static Nd4jStatus uniqueFunctor_(NDArray* input, NDArray* values, NDArray* indices, NDArray* counts) {
+    static sd::Status uniqueFunctor_(NDArray* input, NDArray* values, NDArray* indices, NDArray* counts) {
     
         std::vector<T> valuesVector;
-        MAP_IMPL<T, int> indicesMap;
-        MAP_IMPL<T, int> countsMap;
+        SD_MAP_IMPL<T, int> indicesMap;
+        SD_MAP_IMPL<T, int> countsMap;
 
-        for (Nd4jLong e = 0; e < input->lengthOf(); e++) {
+        for (sd::LongType e = 0; e < input->lengthOf(); e++) {
             T v = input->e<T>(e);
             if (std::find(valuesVector.begin(), valuesVector.end(), v) == valuesVector.end()) {
                 valuesVector.push_back(v);
@@ -79,16 +78,16 @@ namespace helpers {
         };
         samediff::Threads::parallel_for(func, 0, values->lengthOf());
 
-        for (Nd4jLong e = 0; e < indices->lengthOf(); e++) {
+        for (sd::LongType e = 0; e < indices->lengthOf(); e++) {
             auto posI = std::find(valuesVector.begin(), valuesVector.end(), input->e<T>(e));
             auto dist = std::distance(valuesVector.begin(), posI);
-            indices->p(e, Nd4jLong(dist));//indicesMap[(*input)(e)];
+            indices->p(e, sd::LongType(dist));//indicesMap[(*input)(e)];
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
-     Nd4jStatus uniqueFunctor(sd::LaunchContext * context, NDArray* input, NDArray* values, NDArray* indices, NDArray* counts) {
+    sd::Status uniqueFunctor(sd::LaunchContext * context, NDArray* input, NDArray* values, NDArray* indices, NDArray* counts) {
         input->syncToHost();
         values->syncToHost();
         indices->syncToHost();
@@ -96,7 +95,7 @@ namespace helpers {
         if (counts != nullptr)
             counts->syncToHost();
 
-        BUILD_SINGLE_SELECTOR(input->dataType(), return uniqueFunctor_,(input, values, indices, counts), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input->dataType(), return uniqueFunctor_,(input, values, indices, counts), SD_COMMON_TYPES);
 
         input->syncToDevice();
         values->syncToDevice();
@@ -106,7 +105,7 @@ namespace helpers {
             counts->syncToDevice();
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL Nd4jStatus uniqueFunctor_, (NDArray* input, NDArray* values, NDArray* indices, NDArray* counts), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template sd::Status uniqueFunctor_, (NDArray* input, NDArray* values, NDArray* indices, NDArray* counts), SD_COMMON_TYPES);
 }
 }
 }

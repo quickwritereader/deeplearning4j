@@ -27,12 +27,12 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    ND4J_LOCAL void decodeBitmap(sd::LaunchContext* context, const NDArray* input, NDArray* output) {
+    void decodeBitmap(sd::LaunchContext* context, const NDArray* input, NDArray* output) {
         NativeOpExecutioner::decodeBitmap(input->buffer(), output->lengthOf(), output->buffer(), output->shapeInfo());
     }
 
 
-    ND4J_LOCAL Nd4jLong encodeBitmap(sd::LaunchContext* context, NDArray* input, NDArray* output, float threshold) {
+    sd::LongType encodeBitmap(sd::LaunchContext* context, NDArray* input, NDArray* output, float threshold) {
         return NativeOpExecutioner::encodeBitmap(input->buffer(), input->shapeInfo(), input->lengthOf(), output->bufferAsT<int>(), threshold);
     }
 }

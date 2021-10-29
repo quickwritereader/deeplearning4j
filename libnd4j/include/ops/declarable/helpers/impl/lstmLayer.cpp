@@ -26,7 +26,6 @@
 // https://research.google.com/pubs/archive/43905.pdf
 // Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory recurrent neural network architectures for large scale acoustic modeling." INTERSPEECH, 2014.
 
-
 #include <ops/declarable/helpers/lstmLayer.h>
 #include <execution/Threads.h>
 #include <ops/declarable/helpers/activations.h>
@@ -40,8 +39,8 @@
 // #include <iterator>
 
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
@@ -115,9 +114,9 @@ static void activationDeriv(const NDArray& x, const int opId, const float alpha,
             break;
         case 6: {
             auto func = PRAGMA_THREADS_FOR {
-                for(Nd4jLong i = start; i < stop; ++i) {
+                for(sd::LongType i = start; i < stop; ++i) {
                     auto val = beta * x.e<float>(i);
-                    z.p<float>(i, alpha * beta * (1.f - sd::math::nd4j_tanh<float,float>(val) * sd::math::nd4j_tanh<float,float>(val)));
+                    z.p<float>(i, alpha * beta * (1.f - sd::math::sd_tanh<float,float>(val) * sd::math::sd_tanh<float,float>(val)));
                 }
             };
             samediff::Threads::parallel_for(func, 0, x.lengthOf());
@@ -134,8 +133,8 @@ static void activationDeriv(const NDArray& x, const int opId, const float alpha,
             break;
         case 10: {
             auto func = PRAGMA_THREADS_FOR {
-                for(Nd4jLong i = start; i < stop; ++i) {
-                    auto val = sd::math::nd4j_exp<float, float>(x.e<float>(i));
+                for(sd::LongType i = start; i < stop; ++i) {
+                    auto val = sd::math::sd_exp<float, float>(x.e<float>(i));
                     z.p<float>(i, val / (1.f + val));
                 }
             };
@@ -155,7 +154,7 @@ static void clipDeriv(const float clipVal, const NDArray& c, NDArray& z0, NDArra
         return;
 
     auto func = PRAGMA_THREADS_FOR {
-        for(Nd4jLong i = start; i < stop; ++i) {
+        for(sd::LongType i = start; i < stop; ++i) {
             const auto val = c.e<float>(i);
             if(val == -clipVal || val == clipVal) {
                 z0.p<float>(i, 0.f);
@@ -181,7 +180,7 @@ static NDArray tensorAlongTimeBatchDims(const NDArray& arr, const int dataFormat
 }
 
 //////////////////////////////////////////////////////////////////////////
-static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL, const int bS, const int t, const int b) {
+static SD_INLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL, const int bS, const int t, const int b) {
 
     if(dataFormat == 0 || dataFormat == 3)
         return t * bS + b;   // TNS: shape [sL, bS, nIn]
@@ -191,7 +190,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
 
 //////////////////////////////////////////////////////////////////////////
- void lstmLayerCell(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
+void lstmLayerCell(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
                    const NDArray* b, const NDArray* hI, const NDArray* cI, const NDArray* Wp,
                    const std::vector<float>& params,
                    NDArray* h, NDArray* c) {
@@ -253,7 +252,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
     // !!! dimension 4*nOut implies order it, ft, c't, ot
     // !!! dimension 3*nOut implies order it, ft, ot
 
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     auto z = mmul(*x, *Wx) + mmul(*hI, *Wr);    //   [bs, nIn] * [nIn, 4*nOut] + [bs, nOut] * [nOut, 4*nOut] = [bS, 4*nOut]
                                                 //or [nIn] * [nIn, 4*nOut] + [nOut] * [nOut, 4*nOut] = [4*nOut]
@@ -296,7 +295,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
 //////////////////////////////////////////////////////////////////////////
 // this auxiliary ff should be running before backprop
- void lstmLayerCell(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
+void lstmLayerCell(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
                    const NDArray* b, const NDArray* hI, const NDArray* cI, const NDArray* Wp,
                    const std::vector<float>& params,
                    NDArray* z, NDArray* a, NDArray* h, NDArray* c) {
@@ -304,7 +303,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
     // z - zi, zf, zg, zo
     // a - i, f, g, o
 
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
     z->assign(mmul(*x, *Wx) + mmul(*hI, *Wr));    //   [bs, nIn] * [nIn, 4*nOut] + [bs, nOut] * [nOut, 4*nOut] = [bS, 4*nOut]
                                                   //or [nIn] * [nIn, 4*nOut] + [nOut] * [nOut, 4*nOut] = [4*nOut]
@@ -350,7 +349,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
 
 //////////////////////////////////////////////////////////////////////////
- void lstmLayerCellBp(const NDArray* x, const NDArray* Wx, const NDArray* Wr, const NDArray* b, const NDArray* hI, const NDArray* cI, const NDArray* Wp,
+void lstmLayerCellBp(const NDArray* x, const NDArray* Wx, const NDArray* Wr, const NDArray* b, const NDArray* hI, const NDArray* cI, const NDArray* Wp,
                      const NDArray* dLdh, const NDArray* dLdhL, const NDArray* dLdcL,
                      const NDArray* z, const NDArray* a, const NDArray* c, const std::vector<float>& params,
                      NDArray* dLdx, NDArray* dLdWx, NDArray* dLdWr, NDArray* dLdhI, NDArray* dLdcI, NDArray* dLdb, NDArray* dLdWp) {
@@ -461,8 +460,8 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
     //  dLdWpf = (dLdzf*cI).reduce_sum_along_0_axis       [bS, nOut] -> reduce -> [nOut]
     //  dLdWpo = (dLdzo*c) .reduce_sum_along_0_axis       [bS, nOut] -> reduce -> [nOut]
 
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
-    const Nd4jLong nIn  = x->sizeAt(-1);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType nIn  = x->sizeAt(-1);
 
     NDArray zi = x->rankOf() == 1 ? (*z)({0,        nOut}) : (*z)({0,0, 0,        nOut});         // input gate i, [bS, nOut](or[nOut])
     NDArray zf = x->rankOf() == 1 ? (*z)({nOut,   2*nOut}) : (*z)({0,0, nOut,   2*nOut});         // forget gate f, [bS, nOut](or[nOut])
@@ -584,7 +583,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 }
 
 //////////////////////////////////////////////////////////////////////////
- void lstmLayerTimeLoop(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
+void lstmLayerTimeLoop(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
                        const NDArray* b, const NDArray* seqLen, const NDArray* hI, const NDArray* cI, const NDArray* Wp,
                        const std::vector<float>& params,
                        const bool forward,
@@ -611,11 +610,11 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
     const int dataFormat    = params[0];
     const int directionMode = params[1];
 
-    const Nd4jLong sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
-    const Nd4jLong bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-    const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+    const sd::LongType sL   = dataFormat == 3 ?  x->sizeAt(0) : x->sizeAt(dataFormat);
+    const sd::LongType bS   = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+    const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
-    const std::vector<Nd4jLong> shapeOut = {bS, nOut};
+    const std::vector<sd::LongType> shapeOut = {bS, nOut};
 
     const auto type = h ? h->dataType() : (hL ? hL->dataType() : cL->dataType());
 
@@ -673,13 +672,13 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
             if(!h) {    // seqLen and h are absent
 
                 lstmLayerCell(xSet->at(0), Wx, Wr, b, h0, c0, Wp, params, ht, ct); // first time step
-                for (Nd4jLong t = 1; t < sL; ++t)
+                for (sd::LongType t = 1; t < sL; ++t)
                     lstmLayerCell(xSet->at(t), Wx, Wr, b, ht, ct, Wp, params, ht, ct); // rest time steps
             }
             else {      // seqLen is absent and h is present
 
                 lstmLayerCell(xSet->at(0), Wx, Wr, b, h0, c0, Wp, params, hSet->at(0), ct); // first time step
-                for (Nd4jLong t = 1; t < sL; ++t)
+                for (sd::LongType t = 1; t < sL; ++t)
                     lstmLayerCell(xSet->at(t), Wx, Wr, b, hSet->at(t - 1), ct, Wp, params, hSet->at(t), ct); // rest time steps
 
                 if(hL)
@@ -690,7 +689,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
             if(!h) {    // seqLen is present and h is absent
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     const int limit = seqLen->e<int>(e);
 
@@ -713,7 +712,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
             }
             else { // seqLen and h are present
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     int limit = seqLen->e<int>(e);
 
@@ -754,13 +753,13 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
             if(!h) {    // seqLen and h are absent
 
                 lstmLayerCell(xSet->at(sL - 1), Wx, Wr, b, h0, c0, Wp, params, ht, ct); // first time step
-                for (Nd4jLong t = sL - 2; t >= 0; --t)
+                for (sd::LongType t = sL - 2; t >= 0; --t)
                     lstmLayerCell(xSet->at(t), Wx, Wr, b, ht, ct, Wp, params, ht, ct); // rest time steps
             }
             else {  // seqLen is absent and h is present
 
                 lstmLayerCell(xSet->at(sL - 1), Wx, Wr, b, h0, c0, Wp, params, hSet->at(sL - 1), ct); // first time step
-                for (Nd4jLong t = sL - 2; t >= 0; --t)
+                for (sd::LongType t = sL - 2; t >= 0; --t)
                     lstmLayerCell(xSet->at(t), Wx, Wr, b, hSet->at(t + 1), ct, Wp, params, hSet->at(t), ct); // rest time steps
 
                 if(hL)
@@ -771,7 +770,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
             if(!h) {    // h is absent and seqLen is present
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     const int limit = seqLen->e<int>(e);
 
@@ -786,7 +785,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
                     auto ind = getBatchTimeTotalIndex(dataFormat, sL, bS, sL - 1, e);
                     lstmLayerCell(xSet->at(ind), Wx, Wr, b, h0Set->at(e), c0Set->at(e), Wp, params, htSet->at(e), ctSet->at(e)); // first time step
 
-                    for (Nd4jLong t = sL - 2; t >= sL - limit; --t) {
+                    for (sd::LongType t = sL - 2; t >= sL - limit; --t) {
                         ind = getBatchTimeTotalIndex(dataFormat, sL, bS, t, e);
                         lstmLayerCell(xSet->at(ind), Wx, Wr, b, htSet->at(e), ctSet->at(e), Wp, params, htSet->at(e), ctSet->at(e)); // rest time steps
                     }
@@ -794,7 +793,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
             }
             else {  // seqLen and h are present
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     int limit = seqLen->e<int>(e);
 
@@ -813,7 +812,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
                     auto indPrev = getBatchTimeTotalIndex(dataFormat, sL, bS, sL - 1, e);
                     lstmLayerCell(xSet->at(indPrev), Wx, Wr, b, h0Set->at(e), c0Set->at(e), Wp, params, hSet->at(indPrev), ctSet->at(e)); // first time step
 
-                    for (Nd4jLong t = sL - 2; t >= sL - limit; --t) {
+                    for (sd::LongType t = sL - 2; t >= sL - limit; --t) {
                         auto indCurr = getBatchTimeTotalIndex(dataFormat, sL, bS, t, e);
                         lstmLayerCell(xSet->at(indCurr), Wx, Wr, b, hSet->at(indPrev), ctSet->at(e), Wp, params, hSet->at(indCurr), ctSet->at(e)); // rest time steps
                         indPrev = indCurr;
@@ -831,7 +830,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
             if(!h) {    // h is absent and seqLen is present
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     const int limit = seqLen->e<int>(e);
 
@@ -854,7 +853,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
             }
             else {  // seqLen and h are present
 
-                for (Nd4jLong e = 0; e < bS; ++e) {
+                for (sd::LongType e = 0; e < bS; ++e) {
 
                     int limit = seqLen->e<int>(e);
 
@@ -908,7 +907,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 
 
 //////////////////////////////////////////////////////////////////////////
- void lstmLayerTimeLoopBp(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
+void lstmLayerTimeLoopBp(const NDArray* x, const NDArray* Wx, const NDArray* Wr,
                          const NDArray* b, const NDArray* seqLen, NDArray* hI, NDArray* cI, const NDArray* Wp,
                          const NDArray* dLdh, const NDArray* dLdhL, const NDArray* dLdcL,
                          const std::vector<float>& params, const bool forward,
@@ -1198,9 +1197,8 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 }
 
 
-
 //////////////////////////////////////////////////////////////////////////
-// ND4J_LOCAL void lstmLayerCellBp(const NDArray* x,    const NDArray* Wx, const NDArray* Wr,
+// void lstmLayerCellBp(const NDArray* x,    const NDArray* Wx, const NDArray* Wr,
 //                      const NDArray* b,          NDArray* hI,       NDArray* cI, const NDArray* Wp, const NDArray* dLdh,
 //                      const std::vector<float>& params, const bool firstIter,
 
@@ -1344,7 +1342,7 @@ static FORCEINLINE int getBatchTimeTotalIndex(const int dataFormat, const int sL
 //     // dhdbg(dhIdbg) = (  0   + dhdc*dcdbg + tempO*dhIdbg).reduceALongFirstDim,           dhIdbg= 0 if firstIter, [bS, nOut]->reduce->[bS]
 //     // dhdbo(dhIdbo) = (dhdzo + dhdc*dcdbo + tempO*dhIdbo).reduceALongFirstDim,           dhIdbo= 0 if firstIter, [bS, nOut]->reduce->[bS]
 
-//     const Nd4jLong nOut = Wx->sizeAt(-1) / 4;
+//     const sd::LongType nOut = Wx->sizeAt(-1) / 4;
 
 //     NDArray *Wpi(nullptr), *Wpf(nullptr), *Wpo(nullptr), *dcIdWpi(nullptr), *dcIdWpf(nullptr), *dcIdWpo(nullptr), *dhIdWpi(nullptr), *dhIdWpf(nullptr), *dhIdWpo(nullptr);
 //     if(Wp) {

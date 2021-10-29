@@ -22,12 +22,11 @@
 
 #ifndef DEV_TESTS_BROADCASTOPSTUPLE_H
 #define DEV_TESTS_BROADCASTOPSTUPLE_H
-
 #include <system/op_enums.h>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT BroadcastOpsTuple {
+    class SD_LIB_EXPORT BroadcastOpsTuple {
     private:
 
     public:

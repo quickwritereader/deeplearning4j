@@ -38,7 +38,7 @@ namespace sd {
             int height;
             bool alignCorners = false; // - default value
             auto inRank = image->rankOf();
-            if (output->isEmpty()) return Status::OK();
+            if (output->isEmpty()) return sd::Status::OK;
 
             REQUIRE_TRUE( inRank == 4 || inRank == 3, 0, "resize_bilinear: input image should be 4D "
                                                                           "tensor, but input has rank %i",
@@ -77,7 +77,7 @@ namespace sd {
             auto shapeList = SHAPELIST();
             auto in = inputShape->at(0);
 
-            Nd4jLong* outputShape;
+            sd::LongType* outputShape;
             auto inRank = shape::rank(in);
             REQUIRE_TRUE(inRank == 4 || inRank == 3, 0, "resize_bilinear: input image should be 4D "
                                                                           "tensor, but input has rank %i",
@@ -98,7 +98,7 @@ namespace sd {
                 height = INT_ARG(1);
             }
 
-            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), Nd4jLong);
+            ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(inRank), sd::LongType);
             outputShape[0] = inRank;
             if (inRank == 4) {
                 outputShape[1] = in[1];

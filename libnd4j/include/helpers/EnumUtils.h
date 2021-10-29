@@ -22,7 +22,6 @@
 
 #ifndef ND4J_ENUM_UTILS_H
 #define ND4J_ENUM_UTILS_H
-
 #include <graph/VariableType.h>
 #include <graph/generated/node_generated.h>
 

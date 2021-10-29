@@ -20,7 +20,6 @@
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 // @author AbdelRauf    (rauf@konduit.ai)
 //
-
 #include <ops/declarable/helpers/adjust_hue.h>
 #include <ops/declarable/helpers/imagesHelpers.h>
 #include <helpers/ConstantTadHelper.h>
@@ -53,7 +52,7 @@ static void rgbToGrs_(const NDArray& input, NDArray& output, const int dimC) {
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, output.shapeInfo(), coords);
             const auto zOffset = shape::getOffset(output.shapeInfo(), coords);
@@ -68,12 +67,12 @@ static void rgbToGrs_(const NDArray& input, NDArray& output, const int dimC) {
     return;
 }
 
-ND4J_LOCAL void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), rgbToGrs_, (input, output, dimC), NUMERIC_TYPES);
+void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), rgbToGrs_, (input, output, dimC), SD_NUMERIC_TYPES);
 }
 
 template <typename T, typename Op>
-FORCEINLINE static void rgbToFromYuv_(const NDArray& input, NDArray& output, const int dimC, Op op) {
+SD_INLINE static void rgbToFromYuv_(const NDArray& input, NDArray& output, const int dimC, Op op) {
 
     const T* x = input.bufferAsT<T>();
     T* z = output.bufferAsT<T>();
@@ -96,9 +95,9 @@ FORCEINLINE static void rgbToFromYuv_(const NDArray& input, NDArray& output, con
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimC);
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), dimC);
 
-    const Nd4jLong numOfTads = packX.numberOfTads();
-    const Nd4jLong xDimCstride = input.stridesOf()[dimC];
-    const Nd4jLong zDimCstride = output.stridesOf()[dimC];
+    const sd::LongType numOfTads = packX.numberOfTads();
+    const sd::LongType xDimCstride = input.stridesOf()[dimC];
+    const sd::LongType zDimCstride = output.stridesOf()[dimC];
 
     auto func = PRAGMA_THREADS_FOR{
         for (auto i = start; i < stop; i++) {
@@ -113,27 +112,27 @@ FORCEINLINE static void rgbToFromYuv_(const NDArray& input, NDArray& output, con
 }
 
 template <typename T>
-FORCEINLINE static void rgbYuv_(const NDArray& input, NDArray& output, const int dimC) {
+SD_INLINE static void rgbYuv_(const NDArray& input, NDArray& output, const int dimC) {
     auto op = sd::ops::helpers::rgbYuv<T>;
     return rgbToFromYuv_<T>(input, output, dimC, op);
 }
 
-ND4J_LOCAL void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), rgbYuv_, (input, output, dimC), FLOAT_TYPES);
+void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), rgbYuv_, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
 template <typename T>
-FORCEINLINE static void yuvRgb_(const NDArray& input, NDArray& output, const int dimC) {
+SD_INLINE static void yuvRgb_(const NDArray& input, NDArray& output, const int dimC) {
     auto op = sd::ops::helpers::yuvRgb<T>;
     return rgbToFromYuv_<T>(input, output, dimC, op);
 }
 
-ND4J_LOCAL void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input.dataType(), yuvRgb_, (input, output, dimC), FLOAT_TYPES);
+void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), yuvRgb_, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
 template <typename T, typename Op>
-FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output, const int dimC, Op op) {
+SD_INLINE static void tripleTransformer(const NDArray* input, NDArray* output, const int dimC, Op op) {
 
     const int rank = input->rankOf();
 
@@ -154,9 +153,9 @@ FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output,
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-        const Nd4jLong numOfTads = packX.numberOfTads();
-        const Nd4jLong xDimCstride = input->stridesOf()[dimC];
-        const Nd4jLong zDimCstride = output->stridesOf()[dimC];
+        const sd::LongType numOfTads = packX.numberOfTads();
+        const sd::LongType xDimCstride = input->stridesOf()[dimC];
+        const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
         auto func = PRAGMA_THREADS_FOR{
             for (auto i = start; i < stop; i++) {
@@ -173,7 +172,7 @@ FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output,
 
 
 template <typename T>
-FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output, const int dimC ,  T (&tr)[3][3] ) {
+SD_INLINE static void tripleTransformer(const NDArray* input, NDArray* output, const int dimC ,  T (&tr)[3][3] ) {
 
     const int rank = input->rankOf();
 
@@ -204,9 +203,9 @@ FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output,
         auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
         auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-        const Nd4jLong numOfTads = packX.numberOfTads();
-        const Nd4jLong xDimCstride = input->stridesOf()[dimC];
-        const Nd4jLong zDimCstride = output->stridesOf()[dimC];
+        const sd::LongType numOfTads = packX.numberOfTads();
+        const sd::LongType xDimCstride = input->stridesOf()[dimC];
+        const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
         auto func = PRAGMA_THREADS_FOR{
             for (auto i = start; i < stop; i++) {
@@ -229,23 +228,21 @@ FORCEINLINE static void tripleTransformer(const NDArray* input, NDArray* output,
 }
 
 
-
-
 template <typename T>
-FORCEINLINE static void hsvRgb(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void hsvRgb(const NDArray* input, NDArray* output, const int dimC) {
     auto op = sd::ops::helpers::hsvToRgb<T>;
     return tripleTransformer<T>(input, output, dimC, op);
 }
 
 template <typename T>
-FORCEINLINE static void rgbHsv(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void rgbHsv(const NDArray* input, NDArray* output, const int dimC) {
     auto op = sd::ops::helpers::rgbToHsv<T>;
     return tripleTransformer<T>(input, output, dimC, op);
 }
 
 
 template <typename T>
-FORCEINLINE static void rgbYiq(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void rgbYiq(const NDArray* input, NDArray* output, const int dimC) {
     T arr[3][3] = {
          { (T)0.299,  (T)0.59590059,  (T)0.2115 },
          { (T)0.587, (T)-0.27455667,  (T)-0.52273617 },
@@ -255,7 +252,7 @@ FORCEINLINE static void rgbYiq(const NDArray* input, NDArray* output, const int 
 }
 
 template <typename T>
-FORCEINLINE static void yiqRgb(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void yiqRgb(const NDArray* input, NDArray* output, const int dimC) {
     //TODO: this operation does not use the clamp operation, so there is a possibility being out of range.
     //Justify that it  will not be out of range for images data
     T arr[3][3] = {
@@ -267,21 +264,20 @@ FORCEINLINE static void yiqRgb(const NDArray* input, NDArray* output, const int 
 }
 
 
-
-ND4J_LOCAL void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), hsvRgb, (input, output, dimC), FLOAT_TYPES);
+void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), hsvRgb, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-ND4J_LOCAL void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), rgbHsv, (input, output, dimC), FLOAT_TYPES);
+void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), rgbHsv, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-ND4J_LOCAL void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), yiqRgb, (input, output, dimC), FLOAT_TYPES);
+void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), yiqRgb, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-ND4J_LOCAL void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
-    BUILD_SINGLE_SELECTOR(input->dataType(), rgbYiq, (input, output, dimC), FLOAT_TYPES);
+void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+    BUILD_SINGLE_SELECTOR(input->dataType(), rgbYiq, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
 

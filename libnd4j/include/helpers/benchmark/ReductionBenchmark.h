@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/StringUtils.h>
 #include <helpers/TAD.h>
 #include "../OpBenchmark.h"
@@ -30,7 +29,7 @@
 using namespace sd::graph;
 
 namespace sd {
-    class ND4J_EXPORT ReductionBenchmark : public OpBenchmark {
+    class SD_LIB_EXPORT ReductionBenchmark : public OpBenchmark {
     protected:
         int _opType;        //0=Float, 1=Same
     public:

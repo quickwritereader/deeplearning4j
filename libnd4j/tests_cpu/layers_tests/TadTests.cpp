@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_TADTESTS_H
 #define LIBND4J_TADTESTS_H
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <helpers/TAD.h>
@@ -43,8 +42,8 @@ TEST_F(TadTests, Test4DTad1) {
 
     NDArray*  arraySource = sd::NDArrayFactory::linspace(1.0f, 10000.0f, 10000);
 
-    Nd4jLong badShape[]  = {4, 2, 1, 4, 4, 80, 16, 4, 1, 8192, -1, 99};
-    Nd4jLong goodShape[] = {4, 2, 1, 4, 4, 16, 16, 4, 1, 8192,  1, 99};
+    sd::LongType badShape[]  = {4, 2, 1, 4, 4, 80, 16, 4, 1, 8192, -1, 99};
+    sd::LongType goodShape[] = {4, 2, 1, 4, 4, 16, 16, 4, 1, 8192,  1, 99};
 
     std::vector<float> buff = arraySource->getBufferAsVector<float>();
 
@@ -72,11 +71,11 @@ TEST_F(TadTests, TestNumTads1) {
 
     std::vector<int> dim({0});
 
-    Nd4jLong tadLengthX = shape::tadLength(x.shapeInfo(), dim.data(), dim.size());
-    Nd4jLong numTadsX = x.lengthOf() / tadLengthX;
+    sd::LongType tadLengthX = shape::tadLength(x.shapeInfo(), dim.data(), dim.size());
+    sd::LongType numTadsX = x.lengthOf() / tadLengthX;
 
-    Nd4jLong tadLengthY = shape::tadLength(y.shapeInfo(), dim.data(), dim.size());
-    Nd4jLong numTadsY = y.lengthOf() / tadLengthY;
+    sd::LongType tadLengthY = shape::tadLength(y.shapeInfo(), dim.data(), dim.size());
+    sd::LongType numTadsY = y.lengthOf() / tadLengthY;
 
     ASSERT_EQ(2, tadLengthX);
     ASSERT_EQ(3, numTadsX);
@@ -88,20 +87,20 @@ TEST_F(TadTests, TestNumTads1) {
 TEST_F(TadTests, TestShapeTad_1) {
 
     float buff[]  = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,16,16,17,18,19,20,21,22,23,24};
-    Nd4jLong shapeInfo[] = {3, 2, 3, 4, 12, 4, 1, 8192, 1, 99};
+    sd::LongType shapeInfo[] = {3, 2, 3, 4, 12, 4, 1, 8192, 1, 99};
 
     NDArray input(buff, shapeInfo);
 
     std::vector<int> dimensions = {0,1,2};
-    Nd4jLong tadLength = shape::tadLength(input.shapeInfo(), dimensions.data(), dimensions.size());
-    Nd4jLong numTads = input.lengthOf() / tadLength;
+    sd::LongType tadLength = shape::tadLength(input.shapeInfo(), dimensions.data(), dimensions.size());
+    sd::LongType numTads = input.lengthOf() / tadLength;
 
     shape::TAD tad;
     tad.init(input.shapeInfo(), dimensions.data(), dimensions.size());
     tad.createTadOnlyShapeInfo();
     tad.createOffsets();
 
-    auto tadShapeInfo = new Nd4jLong[shape::shapeInfoLength(tad.tadOnlyShapeInfo[0])];
+    auto tadShapeInfo = new sd::LongType[shape::shapeInfoLength(tad.tadOnlyShapeInfo[0])];
     std::memcpy(tadShapeInfo, tad.tadOnlyShapeInfo, shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
 
     float* tadBuff = reinterpret_cast<float*>(input.buffer()) + tad.tadOffsets[0];
@@ -111,7 +110,7 @@ TEST_F(TadTests, TestShapeTad_1) {
     ASSERT_TRUE(input.isSameShapeStrict(tadArr));
     ASSERT_TRUE(input.equalsTo(&tadArr));
 
-	delete[] tadShapeInfo;
+    delete[] tadShapeInfo;
 }
 
 TEST_F(TadTests, TadNoAxis_1) {
@@ -192,7 +191,7 @@ TEST_F(TadTests, test_Tad_Ews_optimization_5) {
 }
 
 TEST_F(TadTests, test_TAD_empty_dims_1) {
-    Nd4jLong xShape[8] = {2, 150, 1, 3, 1, 16384, 3, 99};
+    sd::LongType xShape[8] = {2, 150, 1, 3, 1, 16384, 3, 99};
     shape::TAD xTad;
     xTad.init(xShape, reinterpret_cast<int*>(112L), 0);
     xTad.createTadOnlyShapeInfo();
@@ -200,8 +199,8 @@ TEST_F(TadTests, test_TAD_empty_dims_1) {
 }
 
 TEST_F(TadTests, test_tad_order_1) {
-    Nd4jLong xShape[8] = {2, 150, 10, 10, 1, 8192, 1, 99};
-    Nd4jLong tShape[8] = {2, 1, 10, 1, 1, 8192, 1, 99};
+    sd::LongType xShape[8] = {2, 150, 10, 10, 1, 8192, 1, 99};
+    sd::LongType tShape[8] = {2, 1, 10, 1, 1, 8192, 1, 99};
     shape::TAD xTad;
     int dim = 1;
     xTad.init(xShape, &dim, 1);
@@ -211,8 +210,8 @@ TEST_F(TadTests, test_tad_order_1) {
 }
 
 TEST_F(TadTests, test_tad_order_2) {
-    Nd4jLong xShape[8] = {2, 150, 10, 10, 1, 8192, 1, 99};
-    Nd4jLong tShape[8] = {2, 1, 150, 1, 10, 8192, 10, 99};
+    sd::LongType xShape[8] = {2, 150, 10, 10, 1, 8192, 1, 99};
+    sd::LongType tShape[8] = {2, 1, 150, 1, 10, 8192, 10, 99};
     shape::TAD xTad;
     int dim = 0;
     xTad.init(xShape, &dim, 1);
@@ -223,8 +222,8 @@ TEST_F(TadTests, test_tad_order_2) {
 
 
 TEST_F(TadTests, test_tad_order_3) {
-    Nd4jLong xShape[10] = {3, 10, 20, 30, 600 ,30, 1, 8192, 1, 99};
-    Nd4jLong tShape[8] = {2, 1, 30, 1, 1, 8192, 1, 99};
+    sd::LongType xShape[10] = {3, 10, 20, 30, 600 ,30, 1, 8192, 1, 99};
+    sd::LongType tShape[8] = {2, 1, 30, 1, 1, 8192, 1, 99};
     shape::TAD xTad;
     int dim = 2;
     xTad.init(xShape, &dim, 1);
@@ -235,8 +234,8 @@ TEST_F(TadTests, test_tad_order_3) {
 
 
 TEST_F(TadTests, test_tad_order_4) {
-    Nd4jLong xShape[10] = {3, 10, 20, 30, 600 ,30, 1, 8192, 1, 99};
-    Nd4jLong tShape[8] = {2, 20, 30, 30, 1, 8192, 1, 99};
+    sd::LongType xShape[10] = {3, 10, 20, 30, 600 ,30, 1, 8192, 1, 99};
+    sd::LongType tShape[8] = {2, 20, 30, 30, 1, 8192, 1, 99};
     shape::TAD xTad;
     int dim[2] = {1, 2};
     xTad.init(xShape, dim, 2);
@@ -261,14 +260,14 @@ TEST_F(TadTests, test_column_1) {
 ///////////////////////////////////////////////////////////////////
 TEST_F(TadTests, calcOffsets_1) {
 
-    Nd4jLong shapeInfoF[10]  = {3, 2,3,4,  1,2,6,   8192, 1, 102};
-    Nd4jLong shapeInfoC[10]  = {3, 2,3,4,  12,4,1,  8192, 1, 99};
-    Nd4jLong shapeInfoFC[10] = {3, 2,3,4,  1,2,6,   8192, 1, 99};;
+    sd::LongType shapeInfoF[10]  = {3, 2,3,4,  1,2,6,   8192, 1, 102};
+    sd::LongType shapeInfoC[10]  = {3, 2,3,4,  12,4,1,  8192, 1, 99};
+    sd::LongType shapeInfoFC[10] = {3, 2,3,4,  1,2,6,   8192, 1, 99};;
 
-    Nd4jLong expOffsetsF[24] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
-    Nd4jLong expOffsetsC[24] = {0,12,4,16,8,20,1,13,5,17,9,21,2,14,6,18,10,22,3,15,7,19,11,23};
+    sd::LongType expOffsetsF[24] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23};
+    sd::LongType expOffsetsC[24] = {0,12,4,16,8,20,1,13,5,17,9,21,2,14,6,18,10,22,3,15,7,19,11,23};
 
-    Nd4jLong offsets[24];
+    sd::LongType offsets[24];
 
     shape::calcOffsets(shapeInfoF, offsets, 'f');
 
@@ -439,7 +438,6 @@ TEST_F(TadTests, outerArrayIndexes_1) {
     for(int i = 0; i < N; ++i)
         ASSERT_TRUE(n15[i] == maxIdxs[i]);
 }
-
 
 
 #endif //LIBND4J_TADTESTS_H

@@ -69,13 +69,13 @@ namespace sd {
                         output->p(0,DataTypeUtils::min<uint64_t>());
                         break;
                     case sd::DataType::INT64:
-                        output->p(0,DataTypeUtils::min<Nd4jLong>());
+                        output->p(0,DataTypeUtils::min<sd::LongType>());
                         break;
                     case sd::DataType::DOUBLE:
                         output->p(0,DataTypeUtils::min<double>());
                        break;
                     default: {
-                        nd4j_printf("Unknown DataType used: [%i]\n", DataTypeUtils::asInt(type));
+                        sd_printf("Unknown DataType used: [%i]\n", DataTypeUtils::asInt(type));
 #ifndef __CUDA_ARCH__
                         throw std::runtime_error("Unknown DataType requested");
 #endif
@@ -117,19 +117,19 @@ namespace sd {
                         output->p(0,DataTypeUtils::max<uint64_t>());
                         break;
                     case sd::DataType::INT64:
-                        output->p(0,DataTypeUtils::max<Nd4jLong>());
+                        output->p(0,DataTypeUtils::max<sd::LongType>());
                         break;
                     case sd::DataType::DOUBLE:
                         output->p(0,DataTypeUtils::max<double>());
                         break;
                     default: {
-                        nd4j_printf("Unknown DataType used: [%i]\n", DataTypeUtils::asInt(type));
+                        sd_printf("Unknown DataType used: [%i]\n", DataTypeUtils::asInt(type));
 #ifndef __CUDA_ARCH__
                         throw std::runtime_error("Unknown DataType requested");
 #endif
                     }
                 }
-                return Status::OK();
+                return sd::Status::OK;
             }
         }
 

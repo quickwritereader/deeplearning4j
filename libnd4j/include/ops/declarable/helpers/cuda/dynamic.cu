@@ -29,7 +29,7 @@ namespace sd {
 
 
             template <typename X, typename Y>
-            static _CUDA_G void dynamicPartitionScalarKernel(const void *vx, const Nd4jLong *xShapeInfo, const void *vi, const Nd4jLong *iShapeInfo, void **vz, Nd4jLong **zShapeInfos, const Nd4jLong numOutputs) {
+            static SD_KERNEL void dynamicPartitionScalarKernel(const void *vx, const sd::LongType *xShapeInfo, const void *vi, const sd::LongType *iShapeInfo, void **vz, sd::LongType **zShapeInfos, const sd::LongType numOutputs) {
                 auto x = reinterpret_cast<const X*>(vx);
                 auto i = reinterpret_cast<const Y*>(vi);
                 auto xLength = shape::length(xShapeInfo);
@@ -46,7 +46,7 @@ namespace sd {
                 __syncthreads();
 
                 // we run things in blocks, 1 partition per block of threads
-                for (Nd4jLong o = blockIdx.x; o < numOutputs; o += gridDim.x) {
+                for (sd::LongType o = blockIdx.x; o < numOutputs; o += gridDim.x) {
                     auto z = reinterpret_cast<X*>(vz[o]);
 
                     auto zShapeInfo = zShapeInfos[o];
@@ -56,7 +56,7 @@ namespace sd {
                     auto iLimit = iLength <= blockDim.x ? blockDim.x : (iLength + (blockDim.x - (iLength % blockDim.x)));
                     int cnt = 0;
 
-                    for (Nd4jLong e = threadIdx.x; e < iLimit; e += blockDim.x) {
+                    for (sd::LongType e = threadIdx.x; e < iLimit; e += blockDim.x) {
                         // load set of indices into shared memory
                         if (e < iLength)
                             rawIndices[threadIdx.x] = i[shape::getIndexOffset(e, iShapeInfo)];
@@ -87,7 +87,7 @@ namespace sd {
             }
 
             template <typename X, typename Y>
-            static _CUDA_G void dynamicPartitionTadKernel(const void *vx, const Nd4jLong *xTadShapeInfo, const Nd4jLong *xTadOffsets, Nd4jLong xLength, const void *vindices, const Nd4jLong *iShapeInfo, Nd4jLong iLength, void **vz, Nd4jLong **zTadShapeInfos, Nd4jLong **zTadOffsets, Nd4jLong numOutputs) {
+            static SD_KERNEL void dynamicPartitionTadKernel(const void *vx, const sd::LongType *xTadShapeInfo, const sd::LongType *xTadOffsets, sd::LongType xLength, const void *vindices, const sd::LongType *iShapeInfo, sd::LongType iLength, void **vz, sd::LongType **zTadShapeInfos, sd::LongType **zTadOffsets, sd::LongType numOutputs) {
                 auto x = reinterpret_cast<const X*>(vx);
                 auto indices = reinterpret_cast<const Y*>(vindices);
 
@@ -98,7 +98,7 @@ namespace sd {
                     // each thread has own counter for partitions
                     int outCnt = 0;
 
-                    for (Nd4jLong e = 0; e < iLength; e++) {
+                    for (sd::LongType e = 0; e < iLength; e++) {
                         if (indices[shape::getIndexOffset(e, iShapeInfo)] == i) {
                             auto dx = x + xTadOffsets[e];
                             auto dz = z + zTadOffsets[i][outCnt++];
@@ -129,9 +129,9 @@ namespace sd {
                     auto packX = ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), sourceDims);
 
                     std::vector<void *> outBuffers(outSize);
-                    std::vector<const Nd4jLong *> tadShapes(outSize);
-                    std::vector<const Nd4jLong *> tadOffsets(outSize);
-                    std::vector<Nd4jLong> numTads(outSize);
+                    std::vector<const sd::LongType *> tadShapes(outSize);
+                    std::vector<const sd::LongType *> tadOffsets(outSize);
+                    std::vector<sd::LongType> numTads(outSize);
                     // fill up dimensions array for before kernel
                     for (unsigned int i = 0; i < outSize; i++) {
                         outputs[i].first = outputList[i];
@@ -151,8 +151,8 @@ namespace sd {
 
                     // we copy pointers to device
                     auto dOutBuffers = reinterpret_cast<void **>(pm.replicatePointer(outBuffers.data(), outBuffers.size() * sizeof(void *)));
-                    auto dOutTadShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(tadShapes.data(), tadShapes.size() * sizeof(Nd4jLong *)));
-                    auto dOutTadOffsets = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(tadOffsets.data(), tadOffsets.size() * sizeof(Nd4jLong *)));
+                    auto dOutTadShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(tadShapes.data(), tadShapes.size() * sizeof(sd::LongType *)));
+                    auto dOutTadOffsets = reinterpret_cast<sd::LongType **>(pm.replicatePointer(tadOffsets.data(), tadOffsets.size() * sizeof(sd::LongType *)));
                     // run kernel on device
                     dynamicPartitionTadKernel<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(input->specialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), shape::length(packX.primaryShapeInfo()), indices->specialBuffer(), indices->specialShapeInfo(), indices->lengthOf(), dOutBuffers, dOutTadShapes, dOutTadOffsets, outSize);
 
@@ -161,7 +161,7 @@ namespace sd {
                     auto shmemSize = numThreads * sizeof(Y) * 2 + 1024;
 
                     std::vector<void *> outBuffers;
-                    std::vector<const Nd4jLong *> outShapes;
+                    std::vector<const sd::LongType *> outShapes;
 
                     for (auto v:outputList) {
                         outBuffers.emplace_back(v->specialBuffer());
@@ -169,7 +169,7 @@ namespace sd {
                     }
 
                     auto dOutBuffers = reinterpret_cast<void **>(pm.replicatePointer(outBuffers.data(), outBuffers.size() * sizeof(void *)));
-                    auto dOutShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(outShapes.data(), outShapes.size() * sizeof(Nd4jLong *)));
+                    auto dOutShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(outShapes.data(), outShapes.size() * sizeof(sd::LongType *)));
 
                     dynamicPartitionScalarKernel<X,Y><<<256, numThreads, shmemSize, *context->getCudaStream()>>>(input->specialBuffer(), input->specialShapeInfo(), indices->specialBuffer(), indices->specialShapeInfo(), dOutBuffers, dOutShapes, outSize);
                 }
@@ -179,7 +179,7 @@ namespace sd {
 
 
             template <typename X, typename Y>
-            static _CUDA_G void dynamicStitchScalarKernel(void **vx, Nd4jLong **xShapeInfos, void **vindices, Nd4jLong **iShapeInfos, int inputSize, void *vz, const Nd4jLong *zShapeInfo, Nd4jLong zLength) {
+            static SD_KERNEL void dynamicStitchScalarKernel(void **vx, sd::LongType **xShapeInfos, void **vindices, sd::LongType **iShapeInfos, int inputSize, void *vz, const sd::LongType *zShapeInfo, sd::LongType zLength) {
                 auto z = reinterpret_cast<X*>(vz);
 
                 for (int e = blockIdx.x; e < inputSize; e += gridDim.x) {
@@ -200,7 +200,7 @@ namespace sd {
             }
 
             template <typename X, typename Y>
-            static _CUDA_G void dynamicStitchTadKernel(void **vx, Nd4jLong **xTadShapeInfos, Nd4jLong **xTadOffsets, void **vindices, Nd4jLong **iShapeInfos, int inputSize, void *vz, const Nd4jLong *zTadShapeInfo, const Nd4jLong *zTadOffsets) {
+            static SD_KERNEL void dynamicStitchTadKernel(void **vx, sd::LongType **xTadShapeInfos, sd::LongType **xTadOffsets, void **vindices, sd::LongType **iShapeInfos, int inputSize, void *vz, const sd::LongType *zTadShapeInfo, const sd::LongType *zTadOffsets) {
                 auto bz = reinterpret_cast<X*>(vz);
 
                 for (int e = blockIdx.x; e < inputSize; e += gridDim.x) {
@@ -232,7 +232,7 @@ namespace sd {
             }
 
             template <typename X, typename Y>
-            static int _dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
+            static sd::Status _dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
 
                 int inputSize = inputs.size();
 
@@ -240,9 +240,9 @@ namespace sd {
 
                 if (output->isVector()) {
                     std::vector<const void *> inputBuffers(inputSize);
-                    std::vector<const Nd4jLong *> inputShapes(inputSize);
+                    std::vector<const sd::LongType *> inputShapes(inputSize);
                     std::vector<const void *> indicesBuffers(inputSize);
-                    std::vector<const Nd4jLong *> indicesShapes(inputSize);
+                    std::vector<const sd::LongType *> indicesShapes(inputSize);
 
                     for (int e = 0; e < inputSize; e++) {
                         inputBuffers[e] = inputs.at(e)->specialBuffer();
@@ -255,8 +255,8 @@ namespace sd {
                     // copying pointers to buffers to device
                     auto dInputBuffers = reinterpret_cast<void **>(pm.replicatePointer(inputBuffers.data(), inputSize * sizeof(void *)));
                     auto dIndicesBuffers = reinterpret_cast<void **>(pm.replicatePointer(indicesBuffers.data(), inputSize * sizeof(void *)));
-                    auto dInputShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(inputShapes.data(), inputSize * sizeof(Nd4jLong *)));
-                    auto dIndicesShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(indicesShapes.data(), inputSize * sizeof(Nd4jLong *)));
+                    auto dInputShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(inputShapes.data(), inputSize * sizeof(sd::LongType *)));
+                    auto dIndicesShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(indicesShapes.data(), inputSize * sizeof(sd::LongType *)));
 
                     dynamicStitchScalarKernel<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(dInputBuffers, dInputShapes, dIndicesBuffers, dIndicesShapes, inputSize, output->specialBuffer(), output->specialShapeInfo(), output->lengthOf());
                 } else {
@@ -267,11 +267,11 @@ namespace sd {
                     auto packZ = ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), restDims);
 
                     std::vector<const void *> inputBuffers(inputSize);
-                    std::vector<const Nd4jLong *> inputTadShapes(inputSize);
-                    std::vector<const Nd4jLong *> inputTadOffsets(inputSize);
+                    std::vector<const sd::LongType *> inputTadShapes(inputSize);
+                    std::vector<const sd::LongType *> inputTadOffsets(inputSize);
 
                     std::vector<const void *> indicesBuffers(inputSize);
-                    std::vector<const Nd4jLong *> indicesShapes(inputSize);
+                    std::vector<const sd::LongType *> indicesShapes(inputSize);
 
                     for (int e = 0; e < inputSize; e++) {
                         std::vector<int> sourceDims(inputs[e]->rankOf() - indices[e]->rankOf());
@@ -290,18 +290,18 @@ namespace sd {
 
                     // copying pointers to buffers to device
                     auto dInputBuffers = reinterpret_cast<void **>(pm.replicatePointer(inputBuffers.data(), inputSize * sizeof(void *)));
-                    auto dInputTadShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(inputTadShapes.data(), inputSize * sizeof(Nd4jLong *)));
-                    auto dInputTadOffsets = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(inputTadOffsets.data(), inputSize * sizeof(Nd4jLong *)));
+                    auto dInputTadShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(inputTadShapes.data(), inputSize * sizeof(sd::LongType *)));
+                    auto dInputTadOffsets = reinterpret_cast<sd::LongType **>(pm.replicatePointer(inputTadOffsets.data(), inputSize * sizeof(sd::LongType *)));
 
                     auto dIndicesBuffers = reinterpret_cast<void **>(pm.replicatePointer(indicesBuffers.data(), inputSize * sizeof(void *)));
-                    auto dIndicesShapes = reinterpret_cast<Nd4jLong **>(pm.replicatePointer(indicesShapes.data(), inputSize * sizeof(Nd4jLong *)));
+                    auto dIndicesShapes = reinterpret_cast<sd::LongType **>(pm.replicatePointer(indicesShapes.data(), inputSize * sizeof(sd::LongType *)));
 
                     dynamicStitchTadKernel<X,Y><<<256, 256, 1024, *context->getCudaStream()>>>(dInputBuffers, dInputTadShapes, dInputTadOffsets, dIndicesBuffers, dIndicesShapes, inputSize, output->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets());
                 }
 
                 pm.synchronize();
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             template <typename T>
@@ -309,13 +309,13 @@ namespace sd {
 
             }
 
-            ND4J_LOCAL void dynamicPartitionFunctor(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList) {
+            void dynamicPartitionFunctor(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*>& outputList) {
                 auto xType = input->dataType();
                 auto yType = indices->dataType();
 
                 NDArray::prepareSpecialUse({}, {indices, input});
 
-                BUILD_DOUBLE_SELECTOR(xType, yType, _dynamicPartitionFunctor, (context, input, indices, outputList), NUMERIC_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(xType, yType, _dynamicPartitionFunctor, (context, input, indices, outputList), SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
 
                 NDArray::registerSpecialUse({}, {indices, input});
 
@@ -326,11 +326,11 @@ namespace sd {
             }
 
             template <typename T>
-            static int _dynamicStitchFunctorBP(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList){
+            static sd::Status _dynamicStitchFunctorBP(std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList){
                 throw std::runtime_error("Not umplemented yet");
             }
 
-            ND4J_LOCAL int dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
+            sd::Status dynamicStitchFunctor(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray* output){
                 auto xType = inputs.at(0)->dataType();
                 auto yType = indices.at(0)->dataType();
 
@@ -347,23 +347,23 @@ namespace sd {
                 NDArray::prepareSpecialUse({output}, {});
 
 
-                BUILD_DOUBLE_SELECTOR(xType, yType, _dynamicStitchFunctor, (context, inputs, indices, output), NUMERIC_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(xType, yType, _dynamicStitchFunctor, (context, inputs, indices, output), SD_NUMERIC_TYPES, SD_INDEXING_TYPES);
 
                 NDArray::registerSpecialUse({output}, {});
 
-                return Status::OK();
+                return sd::Status::OK;
             }
 
-            ND4J_LOCAL int dynamicStitchFunctorBP(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList) {
+            sd::Status dynamicStitchFunctorBP(sd::LaunchContext * context, std::vector<NDArray*> const& inputs, std::vector<NDArray*> const& indices, NDArray const* gradInput, std::vector<NDArray*>& outputList) {
                 auto xType = inputs.at(0)->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctorBP, (inputs, indices, gradInput, outputList), NUMERIC_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, return _dynamicStitchFunctorBP, (inputs, indices, gradInput, outputList), SD_NUMERIC_TYPES);
             }
 
-            ND4J_LOCAL void dynamicPartitionFunctorBP(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList) {
+            void dynamicPartitionFunctorBP(sd::LaunchContext * context, NDArray const* input, NDArray const* indices, std::vector<NDArray*> const& inputGradientList, std::vector<NDArray*>& outputList) {
                 auto xType = input->dataType();
 
-                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctorBP, (input, indices, inputGradientList, outputList), NUMERIC_TYPES);
+                BUILD_SINGLE_SELECTOR(xType, _dynamicPartitionFunctorBP, (input, indices, inputGradientList, outputList), SD_NUMERIC_TYPES);
             }
 
         }

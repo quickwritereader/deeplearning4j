@@ -17,7 +17,6 @@
  //
  // @author AbdelRauf
  //
-
 #include "cudnnUtils.h"
 #include <array/NDArrayFactory.h>
 #include <vector>
@@ -26,7 +25,6 @@
 namespace sd   {
 namespace ops     {
 namespace platforms {
-
 
 
     std::vector<int> getConcatTargets(const NDArray &targetLabels, const NDArray &targetLabelLengths){
@@ -127,7 +125,7 @@ namespace platforms {
         const int32_t *ldata= labels.data();
         auto emptyGrads= NDArrayFactory::empty<float>();
         cudnnCtcLoss(*context, *logitInput, ldata, *logitInputLengths, *targetLabelLengths, *outputLosses, emptyGrads);
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     template<typename T>
@@ -181,7 +179,7 @@ namespace platforms {
         //restore grads shape from {T, BATCH, C} -> {BATCHS, T, C}
         outputGradients->permutei({1,0,2});
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     PLATFORM_CHECK(ctc_loss_grad, ENGINE_CUDA) {

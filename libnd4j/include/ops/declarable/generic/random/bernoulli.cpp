@@ -33,7 +33,7 @@ namespace sd {
             // FIXME: to be implemented
 /*
             if (rng == nullptr)
-                return Status::THROW("RNG is null, aborting...");
+                return Logger::logKernelFailureMsg("RNG is null, aborting...");
 
             auto x = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
@@ -48,12 +48,12 @@ namespace sd {
 
             RandomLauncher::fillBernoulli(block.launchContext(), rng, z, f);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(random_bernoulli) {
             auto in = INPUT_VARIABLE(0);
-            auto shape = in->template asVectorT<Nd4jLong>();
+            auto shape = in->template asVectorT<sd::LongType>();
 
             auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(block.dataType(), 'c', shape);
             return SHAPELIST(newShape);

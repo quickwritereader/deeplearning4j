@@ -23,7 +23,6 @@
 #ifndef LIBND4J_HEADERS_ACTIVATIONS_H
 #define LIBND4J_HEADERS_ACTIVATIONS_H
 
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

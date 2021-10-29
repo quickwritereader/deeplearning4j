@@ -259,9 +259,6 @@
         (49, RELUDerivative)
 
 
-
-
-
 #define REDUCE3_OPS \
         (0, ManhattanDistance), \
         (1, EuclideanDistance), \
@@ -310,8 +307,6 @@
         (9, LogEntropy) ,\
         (10, ShannonEntropy) ,\
         (12, ReduceFloatBenchmarkOp)
-
-
 
 
 #define RANDOM_OPS \
@@ -400,15 +395,13 @@
         (40, IGammac)
 
 
-
 #define INDEX_REDUCE_OPS \
         (0, IndexMax), \
         (1, IndexMin), \
         (2, IndexAbsoluteMax), \
-	    (3, IndexAbsoluteMin) , \
-	    (4, FirstIndex) , \
-	    (5, LastIndex)
-
+        (3, IndexAbsoluteMin) , \
+        (4, FirstIndex) , \
+        (5, LastIndex)
 
 
 #endif //PROJECT_LEGACY_OPS_H

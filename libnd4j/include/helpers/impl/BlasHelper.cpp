@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <helpers/BlasHelper.h>
 namespace sd {
     BlasHelper& BlasHelper::getInstance() {
@@ -28,8 +27,8 @@ namespace sd {
     }
 
 
-    void BlasHelper::initializeFunctions(Nd4jPointer *functions) {
-        nd4j_debug("Initializing BLAS\n","");
+    void BlasHelper::initializeFunctions(sd::Pointer *functions) {
+        sd_debug("Initializing BLAS\n","");
 
         _hasSgemv = functions[0] != nullptr;
         _hasSgemm = functions[2] != nullptr;
@@ -52,11 +51,11 @@ namespace sd {
         this->lapackeDgesdd = (LapackeDgesdd)functions[9];
     }
 
-    void BlasHelper::initializeDeviceFunctions(Nd4jPointer *functions) {
-        nd4j_debug("Initializing device BLAS\n","");
+    void BlasHelper::initializeDeviceFunctions(sd::Pointer *functions) {
+        sd_debug("Initializing device BLAS\n","");
 
         /*
-	    this->cublasSgemv = (CublasSgemv)functions[0];
+        this->cublasSgemv = (CublasSgemv)functions[0];
         this->cublasDgemv = (CublasDgemv)functions[1];
         this->cublasHgemm = (CublasHgemm)functions[2];
         this->cublasSgemm = (CublasSgemm)functions[3];
@@ -69,7 +68,7 @@ namespace sd {
         this->cusolverDnDgesvdBufferSize = (CusolverDnDgesvdBufferSize)functions[10];
         this->cusolverDnSgesvd = (CusolverDnSgesvd)functions[11];
         this->cusolverDnDgesvd = (CusolverDnDgesvd)functions[12];
-	    */
+        */
     }
 
 
@@ -133,7 +132,7 @@ namespace sd {
     }
 
     template <>
-    bool BlasHelper::hasGEMV<Nd4jLong>() {
+    bool BlasHelper::hasGEMV<sd::LongType>() {
         return false;
     }
 
@@ -221,7 +220,7 @@ namespace sd {
     }
 
     template <>
-    bool BlasHelper::hasGEMM<Nd4jLong>() {
+    bool BlasHelper::hasGEMM<sd::LongType>() {
         return false;
     }
 
@@ -277,7 +276,7 @@ namespace sd {
     }
 
     template <>
-    bool BlasHelper::hasBatchedGEMM<Nd4jLong>() {
+    bool BlasHelper::hasBatchedGEMM<sd::LongType>() {
         return false;
     }
 

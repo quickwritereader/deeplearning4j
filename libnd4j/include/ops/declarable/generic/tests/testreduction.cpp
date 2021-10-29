@@ -31,7 +31,7 @@ namespace sd {
             auto z = OUTPUT_VARIABLE(0);
 
 //            STORE_RESULT(*z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(testreduction) {

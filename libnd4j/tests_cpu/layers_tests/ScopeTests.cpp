@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 15.10.2017.
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <graph/Node.h>
@@ -156,8 +155,8 @@ TEST_F(ScopeTests, RealTests_1) {
     ASSERT_EQ(5, graph.totalNodes());
 
     // now, let's try to execute graph
-    Nd4jStatus status = GraphExecutioner::execute(&graph);
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = GraphExecutioner::execute(&graph);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto w = variableSpace->getVariable(12, 0)->getNDArray();
 

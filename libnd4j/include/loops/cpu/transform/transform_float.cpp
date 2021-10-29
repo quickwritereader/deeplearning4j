@@ -19,7 +19,6 @@
 //
 //  @author  raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <helpers/Loops.h>
 #include <types/types.h>
@@ -32,27 +31,27 @@ namespace functions {
     namespace transform {
         template <typename X, typename Y>
         void TransformFloat<X, Y>::exec(int opNum,
-                                        const void *x, const Nd4jLong *xShapeInfo,
-                                        void *z, const Nd4jLong *zShapeInfo,
+                                        const void *x, const sd::LongType *xShapeInfo,
+                                        void *z, const sd::LongType *zShapeInfo,
                                         void *extraParams,
                                         uint64_t threadId, uint64_t numThreads) {
                     DISPATCH_BY_OPNUM_TT(exec, PARAMS(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads), TRANSFORM_FLOAT_OPS);
-		}
+        }
 
         template <typename X, typename Z>
         template<typename OpType>
-		void _CUDA_H TransformFloat<X, Z>::exec(const void *vx, const Nd4jLong *xShapeInfo,
-                                                void *vz, const Nd4jLong *zShapeInfo,
+        void SD_HOST TransformFloat<X, Z>::exec(const void *vx, const sd::LongType *xShapeInfo,
+                                                void *vz, const sd::LongType *zShapeInfo,
                                                 void *vextraParams,
                                                 uint64_t threadId, uint64_t numThreads) {
 
             auto x = reinterpret_cast<const X *>(vx);
-		    auto z = reinterpret_cast<Z *>(vz);
-		    auto extraParams = reinterpret_cast<Z *>(vextraParams);
+            auto z = reinterpret_cast<Z *>(vz);
+            auto extraParams = reinterpret_cast<Z *>(vextraParams);
 
             sd::TransformLoops<X,Z,Z>::template loopTransform<OpType>(x, xShapeInfo, z, zShapeInfo, extraParams, threadId, numThreads);
         }
 
-        BUILD_DOUBLE_TEMPLATE(template class ND4J_LOCAL TransformFloat, , LIBND4J_TYPES, FLOAT_TYPES);
+        BUILD_DOUBLE_TEMPLATE(template class SD_LIB_HIDDEN TransformFloat, , SD_COMMON_TYPES, SD_FLOAT_TYPES);
     }
 }

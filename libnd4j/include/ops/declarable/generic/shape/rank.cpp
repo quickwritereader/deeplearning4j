@@ -36,7 +36,7 @@ namespace sd {
             output->p(0, input->rankOf());
             output->syncToDevice();
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(rank) {
             return SHAPELIST(ConstantShapeHelper::getInstance().scalarShapeInfo(sd::DataType::INT32));

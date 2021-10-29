@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 07.03.2019
 //
-
 #include <ops/declarable/helpers/gather.h>
 #include <numeric>
 #include <execution/Threads.h>
@@ -31,7 +30,7 @@ namespace ops {
 namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////
- void gather(sd::LaunchContext * context, const NDArray* input, const NDArray* indices, NDArray* output, const std::vector<int>& intArgs) {
+void gather(sd::LaunchContext * context, const NDArray* input, const NDArray* indices, NDArray* output, const std::vector<int>& intArgs) {
 
     int axis = intArgs.size() > 0 ? intArgs[0] : 0;
     const int inputRank = input->rankOf();
@@ -47,12 +46,12 @@ namespace helpers {
 
             if(input->rankOf() <= 1){
                 //For scalar indices, rank 0 or 1 input: can't do tensor along dimension 0 as this is whole array... instead, we want to get a scalar
-                auto idx = indices->e<Nd4jLong>(0);
+                auto idx = indices->e<sd::LongType>(0);
                 auto scalarNDArray = input->e(idx);
                 output->assign(scalarNDArray);
             }
             else {
-                NDArray inSubArr = (*input)(indices->e<Nd4jLong>(0), {axis});
+                NDArray inSubArr = (*input)(indices->e<sd::LongType>(0), {axis});
                 output->assign(inSubArr);
             }
         }
@@ -62,7 +61,7 @@ namespace helpers {
 
                 auto func = PRAGMA_THREADS_FOR {
                     for (auto i = start; i < stop; i++)
-                        output->p(i, input->e(indices->e<Nd4jLong>(i)));
+                        output->p(i, input->e(indices->e<sd::LongType>(i)));
                 };
 
                 samediff::Threads::parallel_for(func, 0, output->lengthOf());
@@ -78,7 +77,7 @@ namespace helpers {
 
                 std::vector<int> dimsIn = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
 
-                const Nd4jLong numOfSubArrs = indices->lengthOf();
+                const sd::LongType numOfSubArrs = indices->lengthOf();
 
                 auto inTadPack  = ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimsIn);
                 auto outTadPack = ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimsOut);
@@ -91,7 +90,7 @@ namespace helpers {
                     auto func = PRAGMA_THREADS_FOR {
 
                         for (auto i = start; i < stop; i++) {
-                            auto inBuff  =  input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<Nd4jLong>(i)]);
+                            auto inBuff  =  input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<sd::LongType>(i)]);
                             auto outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
 
                             memcpy(outBuff, inBuff, shape::length(inTadShapeInfo) * input->sizeOfT());
@@ -103,7 +102,7 @@ namespace helpers {
                     auto func = PRAGMA_THREADS_FOR {
                         for (auto i = start; i < stop; i++) {
 
-                            auto inBuff  =  input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<Nd4jLong>(i)]);
+                            auto inBuff  =  input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<sd::LongType>(i)]);
                             auto outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
 
                             NativeOpExecutioner::execTransformAny(input->getContext(), transform::Assign,
@@ -127,7 +126,7 @@ namespace helpers {
         }
         else { // vector case
 
-            const Nd4jLong numOfSubArrs = intArgs.size() - 1;
+            const sd::LongType numOfSubArrs = intArgs.size() - 1;
 
             std::vector<int> dims  = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
 

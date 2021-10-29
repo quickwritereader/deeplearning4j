@@ -40,7 +40,7 @@ namespace sd {
                 REQUIRE_TRUE(v >= 0 && v < input->rankOf(), 0, "Tear dimensions should be non-negative values, and lower then input rank. Got %i instead", v);
 
             auto tads = input->allTensorsAlongDimension(dims);
-            for (Nd4jLong e = 0; e < tads.size(); e++) {
+            for (sd::LongType e = 0; e < tads.size(); e++) {
                 auto outE = OUTPUT_VARIABLE(e);
                 outE->assign(tads.at(e));
 
@@ -48,7 +48,7 @@ namespace sd {
                 this->storeResult(block, e, *outE);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(tear) {
@@ -63,7 +63,7 @@ namespace sd {
             auto numTads = tadPack.numberOfTads();
 
             auto result = SHAPELIST();
-            for (Nd4jLong e = 0; e < numTads; e++) {
+            for (sd::LongType e = 0; e < numTads; e++) {
                 auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(block.dataType(), shape::order(inShape), shape::rank(tadPack.primaryShapeInfo()), shape::shapeOf(tadPack.primaryShapeInfo()));
                 result->push_back(newShape);
             }

@@ -78,7 +78,7 @@ CUSTOM_OP_IMPL(lstmBlockCell, 8, 7, false, 2, 1) {
     // calculations
     helpers::lstmBlockCell(xt, cLast, yLast, W, Wci, Wcf, Wco, b, i, c, f, o, z, h, y, {(double)peephole, forgetBias, clippingCellValue});
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(lstmBlockCell) {
@@ -110,8 +110,8 @@ DECLARE_SHAPE_FN(lstmBlockCell) {
 
     // evaluate output shapeInfos
     const int bS = xt[1];
-    Nd4jLong *s(nullptr);
-    ALLOCATE(s, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);      // [bS, numUnits]
+    sd::LongType *s(nullptr);
+    ALLOCATE(s, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);      // [bS, numUnits]
 
     s[0] = 2;
     s[1] = bS;

@@ -35,7 +35,7 @@ namespace sd {
 //////////////////////////////////////////////////////////////////////////////
 // MXK x KxN = MxN              -> actual sequence of axes doesn't matter
 template <typename T1, typename T2, typename T3>
-static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo, const void* vB, const Nd4jLong* bShapeInfo, void* vC, const Nd4jLong* cShapeInfo,
+static SD_KERNEL void usualCudaGemm(const void* vA, const sd::LongType* aShapeInfo, const void* vB, const sd::LongType* bShapeInfo, void* vC, const sd::LongType* cShapeInfo,
                                      const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis,
                                      const double alpha, const double beta) {
 
@@ -45,7 +45,7 @@ static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo,
 
     __shared__ int K, *coords;
     __shared__ bool betaPresent;
-    __shared__ Nd4jLong cLen, totalThreads;
+    __shared__ sd::LongType cLen, totalThreads;
     __shared__ T3 alphaZ, betaZ;
 
     if (threadIdx.x == 0) {
@@ -54,7 +54,7 @@ static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo,
         coords = reinterpret_cast<int*>(shmem);
         cLen = shape::length(cShapeInfo);
 
-        K = shape::shapeOf(const_cast<Nd4jLong*>(aShapeInfo))[aKaxis];
+        K = shape::shapeOf(const_cast<sd::LongType*>(aShapeInfo))[aKaxis];
 
         betaPresent = beta;
 
@@ -71,7 +71,7 @@ static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo,
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < cLen; i += totalThreads) {
+    for (sd::LongType i = tid; i < cLen; i += totalThreads) {
 
         // evaluate C coordinates
         shape::index2coords(i, cShapeInfo, cCoords);
@@ -89,7 +89,7 @@ static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo,
 
         T3 val = A[aOffset] * B[bOffset];                       // first iteration
 
-        for (uint j = 1; j < K; ++j) {                          // rest iterations
+        for (sd::Unsigned j = 1; j < K; ++j) {                          // rest iterations
             aOffset += shape::stride(aShapeInfo)[aKaxis];
             bOffset += shape::stride(bShapeInfo)[bKaxis];
             val = val + A[aOffset] * B[bOffset];
@@ -106,7 +106,7 @@ static __global__ void usualCudaGemm(const void* vA, const Nd4jLong* aShapeInfo,
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void usualGemm(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, cudaStream_t *stream, const void* vA, const Nd4jLong* aShapeInfo, const void* vB, const Nd4jLong* bShapeInfo, void* vC, const Nd4jLong* cShapeInfo, const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis, const double alpha, const double beta) {
+SD_HOST static void usualGemm(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, cudaStream_t *stream, const void* vA, const sd::LongType* aShapeInfo, const void* vB, const sd::LongType* bShapeInfo, void* vC, const sd::LongType* cShapeInfo, const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis, const double alpha, const double beta) {
 
     usualCudaGemm<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vA, aShapeInfo, vB, bShapeInfo, vC, cShapeInfo, aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta);
 }
@@ -114,7 +114,7 @@ __host__ static void usualGemm(const int blocksPerGrid, const int threadsPerBloc
 ////////////////////////////////////////////////////////////////////////
 // MXN x N = M  -> actual sequence of {M,N} axes doesn't matter
 template <typename T1, typename T2, typename T3>
-static __global__ void usualCudaGemv(const void* vA, const Nd4jLong* aShapeInfo, const void* vX, const Nd4jLong* xShapeInfo, void* vY, const Nd4jLong* yShapeInfo,
+static SD_KERNEL void usualCudaGemv(const void* vA, const sd::LongType* aShapeInfo, const void* vX, const sd::LongType* xShapeInfo, void* vY, const sd::LongType* yShapeInfo,
                                      const int incx, const int incy, const int aMaxis, const double alpha, const double beta) {
 
     const T1* A = reinterpret_cast<const T1*>(vA);
@@ -123,7 +123,7 @@ static __global__ void usualCudaGemv(const void* vA, const Nd4jLong* aShapeInfo,
 
     __shared__ int M, N;
     __shared__ bool betaPresent;
-    __shared__ Nd4jLong cLen, totalThreads, aNstride, aMstride;
+    __shared__ sd::LongType cLen, totalThreads, aNstride, aMstride;
     __shared__ T3 alphaZ, betaZ;
 
     if (threadIdx.x == 0) {
@@ -146,7 +146,7 @@ static __global__ void usualCudaGemv(const void* vA, const Nd4jLong* aShapeInfo,
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < M; i += totalThreads) {
+    for (sd::LongType i = tid; i < M; i += totalThreads) {
 
         // evaluate offsets
         auto aOffset = i * aMstride;
@@ -154,7 +154,7 @@ static __global__ void usualCudaGemv(const void* vA, const Nd4jLong* aShapeInfo,
 
         T3 val = A[aOffset] * X[xOffset];                       // first iteration
 
-        for (uint j = 1; j < N; ++j) {                          // rest iterations
+        for (sd::Unsigned j = 1; j < N; ++j) {                          // rest iterations
             aOffset += aNstride;
             xOffset += incx;
             val = val + A[aOffset] * X[xOffset];
@@ -171,7 +171,7 @@ static __global__ void usualCudaGemv(const void* vA, const Nd4jLong* aShapeInfo,
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void usualGemv(const int blocksPerGrid, const int threadsPerBlock, cudaStream_t *stream, const void* vA, const Nd4jLong* aShapeInfo, const void* vX, const Nd4jLong* xShapeInfo, void* vY, const Nd4jLong* yShapeInfo, const int incx, const int incy, const int aMaxis, const double alpha, const double beta) {
+SD_HOST static void usualGemv(const int blocksPerGrid, const int threadsPerBlock, cudaStream_t *stream, const void* vA, const sd::LongType* aShapeInfo, const void* vX, const sd::LongType* xShapeInfo, void* vY, const sd::LongType* yShapeInfo, const int incx, const int incy, const int aMaxis, const double alpha, const double beta) {
 
     usualCudaGemv<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, 512, *stream>>>(vA, aShapeInfo, vX, xShapeInfo, vY, yShapeInfo, incx, incy, aMaxis, alpha, beta);
 }
@@ -179,7 +179,7 @@ __host__ static void usualGemv(const int blocksPerGrid, const int threadsPerBloc
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-static __global__ void usualCudaDot(const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ) {
+static SD_KERNEL void usualCudaDot(const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ) {
 
     T1* X = reinterpret_cast<T1*>(const_cast<void*>(vX));
     T2* Y = reinterpret_cast<T2*>(const_cast<void*>(vY));
@@ -196,7 +196,7 @@ static __global__ void usualCudaDot(const Nd4jLong length, const double alpha, c
 
     if(tid == 0) {
         T3 sum = 0;
-        for(Nd4jLong i = 0; i < length; ++i)
+        for(sd::LongType i = 0; i < length; ++i)
             sum = sum + pairwiseMul[i];
 
         if(beta)
@@ -208,7 +208,7 @@ static __global__ void usualCudaDot(const Nd4jLong length, const double alpha, c
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void usualDot(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ) {
+SD_HOST static void usualDot(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ) {
 
     usualCudaDot<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, length*sizeof(T3) + 128, *stream>>>(length, alpha, vX, incx, vY, incy, beta, vZ);
 }
@@ -266,13 +266,13 @@ NDArray* MmulHelper::mmulMxM(const NDArray* A, const NDArray* B, NDArray* C, dou
 
     if(!typeDouble && !typeFloat && !typeHalf && !typeIntFloat && !typeHalfFloat) {
 
-        const int threadsPerBlock = MAX_NUM_THREADS / 2;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
         const int blocksPerGrid = (C->lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
         const int sharedMem = threadsPerBlock * sizeof(int) * 6 + 128;                             // 6 = aRank + bRank + cRank
 
         NDArray::prepareSpecialUse({C}, {A, B});
-        // BUILD_TRIPLE_SELECTOR(aType, bType, cType, usualGemm, (blocksPerGrid, threadsPerBlock, sharedMem, stream, A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->special(), 0, 1, 0, 1, 0, 1, alpha, beta), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemm, (blocksPerGrid, threadsPerBlock, sharedMem, stream, A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->specialShapeInfo(), 0, 1, 0, 1, 0, 1, alpha, beta), NUMERIC_TYPES)
+        // BUILD_TRIPLE_SELECTOR(aType, bType, cType, usualGemm, (blocksPerGrid, threadsPerBlock, sharedMem, stream, A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->special(), 0, 1, 0, 1, 0, 1, alpha, beta), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR_THRICE(aType, usualGemm, (blocksPerGrid, threadsPerBlock, sharedMem, stream, A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->specialShapeInfo(), 0, 1, 0, 1, 0, 1, alpha, beta), SD_NUMERIC_TYPES)
         NDArray::registerSpecialUse({C}, {A, B});
 
         auto cudaResult = cudaStreamSynchronize(*stream);
@@ -410,12 +410,12 @@ NDArray* MmulHelper::mmulMxV(const NDArray* A, const NDArray* X, sd::NDArray* Y,
 
     if(!typeDouble && !typeFloat) {
 
-        const int threadsPerBlock = MAX_NUM_THREADS;
+        const int threadsPerBlock = SD_MAX_NUM_THREADS;
         const int blocksPerGrid = (M + threadsPerBlock - 1) / threadsPerBlock;
 
         NDArray::prepareSpecialUse({Y}, {A, X});
-        // BUILD_TRIPLE_SELECTOR(aType, xType, yType, usualGemv, (blocksPerGrid, threadsPerBlock, stream, A->specialBuffer(), A->specialShapeInfo(), X->specialBuffer(), X->specialShapeInfo(), Y->specialBuffer(), Y->special(), incx, incy, 0, alpha, beta), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-        BUILD_SINGLE_SELECTOR_THRICE(xType, usualGemv, (blocksPerGrid, threadsPerBlock, stream, A->specialBuffer(), A->specialShapeInfo(), X->specialBuffer(), X->specialShapeInfo(), Y->specialBuffer(), Y->specialShapeInfo(), incx, incy, 0, alpha, beta), NUMERIC_TYPES)
+        // BUILD_TRIPLE_SELECTOR(aType, xType, yType, usualGemv, (blocksPerGrid, threadsPerBlock, stream, A->specialBuffer(), A->specialShapeInfo(), X->specialBuffer(), X->specialShapeInfo(), Y->specialBuffer(), Y->special(), incx, incy, 0, alpha, beta), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+        BUILD_SINGLE_SELECTOR_THRICE(xType, usualGemv, (blocksPerGrid, threadsPerBlock, stream, A->specialBuffer(), A->specialShapeInfo(), X->specialBuffer(), X->specialShapeInfo(), Y->specialBuffer(), Y->specialShapeInfo(), incx, incy, 0, alpha, beta), SD_NUMERIC_TYPES)
         NDArray::registerSpecialUse({Y}, {A, X});
 
         auto cudaResult = cudaStreamSynchronize(*stream);
@@ -489,8 +489,8 @@ NDArray* MmulHelper::dot(const NDArray* X, const NDArray* Y, sd::NDArray* Z, con
     if(Z == nullptr)
         Z = new NDArray(DataTypeUtils::pickPairwiseResultType(X->dataType(), Y->dataType()), X->getContext());
 
-    const Nd4jLong incx = X->strideAt(xLenDim);
-    const Nd4jLong incy = Y->strideAt(yLenDim);
+    const sd::LongType incx = X->strideAt(xLenDim);
+    const sd::LongType incy = Y->strideAt(yLenDim);
 
     const auto xType = X->dataType();
     const auto yType = Y->dataType();
@@ -505,12 +505,12 @@ NDArray* MmulHelper::dot(const NDArray* X, const NDArray* Y, sd::NDArray* Z, con
     dim3 threadsPerBlock(512);
     dim3 blocksPerGrid(1);
     if (length > 512)
-        threadsPerBlock.x = math::nd4j_ceil<double, int>(static_cast<double>(length) / 512);
+        threadsPerBlock.x = math::sd_ceil<double, int>(static_cast<double>(length) / 512);
 
     NDArray::prepareSpecialUse({Z}, {X, Y});
 
-    //BUILD_TRIPLE_SELECTOR(xType, yType, zType, usualDot, (blocksPerGrid, threadsPerBlock, stream, length, alpha, X->specialBuffer(), incx, Y->specialBuffer(), incy, beta, Z->specialBuffer()), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-    BUILD_SINGLE_SELECTOR_THRICE(xType, usualDot, (blocksPerGrid, threadsPerBlock, stream, length, alpha, X->specialBuffer(), incx, Y->specialBuffer(), incy, beta, Z->specialBuffer()), NUMERIC_TYPES)
+    //BUILD_TRIPLE_SELECTOR(xType, yType, zType, usualDot, (blocksPerGrid, threadsPerBlock, stream, length, alpha, X->specialBuffer(), incx, Y->specialBuffer(), incy, beta, Z->specialBuffer()), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR_THRICE(xType, usualDot, (blocksPerGrid, threadsPerBlock, stream, length, alpha, X->specialBuffer(), incx, Y->specialBuffer(), incy, beta, Z->specialBuffer()), SD_NUMERIC_TYPES)
 
     auto cudaResult = cudaStreamSynchronize(*stream);
     if (cudaResult != 0) throw cuda_exception::build("MmulHelper::dot cuda failed !", cudaResult);
@@ -526,7 +526,7 @@ NDArray* MmulHelper::dot(const NDArray* X, const NDArray* Y, sd::NDArray* Z, con
 //    [M,K] x [bS,K,N] = [bS,M,N]
 // bS could stand for several axes
 template <typename T1, typename T2, typename T3>
-static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInfo, const void* vB, const Nd4jLong* bShapeInfo, void* vC, const Nd4jLong* cShapeInfo,
+static SD_KERNEL void batchedCudaGemm(const void* vA, const sd::LongType* aShapeInfo, const void* vB, const sd::LongType* bShapeInfo, void* vC, const sd::LongType* cShapeInfo,
                                        const int* aBatchDims, const int* bBatchDims, const int* cBatchDims,
                                        const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis,
                                        const double alpha, const double beta) {
@@ -537,7 +537,7 @@ static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInf
 
     __shared__ bool betaPresent;
     __shared__ int aRank, bRank, cRank, K, *coords;
-    __shared__ Nd4jLong cLen, totalThreads;
+    __shared__ sd::LongType cLen, totalThreads;
     __shared__ T3 alphaZ, betaZ;
 
     if (threadIdx.x == 0) {
@@ -546,7 +546,7 @@ static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInf
         coords = reinterpret_cast<int*>(shmem);
         cLen = shape::length(cShapeInfo);
 
-        K = shape::shapeOf(const_cast<Nd4jLong*>(aShapeInfo))[aKaxis];
+        K = shape::shapeOf(const_cast<sd::LongType*>(aShapeInfo))[aKaxis];
 
         totalThreads = gridDim.x * blockDim.x;
         aRank = shape::rank(aShapeInfo);
@@ -566,13 +566,13 @@ static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInf
 
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < cLen; i += totalThreads) {
+    for (sd::LongType i = tid; i < cLen; i += totalThreads) {
 
         // evaluate C coordinates
         shape::index2coords(i, cShapeInfo, cCoords);
 
         // calculate index of current batch
-        Nd4jLong batchInd;
+        sd::LongType batchInd;
         if(cBatchDims != nullptr)
             batchInd = shape::coords2index(cShapeInfo, cBatchDims, cRank - 2, cCoords);
 
@@ -593,7 +593,7 @@ static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInf
 
         T3 val = A[aOffset] * B[bOffset];                       // first iteration
 
-        for (uint j = 1; j < K; ++j) {                          // rest iterations
+        for (sd::Unsigned j = 1; j < K; ++j) {                          // rest iterations
             aOffset += shape::stride(aShapeInfo)[aKaxis];
             bOffset += shape::stride(bShapeInfo)[bKaxis];
             val = val + A[aOffset] * B[bOffset];
@@ -610,7 +610,7 @@ static __global__ void batchedCudaGemm(const void* vA, const Nd4jLong* aShapeInf
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void batchedGemm(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, cudaStream_t *stream, const void* vA, const Nd4jLong* aShapeInfo, const void* vB, const Nd4jLong* bShapeInfo, void* vC, const Nd4jLong* cShapeInfo, const int* aBatchDims, const int* bBatchDims, const int* cBatchDims, const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis, const double alpha, const double beta) {
+SD_HOST static void batchedGemm(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, cudaStream_t *stream, const void* vA, const sd::LongType* aShapeInfo, const void* vB, const sd::LongType* bShapeInfo, void* vC, const sd::LongType* cShapeInfo, const int* aBatchDims, const int* bBatchDims, const int* cBatchDims, const int aMaxis, const int aKaxis, const int bKaxis, const int bNaxis, const int cMaxis, const int cNaxis, const double alpha, const double beta) {
 
     batchedCudaGemm<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vA, aShapeInfo, vB, bShapeInfo, vC, cShapeInfo, aBatchDims, bBatchDims, cBatchDims, aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta);
 }
@@ -636,7 +636,7 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
         throw std::runtime_error("MmulHelper::mmulNxN: shapes of A and B arrays are not suitable for matrix multiplication !");
 
     // validation of C array
-    std::vector<Nd4jLong> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
+    std::vector<sd::LongType> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
     cExpectedShape[cExpectedShape.size() - 2] = A->sizeAt(-2);
     cExpectedShape[cExpectedShape.size() - 1] = B->sizeAt(-1);
 
@@ -654,7 +654,7 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
 
     const int aMaxis(aRank-2), aKaxis(aRank-1), bKaxis(bRank-2), bNaxis(bRank-1), cMaxis(cRank-2), cNaxis(cRank-1);
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 8;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 8;
     const int blocksPerGrid = (C->lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = threadsPerBlock * sizeof(int) * (aRank + bRank + cRank) + 128;
 
@@ -670,8 +670,8 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
         cBatchDims = reinterpret_cast<int*>(manager.replicatePointer(ShapeUtils::evalDimsToExclude(cRank, {cMaxis, cNaxis}).data(), (cRank - 2) * sizeof(int)));
 
     NDArray::prepareSpecialUse({C}, {A, B});
-    // BUILD_TRIPLE_SELECTOR(A->dataType(), b->dataType(), C->dataType(), batchedGemm, (blocksPerGrid, threadsPerBlock, A->getContext()->getCudaStream(), A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->special(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-    BUILD_SINGLE_SELECTOR_THRICE(A->dataType(), batchedGemm, (blocksPerGrid, threadsPerBlock, sharedMem, A->getContext()->getCudaStream(), A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->specialShapeInfo(), aBatchDims, bBatchDims, cBatchDims, aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), NUMERIC_TYPES)
+    // BUILD_TRIPLE_SELECTOR(A->dataType(), b->dataType(), C->dataType(), batchedGemm, (blocksPerGrid, threadsPerBlock, A->getContext()->getCudaStream(), A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->special(), aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR_THRICE(A->dataType(), batchedGemm, (blocksPerGrid, threadsPerBlock, sharedMem, A->getContext()->getCudaStream(), A->specialBuffer(), A->specialShapeInfo(), B->specialBuffer(), B->specialShapeInfo(), C->specialBuffer(), C->specialShapeInfo(), aBatchDims, bBatchDims, cBatchDims, aMaxis, aKaxis, bKaxis, bNaxis, cMaxis, cNaxis, alpha, beta), SD_NUMERIC_TYPES)
     NDArray::registerSpecialUse({C}, {A, B});
 
     manager.synchronize();
@@ -684,14 +684,14 @@ NDArray* MmulHelper::mmulNxN(const NDArray* A, const NDArray* B, NDArray* C, con
 //////////////////////////////////////////////////////////////////////////////
 // MXN x N = M
 template <typename T1, typename T2, typename T3>
-static __global__ void usualCudaGemv(const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vX, const int incx, const double beta, void* vY, const int incy) {
+static SD_KERNEL void usualCudaGemv(const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vX, const int incx, const double beta, void* vY, const int incy) {
 
     T1* A = reinterpret_cast<T1*>(const_cast<void*>(vA));
     T2* X = reinterpret_cast<T2*>(const_cast<void*>(vX));
     T3* Y = reinterpret_cast<T3*>(vY);
 
     __shared__ T3 alphaZ, betaZ;
-    __shared__ Nd4jLong strideArow, strideAcol;
+    __shared__ sd::LongType strideArow, strideAcol;
 
     const int row = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -715,7 +715,7 @@ static __global__ void usualCudaGemv(const bool transA, const int M, const int N
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void usualGemv(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vX, const int incx, const double beta, void* vY, const int incy) {
+SD_HOST static void usualGemv(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vX, const int incx, const double beta, void* vY, const int incy) {
 
     usualCudaGemv<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, 1024, *stream>>>(transA, M, N, alpha, vA, lda, vX, incx, beta, vY, incy);
 }
@@ -725,14 +725,14 @@ __host__ static void usualGemv(const dim3 &blocksPerGrid, const dim3 &threadsPer
 MXK x KxN = MxN
 C array must be in f order
 template <typename T1, typename T2, typename T3>
-static __global__ void usualCudaGemm(const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc) {
+static SD_KERNEL void usualCudaGemm(const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc) {
 
     T1* A = reinterpret_cast<T1*>(const_cast<void*>(vA));
     T2* B = reinterpret_cast<T2*>(const_cast<void*>(vB));
     T3* C = reinterpret_cast<T3*>(vC);
 
     __shared__ T3 alphaZ, betaZ;
-    __shared__ Nd4jLong strideArow, strideAcol, strideBrow, strideBcol;
+    __shared__ sd::LongType strideArow, strideAcol, strideBrow, strideBcol;
 
     const int row = blockIdx.y * blockDim.y + threadIdx.y;
     const int col = blockIdx.x * blockDim.x + threadIdx.x;
@@ -758,7 +758,7 @@ static __global__ void usualCudaGemm(const bool transA, const bool transB, const
 
 //////////////////////////////////////////////////////////////////////////////
 template <typename T1, typename T2, typename T3>
-__host__ static void usualGemm(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc) {
+SD_HOST static void usualGemm(const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc) {
 
     usualCudaGemm<T1,T2,T3><<<blocksPerGrid, threadsPerBlock, 1024, *stream>>>(transA, transB, M, N, K, alpha, vA, lda, vB, ldb, beta, vC, ldc);
 }
@@ -785,7 +785,7 @@ NDArray* MmulHelper::mmulNxNold1(const NDArray* A, const NDArray* B, NDArray* C,
         throw std::runtime_error("MmulHelper::mmulNxN: shapes of A and B arrays are not suitable for matrix multiplication !");
 
     // validation of C array
-    std::vector<Nd4jLong> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
+    std::vector<sd::LongType> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
     cExpectedShape[cExpectedShape.size() - 2] = A->sizeAt(-2);
     cExpectedShape[cExpectedShape.size() - 1] = B->sizeAt(-1);
 
@@ -800,11 +800,11 @@ NDArray* MmulHelper::mmulNxNold1(const NDArray* A, const NDArray* B, NDArray* C,
 
     // multiplication
     const std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(C->rankOf(), {-2, -1});
-    const Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(C->shapeInfo(), dimsToExclude);
-    std::vector<Nd4jLong> idxRanges(2 * C->rankOf());
+    const sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(C->shapeInfo(), dimsToExclude);
+    std::vector<sd::LongType> idxRanges(2 * C->rankOf());
 
 // #pragma omp parallel for schedule(guided) firstprivate(idxRanges)
-        for(Nd4jLong i = 0; i < numOfSubArrs; ++i) {
+        for(sd::LongType i = 0; i < numOfSubArrs; ++i) {
 
             ShapeUtils::evalIdxRangesForSubArr(i, C->shapeInfo(), dimsToExclude, idxRanges.data());
             NDArray cSubArr = (*C)(idxRanges);
@@ -854,7 +854,7 @@ NDArray* MmulHelper::mmulNxNold2(const NDArray* A, const NDArray* B, NDArray* C,
         throw std::runtime_error("MmulHelper::mmulNxN: shapes of A and B arrays are not suitable for matrix multiplication !");
 
     // validation of C array
-    std::vector<Nd4jLong> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
+    std::vector<sd::LongType> cExpectedShape = aRank > bRank ? A->getShapeAsVector() : B->getShapeAsVector();
     cExpectedShape[cExpectedShape.size() - 2] = A->sizeAt(-2);
     cExpectedShape[cExpectedShape.size() - 1] = B->sizeAt(-1);
 
@@ -941,8 +941,8 @@ NDArray* MmulHelper::mmulNxNold2(const NDArray* A, const NDArray* B, NDArray* C,
 
     if(!badTypes) {
 
-        std::vector<Nd4jLong> subArrOffsets(bS);
-        std::vector<Nd4jLong> subArrShapeInfo(shape::shapeInfoLength(2));                         // all sub-arrays have rank = 2
+        std::vector<sd::LongType> subArrOffsets(bS);
+        std::vector<sd::LongType> subArrShapeInfo(shape::shapeInfoLength(2));                         // all sub-arrays have rank = 2
 
         std::vector<void*> aSubArrs(bS), bSubArrs(bS), cSubArrs(bS);
 
@@ -1010,9 +1010,9 @@ NDArray* MmulHelper::mmulNxNold2(const NDArray* A, const NDArray* B, NDArray* C,
     }
     else {
 
-        std::vector<Nd4jLong> idxRanges(2 * pC->rankOf());
+        std::vector<sd::LongType> idxRanges(2 * pC->rankOf());
 
-        for(Nd4jLong i = 0; i < bS; ++i) {
+        for(sd::LongType i = 0; i < bS; ++i) {
 
             ShapeUtils::evalIdxRangesForSubArr(i, pC->shapeInfo(), dimsToExclude, idxRanges.data());
             NDArray cSubArr = (*pC)(idxRanges);
@@ -1045,8 +1045,8 @@ NDArray* MmulHelper::mmulNxNold2(const NDArray* A, const NDArray* B, NDArray* C,
 }
 */
 
-//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vB, const int incx, const double beta, void* vC, const int incy), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ), NUMERIC_TYPES, NUMERIC_TYPES, FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* vA, const int lda, const void* vB, const int ldb, const double beta, void* vC, const int ldc), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const bool transA, const int M, const int N, const double alpha, const void* vA, const int lda, const void* vB, const int incx, const double beta, void* vC, const int incy), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const dim3 &blocksPerGrid, const dim3 &threadsPerBlock, cudaStream_t *stream, const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ), SD_NUMERIC_TYPES, SD_NUMERIC_TYPES, SD_FLOAT_TYPES);
 
 }

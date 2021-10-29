@@ -47,7 +47,7 @@ CUSTOM_OP_IMPL(svd, 1, 1, false, 0, 3) {
     helpers::svd(block.launchContext(), x, {OUTPUT_VARIABLE(0), calcUV ? OUTPUT_VARIABLE(1) : nullptr, calcUV ? OUTPUT_VARIABLE(2) : nullptr}, fullUV, calcUV, switchNum);
     // #endif
 
-    return Status::OK();;
+    return sd::Status::OK;;
 }
 
 
@@ -68,14 +68,14 @@ DECLARE_SHAPE_FN(svd) {
 
     const int diagSize = inShapeInfo[rank] < inShapeInfo[rank-1] ? inShapeInfo[rank] : inShapeInfo[rank-1];
 
-    Nd4jLong* sShapeInfo(nullptr);
+    sd::LongType* sShapeInfo(nullptr);
     if(rank == 2) {
-        ALLOCATE(sShapeInfo, block.getWorkspace(), shape::shapeInfoLength(1), Nd4jLong);
+        ALLOCATE(sShapeInfo, block.getWorkspace(), shape::shapeInfoLength(1), sd::LongType);
         sShapeInfo[0] = 1;
         sShapeInfo[1] = diagSize;
     }
     else {
-        ALLOCATE(sShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank-1), Nd4jLong);
+        ALLOCATE(sShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank-1), sd::LongType);
         sShapeInfo[0] = rank - 1;
         for(int i=1; i <= rank-2; ++i)
             sShapeInfo[i] = inShapeInfo[i];
@@ -86,7 +86,7 @@ DECLARE_SHAPE_FN(svd) {
 
     if(calcUV){
 
-        Nd4jLong *uShapeInfo(nullptr), *vShapeInfo(nullptr);
+        sd::LongType *uShapeInfo(nullptr), *vShapeInfo(nullptr);
         COPY_SHAPE(inShapeInfo, uShapeInfo);
         COPY_SHAPE(inShapeInfo, vShapeInfo);
 

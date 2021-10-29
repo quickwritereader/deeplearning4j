@@ -31,7 +31,7 @@ namespace ops  {
 
 //////////////////////////////////////////////////////////////////////////
 CUSTOM_OP_IMPL(softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0) {
- 	auto logits  = INPUT_VARIABLE(0);
+     auto logits  = INPUT_VARIABLE(0);
     auto labels  = INPUT_VARIABLE(1);
     auto output  = OUTPUT_VARIABLE(0);
 
@@ -47,9 +47,9 @@ CUSTOM_OP_IMPL(softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0) {
     auto logExp = (*logits - maxAlongDim).transform(transform::Exp);
     auto logSoftMax = ( logExp / logExp.reduceAlongDimension(reduce::Sum, {classesDim}, true) ).transform(transform::Log);
 
-	(-(*labels) * logSoftMax).reduceAlongDimension(reduce::Sum, *output, dimension);
+    (-(*labels) * logSoftMax).reduceAlongDimension(reduce::Sum, *output, dimension);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -61,13 +61,13 @@ DECLARE_TYPES(softmax_cross_entropy_loss_with_logits) {
 //////////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(softmax_cross_entropy_loss_with_logits) {
 
-	auto logitsShapeInfo  = inputShape->at(0);
+    auto logitsShapeInfo  = inputShape->at(0);
     auto labelsShapeInfo  = inputShape->at(1);
 
     const int classesDim = block.getIArguments()->size() > 0 ? INT_ARG(0) : -1;
     std::vector<int> dimensions = {classesDim};
 
-	// labels and logits must have the same shapes
+    // labels and logits must have the same shapes
     REQUIRE_TRUE(shape::shapeEquals(logitsShapeInfo, labelsShapeInfo), 0, "SOFTMAX_CROSS_ENTROPY_LOSS_WITH_LOGITS OP: labels and logits arrays must have the same shapes, but got %s and %s correspondingly!", ShapeUtils::shapeAsString(labelsShapeInfo).c_str(), ShapeUtils::shapeAsString(logitsShapeInfo).c_str());
 
     auto outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
@@ -108,7 +108,7 @@ CUSTOM_OP_IMPL(softmax_cross_entropy_loss_with_logits_grad, 2, 2, false, 0, 0) {
     // dEdl = -log(softmax)
     (-softmax).applyTransform(transform::Log, *dLdl);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 

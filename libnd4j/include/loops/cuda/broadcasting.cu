@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <system/op_boilerplate.h>
 #include <loops/broadcasting.h>
 #include <loops/legacy_ops.h>

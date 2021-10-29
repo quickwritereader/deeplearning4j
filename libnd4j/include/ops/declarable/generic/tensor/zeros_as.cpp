@@ -32,7 +32,7 @@ namespace sd {
 
             out->assign(0); // output is filled by zero by default
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(zeroslike, zeros_as);
         DECLARE_SYN(zeros_like, zeros_as);

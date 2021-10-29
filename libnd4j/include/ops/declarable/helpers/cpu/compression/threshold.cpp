@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <ops/declarable/helpers/threshold.h>
 #include <execution/Threads.h>
 #include <helpers/threshold.h>
@@ -35,7 +34,7 @@ namespace sd {
                 auto func = PRAGMA_REDUCE_LONG {
                     int64_t cnt = 0;
                     for (auto e = start; e < stop; e++) {
-                        auto v = sd::math::nd4j_abs<T>(buffer[e]);
+                        auto v = sd::math::sd_abs<T>(buffer[e]);
                         if (v >= threshold)
                             cnt++;
                     }
@@ -46,18 +45,18 @@ namespace sd {
                 return samediff::Threads::parallel_long(func, LAMBDA_AL { return _old + _new; }, 0, N);
             }
 
-             int32_t thresholdEstimate(const NDArray &updates, const float threshold) {
-                BUILD_SINGLE_SELECTOR(updates.dataType(), return thresholdEstimate_, (updates, threshold), FLOAT_TYPES);
+            int32_t thresholdEstimate(const NDArray &updates, const float threshold) {
+                BUILD_SINGLE_SELECTOR(updates.dataType(), return thresholdEstimate_, (updates, threshold), SD_FLOAT_TYPES);
 
                 return 0;
             }
 
-             void thresholdEncode(NDArray &updates, NDArray &encoded, float threshold) {
-                BUILD_SINGLE_SELECTOR(updates.dataType(), sd::TypeCast::convertToThreshold, (nullptr, updates.buffer(), updates.lengthOf(), encoded.buffer()), FLOAT_TYPES);
+            void thresholdEncode(NDArray &updates, NDArray &encoded, float threshold) {
+                BUILD_SINGLE_SELECTOR(updates.dataType(), sd::TypeCast::convertToThreshold, (nullptr, updates.buffer(), updates.lengthOf(), encoded.buffer()), SD_FLOAT_TYPES);
             }
 
-             void thresholdDecode(const NDArray &encoded, NDArray &updates) {
-                BUILD_SINGLE_SELECTOR(updates.dataType(), sd::TypeCast::convertFromThreshold, (nullptr, encoded.buffer(), updates.lengthOf(), updates.buffer()), FLOAT_TYPES);
+            void thresholdDecode(const NDArray &encoded, NDArray &updates) {
+                BUILD_SINGLE_SELECTOR(updates.dataType(), sd::TypeCast::convertFromThreshold, (nullptr, encoded.buffer(), updates.lengthOf(), updates.buffer()), SD_FLOAT_TYPES);
             }
         }
     }

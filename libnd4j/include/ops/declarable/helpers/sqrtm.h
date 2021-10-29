@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_SQRTM_HELPER_H
 #define LIBND4J_SQRTM_HELPER_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include "array/NDArray.h"
 
@@ -31,7 +30,7 @@ namespace ops     {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-void sqrtm(sd::LaunchContext* context, const NDArray* x, NDArray* z);
+SD_LIB_HIDDEN void sqrtm(sd::LaunchContext* context, const NDArray* x, NDArray* z);
 
 
 }

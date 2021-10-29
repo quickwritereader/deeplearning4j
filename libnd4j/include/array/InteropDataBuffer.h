@@ -20,10 +20,11 @@
 // @author raver119@gmail.com
 //
 
-#include <system/dll.h>
+#include <memory>
+#include <system/common.h>
 #include <array/DataBuffer.h>
 #include <array/DataType.h>
-#include <memory>
+
 
 #ifndef LIBND4J_INTEROPDATABUFFER_H
 #define LIBND4J_INTEROPDATABUFFER_H
@@ -32,7 +33,7 @@ namespace sd {
     /**
      * This class is a wrapper for DataBuffer, suitable for sharing DataBuffer between front-end and back-end languages
      */
-    class ND4J_EXPORT InteropDataBuffer {
+    class SD_LIB_EXPORT InteropDataBuffer {
     private:
         std::shared_ptr<DataBuffer> _dataBuffer;
         uint64_t _offset = 0;

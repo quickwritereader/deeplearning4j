@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_MMULHELPER_CPP
 #define LIBND4J_MMULHELPER_CPP
-
 #include "../MmulHelper.h"
 #include <helpers/ShapeUtils.h>
 #include <helpers/BlasHelper.h>
@@ -41,7 +40,7 @@ sd::NDArray* sd::MmulHelper::tensorDot(const sd::NDArray* A, const sd::NDArray* 
 sd::NDArray* sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, const std::vector<int>& axes_0, const std::vector<int>& axes_1) {
 
     std::vector<int> permutAt, permutBt;
-    std::vector<Nd4jLong> shapeAt, shapeBt;
+    std::vector<sd::LongType> shapeAt, shapeBt;
 
     auto outShape = ShapeUtils::evalShapeForTensorDot(a, b, axes_0, axes_1, permutAt, permutBt, shapeAt, shapeBt);
 
@@ -73,7 +72,7 @@ sd::NDArray* sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* 
 void sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::NDArray* c, const std::vector<int>& axes_a, const std::vector<int>& axes_b, const std::vector<int>& permutForC) {
 
     std::vector<int> permutAt, permutBt;
-    std::vector<Nd4jLong> shapeAt, shapeBt;
+    std::vector<sd::LongType> shapeAt, shapeBt;
     ShapeUtils::evalShapeForTensorDot(a, b, axes_a, axes_b, permutAt, permutBt, shapeAt, shapeBt);
 
     // check whether permutation is required
@@ -87,7 +86,7 @@ void sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::N
     const NDArray* aPR = aP->isSameShape(shapeAt) ? aP : new NDArray(aP->reshape(aP->ordering(), shapeAt));
     const NDArray* bPR = bP->isSameShape(shapeAt) ? bP : new NDArray(bP->reshape(bP->ordering(), shapeBt));
 
-    std::vector<Nd4jLong> requiredCshape = {aPR->sizeAt(0), bPR->sizeAt(1)};
+    std::vector<sd::LongType> requiredCshape = {aPR->sizeAt(0), bPR->sizeAt(1)};
 
     NDArray* cPR = cP->isSameShape(requiredCshape) ? cP : new NDArray(cP->reshape(cP->ordering(), requiredCshape, false));
 
@@ -114,7 +113,7 @@ void sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::N
 
 #ifndef __JAVACPP_HACK__
 //////////////////////////////////////////////////////////////////////////
-void sd::MmulHelper::tensorDot(const NDArray* a, const NDArray* b, NDArray* c, const std::vector<std::vector<Nd4jLong>>& modifA, const std::vector<std::vector<Nd4jLong>>& modifB, const std::vector<std::vector<Nd4jLong>>& modifC) {
+void sd::MmulHelper::tensorDot(const NDArray* a, const NDArray* b, NDArray* c, const std::vector<std::vector<sd::LongType>>& modifA, const std::vector<std::vector<sd::LongType>>& modifB, const std::vector<std::vector<sd::LongType>>& modifC) {
 
     NDArray *aPR(const_cast<NDArray*>(a)), *bPR(const_cast<NDArray*>(b));
     std::string whatToDoWithA, whatToDoWithB, whatToDoWithC;         // "" - nothing; "p" - permutation; "r" - reshaping; "pr" - permutation+reshaping; "rp" - reshaping/permutation, and so on; if another string is produced - throw exception
@@ -165,7 +164,7 @@ void sd::MmulHelper::tensorDot(const NDArray* a, const NDArray* b, NDArray* c, c
 }
 
 //////////////////////////////////////////////////////////////////////////
-NDArray* sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, const std::vector<std::vector<Nd4jLong>>& modifA, const std::vector<std::vector<Nd4jLong>>& modifB) {
+NDArray* sd::MmulHelper::tensorDot(const sd::NDArray* a, const sd::NDArray* b, const std::vector<std::vector<sd::LongType>>& modifA, const std::vector<std::vector<sd::LongType>>& modifB) {
 
     NDArray *aPR(const_cast<NDArray*>(a)), *bPR(const_cast<NDArray*>(b));
     std::string whatToDoWithA, whatToDoWithB;         // "" - nothing; "p" - permutation only; "r" - reshaping only; "pr" - permutation+reshaping; "rp" - reshaping/permutation; another string - throw exception
@@ -247,7 +246,7 @@ sd::NDArray* MmulHelper::mmul(const sd::NDArray* A, const sd::NDArray* B, sd::ND
 
         auto outShape = ShapeUtils::evalShapeForMatmul(x->shapeInfo(), y->shapeInfo(), transX, transY);
         if(!z->isSameShape(outShape)) {
-            nd4j_printf("NDArrayFactory::matmul static method: input shape of output array is wrong, actual is %s and expected is %s ! \n", ShapeUtils::shapeAsString(z).c_str(), ShapeUtils::shapeAsString(outShape).c_str());
+            sd_printf("NDArrayFactory::matmul static method: input shape of output array is wrong, actual is %s and expected is %s ! \n", ShapeUtils::shapeAsString(z).c_str(), ShapeUtils::shapeAsString(outShape).c_str());
             throw std::invalid_argument("");
         }
 
@@ -287,10 +286,10 @@ sd::NDArray* MmulHelper::mmul(const sd::NDArray* A, const sd::NDArray* B, sd::ND
             for(int i = 0; i < batchRank; ++i)
                 dimsToExclude[i] = i;
 
-            const Nd4jLong numOfSubArrs = ShapeUtils::getNumOfSubArrs(xT->shapeInfo(), dimsToExclude);
+            const sd::LongType numOfSubArrs = ShapeUtils::getNumOfSubArrs(xT->shapeInfo(), dimsToExclude);
 
 //PRAGMA_OMP_PARALLEL_FOR
-            for(Nd4jLong i = 0; i < numOfSubArrs; ++i) {
+            for(sd::LongType i = 0; i < numOfSubArrs; ++i) {
                 auto xSubArr = (*xT)(i, dimsToExclude);
                 auto ySubArr = (*yT)(i, dimsToExclude);
                 auto zSubArr = (*zT)(i, dimsToExclude);
@@ -306,9 +305,9 @@ sd::NDArray* MmulHelper::mmul(const sd::NDArray* A, const sd::NDArray* B, sd::ND
             delete zT;
     }
 
-//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const char cOrder, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* A, const int lda, const void* B, const int ldb, const double beta, void* C, const int ldc), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const char aOrder, const int M, const int N, const double alpha, const void* A, const int lda, const void* B, const int incx, const double beta, void* C, const int incy), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const Nd4jLong length, const double alpha, const void* vX, const Nd4jLong incx, const void* vY, const Nd4jLong incy, const double beta, void* vZ), LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemm, (const char cOrder, const bool transA, const bool transB, const int M, const int N, const int K, const double alpha, const void* A, const int lda, const void* B, const int ldb, const double beta, void* C, const int ldc), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualGemv, (const char aOrder, const int M, const int N, const double alpha, const void* A, const int lda, const void* B, const int incx, const double beta, void* C, const int incy), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+//BUILD_TRIPLE_TEMPLATE(template void usualDot,  (const sd::LongType length, const double alpha, const void* vX, const sd::LongType incx, const void* vY, const sd::LongType incy, const double beta, void* vZ), SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
 
 }
 

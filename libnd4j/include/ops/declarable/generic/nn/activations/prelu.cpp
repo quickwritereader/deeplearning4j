@@ -42,13 +42,13 @@ CONFIGURABLE_OP_IMPL(prelu, 2, 1, true, 0, 0) {
 
     const int inputRank     = input->rankOf();
     const int numSharedAxes = sharedAxes.size();            // can be zero as well
-    const Nd4jLong inputLen = input->lengthOf();
-    const Nd4jLong alphaLen = alpha->lengthOf();
-    const std::vector<Nd4jLong> inputShape = input->getShapeAsVector();
-    const std::vector<Nd4jLong> alphaShape = alpha->getShapeAsVector();
+    const sd::LongType inputLen = input->lengthOf();
+    const sd::LongType alphaLen = alpha->lengthOf();
+    const std::vector<sd::LongType> inputShape = input->getShapeAsVector();
+    const std::vector<sd::LongType> alphaShape = alpha->getShapeAsVector();
 
     //***** input validation *****//
-    std::vector<Nd4jLong> expectedAlphaShape(&inputShape[1], &inputShape[inputRank]);
+    std::vector<sd::LongType> expectedAlphaShape(&inputShape[1], &inputShape[inputRank]);
 
     REQUIRE_TRUE(inputRank > 1, 0, "PRELU OP: wrong rank of input array, expected rank should be > 1, but got %i instead !", inputRank);
 
@@ -59,7 +59,7 @@ CONFIGURABLE_OP_IMPL(prelu, 2, 1, true, 0, 0) {
         expectedAlphaShape[sharedAxes[i] - 1] = 1;
     }
 
-    Nd4jLong product = 1;
+    sd::LongType product = 1;
     for(const auto& item : expectedAlphaShape)
         product *= item;
 
@@ -68,7 +68,7 @@ CONFIGURABLE_OP_IMPL(prelu, 2, 1, true, 0, 0) {
 
     helpers::prelu(block.launchContext(), *input,  alphaShape != expectedAlphaShape ? alpha->reshape(alpha->ordering(), expectedAlphaShape) : *alpha, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 
@@ -93,18 +93,18 @@ CONFIGURABLE_OP_IMPL(prelu_bp, 3, 2, true, 0, 0) {
 
     const int inputRank     = input->rankOf();
     const int numSharedAxes = sharedAxes.size();            // can be zero as well
-    const Nd4jLong inputLen = input->lengthOf();
-    const Nd4jLong alphaLen = alpha->lengthOf();
-    const std::vector<Nd4jLong> inputShape = input->getShapeAsVector();
-    const std::vector<Nd4jLong> alphaShape = alpha->getShapeAsVector();
+    const sd::LongType inputLen = input->lengthOf();
+    const sd::LongType alphaLen = alpha->lengthOf();
+    const std::vector<sd::LongType> inputShape = input->getShapeAsVector();
+    const std::vector<sd::LongType> alphaShape = alpha->getShapeAsVector();
 
     //***** input validation *****//
 
     // temporary limitation imposed by Yurii
-    REQUIRE_TRUE(inputRank <= MAX_RANK/2, 0, "rank of input array should be <= MAX_RANK/2, but got %i instead!", inputRank);
-    REQUIRE_TRUE(input->lengthOf() / alpha->lengthOf() <= MAX_RANK*2, 0, "the length of input array should be no more than MAX_RANK*2 times the alpha array length, but got %lld and %lld correspondingly!", input->lengthOf(), alpha->lengthOf());
+    REQUIRE_TRUE(inputRank <= SD_MAX_RANK/2, 0, "rank of input array should be <= SD_MAX_RANK/2, but got %i instead!", inputRank);
+    REQUIRE_TRUE(input->lengthOf() / alpha->lengthOf() <= SD_MAX_RANK*2, 0, "the length of input array should be no more than SD_MAX_RANK*2 times the alpha array length, but got %lld and %lld correspondingly!", input->lengthOf(), alpha->lengthOf());
 
-    std::vector<Nd4jLong> expectedAlphaShape(&inputShape[1], &inputShape[inputRank]);
+    std::vector<sd::LongType> expectedAlphaShape(&inputShape[1], &inputShape[inputRank]);
 
     REQUIRE_TRUE(inputRank > 1, 0, "PRELU_BP OP: wrong rank of input array, expected rank should be > 1, but got %i instead !", inputRank);
 
@@ -115,7 +115,7 @@ CONFIGURABLE_OP_IMPL(prelu_bp, 3, 2, true, 0, 0) {
         expectedAlphaShape[sharedAxes[i] - 1] = 1;
     }
 
-    Nd4jLong product = 1;
+    sd::LongType product = 1;
     for(const auto& item : expectedAlphaShape)
         product *= item;
 
@@ -135,7 +135,7 @@ CONFIGURABLE_OP_IMPL(prelu_bp, 3, 2, true, 0, 0) {
         delete dLdA;
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(prelu_bp) {

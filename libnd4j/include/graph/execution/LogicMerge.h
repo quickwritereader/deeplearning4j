@@ -23,18 +23,16 @@
 #ifndef LIBND4J_LOGICMERGE_H
 #define LIBND4J_LOGICMERGE_H
 
-#include <system/pointercast.h>
 #include <graph/Graph.h>
 
 namespace sd {
     namespace graph {
         class LogicMerge {
         public:
-            static Nd4jStatus processNode(Graph* graph, Node* node);
+            static sd::Status processNode(Graph* graph, Node* node);
         };
     }
 }
-
 
 
 #endif //LIBND4J_LOGICMERGE_H

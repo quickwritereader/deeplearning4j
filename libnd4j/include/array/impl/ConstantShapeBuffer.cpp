@@ -21,7 +21,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <array/ConstantShapeBuffer.h>
 
 namespace sd {
@@ -36,15 +35,15 @@ ConstantShapeBuffer::ConstantShapeBuffer(const std::shared_ptr<PointerWrapper> &
   _specialShapeInfo = special;
 }
 
-const Nd4jLong *ConstantShapeBuffer::primary() const {
-  return reinterpret_cast<Nd4jLong*>(_primaryShapeInfo->pointer());
+const sd::LongType *ConstantShapeBuffer::primary() const {
+  return reinterpret_cast<sd::LongType*>(_primaryShapeInfo->pointer());
 }
 
-const Nd4jLong *ConstantShapeBuffer::special() const {
-  return _specialShapeInfo ? reinterpret_cast<Nd4jLong*>(_specialShapeInfo->pointer()) : nullptr;
+const sd::LongType *ConstantShapeBuffer::special() const {
+  return _specialShapeInfo ? reinterpret_cast<sd::LongType*>(_specialShapeInfo->pointer()) : nullptr;
 }
 
-const Nd4jLong *ConstantShapeBuffer::platform() const {
+const sd::LongType *ConstantShapeBuffer::platform() const {
 #ifdef __CUDABLAS__
   return special();
 #else

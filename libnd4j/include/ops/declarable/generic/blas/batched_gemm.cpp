@@ -89,7 +89,7 @@ CUSTOM_OP_IMPL(batched_gemm, -1, -1, false, 0, 9) {
 
     sd::ops::helpers::bgemm(vA, vB, vC, alpha, beta, transA, transB, M, N, K, ldA, ldB, ldC);
 
-    return Status::OK();
+    return sd::Status::OK;
 };
 
 
@@ -117,7 +117,7 @@ DECLARE_SHAPE_FN(batched_gemm) {
     }
 
 
-    std::vector<Nd4jLong> shape({M, N});
+    std::vector<sd::LongType> shape({M, N});
 
     for (int e = 0; e < batchSize; e++) {
         auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inputShape->at(0)), 'f', shape);

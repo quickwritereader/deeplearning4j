@@ -25,7 +25,6 @@
 
 #ifndef LIBND4J_HELPERS_IMAGES_H
 #define LIBND4J_HELPERS_IMAGES_H
-
 #include <system/op_boilerplate.h>
 #include <math/templatemath.h>
 #include <array/NDArray.h>
@@ -34,17 +33,17 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-    void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
+SD_LIB_HIDDEN void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
 
-    void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
+SD_LIB_HIDDEN void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
 
-    void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
-    void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
-    void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
+SD_LIB_HIDDEN void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
+SD_LIB_HIDDEN void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
+SD_LIB_HIDDEN void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC);
 
-    void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
+SD_LIB_HIDDEN void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
 
-    void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
+SD_LIB_HIDDEN void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC);
 }
 }
 }

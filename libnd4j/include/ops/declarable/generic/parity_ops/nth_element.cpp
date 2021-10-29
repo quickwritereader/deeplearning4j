@@ -33,7 +33,7 @@ namespace sd {
                 reverse = (bool)INT_ARG(0);
 
             auto output = OUTPUT_VARIABLE(0);
-            Nd4jLong lastDim = input->sizeAt(-1);
+            sd::LongType lastDim = input->sizeAt(-1);
             int nVal = n->e<int>(0);
             REQUIRE_TRUE(nVal < lastDim && nVal >= 0, 0, "nth_element: n should be non-negative and less than last dimension size (%lld), but %i was given.", lastDim, n);
             REQUIRE_TRUE(input->rankOf() > 0, 0, "nth_element: The rank of input array should be at least 1, but %i is given", input->rankOf());            //
@@ -41,22 +41,22 @@ namespace sd {
                 output->assign(input);
             else {
 //                if (!input->isVector() && reverse)
-//                    n->assign(lastDim - n->e<Nd4jLong>(0) - 1);
+//                    n->assign(lastDim - n->e<sd::LongType>(0) - 1);
                 helpers::nthElementFunctor(block.launchContext(), input, nVal, output, reverse);
             }
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(nth_element) {
 
             auto in = inputShape->at(0);
             int outRank = shape::rank(in) - 1;
-            Nd4jLong const* outShape = nullptr;
+            sd::LongType const* outShape = nullptr;
             if (outRank > 1) {
-                Nd4jLong *outputShape = nullptr;
-                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), Nd4jLong);
+                sd::LongType *outputShape = nullptr;
+                ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
                 outputShape[0] = outRank;
-                for (Nd4jLong e = 0; e < outRank; e++)
+                for (sd::LongType e = 0; e < outRank; e++)
                 outputShape[e + 1] = in[e + 1];
 
                 ShapeUtils::updateStridesAndType(outputShape, in, shape::order(in));

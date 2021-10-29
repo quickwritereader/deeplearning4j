@@ -35,7 +35,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(floor, Floor);
 

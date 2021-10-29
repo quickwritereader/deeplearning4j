@@ -22,17 +22,15 @@
 
 #ifndef LIBND4J_OP_TRACKER_H
 #define LIBND4J_OP_TRACKER_H
-
 #include <map>
 #include <vector>
 #include <atomic>
-#include <system/pointercast.h>
 #include <graph/generated/utils_generated.h>
 #include <ops/declarable/OpDescriptor.h>
-#include <system/dll.h>
+
 
 namespace sd {
-    class ND4J_EXPORT OpTracker {
+    class SD_LIB_EXPORT OpTracker {
     private:
         std::string _export;
 
@@ -51,7 +49,7 @@ namespace sd {
         int totalOperations();
 
         void storeOperation(sd::graph::OpType opType, const sd::ops::OpDescriptor& descriptor);
-        void storeOperation(sd::graph::OpType opType, const char* opName, const Nd4jLong opNum);
+        void storeOperation(sd::graph::OpType opType, const char* opName, const sd::LongType opNum);
 
         const char* exportOperations();
     };

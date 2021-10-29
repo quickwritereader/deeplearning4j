@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/sequence_mask.h>
 #include <execution/Threads.h>
 
@@ -39,11 +38,11 @@ namespace helpers {
         samediff::Threads::parallel_for(func, 0, maxIndex, 1, 0, input->lengthOf(), 1);
     }
 
-    ND4J_LOCAL void sequenceMask(sd::LaunchContext * context, NDArray* input, NDArray* output, int maxIndex) {
-        BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), sequenceMask_, (input, output, maxIndex), INTEGER_TYPES, LIBND4J_TYPES_EXTENDED);
+    void sequenceMask(sd::LaunchContext * context, NDArray* input, NDArray* output, int maxIndex) {
+        BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), sequenceMask_, (input, output, maxIndex), SD_INTEGER_TYPES, SD_COMMON_TYPES_EXTENDED);
     }
 
-    BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL void sequenceMask_, (NDArray* input, NDArray* output, int maxIndex), INTEGER_TYPES, LIBND4J_TYPES_EXTENDED);
+    BUILD_DOUBLE_TEMPLATE(template void sequenceMask_, (NDArray* input, NDArray* output, int maxIndex), SD_INTEGER_TYPES, SD_COMMON_TYPES_EXTENDED);
 }
 }
 }

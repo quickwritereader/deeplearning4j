@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -51,7 +50,7 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
     const T epsilon = static_cast<T>(dEpsilon);
     const T iteration = static_cast<T>(nIteration);
 
-    const T mbeta1T = 1.0 - sd::math::nd4j_pow<T, T, T>(beta1, (iteration + 1));
+    const T mbeta1T = 1.0 - sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
     const T mbeta1 = (1 - beta1);
     const T mbeta2 = (1 - beta2);
 
@@ -70,7 +69,7 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
                      stM[i] = beta1 * initM[i] + oneMinusBeta1Grad;
                      stV[i] = beta2 * initV[i] + grad[i] * grad[i] * mbeta2;
 
-                     up[i] = (lr * ((stM[i] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::nd4j_sqrt<T, T>(stV[i]) + epsilon);
+                     up[i] = (lr * ((stM[i] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::sd_sqrt<T, T>(stV[i]) + epsilon);
                  }
             };
 
@@ -86,7 +85,7 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -101,7 +100,7 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
             stM[stMOffset] = beta1 * initM[initMOffset] + oneMinusBeta1Grad;
             stV[stVOffset] = beta2 * initV[initVOffset] + grad[xOffset] * grad[xOffset] * mbeta2;
 
-            up[zOffset] = (lr * ((stM[stMOffset] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::nd4j_sqrt<T, T>(stV[stVOffset]) + epsilon);
+            up[zOffset] = (lr * ((stM[stMOffset] * beta1 + oneMinusBeta1Grad) / mbeta1T)) / (sd::math::sd_sqrt<T, T>(stV[stVOffset]) + epsilon);
         }
     };
 
@@ -109,9 +108,9 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
     return;
 }
 
- void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM,
+void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM,
                  NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), nadamUpdater_, (gradient, initStateV, initStateM, update, stateV, stateM, dLr, dBeta1, dBeta2, dEpsilon, nIteration), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), nadamUpdater_, (gradient, initStateV, initStateM, update, stateV, stateM, dLr, dBeta1, dBeta2, dEpsilon, nIteration), SD_FLOAT_TYPES);
 }
 
 

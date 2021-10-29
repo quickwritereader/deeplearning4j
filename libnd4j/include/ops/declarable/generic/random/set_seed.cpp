@@ -32,21 +32,21 @@ namespace sd {
 //            REQUIRE_TRUE(block.getRNG() != nullptr, 0, "RNG should be defined in Graph");
             auto rng = block.getRng(); //.getRNG();
 
-            Nd4jLong seed = 0;
+            sd::LongType seed = 0;
             if (block.getIArguments()->size() > 0) {
                 seed = INT_ARG(0);
             } else if (block.width() > 0) {
                 auto input = INPUT_VARIABLE(0);
                 REQUIRE_TRUE(input->isScalar(),0 ,"SetSeed: Seed operand should be scalar");
-                seed = input->e<Nd4jLong>(0);
+                seed = input->e<sd::LongType>(0);
             } else {
                 REQUIRE_TRUE(false, 0, "SetSeed: either IArg or scalr input should be provided");
             }
 
             // FIXME: this approach isn't really good for cuda, since it'll assume that CUDA might get nullptr instead of stream
-            //refreshBuffer(nullptr, seed, (Nd4jPointer) rng);
+            //refreshBuffer(nullptr, seed, (sd::Pointer) rng);
             rng.setSeed((int)seed);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(set_seed) {

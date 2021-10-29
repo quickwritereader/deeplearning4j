@@ -21,7 +21,6 @@
  //
  // @author AbdelRauf 
  //
-
 #include <system/op_boilerplate.h>
 #include <ops/declarable/helpers/imagesHelpers.h>
 #include <helpers/ConstantTadHelper.h>
@@ -34,7 +33,7 @@ namespace ops     {
 namespace helpers {
 
     template<typename X>
-    _CUDA_HD static uint8_t pack(const X* buff, const X& threshold){
+    SD_HOST_DEVICE static uint8_t pack(const X* buff, const X& threshold){
         uint8_t res;
         res = (buff[0] > threshold) << 7;
         res = res | ((buff[1] > threshold) << 6); 
@@ -48,7 +47,7 @@ namespace helpers {
     }
 
     template<>
-    _CUDA_HD uint8_t pack<bool>(const bool* buff, const bool &threshold){
+    SD_HOST_DEVICE uint8_t pack<bool>(const bool* buff, const bool &threshold){
         //ignore threshold
         uint8_t res;
         res = buff[0] << 7;
@@ -63,7 +62,7 @@ namespace helpers {
     }
 
     template<typename X>
-    _CUDA_HD static uint8_t pack(const X* buff, int stride, const X& threshold){
+    SD_HOST_DEVICE static uint8_t pack(const X* buff, int stride, const X& threshold){
         uint8_t res;
         res = (buff[0] > threshold) << 7;
         res = res | ((buff[1*stride] > threshold) << 6); 
@@ -77,7 +76,7 @@ namespace helpers {
     }
 
     template<>
-    _CUDA_HD uint8_t pack<bool>(const bool* buff, int stride, const bool &threshold){
+    SD_HOST_DEVICE uint8_t pack<bool>(const bool* buff, int stride, const bool &threshold){
         //ignore threshold
         uint8_t res;
         res = buff[0] << 7;
@@ -92,7 +91,7 @@ namespace helpers {
     }
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void _CUDA_G cmpBitpack(const void* vx, void* vz,  int rank, int len, const Nd4jLong *xStridesExtended, const Nd4jLong *outPutShapeInfo, T threshold) {
+static void SD_KERNEL cmpBitpack(const void* vx, void* vz,  int rank, int len, const sd::LongType *xStridesExtended, const sd::LongType *outPutShapeInfo, T threshold) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     uint8_t* z = reinterpret_cast<uint8_t*>(vz);
@@ -100,8 +99,8 @@ static void _CUDA_G cmpBitpack(const void* vx, void* vz,  int rank, int len, con
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
     auto shapes = shape::shapeOf(outPutShapeInfo);
     auto zStrides = shape::stride(outPutShapeInfo);
-    Nd4jLong coords[MAX_RANK] = {};
-    Nd4jLong* ptr_coords = (Nd4jLong*)&coords;
+    sd::LongType coords[SD_MAX_RANK] = {};
+    sd::LongType* ptr_coords = (sd::LongType*)&coords;
     // its extended as {rank+1} so xStridesExtended[rank] is valid 
     auto inLastStride = xStridesExtended[rank];
 
@@ -115,7 +114,7 @@ static void _CUDA_G cmpBitpack(const void* vx, void* vz,  int rank, int len, con
 }
 
 template <typename T>
-static void _CUDA_G cmpBitpackEws(const void* vx, void* vz,  int len, const Nd4jLong xStride,  const Nd4jLong yStride,  T threshold) {
+static void SD_KERNEL cmpBitpackEws(const void* vx, void* vz,  int len, const sd::LongType xStride,  const sd::LongType yStride,  T threshold) {
 
     const T* x = reinterpret_cast<const T*>(vx);
     uint8_t* z = reinterpret_cast<uint8_t*>(vz);
@@ -138,7 +137,7 @@ static void _CUDA_G cmpBitpackEws(const void* vx, void* vz,  int len, const Nd4j
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static _CUDA_H void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDArray& input, const NDArray& thresholdScalar, NDArray& output) {
+static SD_HOST void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDArray& input, const NDArray& thresholdScalar, NDArray& output) {
     T threshold = thresholdScalar.e<T>(0);
 
 
@@ -146,11 +145,11 @@ static _CUDA_H void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDAr
     auto rank = output.rankOf();
 
     //threadblock size
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     //grid size
     const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     auto stream = block.launchContext()->getCudaStream();
-    //nd4j_printf("n %i g %i th %i \n", output.lengthOf(), blocksPerGrid, threadsPerBlock);
+    //sd_printf("n %i g %i th %i \n", output.lengthOf(), blocksPerGrid, threadsPerBlock);
     PointersManager manager(block.launchContext(), "compare_and_bitpack");
     NDArray::prepareSpecialUse({&output}, {&input});
     if(input.ews()>0 && output.ews()>0 && input.ordering()=='c' && output.ordering()=='c'){
@@ -159,7 +158,7 @@ static _CUDA_H void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDAr
         //if output shape is {n1, n2, n3} then input shape is { n1. n2, n3 * 8}
         //therefore we can split input shape  {n1, n2, n3 , 8} and correct its stride
         //as we do not need last shape info. lets just extend and correct its stride
-        Nd4jLong extendedStrides[MAX_RANK];
+        sd::LongType extendedStrides[SD_MAX_RANK];
         for(int i=0;i<rank; i++){
             extendedStrides[i] = inStrides[i];
         }
@@ -167,8 +166,8 @@ static _CUDA_H void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDAr
         extendedStrides[rank-1] = 8*inStrides[rank-1];
         extendedStrides[rank] = inStrides[rank-1];
 
-        auto strideSize = (rank+1)*sizeof(Nd4jLong); 
-        Nd4jLong* extendedStridesDevPtr = reinterpret_cast<Nd4jLong*>(manager.replicatePointer(extendedStrides, strideSize));
+        auto strideSize = (rank+1)*sizeof(sd::LongType); 
+        sd::LongType* extendedStridesDevPtr = reinterpret_cast<sd::LongType*>(manager.replicatePointer(extendedStrides, strideSize));
         cmpBitpack<T><<<blocksPerGrid, threadsPerBlock >>>(input.specialBuffer(), output.specialBuffer(), rank, output.lengthOf(), extendedStridesDevPtr, output.specialShapeInfo(), threshold);
     }
 
@@ -178,11 +177,10 @@ static _CUDA_H void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDAr
 }
 
 
-ND4J_LOCAL void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output)  {
+void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output)  {
 
-    BUILD_SINGLE_SELECTOR(input.dataType(), cmpBitpackCudaLauncher, (block, input, threshold, output), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), cmpBitpackCudaLauncher, (block, input, threshold, output), SD_COMMON_TYPES);
 }
-
 
 
 }

@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/axis.h>
 #include <helpers/PointersManager.h>
 #include <helpers/TAD.h>
@@ -49,33 +48,33 @@ namespace helpers {
 //      - outputOffsets - output TAD offsets
 //
     template <typename T>
-    static __global__ void globalExtractPatchesKernel(bool theSame, int batchCount, int sizeRow, int sizeCol, int rowDim, int colDim, int outRowDim, int outColDim, int strideRow, int strideCol, int rateRow, int rateCol, int rowCast, int colCast, int lastDim, const T* input, const Nd4jLong* patchShape, const Nd4jLong* inputOffsets, T* output, const Nd4jLong* outTadShape, const Nd4jLong* outputOffsets) {
+    static SD_KERNEL void globalExtractPatchesKernel(bool theSame, int batchCount, int sizeRow, int sizeCol, int rowDim, int colDim, int outRowDim, int outColDim, int strideRow, int strideCol, int rateRow, int rateCol, int rowCast, int colCast, int lastDim, const T* input, const sd::LongType* patchShape, const sd::LongType* inputOffsets, T* output, const sd::LongType* outTadShape, const sd::LongType* outputOffsets) {
 
         auto start = threadIdx.x + blockIdx.x * blockDim.x;
 
         auto step = blockDim.x * gridDim.x;
         // batch  input by 3 last dims and extrapole input onto output with outColDim/outRowDim
-        for (Nd4jLong batch = start; batch < batchCount; batch += step) {
+        for (sd::LongType batch = start; batch < batchCount; batch += step) {
             auto patch = input + inputOffsets[batch];// listOfMatricies->at(batch);
             auto outMatrix = output + outputOffsets[batch]; //listOfOutputs->at(batch);
 
-            for (Nd4jLong i = 0; i < outRowDim; i++) {
-                for (Nd4jLong j = 0; j < outColDim; j++) {
-                    Nd4jLong pos = 0;
+            for (sd::LongType i = 0; i < outRowDim; i++) {
+                for (sd::LongType j = 0; j < outColDim; j++) {
+                    sd::LongType pos = 0;
                     auto rowStart = i * strideRow - (theSame?rowCast:0);
                     auto colStart = j * strideCol - (theSame?colCast:0);
                     auto rowEnd = rowStart + sizeRow * rateRow;
                     auto colEnd = colStart + sizeCol * rateCol;
                     if (!theSame) {
-                        rowEnd = math::nd4j_min(rowStart + sizeRow * rateRow, Nd4jLong (rowDim));
-                        colEnd = math::nd4j_min(colStart + sizeCol * rateCol, Nd4jLong (colDim));
+                        rowEnd = math::sd_min(rowStart + sizeRow * rateRow, sd::LongType (rowDim));
+                        colEnd = math::sd_min(colStart + sizeCol * rateCol, sd::LongType (colDim));
                     }
 
                     for (auto row = rowStart; row < rowEnd; row += rateRow) {
                         for (auto col = colStart; col < colEnd; col += rateCol) {
                             for (auto pixel = 0; pixel < lastDim; pixel++) {
-                                Nd4jLong zPos[] = {i, j, pos};
-                                Nd4jLong xPos[] = {row, col, pixel};
+                                sd::LongType zPos[] = {i, j, pos};
+                                sd::LongType xPos[] = {row, col, pixel};
                                 bool setUp =
                                         (theSame && row >= 0 && col >= 0 && row < rowDim && col < colDim) || (!theSame);
 
@@ -102,12 +101,12 @@ namespace helpers {
         const int ksizeRowsEffective = sizeRow + (sizeRow - 1) * (rateRow - 1);
         const int ksizeColsEffective = sizeCol + (sizeCol - 1) * (rateCol - 1);
         const int ksize = ksizeRowsEffective * ksizeColsEffective;
-        Nd4jLong lastDim = images->sizeAt(3);
-        Nd4jLong outLastDim = output->sizeAt(3);
-        Nd4jLong rowDim = images->sizeAt(1);
-        Nd4jLong colDim = images->sizeAt(2);
-        Nd4jLong outRowDim = output->sizeAt(1);
-        Nd4jLong outColDim = output->sizeAt(2);
+        sd::LongType lastDim = images->sizeAt(3);
+        sd::LongType outLastDim = output->sizeAt(3);
+        sd::LongType rowDim = images->sizeAt(1);
+        sd::LongType colDim = images->sizeAt(2);
+        sd::LongType outRowDim = output->sizeAt(1);
+        sd::LongType outColDim = output->sizeAt(2);
         auto rowCast = 1;
         auto colCast = 1;
         // validate shifts
@@ -134,14 +133,13 @@ namespace helpers {
         manager.synchronize();
         NDArray::registerSpecialUse({output}, {images});
     }
-    BUILD_SINGLE_TEMPLATE(template void _extractPatches, (sd::LaunchContext * context, NDArray* input, NDArray* output, int sizeRow, int sizeCol, int stradeRow, int stradeCol, int rateRow, int rateCol, bool theSame), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void _extractPatches, (sd::LaunchContext * context, NDArray* input, NDArray* output, int sizeRow, int sizeCol, int stradeRow, int stradeCol, int rateRow, int rateCol, bool theSame), SD_COMMON_TYPES);
 
 
-
-    ND4J_LOCAL void extractPatches(sd::LaunchContext * context, NDArray* images, NDArray* output, int sizeRow, int sizeCol, int stradeRow, int stradeCol, int rateRow, int rateCol, bool theSame){
+    void extractPatches(sd::LaunchContext * context, NDArray* images, NDArray* output, int sizeRow, int sizeCol, int stradeRow, int stradeCol, int rateRow, int rateCol, bool theSame){
         auto xType = images->dataType();
 
-        BUILD_SINGLE_SELECTOR(xType, _extractPatches, (context, images, output, sizeRow, sizeCol, stradeRow, stradeCol, rateRow, rateCol, theSame), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _extractPatches, (context, images, output, sizeRow, sizeCol, stradeRow, stradeCol, rateRow, rateCol, theSame), SD_COMMON_TYPES);
     }
 }
 }

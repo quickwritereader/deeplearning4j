@@ -23,15 +23,14 @@
 #ifndef LIBND4J_NDINDEX_H
 #define LIBND4J_NDINDEX_H
 
-#include <system/pointercast.h>
 #include <vector>
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT NDIndex {
+    class SD_LIB_EXPORT NDIndex {
     protected:
-        std::vector<Nd4jLong> _indices;
-        Nd4jLong _stride = 1;
+        std::vector<sd::LongType> _indices;
+        sd::LongType _stride = 1;
     public:
         NDIndex() = default;
         ~NDIndex() = default;
@@ -40,15 +39,15 @@ namespace sd {
         bool isPoint();
         virtual bool isInterval();
 
-        std::vector<Nd4jLong>& getIndices();
-        Nd4jLong stride();
+        std::vector<sd::LongType>& getIndices();
+        sd::LongType stride();
 
         static NDIndex* all();
-        static NDIndex* point(Nd4jLong pt);
-        static NDIndex* interval(Nd4jLong start, Nd4jLong end, Nd4jLong stride = 1);
+        static NDIndex* point(sd::LongType pt);
+        static NDIndex* interval(sd::LongType start, sd::LongType end, sd::LongType stride = 1);
     };
 
-    class ND4J_EXPORT NDIndexAll : public NDIndex {
+    class SD_LIB_EXPORT NDIndexAll : public NDIndex {
     public:
         NDIndexAll();
         virtual bool isInterval();
@@ -56,21 +55,20 @@ namespace sd {
     };
 
 
-    class ND4J_EXPORT NDIndexPoint : public NDIndex {
+    class SD_LIB_EXPORT NDIndexPoint : public NDIndex {
     public:
-        NDIndexPoint(Nd4jLong point);
+        NDIndexPoint(sd::LongType point);
         virtual bool isInterval();
         ~NDIndexPoint() = default;
     };
 
-    class ND4J_EXPORT NDIndexInterval : public NDIndex {
+    class SD_LIB_EXPORT NDIndexInterval : public NDIndex {
     public:
-        NDIndexInterval(Nd4jLong start, Nd4jLong end, Nd4jLong stride = 1);
+        NDIndexInterval(sd::LongType start, sd::LongType end, sd::LongType stride = 1);
         virtual bool isInterval();
         ~NDIndexInterval() = default;
     };
 }
-
 
 
 #endif //LIBND4J_NDINDEX_H

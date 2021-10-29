@@ -46,7 +46,7 @@ namespace sd {
             char order = (char) INT_ARG(0);
             helpers::flatten(block.launchContext(), arrays, output, order);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(flatten) {
@@ -55,7 +55,7 @@ namespace sd {
         }
 
         DECLARE_SHAPE_FN(flatten) {
-            Nd4jLong length = 0;
+            sd::LongType length = 0;
             sd::DataType dtype = ArrayOptions::dataType(inputShape->at(0));
             for (int e = 0; e < inputShape->size(); e++) {
                 length += shape::length(inputShape->at(e));

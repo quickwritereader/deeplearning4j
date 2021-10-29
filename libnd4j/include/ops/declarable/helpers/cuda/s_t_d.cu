@@ -19,16 +19,15 @@
 //
 //
 //
-
 #include <ops/declarable/helpers/s_t_d.h>
 
 namespace sd {
 namespace ops {
 namespace helpers {
     template <typename T>
-    static _CUDA_G void spaceToDepthKernel(
-            const void *vx, const Nd4jLong *xShapeInfo,
-            void *vz, const Nd4jLong *zShapeInfo,
+    static SD_KERNEL void spaceToDepthKernel(
+            const void *vx, const sd::LongType *xShapeInfo,
+            void *vz, const sd::LongType *zShapeInfo,
             const int block_size,
             const bool isNHWC) {
         auto input_ptr = reinterpret_cast<const T *>(vx);
@@ -100,9 +99,9 @@ namespace helpers {
         spaceToDepthKernel<T><<<512, 512, 1024, *context->getCudaStream()>>>(input.specialBuffer(), input.specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), block_size, isNHWC);
     }
 
-    ND4J_LOCAL void _spaceTodepth(sd::LaunchContext * context, const NDArray &input, NDArray *output, int block_size, bool isNHWC) {
+    void _spaceTodepth(sd::LaunchContext * context, const NDArray &input, NDArray *output, int block_size, bool isNHWC) {
         NDArray::prepareSpecialUse({output}, {&input});
-        BUILD_SINGLE_SELECTOR(input.dataType(), _spaceTodepth_, (context, input, output, block_size, isNHWC), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(input.dataType(), _spaceTodepth_, (context, input, output, block_size, isNHWC), SD_COMMON_TYPES);
         NDArray::registerSpecialUse({output}, {&input});
     }
 }

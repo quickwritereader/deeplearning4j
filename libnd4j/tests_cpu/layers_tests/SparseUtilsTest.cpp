@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 04.08.17.
 //
-
 #include "testlayers.h"
 #include <memory>
 #include <array/NDArray.h>
@@ -29,7 +28,7 @@ using namespace sd;
 //////////////////////////////////////////////////////////////////////
 class SparseUtilsTest : public testing::Test {
 public:
-    static const Nd4jLong nnz = 40;
+    static const sd::LongType nnz = 40;
     static const int rank = 3;
 };
 
@@ -40,7 +39,7 @@ TEST_F(SparseUtilsTest, SortCOOindices_Test) {
 #ifndef __CUDABLAS__
 
 
-    Nd4jLong * indicesArr = new Nd4jLong[nnz * rank]{
+    sd::LongType * indicesArr = new sd::LongType[nnz * rank]{
             0,2,7,
             2,36,35,
             3,30,17,
@@ -83,7 +82,7 @@ TEST_F(SparseUtilsTest, SortCOOindices_Test) {
             49,38,39,
     };
 
-    Nd4jLong * expIndicesArr = new Nd4jLong[nnz * rank]{
+    sd::LongType * expIndicesArr = new sd::LongType[nnz * rank]{
             0, 2, 7,
             2, 36, 35,
             3, 30, 17,
@@ -155,7 +154,7 @@ TEST_F(SparseUtilsTest, RavelIndices_Test) {
 
 #ifndef __CUDABLAS__
 
-    Nd4jLong * indicesArrExp = new Nd4jLong[nnz * rank]{
+    sd::LongType * indicesArrExp = new sd::LongType[nnz * rank]{
             0,2,7,
             2,36,35,
             3,30,17,
@@ -197,9 +196,9 @@ TEST_F(SparseUtilsTest, RavelIndices_Test) {
             48,34,44,
             49,38,39,
     };
-    Nd4jLong * indicesArr = new Nd4jLong[nnz * rank];
+    sd::LongType * indicesArr = new sd::LongType[nnz * rank];
 
-        Nd4jLong * flatIndicesExp = new Nd4jLong[nnz]{
+        sd::LongType * flatIndicesExp = new sd::LongType[nnz]{
             147,  10955,  14717,  21862,  24055,  27451,  34192,  39841,
             21792,  64836,  74809, 102791, 109643, 131701, 150265, 156324,
             27878,  31380,  35669,  35870,  40783,  47268,  55905, 123659,
@@ -207,11 +206,11 @@ TEST_F(SparseUtilsTest, RavelIndices_Test) {
             179762, 182468, 186459, 190294, 195165, 195457, 204024, 208499
     };
 
-    Nd4jLong * flatIndices = new Nd4jLong[nnz];
+    sd::LongType * flatIndices = new sd::LongType[nnz];
 
 
-    Nd4jLong * shape =  new Nd4jLong[rank]{50, 60, 70};
-    Nd4jLong * shapeInfoBuffer = shape::shapeBuffer(rank, sd::DataType::INT64, shape);
+    sd::LongType * shape =  new sd::LongType[rank]{50, 60, 70};
+    sd::LongType * shapeInfoBuffer = shape::shapeBuffer(rank, sd::DataType::INT64, shape);
 
 
     sd::sparse::IndexUtils::ravelMultiIndex(indicesArrExp, flatIndices, nnz, shapeInfoBuffer, ND4J_CLIPMODE_THROW);

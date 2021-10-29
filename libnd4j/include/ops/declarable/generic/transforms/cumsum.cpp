@@ -40,7 +40,7 @@ CONFIGURABLE_OP_IMPL(cumsum, 1, 1, true, 0, 2) {
 
     if(input->isEmpty()){
         //No-op
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     if (block.getIArguments()->size() == 2 && block.width() == 1) {
@@ -67,7 +67,7 @@ CONFIGURABLE_OP_IMPL(cumsum, 1, 1, true, 0, 2) {
         sd::ops::helpers::prefix(block.launchContext(), scalar::Add, input, output, dims, exclusive, reverse);
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
     DECLARE_TYPES(cumsum) {
 
@@ -124,7 +124,7 @@ CUSTOM_OP_IMPL(cumsum_bp, 2, -1, true, 0, 2) {
             sd::ops::helpers::prefix(block.launchContext(), scalar::Add, gradOut, output, true, false);
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
     DECLARE_TYPES(cumsum_bp) {
         getOpDescriptor()->setAllowedInputTypes(0, {ALL_FLOATS, ALL_INTS});
@@ -135,13 +135,13 @@ CUSTOM_OP_IMPL(cumsum_bp, 2, -1, true, 0, 2) {
 
     DECLARE_SHAPE_FN(cumsum_bp) {
         auto inp = inputShape->at(0);
-        Nd4jLong *newShapeX = nullptr;
+        sd::LongType *newShapeX = nullptr;
         COPY_SHAPE(inp, newShapeX);
 
         if (block.width() == 2) {
             return SHAPELIST(CONSTANT(newShapeX));
         } else {
-            Nd4jLong *newShapeA = nullptr;
+            sd::LongType *newShapeA = nullptr;
             COPY_SHAPE(inputShape->at(1), newShapeA);
 
             return SHAPELIST(CONSTANT(newShapeX), CONSTANT(newShapeA));

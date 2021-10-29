@@ -21,7 +21,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <helpers/PointersManager.h>
 
@@ -30,7 +29,7 @@ namespace ops  {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-__global__ static void upsampling3dCuda(const void* vx, const Nd4jLong* xShapeInfo, void* vz, const Nd4jLong* zShapeInfo, const int factorD, const int factorH, const int factorW, const bool isNCDHW) {
+SD_KERNEL static void upsampling3dCuda(const void* vx, const sd::LongType* xShapeInfo, void* vz, const sd::LongType* zShapeInfo, const int factorD, const int factorH, const int factorW, const bool isNCDHW) {
 
     // x has shape [bS, iC, iD, iH, iW] (NCDHW) or [bS, iD, iH, iW, iC] (NDHWC)
     // z has shape [bS, iC, factorD*iD, factorH*iH, factorW*iW ] (NCDHW) or [bS, factorD*iD, factorH*iH, factorW*iW, iC] (NDHWC)
@@ -39,11 +38,11 @@ __global__ static void upsampling3dCuda(const void* vx, const Nd4jLong* xShapeIn
           T* z = reinterpret_cast<T*>(vz);
 
     __shared__ int rank, dimID;
-    __shared__ Nd4jLong zLen, *sharedMem;
+    __shared__ sd::LongType zLen, *sharedMem;
 
     if (threadIdx.x == 0) {
         extern __shared__ unsigned char shmem[];
-        sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+        sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
         dimID = isNCDHW ? 2 : 1;
         zLen  = shape::length(zShapeInfo);
@@ -74,24 +73,24 @@ __global__ static void upsampling3dCuda(const void* vx, const Nd4jLong* xShapeIn
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void upsampling3dCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                     const void* vx, const Nd4jLong* xShapeInfo,
-                                           void* vz, const Nd4jLong* zShapeInfo,
+                                     const void* vx, const sd::LongType* xShapeInfo,
+                                           void* vz, const sd::LongType* zShapeInfo,
                                      const int factorD, const int factorH, const int factorW, const bool isNCDHW) {
 
     upsampling3dCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vz, zShapeInfo, factorD, factorH, factorW, isNCDHW);
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void ConvolutionUtils::upsampling3d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int factorD, const int factorH, const int factorW, const bool isNCDHW) {
+void ConvolutionUtils::upsampling3d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int factorD, const int factorH, const int factorW, const bool isNCDHW) {
 
     PointersManager manager(block.launchContext(), "upsampling3d");
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-    const int sharedMem = output.rankOf() * sizeof(Nd4jLong) * threadsPerBlock + 128;
+    const int sharedMem = output.rankOf() * sizeof(sd::LongType) * threadsPerBlock + 128;
 
     NDArray::prepareSpecialUse({&output}, {&input});
-    BUILD_SINGLE_SELECTOR(input.dataType(), upsampling3dCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), factorD, factorH, factorW, isNCDHW), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), upsampling3dCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), factorD, factorH, factorW, isNCDHW), SD_FLOAT_TYPES);
     NDArray::registerSpecialUse({&output}, {&input});
 
     manager.synchronize();

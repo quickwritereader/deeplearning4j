@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <flatbuffers/flatbuffers.h>
 #include <graph/generated/node_generated.h>
@@ -37,8 +36,8 @@ class FlatBuffersTest : public testing::Test {
 public:
     int alpha = 0;
 
-    Nd4jLong *cShape = new Nd4jLong[8]{2, 2, 2, 2, 1, 8192, 1, 99};
-    Nd4jLong *fShape = new Nd4jLong[8]{2, 2, 2, 1, 2, 8192, 1, 102};
+    sd::LongType *cShape = new sd::LongType[8]{2, 2, 2, 2, 1, 8192, 1, 99};
+    sd::LongType *fShape = new sd::LongType[8]{2, 2, 2, 1, 2, 8192, 1, 102};
 
     FlatBuffersTest() {
         Environment::getInstance().setDebug(false);
@@ -72,7 +71,6 @@ TEST_F(FlatBuffersTest, BasicTest1) {
     uint8_t *buf = builder.GetBufferPointer();
     int size = builder.GetSize();
     ASSERT_TRUE(size > 0);
-
 
 
     auto restored = GetFlatNode(buf);
@@ -161,7 +159,7 @@ TEST_F(FlatBuffersTest, FlatGraphTest1) {
     ASSERT_EQ(1, restoredGraph->variables()->size());
     ASSERT_EQ(-1, restoredGraph->variables()->Get(0)->id()->first());
 
-    // nd4j_printf("-------------------------\n","");
+    // sd_printf("-------------------------\n","");
 
     Graph graph(restoredGraph);
 
@@ -186,14 +184,14 @@ TEST_F(FlatBuffersTest, FlatGraphTest1) {
 
     sd::graph::GraphExecutioner::execute(&graph);
 
-    auto resultWrapper = sd::graph::GraphExecutioner::executeFlatBuffer((Nd4jPointer) buf);
+    auto resultWrapper = sd::graph::GraphExecutioner::executeFlatBuffer((sd::Pointer) buf);
 
     auto flatResults = GetFlatResult(resultWrapper->pointer());
 
     ASSERT_EQ(1, flatResults->variables()->size());
     ASSERT_TRUE(flatResults->variables()->Get(0)->name() != nullptr);
     ASSERT_TRUE(flatResults->variables()->Get(0)->name()->c_str() != nullptr);
-    //nd4j_printf("VARNAME: %s\n", flatResults->variables()->Get(0)->name()->c_str());
+    //sd_printf("VARNAME: %s\n", flatResults->variables()->Get(0)->name()->c_str());
 
     auto var0 = new Variable(flatResults->variables()->Get(0));
     //auto var1 = new Variable<float>(flatResults->variables()->Get(1));
@@ -277,7 +275,6 @@ TEST_F(FlatBuffersTest, ExplicitOutputTest1) {
     nodes_vector.push_back(node1);
 
 
-
     auto nodes = builder.CreateVector(nodes_vector);
     auto variables = builder.CreateVector(variables_vector);
 
@@ -331,8 +328,8 @@ TEST_F(FlatBuffersTest, ReadFile1) {
     ASSERT_EQ(4, ones->lengthOf());
     ASSERT_NEAR(4.0f, ones->template reduceNumber<simdOps::Sum<float>>(), 1e-5);
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(restoredGraph);
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = GraphExecutioner<float>::execute(restoredGraph);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto result = restoredGraph->getVariableSpace()->getVariable(2)->getNDArray();
     ASSERT_EQ(1, result->lengthOf());
@@ -344,7 +341,7 @@ TEST_F(FlatBuffersTest, ReadFile1) {
 
 TEST_F(FlatBuffersTest, ReadFile2) {
     uint8_t* data = sd::graph::readFlatBuffers("./resources/adam_sum.fb");
-    Nd4jPointer result = GraphExecutioner<float>::executeFlatBuffer((Nd4jPointer) data);
+    sd::Pointer result = GraphExecutioner<float>::executeFlatBuffer((sd::Pointer) data);
 
     ResultSet<float> arrays(GetFlatResult(result));
 
@@ -358,9 +355,9 @@ TEST_F(FlatBuffersTest, ReadFile2) {
 
 TEST_F(FlatBuffersTest, ReadFile3) {
     auto graph = GraphExecutioner<float>::importFromFlatBuffers("./resources/adam_sum.fb");
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto z = graph->getVariableSpace()->getVariable(2)->getNDArray();
 
@@ -374,9 +371,9 @@ TEST_F(FlatBuffersTest, ReadFile3) {
 TEST_F(FlatBuffersTest, ReadInception1) {
     auto graph = GraphExecutioner<float>::importFromFlatBuffers("./resources/inception.fb");
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(227));
 
     auto lastNode = graph->getVariableSpace()->getVariable(227)->getNDArray();
@@ -385,9 +382,9 @@ TEST_F(FlatBuffersTest, ReadInception1) {
 
     auto argMax = lastNode->argMax();
 
-    //nd4j_printf("Predicted class: %i\n", (int) argMax);
-    //nd4j_printf("Probability: %f\n", lastNode->e(argMax));
-    //nd4j_printf("Probability ipod: %f\n", lastNode->e(980));
+    //sd_printf("Predicted class: %i\n", (int) argMax);
+    //sd_printf("Probability: %f\n", lastNode->e(argMax));
+    //sd_printf("Probability ipod: %f\n", lastNode->e(980));
     //lastNode->printBuffer("Whole output");
 
     ASSERT_EQ(561, (int) argMax);
@@ -418,9 +415,9 @@ TEST_F(FlatBuffersTest, ReadLoops_3argsWhile_1) {
 
     ASSERT_TRUE(expPhi.isSameShape(phi));
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     // now, we expect some values
 
@@ -434,7 +431,6 @@ TEST_F(FlatBuffersTest, ReadLoops_3argsWhile_1) {
 }
 
 
-
 TEST_F(FlatBuffersTest, ReadTensorArrayLoop_1) {
     auto exp('c', {5, 2}, {3., 6., 9., 12., 15., 18., 21., 24., 27., 30.});
     auto graph = GraphExecutioner<float>::importFromFlatBuffers("./resources/tensor_array_loop.fb");
@@ -443,9 +439,9 @@ TEST_F(FlatBuffersTest, ReadTensorArrayLoop_1) {
 
     //graph->printOut();
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto variableSpace = graph->getVariableSpace();
 
@@ -474,9 +470,9 @@ TEST_F(FlatBuffersTest, ReadLoops_NestedWhile_1) {
 
     ASSERT_TRUE(graph != nullptr);
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     auto x = graph->getVariableSpace()->getVariable(28);
     auto y = graph->getVariableSpace()->getVariable(29);
@@ -502,9 +498,9 @@ TEST_F(FlatBuffersTest, ReadTensorArray_1) {
 
     ASSERT_TRUE(graph != nullptr);
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(14));
 
@@ -524,9 +520,9 @@ TEST_F(FlatBuffersTest, ReadStridedSlice_1) {
 
     ASSERT_TRUE(graph != nullptr);
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(7));
 
@@ -536,7 +532,6 @@ TEST_F(FlatBuffersTest, ReadStridedSlice_1) {
 
     delete graph;
 }
-
 
 
 TEST_F(FlatBuffersTest, ReduceDim_1) {
@@ -557,9 +552,9 @@ TEST_F(FlatBuffersTest, ReduceDim_1) {
     auto x = variableSpace->getVariable(1)->getNDArray();
     auto y = variableSpace->getVariable(2)->getNDArray();
 
-    Nd4jStatus status = GraphExecutioner::execute(graph);
+    sd::Status status = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
@@ -590,9 +585,9 @@ TEST_F(FlatBuffersTest, ReduceDim_2) {
     auto x = variableSpace->getVariable(1)->getNDArray();
     auto y = variableSpace->getVariable(2)->getNDArray();
 
-    Nd4jStatus status = GraphExecutioner::execute(graph);
+    sd::Status status = GraphExecutioner::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(variableSpace->hasVariable(3));
 
@@ -618,7 +613,7 @@ TEST_F(FlatBuffersTest, Ae_00) {
     ASSERT_EQ(OutputMode_VARIABLE_SPACE, graph->getExecutorConfiguration()->_outputMode);
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(18));
 
@@ -640,7 +635,7 @@ TEST_F(FlatBuffersTest, expand_dims) {
 //    graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(5));
 
     auto z = graph->getVariableSpace()->getVariable(5)->getNDArray();
@@ -659,7 +654,7 @@ TEST_F(FlatBuffersTest, transpose) {
     //graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     delete graph;
 }
@@ -672,7 +667,7 @@ TEST_F(FlatBuffersTest, Test_Stitches) {
 
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     delete graph;
 }
@@ -686,13 +681,13 @@ TEST_F(FlatBuffersTest, Test_GruDynamicMnist) {
 
     auto timeStart = std::chrono::system_clock::now();
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     auto timeEnd = std::chrono::system_clock::now();
 
     auto outerTime = std::chrono::duration_cast<std::chrono::microseconds> (timeEnd - timeStart).count();
 
-    // nd4j_printf("GRU time 1 time %lld us\n", outerTime);
+    // sd_printf("GRU time 1 time %lld us\n", outerTime);
 
     delete graph;
 }
@@ -706,7 +701,7 @@ TEST_F(FlatBuffersTest, Test_Non2D_2) {
     //graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     delete graph;
 }
@@ -722,7 +717,7 @@ TEST_F(FlatBuffersTest, Test_TensorDotMisc) {
 //    graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(77));
 
@@ -740,7 +735,7 @@ TEST_F(FlatBuffersTest, Test_MNIST_00_1) {
     //graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(6));
 
@@ -752,13 +747,12 @@ TEST_F(FlatBuffersTest, Test_MNIST_00_1) {
 }
 
 
-
 TEST_F(FlatBuffersTest, Test_MNIST_1) {
     auto graph = GraphExecutioner::importFromFlatBuffers("./resources/mnist.fb");
     //graph->printOut();
 
     auto result = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     delete graph;
 }
@@ -775,7 +769,7 @@ TEST_F(FlatBuffersTest, nhwc_conv_0) {
     graph->printOut();
 
     auto result = GraphExecutioner<float>::execute(graph);
-    ASSERT_EQ(ND4J_STATUS_OK, result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_TRUE(graph->getVariableSpace()->hasVariable(11));
 
@@ -806,9 +800,9 @@ TEST_F(FlatBuffersTest, ReadLoops_SimpleWhile_1) {
 
     ASSERT_TRUE(graph != nullptr);
 
-    Nd4jStatus status = GraphExecutioner<float>::execute(graph);
+    sd::Status status = GraphExecutioner<float>::execute(graph);
 
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     delete graph;
 }

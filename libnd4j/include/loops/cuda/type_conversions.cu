@@ -19,14 +19,13 @@
 //
 //
 //
-
 #include <loops/type_conversions.h>
 #include <types/types.h>
 #include <helpers/DebugHelper.h>
 
 namespace sd {
     template<typename S, typename T>
-    void TypeCast::convertGenericCuda(Nd4jPointer *extras, void *dx, Nd4jLong N, void *dz) {
+    void TypeCast::convertGenericCuda(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
         auto stream = reinterpret_cast<cudaStream_t *>(&extras[1]);
 
         sd::convertKernel<S, T><<<256, 1024, 1024, *stream>>>(dx, N, dz);
@@ -35,10 +34,10 @@ namespace sd {
 
 
     template<typename S, typename T>
-    __device__ void convertKernelGeneric(S *x, Nd4jLong N, T *z) {
+    SD_DEVICE void convertKernelGeneric(S *x, sd::LongType N, T *z) {
         int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-        for (Nd4jLong i = tid; i < N; i+= blockDim.x * gridDim.x) {
+        for (sd::LongType i = tid; i < N; i+= blockDim.x * gridDim.x) {
             // despite it's stupid, it simplifies conversion to bottom dtypes
             // FIXME: get rid of through-float though
             z[i] = static_cast<T>(static_cast<float>(x[i]));
@@ -62,11 +61,8 @@ namespace sd {
 #endif
 
 
-
-
-
     template <bool isNP2>
-    __device__ void loadSharedChunkFromMem(int *s_data, const int *g_idata, int n, int baseIndex, int& ai, int& bi, int& mem_ai, int& mem_bi, int& bankOffsetA, int& bankOffsetB) {
+    SD_DEVICE void loadSharedChunkFromMem(int *s_data, const int *g_idata, int n, int baseIndex, int& ai, int& bi, int& mem_ai, int& mem_bi, int& bankOffsetA, int& bankOffsetB) {
         int thid = threadIdx.x;
         mem_ai = baseIndex + threadIdx.x;
         mem_bi = mem_ai + blockDim.x;
@@ -90,7 +86,7 @@ namespace sd {
     }
 
     template <bool isNP2>
-    __device__ void storeSharedChunkToMem(int* g_odata, int* s_data, int n, int ai, int bi, int mem_ai, int mem_bi, int bankOffsetA, int bankOffsetB) {
+    SD_DEVICE void storeSharedChunkToMem(int* g_odata, int* s_data, int n, int ai, int bi, int mem_ai, int mem_bi, int bankOffsetA, int bankOffsetB) {
         __syncthreads();
 
         // write results to global memory
@@ -104,7 +100,7 @@ namespace sd {
     }
 
     template <bool storeSum>
-    __device__ void clearLastElement(int* s_data, int *g_blockSums, int blockIndex) {
+    SD_DEVICE void clearLastElement(int* s_data, int *g_blockSums, int blockIndex) {
         if (threadIdx.x == 0)
         {
             int index = (blockDim.x << 1) - 1;
@@ -121,8 +117,7 @@ namespace sd {
     }
 
 
-
-    __device__ unsigned int buildSum(int *s_data) {
+    SD_DEVICE unsigned int buildSum(int *s_data) {
         unsigned int thid = threadIdx.x;
         unsigned int stride = 1;
 
@@ -147,7 +142,7 @@ namespace sd {
         return stride;
     }
 
-    __device__ void scanRootToLeaves(int *s_data, unsigned int stride) {
+    SD_DEVICE void scanRootToLeaves(int *s_data, unsigned int stride) {
         unsigned int thid = threadIdx.x;
 
         // traverse down the tree building the scan in place
@@ -172,7 +167,7 @@ namespace sd {
     }
 
     template <bool storeSum>
-    __device__ void prescanBlock(int *data, int blockIndex, int *blockSums) {
+    SD_DEVICE void prescanBlock(int *data, int blockIndex, int *blockSums) {
         int stride = buildSum(data);               // build the sum in place up the tree
         clearLastElement<storeSum>(data, blockSums,
                                    (blockIndex == 0) ? blockIdx.x : blockIndex);
@@ -181,7 +176,7 @@ namespace sd {
 
 
     template <bool storeSum, bool isNP2>
-    __global__ void prescan(int *g_odata, const int *g_idata, int *g_blockSums, int n, int blockIndex, int baseIndex) {
+    SD_KERNEL void prescan(int *g_odata, const int *g_idata, int *g_blockSums, int n, int blockIndex, int baseIndex) {
         int ai, bi, mem_ai, mem_bi, bankOffsetA, bankOffsetB;
         extern __shared__ int s_data[];
 
@@ -196,7 +191,7 @@ namespace sd {
     }
 
 
-    __global__ void uniformAdd(int *g_data, int *uniforms, int n, int blockOffset, int baseIndex) {
+    SD_KERNEL void uniformAdd(int *g_data, int *uniforms, int n, int blockOffset, int baseIndex) {
         __shared__ float uni;
         if (threadIdx.x == 0)
             uni = uniforms[blockIdx.x + blockOffset];
@@ -214,7 +209,7 @@ namespace sd {
  * This kernel does prefix sum in parallel, to calculate offsets for each block
  */
     template<typename T>
-    __device__ inline void encoderKernelP2Generic(void *dx, Nd4jLong n, void *dz) {
+    SD_DEVICE inline void encoderKernelP2Generic(void *dx, sd::LongType n, void *dz) {
         // TODO: to be remove
     }
 
@@ -223,14 +218,14 @@ namespace sd {
  * PLEASE NOTE: This kernel doesn't allow loop for data. Basically: grid will be huge.
  */
 template<typename T>
-__global__ static void execEncoderKernelP1(const void *dx, Nd4jLong N, void *dz, float threshold) {
+SD_KERNEL static void execEncoderKernelP1(const void *dx, sd::LongType N, void *dz, float threshold) {
         auto x = reinterpret_cast<const T *> (dx);
         auto z = reinterpret_cast<int *> (dz);
 
         //basically, for phase One we want do calculation: how many eligible values we have, and which blocks will be holding data
-        Nd4jLong tid = blockIdx.x * blockDim.x + threadIdx.x;
+        sd::LongType tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-        int pass = tid < N && sd::math::nd4j_abs<T>(x[tid]) >= static_cast<T>(threshold) ? 1 : 0;
+        int pass = tid < N && sd::math::sd_abs<T>(x[tid]) >= static_cast<T>(threshold) ? 1 : 0;
         int bp=__syncthreads_count(pass);
 
         if (threadIdx.x == 0) {
@@ -244,12 +239,12 @@ __global__ static void execEncoderKernelP1(const void *dx, Nd4jLong N, void *dz,
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void encoderKernelP1Generic(dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *dz, float threshold) {
+SD_HOST void encoderKernelP1Generic(dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *dz, float threshold) {
 
     execEncoderKernelP1<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(dx, N, dz, threshold);
         sd::DebugHelper::checkErrorCode(stream, "encoderP1(...) failed");
 }
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL encoderKernelP1Generic, (dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *dz, float threshold), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN encoderKernelP1Generic, (dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *dz, float threshold), SD_FLOAT_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
 /*
@@ -258,7 +253,7 @@ BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL encoderKernelP1Generic, (dim3 &la
  * Based on: https://github.com/knotman90/cuStreamComp <-- efficient CUDA stream compaction algorithm
  */
 template<typename T>
-__global__ static void execEncoderKernelP3(void *dx, int *offsets, Nd4jLong N, void *dz) {
+SD_KERNEL static void execEncoderKernelP3(void *dx, int *offsets, sd::LongType N, void *dz) {
         auto x = reinterpret_cast<T *> (dx);
         auto z = reinterpret_cast<int *> (dz);
 
@@ -282,7 +277,7 @@ __global__ static void execEncoderKernelP3(void *dx, int *offsets, Nd4jLong N, v
         auto value = tid < N ? x[tid] : (T) 0.f;
 
         // out-of-limit threads just declare they have no changes
-        auto pred = tid >= N ? 0 : sd::math::nd4j_abs<T>(value) >= static_cast<T>(threshold) ? 1 : 0;
+        auto pred = tid >= N ? 0 : sd::math::sd_abs<T>(value) >= static_cast<T>(threshold) ? 1 : 0;
         auto w_i = threadIdx.x / warpSize; // warp index (or, warp number) - index of the Warp within TOTAL_WARPS
         auto t_i = threadIdx.x % warpSize; // thread index within a warp
         unsigned int t_m = INT_MAX >> (warpSize - t_i - 1); //thread mask (ERROR IN THE PAPER minus one is required)
@@ -321,11 +316,11 @@ __global__ static void execEncoderKernelP3(void *dx, int *offsets, Nd4jLong N, v
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void encoderKernelP3Generic(dim3 &launchDims, cudaStream_t *stream, void *dx, int *offsets, Nd4jLong N, void *dz) {
+SD_HOST void encoderKernelP3Generic(dim3 &launchDims, cudaStream_t *stream, void *dx, int *offsets, sd::LongType N, void *dz) {
     execEncoderKernelP3<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(dx, offsets, N, dz);
         sd::DebugHelper::checkErrorCode(stream, "encoderP3(...) failed");
 }
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL encoderKernelP3Generic, (dim3 &launchDims, cudaStream_t *stream, void *dx, int *offsets, Nd4jLong N, void *dz), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN encoderKernelP3Generic, (dim3 &launchDims, cudaStream_t *stream, void *dx, int *offsets, sd::LongType N, void *dz), SD_FLOAT_TYPES);
 
 //////////////////////////////////////////////////////////////////////////
 /*
@@ -334,7 +329,7 @@ BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL encoderKernelP3Generic, (dim3 &la
  *   PLEASE NOTE: Z is expected to be memset to 0
 */
 template<typename T>
-__global__ static void execDecoderKernel(const void *dx, Nd4jLong N, void *dz) {
+SD_KERNEL static void execDecoderKernel(const void *dx, sd::LongType N, void *dz) {
         auto x = reinterpret_cast<const int *> (dx);
         auto z = reinterpret_cast<T *> (dz);
 
@@ -352,7 +347,7 @@ __global__ static void execDecoderKernel(const void *dx, Nd4jLong N, void *dz) {
 
         for (int e = tid; e < limit; e += blockDim.x * gridDim.x) {
             int el = x[e+4];
-            int ael = sd::math::nd4j_abs<int>(el) - 1;
+            int ael = sd::math::sd_abs<int>(el) - 1;
 
             // TODO: investigate, if += would work better here, as in "decoded accumulation"
             z[ael] += el > 0 ? threshold : -threshold;
@@ -361,17 +356,17 @@ __global__ static void execDecoderKernel(const void *dx, Nd4jLong N, void *dz) {
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void decoderKernelGeneric(dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *dz) {
+SD_HOST void decoderKernelGeneric(dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *dz) {
 
     execDecoderKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(dx, N, dz);
     sd::DebugHelper::checkErrorCode(stream, "execDecoder(...) failed");
 }
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL decoderKernelGeneric, (dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *dz), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN decoderKernelGeneric, (dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *dz), SD_FLOAT_TYPES);
 
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ static void execCudaEncodeBitmapKernel(void *vdx, Nd4jLong N, int *dz, int *scalar, int *reductionBuffer, float threshold) {
+SD_KERNEL static void execCudaEncodeBitmapKernel(void *vdx, sd::LongType N, int *dz, int *scalar, int *reductionBuffer, float threshold) {
         auto dx = reinterpret_cast<T *>(vdx);
         int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -387,13 +382,13 @@ __global__ static void execCudaEncodeBitmapKernel(void *vdx, Nd4jLong N, int *dz
         }
         __syncthreads();
 
-        Nd4jLong loopRemainder = N % (blockDim.x * gridDim.x);
-        Nd4jLong loopLimit = N + (blockDim.x * gridDim.x - loopRemainder);
+        sd::LongType loopRemainder = N % (blockDim.x * gridDim.x);
+        sd::LongType loopLimit = N + (blockDim.x * gridDim.x - loopRemainder);
 
-        for (Nd4jLong i = tid; i < loopLimit; i += blockDim.x * gridDim.x) {
+        for (sd::LongType i = tid; i < loopLimit; i += blockDim.x * gridDim.x) {
             // all threads in block reading stuff
             T val = i < N ? dx[i] : off;
-            T abs = sd::math::nd4j_abs<T>(val);
+            T abs = sd::math::sd_abs<T>(val);
 
             int byteId = i / 16 + 4;
             int bitId = i % 16;
@@ -442,17 +437,17 @@ __global__ static void execCudaEncodeBitmapKernel(void *vdx, Nd4jLong N, int *dz
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void cudaEncodeBitmapGeneric(dim3 &launchDims, cudaStream_t *stream, void *vdx, Nd4jLong N, int *dz, int *scalar, int *reductionBuffer, float threshold) {
+SD_HOST void cudaEncodeBitmapGeneric(dim3 &launchDims, cudaStream_t *stream, void *vdx, sd::LongType N, int *dz, int *scalar, int *reductionBuffer, float threshold) {
 
     execCudaEncodeBitmapKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(vdx, N, dz, scalar, reductionBuffer, threshold);
     sd::DebugHelper::checkErrorCode(stream, "encodeBitmap(...) failed");
 }
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL cudaEncodeBitmapGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vdx, Nd4jLong N, int *dz, int *scalar, int *reductionBuffer, float threshold), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN cudaEncodeBitmapGeneric, (dim3 &launchDims, cudaStream_t *stream, void *vdx, sd::LongType N, int *dz, int *scalar, int *reductionBuffer, float threshold), SD_FLOAT_TYPES);
 
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ static void execCudaDecodeBitmapKernel(const void *dx, Nd4jLong N, void *vdz) {
+SD_KERNEL static void execCudaDecodeBitmapKernel(const void *dx, sd::LongType N, void *vdz) {
         auto dz = static_cast<T*>(vdz);
 
         int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -507,23 +502,23 @@ __global__ static void execCudaDecodeBitmapKernel(const void *dx, Nd4jLong N, vo
 
 //////////////////////////////////////////////////////////////////////////
 template<typename T>
-__host__ void cudaDecodeBitmapGeneric(dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *vdz) {
+SD_HOST void cudaDecodeBitmapGeneric(dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *vdz) {
 
     execCudaDecodeBitmapKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(dx, N, vdz);
     sd::DebugHelper::checkErrorCode(stream, "cudeDecodeBitmap(...) failed");
 }
-BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL cudaDecodeBitmapGeneric, (dim3 &launchDims, cudaStream_t *stream, const void *dx, Nd4jLong N, void *vdz), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN cudaDecodeBitmapGeneric, (dim3 &launchDims, cudaStream_t *stream, const void *dx, sd::LongType N, void *vdz), SD_FLOAT_TYPES);
 
 
     template <bool storeSum, bool isNP2>
-    __host__ void prescanLauncher(dim3 &blocks, dim3 &threads, int shmem, cudaStream_t *stream, int *g_odata, const int *g_idata, int *g_blockSums, int n, int blockIndex, int baseIndex) {
+    SD_HOST void prescanLauncher(dim3 &blocks, dim3 &threads, int shmem, cudaStream_t *stream, int *g_odata, const int *g_idata, int *g_blockSums, int n, int blockIndex, int baseIndex) {
         //printf("Prescan grid: <%i/%i/%i>; threads: <%i/%i/%i>; shareMemSize: %i\n", blocks.x, blocks.y, blocks.z,   threads.x, threads.y, threads.z,    shmem);
-        shmem = sd::math::nd4j_max<int>(shmem, 16384);
+        shmem = sd::math::sd_max<int>(shmem, 16384);
         prescan<storeSum, isNP2><<<blocks, threads, shmem, *stream>>>(g_odata, g_idata, g_blockSums, n, blockIndex, baseIndex);
     };
 
     template <typename S, typename T>
-    __global__ void convertKernel(void *dx, Nd4jLong N, void *dz) {
+    SD_KERNEL void convertKernel(void *dx, sd::LongType N, void *dz) {
         auto x = reinterpret_cast<S *>(dx);
         auto z = reinterpret_cast<T *>(dz);
 
@@ -535,7 +530,7 @@ BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL cudaDecodeBitmapGeneric, (dim3 &l
     (randomName0, 0), \
     (randomName1, 1)
 
-    BUILD_DOUBLE_TEMPLATE(template void TypeCast::convertGenericCuda, (Nd4jPointer * extras, void *dx, Nd4jLong N, void *dz), COMMON_TYPES_LIST, COMMON_TYPES_LIST);
+    BUILD_DOUBLE_TEMPLATE(template void TypeCast::convertGenericCuda, (sd::Pointer * extras, void *dx, sd::LongType N, void *dz), SD_COMMON_TYPES_ALL, SD_COMMON_TYPES_ALL);
     BUILD_DOUBLE_TEMPLATE(template void prescanLauncher, (dim3 &blocks, dim3 &threads, int shmem, cudaStream_t *stream, int *g_odata, const int *g_idata, int *g_blockSums, int n, int blockIndex, int baseIndex), LIBND4J_BOOLS_LOCAL, LIBND4J_BOOLS_LOCAL);
 
 #undef LIBND4J_BOOLS_LOCAL

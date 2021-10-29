@@ -23,7 +23,6 @@
 
 #ifndef SD_CROP_AND_RESIZE_H
 #define SD_CROP_AND_RESIZE_H
-
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 
@@ -32,9 +31,9 @@ namespace sd {
     namespace ops {
         namespace helpers {
             template<typename T, typename F, typename I>
-            void cropAndResizeFunctor_(NDArray const *images, NDArray const *boxes, NDArray const *indices, NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops);
+        SD_LIB_HIDDEN void cropAndResizeFunctor_(NDArray const *images, NDArray const *boxes, NDArray const *indices, NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops);
 
-            void cropAndResizeFunctor(sd::LaunchContext * context, NDArray const* images, NDArray const* boxes, NDArray const* indices, NDArray const* cropSize, int method, double extrapolationVal, NDArray* crops);
+        SD_LIB_HIDDEN void cropAndResizeFunctor(sd::LaunchContext * context, NDArray const* images, NDArray const* boxes, NDArray const* indices, NDArray const* cropSize, int method, double extrapolationVal, NDArray* crops);
         }
     }
 }

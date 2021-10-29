@@ -42,7 +42,7 @@ namespace sd {
             auto stateMsdx = OUTPUT_VARIABLE(2);
 
             if (gradient->isEmpty() || initStateMsg->isEmpty() || initStateMsdx->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initStateMsg), 0, "ADA_DELTA UPDATER OP: input state Msg must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -73,7 +73,7 @@ namespace sd {
             }
 
             helpers::updaterAdaDelta(block.launchContext(), *gradient, *initStateMsg, *initStateMsdx, *update, *stateMsg, *stateMsdx, dRho, dEpsilon);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(ada_delta_updater) {

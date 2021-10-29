@@ -23,24 +23,23 @@
 #ifndef DEV_TESTS_CONSTANTDESCRIPTOR_H
 #define DEV_TESTS_CONSTANTDESCRIPTOR_H
 
+#include <system/common.h>
 #include <array/DataType.h>
 #include <unordered_map>
 #include <vector>
-#include <system/pointercast.h>
-#include <system/dll.h>
 #include <array/ConstantDataBuffer.h>
 
 namespace sd {
-    class ND4J_EXPORT ConstantDescriptor {
+    class SD_LIB_EXPORT ConstantDescriptor {
     private:
-        std::vector<Nd4jLong> _integerValues;
+        std::vector<sd::LongType> _integerValues;
         std::vector<double> _floatValues;
     public:
         ConstantDescriptor(double* values, int length);
-        ConstantDescriptor(Nd4jLong const* values, int length);
+        ConstantDescriptor(sd::LongType const* values, int length);
         ConstantDescriptor(std::initializer_list<double> values);
 
-        explicit ConstantDescriptor(std::vector<Nd4jLong> &values);
+        explicit ConstantDescriptor(std::vector<sd::LongType> &values);
         explicit ConstantDescriptor(std::vector<double> &values);
 
         ~ConstantDescriptor() = default;
@@ -54,9 +53,9 @@ namespace sd {
         bool isInteger() const;
         bool isFloat() const;
 
-        Nd4jLong length() const;
+        sd::LongType length() const;
 
-        const std::vector<Nd4jLong>& integerValues() const;
+        const std::vector<sd::LongType>& integerValues() const;
         const std::vector<double>& floatValues() const;
     };
 }
@@ -65,7 +64,7 @@ namespace sd {
 
 namespace std {
     template<>
-    class ND4J_EXPORT hash<sd::ConstantDescriptor> {
+    class SD_LIB_EXPORT hash<sd::ConstantDescriptor> {
     public:
         size_t operator()(const sd::ConstantDescriptor &k) const;
     };

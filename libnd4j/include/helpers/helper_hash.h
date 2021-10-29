@@ -24,25 +24,24 @@
 #ifndef LIBND4J_HELPER_HASH_H
 #define LIBND4J_HELPER_HASH_H
 
+#include <system/common.h>
 #include <string>
-#include <system/dll.h>
-#include <system/pointercast.h>
 #include <mutex>
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT HashHelper {
+        class SD_LIB_EXPORT HashHelper {
         private:
-            Nd4jLong _byteTable[256];
-            const Nd4jLong HSTART = 0xBB40E64DA205B064L;
-            const Nd4jLong HMULT = 7664345821815920749L;
+            sd::LongType _byteTable[256];
+            const sd::LongType HSTART = 0xBB40E64DA205B064L;
+            const sd::LongType HMULT = 7664345821815920749L;
 
             bool _isInit = false;
             std::mutex _locker;
 
         public:
             static HashHelper& getInstance();
-            Nd4jLong getLongHash(std::string& str);
+            sd::LongType getLongHash(std::string& str);
         };
     }
 }

@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/image_suppression.h>
 #include <array/NDArrayFactory.h>
 #include <legacy/NativeOps.h>
@@ -40,26 +39,26 @@ namespace helpers {
 //      return value: true, if threshold is overcome, false otherwise
 //
     template <typename T>
-    static __device__ bool needToSuppressWithThreshold(T* boxes, Nd4jLong const* boxesShape, int previousIndex, int nextIndex, T threshold) {
-        Nd4jLong previous0[] = {previousIndex, 0};
-        Nd4jLong previous1[] = {previousIndex, 1};
-        Nd4jLong previous2[] = {previousIndex, 2};
-        Nd4jLong previous3[] = {previousIndex, 3};
-        Nd4jLong next0[] = {nextIndex, 0};
-        Nd4jLong next1[] = {nextIndex, 1};
-        Nd4jLong next2[] = {nextIndex, 2};
-        Nd4jLong next3[] = {nextIndex, 3};
+    static SD_DEVICE bool needToSuppressWithThreshold(T* boxes, sd::LongType const* boxesShape, int previousIndex, int nextIndex, T threshold) {
+        sd::LongType previous0[] = {previousIndex, 0};
+        sd::LongType previous1[] = {previousIndex, 1};
+        sd::LongType previous2[] = {previousIndex, 2};
+        sd::LongType previous3[] = {previousIndex, 3};
+        sd::LongType next0[] = {nextIndex, 0};
+        sd::LongType next1[] = {nextIndex, 1};
+        sd::LongType next2[] = {nextIndex, 2};
+        sd::LongType next3[] = {nextIndex, 3};
 
         // we have rectangle with given max values. Compute vexes of rectangle first
 
-        T minYPrev = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
-        T minXPrev = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
-        T maxYPrev = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
-        T maxXPrev = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
-        T minYNext = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
-        T minXNext = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
-        T maxYNext = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
-        T maxXNext = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
+        T minYPrev = sd::math::sd_min(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
+        T minXPrev = sd::math::sd_min(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
+        T maxYPrev = sd::math::sd_max(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
+        T maxXPrev = sd::math::sd_max(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
+        T minYNext = sd::math::sd_min(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
+        T minXNext = sd::math::sd_min(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
+        T maxYNext = sd::math::sd_max(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
+        T maxXNext = sd::math::sd_max(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
 
         // compute areas for comparation
         T areaPrev = (maxYPrev - minYPrev) * (maxXPrev - minXPrev);
@@ -69,39 +68,39 @@ namespace helpers {
         if (areaNext <= T(0.f) || areaPrev <= T(0.f)) return false;
 
         // compute intersection of rectangles
-        T minIntersectionY = sd::math::nd4j_max(minYPrev, minYNext);
-        T minIntersectionX = sd::math::nd4j_max(minXPrev, minXNext);
-        T maxIntersectionY = sd::math::nd4j_min(maxYPrev, maxYNext);
-        T maxIntersectionX = sd::math::nd4j_min(maxXPrev, maxXNext);
+        T minIntersectionY = sd::math::sd_max(minYPrev, minYNext);
+        T minIntersectionX = sd::math::sd_max(minXPrev, minXNext);
+        T maxIntersectionY = sd::math::sd_min(maxYPrev, maxYNext);
+        T maxIntersectionX = sd::math::sd_min(maxXPrev, maxXNext);
         T intersectionArea =
-                sd::math::nd4j_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
-                sd::math::nd4j_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
+                sd::math::sd_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
+                sd::math::sd_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
         T intersectionValue = intersectionArea / (areaPrev + areaNext - intersectionArea);
         // final check
         return intersectionValue > threshold;
     }
 
     template <typename T>
-    static __device__ T similirityV3(T* boxes, Nd4jLong const* boxesShape, int previousIndex, int nextIndex) {
-        Nd4jLong previous0[] = {previousIndex, 0};
-        Nd4jLong previous1[] = {previousIndex, 1};
-        Nd4jLong previous2[] = {previousIndex, 2};
-        Nd4jLong previous3[] = {previousIndex, 3};
-        Nd4jLong next0[] = {nextIndex, 0};
-        Nd4jLong next1[] = {nextIndex, 1};
-        Nd4jLong next2[] = {nextIndex, 2};
-        Nd4jLong next3[] = {nextIndex, 3};
+    static SD_DEVICE T similirityV3(T* boxes, sd::LongType const* boxesShape, int previousIndex, int nextIndex) {
+        sd::LongType previous0[] = {previousIndex, 0};
+        sd::LongType previous1[] = {previousIndex, 1};
+        sd::LongType previous2[] = {previousIndex, 2};
+        sd::LongType previous3[] = {previousIndex, 3};
+        sd::LongType next0[] = {nextIndex, 0};
+        sd::LongType next1[] = {nextIndex, 1};
+        sd::LongType next2[] = {nextIndex, 2};
+        sd::LongType next3[] = {nextIndex, 3};
 
         // we have rectangle with given max values. Compute vexes of rectangle first
 
-        T minYPrev = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
-        T minXPrev = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
-        T maxYPrev = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
-        T maxXPrev = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
-        T minYNext = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
-        T minXNext = sd::math::nd4j_min(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
-        T maxYNext = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
-        T maxXNext = sd::math::nd4j_max(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
+        T minYPrev = sd::math::sd_min(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
+        T minXPrev = sd::math::sd_min(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
+        T maxYPrev = sd::math::sd_max(boxes[shape::getOffset(boxesShape, previous0)], boxes[shape::getOffset(boxesShape, previous2)]);
+        T maxXPrev = sd::math::sd_max(boxes[shape::getOffset(boxesShape, previous1)], boxes[shape::getOffset(boxesShape, previous3)]);
+        T minYNext = sd::math::sd_min(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
+        T minXNext = sd::math::sd_min(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
+        T maxYNext = sd::math::sd_max(boxes[shape::getOffset(boxesShape, next0)],     boxes[shape::getOffset(boxesShape, next2)]);
+        T maxXNext = sd::math::sd_max(boxes[shape::getOffset(boxesShape, next1)],     boxes[shape::getOffset(boxesShape, next3)]);
 
         // compute areas for comparation
         T areaPrev = (maxYPrev - minYPrev) * (maxXPrev - minXPrev);
@@ -111,13 +110,13 @@ namespace helpers {
         if (areaNext <= T(0.f) || areaPrev <= T(0.f)) return false;
 
         // compute intersection of rectangles
-        T minIntersectionY = sd::math::nd4j_max(minYPrev, minYNext);
-        T minIntersectionX = sd::math::nd4j_max(minXPrev, minXNext);
-        T maxIntersectionY = sd::math::nd4j_min(maxYPrev, maxYNext);
-        T maxIntersectionX = sd::math::nd4j_min(maxXPrev, maxXNext);
+        T minIntersectionY = sd::math::sd_max(minYPrev, minYNext);
+        T minIntersectionX = sd::math::sd_max(minXPrev, minXNext);
+        T maxIntersectionY = sd::math::sd_min(maxYPrev, maxYNext);
+        T maxIntersectionX = sd::math::sd_min(maxXPrev, maxXNext);
         T intersectionArea =
-                sd::math::nd4j_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
-                sd::math::nd4j_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
+                sd::math::sd_max(T(maxIntersectionY - minIntersectionY), T(0.0f)) *
+                sd::math::sd_max(T(maxIntersectionX - minIntersectionX), T(0.0f));
         T intersectionValue = intersectionArea / (areaPrev + areaNext - intersectionArea);
         // final check
         return intersectionValue;
@@ -129,7 +128,7 @@ namespace helpers {
 // we compute boolean flag as shared uint32 and return it on final only for the first thread
 //
     template <typename T, typename I>
-    static __global__ void shouldSelectKernel(T* boxesBuf, Nd4jLong const* boxesShape, I* indexBuf, I* selectedIndicesData, double threshold, int numSelected, int i, bool* shouldSelect) {
+    static SD_KERNEL void shouldSelectKernel(T* boxesBuf, sd::LongType const* boxesShape, I* indexBuf, I* selectedIndicesData, double threshold, int numSelected, int i, bool* shouldSelect) {
         auto tid = blockIdx.x * blockDim.x + threadIdx.x;
         auto step = gridDim.x * blockDim.x;
         __shared__ unsigned int shouldSelectShared;
@@ -156,9 +155,9 @@ namespace helpers {
 // indices - type depended, indicesLong - type defined (only 64bit integers)
 //
     template <typename I>
-    static __global__ void copyIndices(void* indices,  void* indicesLong, Nd4jLong len) {
+    static SD_KERNEL void copyIndices(void* indices,  void* indicesLong, sd::LongType len) {
         I* indexBuf = reinterpret_cast<I*>(indices);
-        Nd4jLong* srcBuf = reinterpret_cast<Nd4jLong*>(indicesLong);;
+        sd::LongType* srcBuf = reinterpret_cast<sd::LongType*>(indicesLong);;
 
         auto tid = threadIdx.x + blockIdx.x * blockDim.x;
         auto step = blockDim.x * gridDim.x;
@@ -168,7 +167,7 @@ namespace helpers {
     }
 
     template <typename T, typename I>
-    static __global__ void suppressScores(T* scores, I* indices, Nd4jLong length, T scoreThreshold) {
+    static SD_KERNEL void suppressScores(T* scores, I* indices, sd::LongType length, T scoreThreshold) {
         auto start = blockIdx.x * blockDim.x;
         auto step = gridDim.x * blockDim.x;
 
@@ -193,7 +192,7 @@ namespace helpers {
         std::unique_ptr<NDArray> indices(NDArrayFactory::create_<I>('c', {scales->lengthOf()}, context)); // - 1, scales->lengthOf()); //, scales->getContext());
 
         NDArray scores(*scales);
-        Nd4jPointer extras[2] = {nullptr, stream};
+        sd::Pointer extras[2] = {nullptr, stream};
         auto indexBuf = indices->dataBuffer()->specialAsT<I>();///reinterpret_cast<I*>(indices->specialBuffer());
         auto scoreBuf = scores.dataBuffer()->specialAsT<T>();
         suppressScores<T,I><<<128, 128, 128, *stream>>>(scoreBuf, indexBuf, scores.lengthOf(), T(scoreThreshold));
@@ -244,7 +243,7 @@ namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T, typename I>
-    static __device__ bool checkOverlapBoxes(T* boxes, Nd4jLong const* shape, T* scores, I* indices, I* selectedIndices, I* startIndices, I selectedSize, I nextCandidateIndex, T overlapThreshold, T scoreThreshold, bool simple) {
+    static SD_DEVICE bool checkOverlapBoxes(T* boxes, sd::LongType const* shape, T* scores, I* indices, I* selectedIndices, I* startIndices, I selectedSize, I nextCandidateIndex, T overlapThreshold, T scoreThreshold, bool simple) {
         bool shouldHardSuppress = false;
         T& nextCandidateScore = scores[nextCandidateIndex];
         I selectedIndex = indices[nextCandidateIndex];
@@ -253,7 +252,7 @@ namespace helpers {
         for (int j = selectedSize; j > finish; --j) {
             T boxVal;
             if (simple) {
-                Nd4jLong xPos[] = {selectedIndex, selectedIndices[j - 1]};
+                sd::LongType xPos[] = {selectedIndex, selectedIndices[j - 1]};
                 auto xShift = shape::getOffset(shape, xPos, 0);
                 boxVal = boxes[xShift];
             }
@@ -277,9 +276,9 @@ namespace helpers {
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T, typename I>
-    static __global__ void
-    suppressNonMaxOverlapKernel(T* boxes, Nd4jLong const* boxesShape, T* scoresData, I* indices, I* startIndices, Nd4jLong length, I maxOutputLen,
-    T overlapThreshold, T scoreThreshold, I* output, Nd4jLong const* outputShape, I* outputLength, bool simple) {
+    static SD_KERNEL void
+    suppressNonMaxOverlapKernel(T* boxes, sd::LongType const* boxesShape, T* scoresData, I* indices, I* startIndices, sd::LongType length, I maxOutputLen,
+    T overlapThreshold, T scoreThreshold, I* output, sd::LongType const* outputShape, I* outputLength, bool simple) {
 
         __shared__ I selectedSize;
         __shared__ I* tempOutput;
@@ -316,7 +315,7 @@ namespace helpers {
                     if (output)
                         output[selectedSize] = nextCandidateBoxIndex;
                     tempOutput[selectedSize] = nextCandidateBoxIndex;
-                    math::atomics::nd4j_atomicAdd(&selectedSize, (I)1);
+                    math::atomics::sd_atomicAdd(&selectedSize, (I)1);
                 }
 
                 if (nextCandidateScore > scoreThreshold) {
@@ -336,7 +335,7 @@ namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     template <typename T, typename I>
-    static Nd4jLong
+    static sd::LongType
     nonMaxSuppressionGeneric_(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int outputSize,
                               double overlapThreshold, double scoreThreshold, NDArray* output, bool simple) {
         auto stream = context->getCudaStream();
@@ -352,7 +351,7 @@ namespace helpers {
         NDArray indices = NDArrayFactory::create<I>('c', {scores->lengthOf()}, context); // - 1, scales->lengthOf()); //, scales->getContext());
         NDArray startPositions = NDArrayFactory::create<I>('c', {scores->lengthOf()}, context);
         NDArray selectedScores(*scores);
-        Nd4jPointer extras[2] = {nullptr, stream};
+        sd::Pointer extras[2] = {nullptr, stream};
         auto indexBuf = indices.dataBuffer()->specialAsT<I>();///reinterpret_cast<I*>(indices->specialBuffer());
 
         suppressScores<<<128, 128, 128, *stream>>>(selectedScores.dataBuffer()->specialAsT<T>(), indexBuf, selectedScores.lengthOf(), T(scoreThreshold));
@@ -365,7 +364,7 @@ namespace helpers {
 
         auto startIndices = startPositions.dataBuffer()->specialAsT<I>();
         I selectedSize = 0;
-        Nd4jLong res = 0;
+        sd::LongType res = 0;
         if (output) { // this part used when output shape already calculated to fill up values on output
             DataBuffer selectedSizeBuf(&selectedSize, sizeof(I), DataTypeUtils::fromT<I>());
             suppressNonMaxOverlapKernel<<<1, 1, 1024, *stream >>> (boxes->dataBuffer()->specialAsT<T>(),
@@ -377,7 +376,7 @@ namespace helpers {
             DataBuffer selectedSizeBuf(&selectedSize, sizeof(I), DataTypeUtils::fromT<I>());
             suppressNonMaxOverlapKernel<<<1, 1, 1024, *stream >>> (boxes->dataBuffer()->specialAsT<T>(),
                     boxes->specialShapeInfo(), scoresData, indexBuf, startIndices, scores->lengthOf(), (I)outputSize,
-                    T(overlapThreshold), T(scoreThreshold), (I*)nullptr, (Nd4jLong*) nullptr, selectedSizeBuf.specialAsT<I>(), simple);
+                    T(overlapThreshold), T(scoreThreshold), (I*)nullptr, (sd::LongType*) nullptr, selectedSizeBuf.specialAsT<I>(), simple);
             selectedSizeBuf.syncToPrimary(context, true);
             res = *selectedSizeBuf.primaryAsT<I>();
         }
@@ -388,26 +387,26 @@ namespace helpers {
         return res;
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ND4J_LOCAL void nonMaxSuppression(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize, double threshold, double scoreThreshold, NDArray* output) {
+    void nonMaxSuppression(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize, double threshold, double scoreThreshold, NDArray* output) {
         BUILD_DOUBLE_SELECTOR(boxes->dataType(), output->dataType(), nonMaxSuppressionV2_,
                 (context, boxes, scales, maxSize, threshold, scoreThreshold, output),
-                FLOAT_TYPES, INDEXING_TYPES);
+                SD_FLOAT_TYPES, SD_INDEXING_TYPES);
     }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    ND4J_LOCAL Nd4jLong nonMaxSuppressionGeneric(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize, double threshold, double scoreThreshold, NDArray* output) {
+    sd::LongType nonMaxSuppressionGeneric(sd::LaunchContext * context, NDArray* boxes, NDArray* scales, int maxSize, double threshold, double scoreThreshold, NDArray* output) {
         BUILD_DOUBLE_SELECTOR(boxes->dataType(), output ? output->dataType():DataType::INT32, return nonMaxSuppressionGeneric_,
                               (context, boxes, scales, maxSize, threshold, scoreThreshold, output, true),
-                              FLOAT_TYPES, INDEXING_TYPES);
+                              SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         return boxes->sizeAt(0);
     }
 
-    ND4J_LOCAL Nd4jLong
+    sd::LongType
     nonMaxSuppressionV3(sd::LaunchContext* context, NDArray* boxes, NDArray* scores, int maxSize,
                              double overlapThreshold, double scoreThreshold, NDArray* output) {
         BUILD_DOUBLE_SELECTOR(boxes->dataType(), output ? output->dataType():DataType::INT32, return nonMaxSuppressionGeneric_,
                               (context, boxes, scores, maxSize, overlapThreshold, scoreThreshold, output, false),
-                              FLOAT_TYPES, INDEXING_TYPES);
+                              SD_FLOAT_TYPES, SD_INDEXING_TYPES);
         return boxes->sizeAt(0);
     }
 

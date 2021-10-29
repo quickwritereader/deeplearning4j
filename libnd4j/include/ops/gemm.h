@@ -26,7 +26,6 @@
 // work around conflict with OpenBLAS
 struct bfloat16;
 #define BFLOAT16 BFLOAT16
-
 #include <cblas.h>
 #include <math/templatemath.h>
 #include <system/op_boilerplate.h>
@@ -54,11 +53,11 @@ namespace sd {
          };
 
 
-         int FORCEINLINE linearIndexC(int rows, int cols, int r, int c) {
+         int SD_INLINE linearIndexC(int rows, int cols, int r, int c) {
              return (r * cols + c);
          }
 
-         int FORCEINLINE linearIndexF(int rows, int cols, int r, int c) {
+         int SD_INLINE linearIndexF(int rows, int cols, int r, int c) {
              return (c * rows + r);
          }
 

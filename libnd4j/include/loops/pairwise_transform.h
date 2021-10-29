@@ -25,16 +25,13 @@
 
 #ifndef PAIRWISE_TRANSFORM_H_
 #define PAIRWISE_TRANSFORM_H_
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
-#include <system/dll.h>
+
 #include <stdio.h>
 #include <ops/ops.h>
 #include <system/op_boilerplate.h>
 #include <types/types.h>
-#include "legacy_ops.h"
+#include <loops/legacy_ops.h>
 #include <helpers/DebugHelper.h>
 
 #ifdef __CUDACC__
@@ -57,51 +54,51 @@ namespace functions {
 #ifdef __CUDABLAS__
 
             template <typename OpType>            
-            static __host__ void intermediateShaped(dim3& launchDims, cudaStream_t *stream,
-                                                    const void *vx, const Nd4jLong *xShapeInfo,
-                                                    const void *vy, const Nd4jLong *yShapeInfo,
-                                                    void *vz, const Nd4jLong *zShapeInfo,
+            static SD_HOST void intermediateShaped(dim3& launchDims, cudaStream_t *stream,
+                                                    const void *vx, const sd::LongType *xShapeInfo,
+                                                    const void *vy, const sd::LongType *yShapeInfo,
+                                                    void *vz, const sd::LongType *zShapeInfo,
                                                     void *vextraParams);
 
-            static __host__ void executeCudaShaped(dim3& launchDims, cudaStream_t *stream,
+            static SD_HOST void executeCudaShaped(dim3& launchDims, cudaStream_t *stream,
                                                    int opNum,
-                                                   const void *x, const Nd4jLong *xShapeInfo,
-                                                   const void *y, const Nd4jLong *yShapeInfo,
-                                                   void *z, const Nd4jLong *zShapeInfo,
+                                                   const void *x, const sd::LongType *xShapeInfo,
+                                                   const void *y, const sd::LongType *yShapeInfo,
+                                                   void *z, const sd::LongType *zShapeInfo,
                                                    void *extraParams);
 
 #endif
         public:
 
             static void exec(int opNum,
-                             const void *x, const Nd4jLong *xShapeInfo,
-                             const void *y, const Nd4jLong *yShapeInfo,
-                             void *z, const Nd4jLong *zShapeInfo,
+                             const void *x, const sd::LongType *xShapeInfo,
+                             const void *y, const sd::LongType *yShapeInfo,
+                             void *z, const sd::LongType *zShapeInfo,
                              void *extraParams,
                              uint64_t start, uint64_t stop);
 
-			static void exec(int opNum,
-                             const void *x, Nd4jLong xStride,
-                             const void *y, Nd4jLong yStride,
-                             void *z, Nd4jLong resultStride,
+            static void exec(int opNum,
+                             const void *x, sd::LongType xStride,
+                             const void *y, sd::LongType yStride,
+                             void *z, sd::LongType resultStride,
                              void *extraParams,
-                             Nd4jLong len,
+                             sd::LongType len,
                              uint64_t start, uint64_t stop);
 
 
-			template<typename OpType>
-			static void exec(const void *vx, const Nd4jLong* xShapeInfo,
-                             const void *vy, const Nd4jLong* yShapeInfo,
-                             void *vresult, const Nd4jLong* zShapeInfo,
+            template<typename OpType>
+            static void exec(const void *vx, const sd::LongType* xShapeInfo,
+                             const void *vy, const sd::LongType* yShapeInfo,
+                             void *vresult, const sd::LongType* zShapeInfo,
                              void *vextraParams,
                              uint64_t start, uint64_t stop);
 
             template<typename OpType>
-            static void exec(const void *vx, Nd4jLong xStride,
-                             const void *vy, Nd4jLong yStride,
-                             void *vresult, Nd4jLong resultStride,
+            static void exec(const void *vx, sd::LongType xStride,
+                             const void *vy, sd::LongType yStride,
+                             void *vresult, sd::LongType resultStride,
                              void *vextraParams,
-                             Nd4jLong len,
+                             sd::LongType len,
                              uint64_t start, uint64_t stop);
         };
     }

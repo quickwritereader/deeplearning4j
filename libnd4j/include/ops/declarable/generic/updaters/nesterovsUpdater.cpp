@@ -40,7 +40,7 @@ namespace sd {
             auto stateV = OUTPUT_VARIABLE(1);
 
             if (gradient->isEmpty() || initState->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initState), 0, "NESTEROVS UPDATER OP: input state Msg must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -67,7 +67,7 @@ namespace sd {
                 dMomentum = T_ARG(1);
             }
             helpers::updaterNesterovs(block.launchContext(), *gradient, *initState, *update, *stateV, dLr, dMomentum);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(nesterovs_updater) {

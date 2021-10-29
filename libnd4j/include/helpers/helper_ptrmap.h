@@ -23,11 +23,6 @@
 #ifndef LIBND4J_HELPER_PTRMAP_H
 #define LIBND4J_HELPER_PTRMAP_H
 
-#ifdef __CUDACC__
-#define ptr_def __host__ __device__ inline
-#else
-#define ptr_def inline
-#endif
 
 namespace sd {
 
@@ -82,9 +77,7 @@ namespace sd {
          * @param numAggregates actual number of aggregates being passed in
          * @return
          */
-#ifdef __CUDACC__
-        __host__ __device__
-#endif
+SD_HOST_DEVICE
         PointersHelper(void *ptrToParams, int numAggregates, int maxArgs, int maxShapes, int maxIntArrays, int maxIntArraySize, int maxIdx, int maxReals) {
             aggregates = numAggregates;
             ptrGeneral = ptrToParams;
@@ -110,7 +103,7 @@ namespace sd {
          * @return
          */
 
-        ptr_def T **getArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE T **getArguments(int aggregateIdx) {
             T **aPtr = (T **) getRealArguments(batchLimit);
 
             return aPtr + (aggregateIdx * maxArguments);
@@ -122,7 +115,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def int getNumArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int getNumArguments(int aggregateIdx) {
             int *tPtr = (int *) ptrGeneral;
             return tPtr[aggregateIdx * argTypes];
         }
@@ -133,8 +126,8 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def Nd4jLong **getShapeArguments(int aggregateIdx) {
-            Nd4jLong **sPtr = (Nd4jLong **)getArguments(batchLimit);
+        SD_INLINE SD_HOST_DEVICE sd::LongType **getShapeArguments(int aggregateIdx) {
+            sd::LongType **sPtr = (sd::LongType **)getArguments(batchLimit);
 
             return sPtr + (aggregateIdx * maxShapeArguments);
         }
@@ -145,7 +138,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def int getNumShapeArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int getNumShapeArguments(int aggregateIdx) {
             int *tPtr = (int *) ptrGeneral;
             return tPtr[aggregateIdx * argTypes + 1];
         }
@@ -156,7 +149,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def int *getIndexArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int *getIndexArguments(int aggregateIdx) {
             // we skip first numeric num*arguments
             int *ptr = ((int *) ptrGeneral) + (batchLimit * argTypes);
 
@@ -170,7 +163,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def int getNumIndexArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int getNumIndexArguments(int aggregateIdx) {
             int *tPtr = (int *) ptrGeneral;
             return tPtr[aggregateIdx * argTypes + 2];
         }
@@ -178,7 +171,7 @@ namespace sd {
         /**
          * This method returns pointer to array of jvm IntArray arguments
          */
-        ptr_def int *getIntArrayArguments(int aggregateIdx, int argumentIdx) {
+        SD_INLINE SD_HOST_DEVICE int *getIntArrayArguments(int aggregateIdx, int argumentIdx) {
             int *ptr = (int * )getIndexArguments(batchLimit);
 
             return ptr + (aggregateIdx * maxIntArrays * maxArraySize) + (argumentIdx * maxArraySize);
@@ -187,7 +180,7 @@ namespace sd {
         /**
          * This method returns number of jvm IntArray arguments
          */
-        ptr_def int getNumIntArrayArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int getNumIntArrayArguments(int aggregateIdx) {
             int *tPtr = (int *) ptrGeneral;
             return tPtr[aggregateIdx * argTypes + 4];
         }
@@ -198,7 +191,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def T *getRealArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE T *getRealArguments(int aggregateIdx) {
             // we get pointer for last batchElement + 1, so that'll be pointer for 0 realArgument
             T *ptr = (T * ) getIntArrayArguments(batchLimit, 0);
 
@@ -211,7 +204,7 @@ namespace sd {
          * @param aggregateIdx
          * @return
          */
-        ptr_def int getNumRealArguments(int aggregateIdx) {
+        SD_INLINE SD_HOST_DEVICE int getNumRealArguments(int aggregateIdx) {
             int *tPtr = (int *) ptrGeneral;
             return tPtr[aggregateIdx * argTypes + 3];
         }

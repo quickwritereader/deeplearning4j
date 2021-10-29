@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/stack.h>
 #include <helpers/ShapeUtils.h>
 #include <array/ResultSet.h>
@@ -36,9 +35,9 @@ namespace helpers {
 template <typename T>
 static void stack_(const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
 
-	const int numOfSubArrs = inArrs.size();
+    const int numOfSubArrs = inArrs.size();
 
-	if(inArrs[0]->rankOf() == 0) {
+    if(inArrs[0]->rankOf() == 0) {
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++)
@@ -46,11 +45,11 @@ static void stack_(const std::vector<const NDArray*>& inArrs, NDArray& output, c
         };
 
         samediff::Threads::parallel_for(func, 0, numOfSubArrs);
-	}
-	else {
+    }
+    else {
 
-		auto zTadPack = ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), ShapeUtils::evalDimsToExclude(output.rankOf(), {dim}));
-		auto zTadShapeInfo  = zTadPack.primaryShapeInfo();
+        auto zTadPack = ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), ShapeUtils::evalDimsToExclude(output.rankOf(), {dim}));
+        auto zTadShapeInfo  = zTadPack.primaryShapeInfo();
 
         auto func = PRAGMA_THREADS_FOR {
 
@@ -71,19 +70,19 @@ static void stack_(const std::vector<const NDArray*>& inArrs, NDArray& output, c
 }
 
 ////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void stack(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
-	BUILD_SINGLE_SELECTOR(output.dataType(), stack_, (inArrs, output, dim), LIBND4J_TYPES);
+void stack(sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
+    BUILD_SINGLE_SELECTOR(output.dataType(), stack_, (inArrs, output, dim), SD_COMMON_TYPES);
 }
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void stack_ , (const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void stack_ , (const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim), SD_COMMON_TYPES);
 
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
 static void unstack_(const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
 
-	const int numOfSubArrs = outArrs.size();
+    const int numOfSubArrs = outArrs.size();
 
-	if(outArrs[0]->rankOf() == 0) {
+    if(outArrs[0]->rankOf() == 0) {
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++)
@@ -91,32 +90,32 @@ static void unstack_(const NDArray& input, const std::vector<NDArray*>& outArrs,
         };
 
         samediff::Threads::parallel_for(func, 0, numOfSubArrs);
-	}
-	else {
+    }
+    else {
 
-		auto xTadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), ShapeUtils::evalDimsToExclude(input.rankOf(), {dim}));
-		auto xTadShapeInfo  = xTadPack.primaryShapeInfo();
+        auto xTadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), ShapeUtils::evalDimsToExclude(input.rankOf(), {dim}));
+        auto xTadShapeInfo  = xTadPack.primaryShapeInfo();
 
         auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
                 auto xBuff = input.bufferWithOffset(xTadPack.primaryOffsets()[i]);
 
                 NativeOpExecutioner::execTransformAny(input.getContext(), transform::Assign,
-                									 xBuff,                   xTadShapeInfo,              nullptr/*input specialBuffer*/, nullptr/*input special*/,
+                                                     xBuff,                   xTadShapeInfo,              nullptr/*input specialBuffer*/, nullptr/*input special*/,
                                                      outArrs[i]->buffer(), outArrs[i]->shapeInfo(), nullptr/*output specialBuffer*/,  nullptr/*output special*/,
                                                      nullptr, nullptr, nullptr, false/*allowParallelism*/);
             }
         };
 
         samediff::Threads::parallel_tad(func, 0, numOfSubArrs);
-	}
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
-	BUILD_SINGLE_SELECTOR(input.dataType(), unstack_, (input, outArrs, dim), LIBND4J_TYPES);
+void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
+    BUILD_SINGLE_SELECTOR(input.dataType(), unstack_, (input, outArrs, dim), SD_COMMON_TYPES);
 }
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void unstack_, (const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void unstack_, (const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim), SD_COMMON_TYPES);
 
 }
 }

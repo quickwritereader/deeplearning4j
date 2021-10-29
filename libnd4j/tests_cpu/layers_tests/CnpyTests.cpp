@@ -19,7 +19,6 @@
 //
 // Created by agibsonccc on 3/30/17.
 //
-
 #include "testinclude.h"
 #include <string>
 #include <legacy/NativeOps.h>
@@ -84,9 +83,9 @@ TEST_F(LoadFromStringTest,PathTest) {
     ASSERT_EQ(2.0,data[1]);
     ASSERT_EQ(3.0,data[2]);
     ASSERT_EQ(4.0,data[3]);
-    Nd4jPointer  pointer = reinterpret_cast<Nd4jPointer >(&loadedArr);
+    sd::Pointer  pointer = reinterpret_cast<sd::Pointer >(&loadedArr);
     int *shapeBuffer = shape::shapeBufferOfNpy(loadedArr);
-    Nd4jPointer  pointer1 = dataPointForNumpy(loaded);
+    sd::Pointer  pointer1 = dataPointForNumpy(loaded);
     delete[] shapeBuffer;
 
     double *data2 = reinterpret_cast<double *>(pointer1);

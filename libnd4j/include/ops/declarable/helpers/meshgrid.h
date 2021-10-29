@@ -22,14 +22,13 @@
 
 #ifndef LIBND4J_MESHGRID_H
 #define LIBND4J_MESHGRID_H
-
 #include <ops/declarable/helpers/helpers.h>
 
 namespace sd    {
 namespace ops     {
 namespace helpers {
 
-	void meshgrid(sd::LaunchContext * context, const std::vector<NDArray*>& inArrs, const std::vector<NDArray*>& outArrs, const bool swapFirst2Dims);
+SD_LIB_HIDDEN void meshgrid(sd::LaunchContext * context, const std::vector<NDArray*>& inArrs, const std::vector<NDArray*>& outArrs, const bool swapFirst2Dims);
 
 }
 }

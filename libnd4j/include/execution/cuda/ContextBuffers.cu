@@ -19,12 +19,10 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <execution/ContextBuffers.h>
 #include <exceptions/cuda_exception.h>
 #include <helpers/logger.h>
 #include <execution/AffinityManager.h>
-
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h>
@@ -32,7 +30,7 @@
 
 namespace sd {
     ContextBuffers::ContextBuffers() {
-        //nd4j_printf("Creating ContextBuffers for device [%i]\n", AffinityManager::currentDeviceId());
+        //sd_printf("Creating ContextBuffers for device [%i]\n", AffinityManager::currentDeviceId());
         _deviceId = AffinityManager::currentDeviceId();
     }
 
@@ -84,7 +82,7 @@ namespace sd {
 
     void ContextBuffers::release() {
         if (_allocated) {
-            //nd4j_printf("Releasing ContextBuffers on device [%i]\n", _deviceId);
+            //sd_printf("Releasing ContextBuffers on device [%i]\n", _deviceId);
 
             if (_allocationPointer != nullptr)
                 cudaFree(_allocationPointer);
@@ -134,7 +132,7 @@ namespace sd {
 
     void ContextBuffers::initialize() {
         _deviceId = AffinityManager::currentNativeDeviceId();
-        //nd4j_printf("Initializing buffers on deviceId [%i]\n", _deviceId);
+        //sd_printf("Initializing buffers on deviceId [%i]\n", _deviceId);
 
         auto res = cudaMalloc(reinterpret_cast<void**>(&_reductionPointer), 1024 * 1024 * 8);
         if (res != 0)
@@ -208,10 +206,10 @@ namespace sd {
 
     void* ContextBuffers::execStream() {
         if (!_initialized) {
-            //nd4j_printf("execStream not initialized\n", "");
+            //sd_printf("execStream not initialized\n", "");
             initialize();
         } else {
-            //nd4j_printf("execStream is initialized\n", "");
+            //sd_printf("execStream is initialized\n", "");
         }
 
         return _execStream;
@@ -219,10 +217,10 @@ namespace sd {
 
     void* ContextBuffers::specialStream() {
         if (!_initialized) {
-            //nd4j_printf("specialStream not initialized\n", "");
+            //sd_printf("specialStream not initialized\n", "");
             initialize();
         } else {
-            //nd4j_printf("specialStream is initialized\n", "");
+            //sd_printf("specialStream is initialized\n", "");
         }
 
         return _specialStream;

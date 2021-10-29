@@ -23,7 +23,6 @@
 //
 #ifndef SD_HEADERS_COMPRESSION_H
 #define SD_HEADERS_COMPRESSION_H
-
 #include <ops/declarable/headers/common.h>
 
 namespace sd {

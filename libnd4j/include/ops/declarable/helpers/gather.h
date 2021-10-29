@@ -22,14 +22,13 @@
 
 #ifndef LIBND4J_GATHER_H
 #define LIBND4J_GATHER_H
-
 #include <array/NDArray.h>
 
 namespace sd {
 namespace ops {
 namespace helpers {
             
-	void gather(sd::LaunchContext * context, const NDArray* input, const NDArray* indices, NDArray* output, const std::vector<int>& intArgs);
+SD_LIB_HIDDEN void gather(sd::LaunchContext * context, const NDArray* input, const NDArray* indices, NDArray* output, const std::vector<int>& intArgs);
 
 }
 }

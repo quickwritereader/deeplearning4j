@@ -23,7 +23,6 @@
 #ifndef DEV_TESTSARMCOMPUTEUTILS_H
 #define DEV_TESTSARMCOMPUTEUTILS_H
 
-
 #include <legacy/NativeOps.h>
 #include <array/NDArray.h> 
 #include <graph/Context.h>
@@ -46,7 +45,7 @@
 using namespace samediff;
 
 #if 0
-#define internal_printf(FORMAT, ...) nd4j_printf(FORMAT, __VA_ARGS__)
+#define internal_printf(FORMAT, ...) sd_printf(FORMAT, __VA_ARGS__)
 //define ARM_COMPUTE_ASSERTS_ENABLED 1
 #define internal_print_arm_array(a,b) print_tensor(a,b)
 #define internal_print_nd_array(a,b) ((a).printIndexedBuffer(b))
@@ -86,7 +85,7 @@ namespace sd {
         //utils
         Arm_DataType getArmType(const sd::DataType& dType);
 
-        Arm_TensorInfo getArmTensorInfo(int rank, Nd4jLong* bases, sd::DataType ndArrayType, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
+        Arm_TensorInfo getArmTensorInfo(int rank, sd::LongType* bases, sd::DataType ndArrayType, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
 
         Arm_TensorInfo getArmTensorInfo(const NDArray& arr, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
 
@@ -326,7 +325,6 @@ namespace sd {
         }
     }
 }
-
 
 
 #endif //DEV_TESTSARMCOMPUTEUTILS_H

@@ -22,24 +22,15 @@
 
 #ifndef DEV_TESTS_NO_RESULTS_EXCEPTION_H
 #define DEV_TESTS_NO_RESULTS_EXCEPTION_H
-
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
 #include <stdexcept>
 #include <exceptions/graph_exception.h>
-#include <system/dll.h>
-
-#if defined(_MSC_VER)
-
-// we're ignoring warning about non-exportable parent class, since std::runtime_error is a part of Standard C++ Library
-#pragma warning( disable : 4275 )
-
-#endif
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT no_results_exception: public graph_exception {
+    class SD_LIB_EXPORT no_results_exception: public graph_exception {
     public:
-        explicit no_results_exception(Nd4jLong graphId);
+        explicit no_results_exception(sd::LongType graphId);
     };
 }
 

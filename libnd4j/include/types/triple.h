@@ -22,12 +22,10 @@
 
 #ifndef LIBND4J_TRIPLE_H
 #define LIBND4J_TRIPLE_H
-
-
-#include <system/dll.h>
+#include <system/common.h>
 
 namespace sd {
-    class ND4J_EXPORT Triple {
+    class SD_LIB_EXPORT Triple {
     protected:
         int _first = 0;
         int _second = 0;

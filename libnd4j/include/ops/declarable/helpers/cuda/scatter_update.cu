@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <helpers/ShapeUtils.h>
@@ -36,13 +35,13 @@ namespace sd {
         namespace helpers {
             ///////////////////////////////////////////////////////////////////
             template<typename T>
-            __global__ static void scatterUpdateCuda(const int opCode, const int numOfInd,
-                                                     void* vx, const Nd4jLong *xShapeInfo, const Nd4jLong *xOffsets,
-                                                     void* vy, const Nd4jLong *yShapeInfo, const Nd4jLong *yOffsets,
+            SD_KERNEL static void scatterUpdateCuda(const int opCode, const int numOfInd,
+                                                     void* vx, const sd::LongType *xShapeInfo, const sd::LongType *xOffsets,
+                                                     void* vy, const sd::LongType *yShapeInfo, const sd::LongType *yOffsets,
                                                      const int* indexes) {
 
                 __shared__ T *x, *y;
-                __shared__ Nd4jLong arrLenX, arrLenY;
+                __shared__ sd::LongType arrLenX, arrLenY;
 
                 for (int e = 0; e < numOfInd; e++ ) {
 
@@ -63,7 +62,7 @@ namespace sd {
                     if (arrLenX != arrLenY)
                         return;
 
-                    for (Nd4jLong i = threadIdx.x; i < arrLenX; i += blockDim.x) {
+                    for (sd::LongType i = threadIdx.x; i < arrLenX; i += blockDim.x) {
 
                         const auto xOffset = shape::getIndexOffset(i, xShapeInfo);
                         const auto yOffset = shape::getIndexOffset(i, yShapeInfo);
@@ -99,14 +98,14 @@ namespace sd {
             }
 
             template<typename T>
-            __host__ static void scatterUpdateCudaLauncher(const cudaStream_t* stream, const int opCode, const int numOfInd, void* vx, const Nd4jLong *xShapeInfo, const Nd4jLong *xOffsets, void* vy, const Nd4jLong *yShapeInfo, const Nd4jLong *yOffsets, const int* indexes) {
+            SD_HOST static void scatterUpdateCudaLauncher(const cudaStream_t* stream, const int opCode, const int numOfInd, void* vx, const sd::LongType *xShapeInfo, const sd::LongType *xOffsets, void* vy, const sd::LongType *yShapeInfo, const sd::LongType *yOffsets, const int* indexes) {
 
-                scatterUpdateCuda<T><<<512, 256, MAX_NUM_THREADS, *stream>>>(opCode, numOfInd, vx, xShapeInfo, xOffsets, vy, yShapeInfo, yOffsets, indexes);
+                scatterUpdateCuda<T><<<512, 256, SD_MAX_NUM_THREADS, *stream>>>(opCode, numOfInd, vx, xShapeInfo, xOffsets, vy, yShapeInfo, yOffsets, indexes);
             }
 
 
 //////////////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void scatterUpdate(sd::LaunchContext* context, NDArray& input, NDArray& updates, const std::vector<int>* intArgs) {
+            void scatterUpdate(sd::LaunchContext* context, NDArray& input, NDArray& updates, const std::vector<int>* intArgs) {
 
                 const int opCode    = (*intArgs)[0];
                 const int numOfDims = (*intArgs)[1];
@@ -124,7 +123,7 @@ namespace sd {
                 PointersManager manager(context, "scatterUpdate");
 
                 NDArray::prepareSpecialUse({&input}, {&input, &updates, &indices});
-                BUILD_SINGLE_SELECTOR(input.dataType(), scatterUpdateCudaLauncher, (context->getCudaStream(), opCode, numOfInd, input.specialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), updates.specialBuffer(), packY.platformShapeInfo(), packY.platformOffsets(), reinterpret_cast<int*>(indices.specialBuffer())), LIBND4J_TYPES);
+                BUILD_SINGLE_SELECTOR(input.dataType(), scatterUpdateCudaLauncher, (context->getCudaStream(), opCode, numOfInd, input.specialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), updates.specialBuffer(), packY.platformShapeInfo(), packY.platformOffsets(), reinterpret_cast<int*>(indices.specialBuffer())), SD_COMMON_TYPES);
                 NDArray::registerSpecialUse({&input}, {&input, &updates, &indices});
 
                 manager.synchronize();

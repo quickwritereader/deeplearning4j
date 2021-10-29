@@ -37,7 +37,7 @@ namespace sd {
 
             //OVERWRITE_RESULT(result);
             setupResult(result, block);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArrayConcatV3, stack_list);
         DECLARE_SYN(tensorarrayconcatv3, stack_list);

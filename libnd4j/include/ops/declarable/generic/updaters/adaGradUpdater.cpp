@@ -40,7 +40,7 @@ namespace sd {
             auto stateH = OUTPUT_VARIABLE(1);
 
             if (gradient->isEmpty() || initState->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             REQUIRE_TRUE(gradient->isSameShape(initState), 0, "ADA_GRAD UPDATER OP: input state must have the same shape as gradient,"
                 "  expected shape %s, but got %s!", ShapeUtils::shapeAsString(gradient->shapeInfo()).c_str(),
@@ -69,7 +69,7 @@ namespace sd {
             }
 
             helpers::updaterAdaGrad(block.launchContext(), *gradient, *initState, *update, *stateH, dLr, dEpsilon);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(ada_grad_updater) {

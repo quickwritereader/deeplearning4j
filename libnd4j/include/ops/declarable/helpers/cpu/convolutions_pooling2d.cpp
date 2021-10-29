@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 18.09.2018
 //
-
 #include <ops/declarable/helpers/convolutions.h>
 #include <execution/Threads.h>
 
@@ -45,24 +44,24 @@ namespace sd {
             const int oH = output.sizeAt(2);
             const int oW = output.sizeAt(3);
 
-            //nd4j_debug("MKL-DNN is not used for pooling2d!\n", 0);
+            //sd_debug("MKL-DNN is not used for pooling2d!\n", 0);
 
-            const Nd4jLong iStride0 = input.stridesOf()[0];
-            const Nd4jLong iStride1 = input.stridesOf()[1];
-            const Nd4jLong iStride2 = input.stridesOf()[2];
-            const Nd4jLong iStride3 = input.stridesOf()[3];
-            const Nd4jLong oStride0 = output.stridesOf()[0];
-            const Nd4jLong oStride1 = output.stridesOf()[1];
-            const Nd4jLong oStride2 = output.stridesOf()[2];
-            const Nd4jLong oStride3 = output.stridesOf()[3];
+            const sd::LongType iStride0 = input.stridesOf()[0];
+            const sd::LongType iStride1 = input.stridesOf()[1];
+            const sd::LongType iStride2 = input.stridesOf()[2];
+            const sd::LongType iStride3 = input.stridesOf()[3];
+            const sd::LongType oStride0 = output.stridesOf()[0];
+            const sd::LongType oStride1 = output.stridesOf()[1];
+            const sd::LongType oStride2 = output.stridesOf()[2];
+            const sd::LongType oStride3 = output.stridesOf()[3];
 
-            const Nd4jLong iStep2   = dH*iStride2;
-            const Nd4jLong iStep3   = dW*iStride3;
+            const sd::LongType iStep2   = dH*iStride2;
+            const sd::LongType iStep3   = dW*iStride3;
             const int kProd         = kH*kW;
 
             if(poolingMode == 0) {        // max
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong hstart, wstart, hend, wend;
+                    sd::LongType hstart, wstart, hend, wend;
                     T *pIn;
 
                     for (int b = start_x; b < stop_x; b += inc_x) {
@@ -78,13 +77,13 @@ namespace sd {
                                     wend = wstart + kWEff;
 
                                     if (hstart < 0)
-                                        hstart += dH * ((-hstart + dH - 1) / dH); // (Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
+                                        hstart += dH * ((-hstart + dH - 1) / dH); // (sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
                                     if (wstart < 0)
-                                        wstart += dW * ((-wstart + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
+                                        wstart += dW * ((-wstart + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
                                     if (hend > iH)
-                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
+                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
                                     if (wend > iW)
-                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
+                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
 
                                     hstart *= iStride2;
                                     hend *= iStride2;
@@ -93,8 +92,8 @@ namespace sd {
 
                                     T max = -DataTypeUtils::max<T>();
 
-                                    for (Nd4jLong kh = hstart; kh < hend; kh += iStep2)
-                                        for (Nd4jLong kw = wstart; kw < wend; kw += iStep3) {
+                                    for (sd::LongType kh = hstart; kh < hend; kh += iStep2)
+                                        for (sd::LongType kw = wstart; kw < wend; kw += iStep3) {
                                             T val = pIn[kh + kw];
                                             if (val > max)
                                                 max = val;
@@ -111,7 +110,7 @@ namespace sd {
 /*************************************************************************/
             else if(poolingMode == 1) {      // avg
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong hstart, wstart, hend, wend;
+                    sd::LongType hstart, wstart, hend, wend;
                     T *pIn;
 
                     for (int b = start_x; b < stop_x; b += inc_x) {
@@ -127,13 +126,13 @@ namespace sd {
                                     wend = wstart + kWEff;
 
                                     if (hstart < 0)
-                                        hstart += dH * ((-hstart + dH - 1) / dH); // (Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
+                                        hstart += dH * ((-hstart + dH - 1) / dH); // (sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
                                     if (wstart < 0)
-                                        wstart += dW * ((-wstart + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
+                                        wstart += dW * ((-wstart + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
                                     if (hend > iH)
-                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
+                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
                                     if (wend > iW)
-                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
+                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
 
                                     hstart *= iStride2;
                                     hend *= iStride2;
@@ -142,8 +141,8 @@ namespace sd {
 
                                     T sum = static_cast<T>(0.f);
 
-                                    for (Nd4jLong kh = hstart; kh < hend; kh += iStep2)
-                                        for (Nd4jLong kw = wstart; kw < wend; kw += iStep3)
+                                    for (sd::LongType kh = hstart; kh < hend; kh += iStep2)
+                                        for (sd::LongType kw = wstart; kw < wend; kw += iStep3)
                                             sum += pIn[kh + kw];
 
                                     if (extraParam0 == 0) {                     //Exclude padding
@@ -165,7 +164,7 @@ namespace sd {
 /*************************************************************************/
             else if(poolingMode == 2) {  // pnorm
                 auto func = PRAGMA_THREADS_FOR_2D {
-                    Nd4jLong hstart, wstart, hend, wend;
+                    sd::LongType hstart, wstart, hend, wend;
                     T *pIn;
 
                     for (int b = start_x; b < stop_x; b += inc_x) {
@@ -181,13 +180,13 @@ namespace sd {
                                     wend = wstart + kWEff;
 
                                     if (hstart < 0)
-                                        hstart += dH * ((-hstart + dH - 1) / dH); // (Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
+                                        hstart += dH * ((-hstart + dH - 1) / dH); // (sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-hstart) / static_cast<T>(dH));
                                     if (wstart < 0)
-                                        wstart += dW * ((-wstart + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
+                                        wstart += dW * ((-wstart + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(-wstart) / static_cast<T>(dW));
                                     if (hend > iH)
-                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
+                                        hend -= dH * ((hend - iH + dH - 1) / dH); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(hend-iH) / static_cast<T>(dH));
                                     if (wend > iW)
-                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(Nd4jLong)sd::math::nd4j_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
+                                        wend -= dW * ((wend - iW + dW - 1) / dW); //(sd::LongType)sd::math::sd_ceil<T,T>(static_cast<T>(wend-iW) / static_cast<T>(dW));
 
                                     hstart *= iStride2;
                                     hend *= iStride2;
@@ -196,11 +195,11 @@ namespace sd {
 
                                     T sum = static_cast<T>(0.f);
 
-                                    for (Nd4jLong kh = hstart; kh < hend; kh += iStep2)
-                                        for (Nd4jLong kw = wstart; kw < wend; kw += iStep3)
-                                            sum += sd::math::nd4j_pow<T, T, T>(sd::math::nd4j_abs<T>(pIn[kh + kw]), extraParam0);
+                                    for (sd::LongType kh = hstart; kh < hend; kh += iStep2)
+                                        for (sd::LongType kw = wstart; kw < wend; kw += iStep3)
+                                            sum += sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(pIn[kh + kw]), extraParam0);
 
-                                    sum = sd::math::nd4j_pow<T, T, T>(sum, static_cast<T>((T) 1.f) / extraParam0);
+                                    sum = sd::math::sd_pow<T, T, T>(sum, static_cast<T>((T) 1.f) / extraParam0);
 
                                     out[b * oStride0 + c * oStride1 + oh * oStride2 + ow * oStride3] = sum;
                                 }
@@ -212,13 +211,13 @@ namespace sd {
                 samediff::Threads::parallel_for(func, 0, bS, 1, 0, iC, 1);
             }
             else {
-                nd4j_printf("ConvolutionUtils::pooling2d: pooling mode argument can take three values only: 0, 1, 2, but got %i instead !\n", poolingMode);
+                sd_printf("ConvolutionUtils::pooling2d: pooling mode argument can take three values only: 0, 1, 2, but got %i instead !\n", poolingMode);
                 throw "";
             }
         }
 
-        ND4J_LOCAL void ConvolutionUtils::pooling2d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const PoolingType poolingMode, const int extraParam0) {
-            BUILD_SINGLE_SELECTOR(input.dataType(), pooling2d_, (block, input, output, kH, kW, sH, sW, pH, pW, dH, dW, poolingMode, extraParam0), NUMERIC_TYPES);
+        void ConvolutionUtils::pooling2d(sd::graph::Context& block, const NDArray& input, NDArray& output, const int kH, const int kW, const int sH, const int sW, const int pH, const int pW, const int dH, const int dW, const PoolingType poolingMode, const int extraParam0) {
+            BUILD_SINGLE_SELECTOR(input.dataType(), pooling2d_, (block, input, output, kH, kW, sH, sW, pH, pW, dH, dW, poolingMode, extraParam0), SD_NUMERIC_TYPES);
         }
 
 }

@@ -56,7 +56,7 @@ CUSTOM_OP_IMPL(reduce_min, -1, 1, false, 0, 0) {
 
     input->reduceAlongDimension(reduce::Min, *output, dimensions, keepDims);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_min) {
@@ -122,7 +122,7 @@ CUSTOM_OP_IMPL(reduce_min_bp, -1, 1, false, 0, 0) {
     if(gradO->lengthOf() == 1) {
 
         auto indOfMaxElem = input->indexReduceNumber(sd::indexreduce::IndexMin);
-        gradI->p(indOfMaxElem.e<Nd4jLong>(0), gradO->e(0));
+        gradI->p(indOfMaxElem.e<sd::LongType>(0), gradO->e(0));
     }
     else {
 
@@ -130,7 +130,7 @@ CUSTOM_OP_IMPL(reduce_min_bp, -1, 1, false, 0, 0) {
         helpers::scatterSimple(block.launchContext(), 6, *gradI, *gradO, indicesArr, ShapeUtils::evalDimsToExclude(gradI->rankOf(), dimensions));  // 6 corresponds to copy operation
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_min_bp) {
@@ -147,7 +147,7 @@ DECLARE_SHAPE_FN(reduce_min_bp) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_MIN_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-    Nd4jLong* outShapeInfo;
+    sd::LongType* outShapeInfo;
     COPY_SHAPE(inputShape->at(0), outShapeInfo);
 
     return SHAPELIST(CONSTANT(outShapeInfo));

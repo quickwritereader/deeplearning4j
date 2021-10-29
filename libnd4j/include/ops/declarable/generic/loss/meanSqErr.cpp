@@ -31,94 +31,94 @@ namespace sd {
 
 //////////////////////////////////////////////////////////////////////////
 CUSTOM_OP_IMPL(mean_sqerr_loss, 3, 1, false, 0, 1) {
-  	auto predictions = INPUT_VARIABLE(0);
-    auto weights 	= INPUT_VARIABLE(1);
-    auto labels  	= INPUT_VARIABLE(2);
-    auto output  	= OUTPUT_VARIABLE(0);
+      auto predictions = INPUT_VARIABLE(0);
+    auto weights     = INPUT_VARIABLE(1);
+    auto labels      = INPUT_VARIABLE(2);
+    auto output      = OUTPUT_VARIABLE(0);
 
-    int reductionMode = INT_ARG(0);			// 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
+    int reductionMode = INT_ARG(0);            // 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
 
-	// inputs validation
+    // inputs validation
     REQUIRE_TRUE(labels->isSameShape(predictions), 0, "MEAN_SQERR_LOSS OP: labels and predictions arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labels).c_str(), ShapeUtils::shapeAsString(predictions).c_str());
     // weights array can be single scalar or has the same rank as labels, and must be broadcastable to labels
-	REQUIRE_TRUE(weights->isScalar() || weights->rankOf() == labels->rankOf(), 0, "MEAN_SQERR_LOSS OP: weights array should be scalar or have the same rank as labels array, but got %i and %i correspondingly!", weights->rankOf(), labels->rankOf());
+    REQUIRE_TRUE(weights->isScalar() || weights->rankOf() == labels->rankOf(), 0, "MEAN_SQERR_LOSS OP: weights array should be scalar or have the same rank as labels array, but got %i and %i correspondingly!", weights->rankOf(), labels->rankOf());
     // check whether broadcast operation is possible for weights array
     REQUIRE_TRUE(weights->isScalar() || ShapeUtils::areShapesBroadcastable(*weights, *labels), 0, "MEAN_SQERR_LOSS OP: shapes of weights and labels arrays should be broadcastable, but got weights = %s and labels = %s instead!", ShapeUtils::shapeAsString(weights).c_str(), ShapeUtils::shapeAsString(labels).c_str());
-	// only 4 possible reduction modes exist
+    // only 4 possible reduction modes exist
     REQUIRE_TRUE(reductionMode==0 || reductionMode==1 || reductionMode==2 || reductionMode==3, 0, "MEAN_SQERR_LOSS OP: reduction mode value is not acceptable, possible values are 0, 1, 2, 3, but got %i instead!", reductionMode);
 
-	// perform weights broadcasting/tile to labels if needed
-	auto weightsBroad = weights;
-	if(!weights->isScalar() && !weights->isSameShape(predictions))
-		weightsBroad = new NDArray(weights->tileToShape(predictions->shapeInfo()));
+    // perform weights broadcasting/tile to labels if needed
+    auto weightsBroad = weights;
+    if(!weights->isScalar() && !weights->isSameShape(predictions))
+        weightsBroad = new NDArray(weights->tileToShape(predictions->shapeInfo()));
 
-	NDArray E(labels->shapeInfo(), false, block.launchContext());
-	predictions->applyPairwiseTransform(pairwise::SquaredSubtract, *labels, E);
+    NDArray E(labels->shapeInfo(), false, block.launchContext());
+    predictions->applyPairwiseTransform(pairwise::SquaredSubtract, *labels, E);
 
     // multiply E on weights
     E *= (*weightsBroad);
 
-	switch (reductionMode) {
-		case 0:												// 0 - "none", un-reduced weighted losses with the same shape as labels.
-			output->assign(&E);
-			break;
+    switch (reductionMode) {
+        case 0:                                                // 0 - "none", un-reduced weighted losses with the same shape as labels.
+            output->assign(&E);
+            break;
 
-		case 1: {											// 1 - "weighted_sum", output is scalar and equal to sum of all elements of E array
-			E.reduceNumber(reduce::Sum, *output);
-			break;
-		}
-		case 2: {											// 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
-			NDArray sum;
-			sum.setContext(block.launchContext());
-			if (weights->isScalar())
-				sum = (*weights) * E.lengthOf();
-			else
-				sum = weightsBroad->reduceNumber(reduce::Sum);
+        case 1: {                                            // 1 - "weighted_sum", output is scalar and equal to sum of all elements of E array
+            E.reduceNumber(reduce::Sum, *output);
+            break;
+        }
+        case 2: {                                            // 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
+            NDArray sum;
+            sum.setContext(block.launchContext());
+            if (weights->isScalar())
+                sum = (*weights) * E.lengthOf();
+            else
+                sum = weightsBroad->reduceNumber(reduce::Sum);
 
-			if (sum.e<double>(0) == 0.)
-				(*output) = 0.;
-			else
-				output->assign(E.reduceNumber(reduce::Sum) / sum);
-			break;
-		}
-		case 3: {											// 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
-			Nd4jLong numOfNonZeroWeights = 0;
-			if(weights->isScalar()) {
-				if(weights->e<double>(0) != 0.)
-					numOfNonZeroWeights = E.lengthOf();
-			}
-			else {
-				numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<Nd4jLong>(0);
-			}
+            if (sum.e<double>(0) == 0.)
+                (*output) = 0.;
+            else
+                output->assign(E.reduceNumber(reduce::Sum) / sum);
+            break;
+        }
+        case 3: {                                            // 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
+            sd::LongType numOfNonZeroWeights = 0;
+            if(weights->isScalar()) {
+                if(weights->e<double>(0) != 0.)
+                    numOfNonZeroWeights = E.lengthOf();
+            }
+            else {
+                numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<sd::LongType>(0);
+            }
 
-			if (numOfNonZeroWeights == 0)
-				(*output) = 0.;
-			else
-				output->assign(E.reduceNumber(reduce::Sum) / double(numOfNonZeroWeights));
-			break;
-		}
-	}
+            if (numOfNonZeroWeights == 0)
+                (*output) = 0.;
+            else
+                output->assign(E.reduceNumber(reduce::Sum) / double(numOfNonZeroWeights));
+            break;
+        }
+    }
 
 
     STORE_RESULT(*output);
 
     if(weightsBroad != weights)
-    	delete weightsBroad;
+        delete weightsBroad;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(mean_sqerr_loss) {
 
-	getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+    getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 
 DECLARE_SHAPE_FN(mean_sqerr_loss) {
 
-	auto predictionsShapeInfo = inputShape->at(0);
-	auto weightsShapeInfo 	  = inputShape->at(1);
-    auto labelsShapeInfo  	  = inputShape->at(2);
+    auto predictionsShapeInfo = inputShape->at(0);
+    auto weightsShapeInfo       = inputShape->at(1);
+    auto labelsShapeInfo        = inputShape->at(2);
 
     // labels and predictions must have the same shapes
     REQUIRE_TRUE(shape::shapeEquals(labelsShapeInfo, predictionsShapeInfo), 0, "MEAN_SQERR_LOSS OP: labels and predictions arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labelsShapeInfo).c_str(), ShapeUtils::shapeAsString(predictionsShapeInfo).c_str());
@@ -128,12 +128,12 @@ DECLARE_SHAPE_FN(mean_sqerr_loss) {
     REQUIRE_TRUE(shape::isScalar(weightsShapeInfo) || ShapeUtils::areShapesBroadcastable(weightsShapeInfo, labelsShapeInfo), 0, "MEAN_SQERR_LOSS OP: shapes of weights and labels arrays should be broadcastable, but got weights = %s and labels = %s instead!", ShapeUtils::shapeAsString(weightsShapeInfo).c_str(), ShapeUtils::shapeAsString(labelsShapeInfo).c_str());
 
     DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(predictionsShapeInfo));
-    Nd4jLong const* outShapeInfo = nullptr;
+    sd::LongType const* outShapeInfo = nullptr;
 
-    if(INT_ARG(0) != 0) 			// in this case output is scalar
-    	outShapeInfo = ConstantShapeHelper::getInstance().scalarShapeInfo(outType);
-    else 							// in this case output has the same shape as labels and predictions
-    	outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(outType, shape::order(labelsShapeInfo), shape::shapeOf(labelsShapeInfo), shape::rank(labelsShapeInfo)));
+    if(INT_ARG(0) != 0)             // in this case output is scalar
+        outShapeInfo = ConstantShapeHelper::getInstance().scalarShapeInfo(outType);
+    else                             // in this case output has the same shape as labels and predictions
+        outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(outType, shape::order(labelsShapeInfo), shape::shapeOf(labelsShapeInfo), shape::rank(labelsShapeInfo)));
 
     return SHAPELIST(outShapeInfo);
 
@@ -148,138 +148,138 @@ DECLARE_SHAPE_FN(mean_sqerr_loss) {
 //////////////////////////////////////////////////////////////////////////
 CUSTOM_OP_IMPL(mean_sqerr_loss_grad, 3, 3, false, 0, 1) {
 
-  	auto predictions = INPUT_VARIABLE(0);
-    auto weights 	= INPUT_VARIABLE(1);
-    auto labels  	= INPUT_VARIABLE(2);
+      auto predictions = INPUT_VARIABLE(0);
+    auto weights     = INPUT_VARIABLE(1);
+    auto labels      = INPUT_VARIABLE(2);
 
-    auto dLdp = OUTPUT_VARIABLE(0);		// dL/dpredictions
-    auto dLdw = OUTPUT_VARIABLE(1);		// dL/dweights
-    auto dLdl = OUTPUT_VARIABLE(2);		// dL/dlabels
+    auto dLdp = OUTPUT_VARIABLE(0);        // dL/dpredictions
+    auto dLdw = OUTPUT_VARIABLE(1);        // dL/dweights
+    auto dLdl = OUTPUT_VARIABLE(2);        // dL/dlabels
 
-    int reductionMode = INT_ARG(0);			// 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
+    int reductionMode = INT_ARG(0);            // 0 - "none"; 1 - "weighted_sum";  2 - "weighted_mean";  3 - "weighted_sum_by_nonzero_weights"
     // take into account Alex's proposition to treat "none" the same as "weighted_sum" mode when calculating gradients
     if(reductionMode == 0)
-    	reductionMode = 1;
+        reductionMode = 1;
 
-	// inputs validation
+    // inputs validation
     REQUIRE_TRUE(labels->isSameShape(predictions), 0, "MEAN_SQERR_LOSS_GRAD OP: labels and predictions arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labels).c_str(), ShapeUtils::shapeAsString(predictions).c_str());
     // weights array can be single scalar or has the same rank as labels, and must be broadcastable to labels
-	REQUIRE_TRUE(weights->isScalar() || weights->rankOf() == labels->rankOf(), 0, "MEAN_SQERR_LOSS_GRAD OP: weights array should be scalar or have the same rank as labels array, but got %i and %i correspondingly!", weights->rankOf(), labels->rankOf());
+    REQUIRE_TRUE(weights->isScalar() || weights->rankOf() == labels->rankOf(), 0, "MEAN_SQERR_LOSS_GRAD OP: weights array should be scalar or have the same rank as labels array, but got %i and %i correspondingly!", weights->rankOf(), labels->rankOf());
     // check whether broadcast operation is possible for weights array
     REQUIRE_TRUE(weights->isScalar() || ShapeUtils::areShapesBroadcastable(*weights, *labels), 0, "MEAN_SQERR_LOSS_GRAD OP: shapes of weights and labels arrays should be broadcastable, but got weights = %s and labels = %s instead!", ShapeUtils::shapeAsString(weights).c_str(), ShapeUtils::shapeAsString(labels).c_str());
-	// only 4 possible reduction modes exist
+    // only 4 possible reduction modes exist
     REQUIRE_TRUE(reductionMode==0 || reductionMode==1 || reductionMode==2 || reductionMode==3, 0, "MEAN_SQERR_LOSS_GRAD OP: reduction mode value is not acceptable, possible values are 0, 1, 2, 3, but got %i instead!", reductionMode);
 
-	// perform weights broadcasting/tile to labels if needed
-	auto weightsBroad = weights;
-	if(!weights->isScalar() && !weights->isSameShape(predictions))
-		weightsBroad = new NDArray(weights->tileToShape(predictions->shapeInfo()));
+    // perform weights broadcasting/tile to labels if needed
+    auto weightsBroad = weights;
+    if(!weights->isScalar() && !weights->isSameShape(predictions))
+        weightsBroad = new NDArray(weights->tileToShape(predictions->shapeInfo()));
 
-	NDArray diff = *predictions - *labels;
+    NDArray diff = *predictions - *labels;
 
-	// dE_i/dp_i = 2 * (p_i - y_i)
-	dLdp->assign(2. * diff);	// dE/dp
-	// dE_i/dy_i = -2 * (p_i - y_i)
-	// dLdl->assign(-(*dLdp));		// dE/dl
+    // dE_i/dp_i = 2 * (p_i - y_i)
+    dLdp->assign(2. * diff);    // dE/dp
+    // dE_i/dy_i = -2 * (p_i - y_i)
+    // dLdl->assign(-(*dLdp));        // dE/dl
 
-	NDArray E = diff * diff;
+    NDArray E = diff * diff;
 
-	switch (reductionMode) {
+    switch (reductionMode) {
 
-		case 1: {											// 1 - "none" and "weighted_sum", output is scalar and equal to sum of all elements of E array
+        case 1: {                                            // 1 - "none" and "weighted_sum", output is scalar and equal to sum of all elements of E array
 
-			*dLdp *= *weightsBroad;
+            *dLdp *= *weightsBroad;
 
-			if(weights->isScalar())
-				dLdw->assign(E.reduceNumber(reduce::Sum));
-			else if(weights != weightsBroad) {
-				std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
-				E.reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
-			}
-			else
-				dLdw->assign(E);
-			break;
-		}
-		case 2: {											// 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
+            if(weights->isScalar())
+                dLdw->assign(E.reduceNumber(reduce::Sum));
+            else if(weights != weightsBroad) {
+                std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
+                E.reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
+            }
+            else
+                dLdw->assign(E);
+            break;
+        }
+        case 2: {                                            // 2 - "weighted_mean", output is scalar and equal to sum of all elements of E array divided by sum of all elements of weightsBroad array
 
-			NDArray sum;
-			sum.setContext(block.launchContext());
-			if (weights->isScalar())
-				sum = (*weights) * E.lengthOf();
-			else
-				sum = weightsBroad->reduceNumber(reduce::Sum);
+            NDArray sum;
+            sum.setContext(block.launchContext());
+            if (weights->isScalar())
+                sum = (*weights) * E.lengthOf();
+            else
+                sum = weightsBroad->reduceNumber(reduce::Sum);
 
-			if (sum.e<double>(0) == 0.) {
-				*dLdp = 0.;
-				*dLdw = 0.;
-			}
-			else {
+            if (sum.e<double>(0) == 0.) {
+                *dLdp = 0.;
+                *dLdw = 0.;
+            }
+            else {
 
-				*dLdp *= *weightsBroad / sum;
+                *dLdp *= *weightsBroad / sum;
 
-				if(weights->isScalar())
-					*dLdw = 0.;
-				else if(weights != weightsBroad) {
-					std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
-					((E * sum - (E * *weightsBroad).reduceNumber(reduce::Sum)) / (sum*sum)).reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
-				}
-				else
-					dLdw->assign((E * sum - (E * *weightsBroad).reduceNumber(reduce::Sum)) / (sum*sum));
-			}
-			break;
-		}
-		case 3: {											// 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
+                if(weights->isScalar())
+                    *dLdw = 0.;
+                else if(weights != weightsBroad) {
+                    std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
+                    ((E * sum - (E * *weightsBroad).reduceNumber(reduce::Sum)) / (sum*sum)).reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
+                }
+                else
+                    dLdw->assign((E * sum - (E * *weightsBroad).reduceNumber(reduce::Sum)) / (sum*sum));
+            }
+            break;
+        }
+        case 3: {                                            // 3 - "weighted_sum_by_nonzero_weights", output is scalar and equal to scalar sum of all elements of E array divided by number of non-zero weights
 
-			Nd4jLong numOfNonZeroWeights = 0;
-			if(weights->isScalar()) {
-				if(weights->e<double>(0) != 0.)
-					numOfNonZeroWeights = E.lengthOf();
-			}
-			else
-				numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<Nd4jLong>(0);
+            sd::LongType numOfNonZeroWeights = 0;
+            if(weights->isScalar()) {
+                if(weights->e<double>(0) != 0.)
+                    numOfNonZeroWeights = E.lengthOf();
+            }
+            else
+                numOfNonZeroWeights = weightsBroad->reduceNumber(reduce::CountNonZero).e<sd::LongType>(0);
 
-			if (numOfNonZeroWeights == 0) {
-				*dLdp = 0.;
-				*dLdw = 0.;
-			}
-			else {
-				auto numOfNonZeroWeightsScalar = NDArrayFactory::create(dLdw->dataType(), numOfNonZeroWeights, block.launchContext());
+            if (numOfNonZeroWeights == 0) {
+                *dLdp = 0.;
+                *dLdw = 0.;
+            }
+            else {
+                auto numOfNonZeroWeightsScalar = NDArrayFactory::create(dLdw->dataType(), numOfNonZeroWeights, block.launchContext());
 
-				if(weights->isScalar())
-					dLdw->assign(E.reduceNumber(reduce::Sum) / double(numOfNonZeroWeights));
-				else if(weights != weightsBroad) {
-					std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
-					E.reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
-					*dLdw /= numOfNonZeroWeightsScalar;
-				}
-				else
-					dLdw->assign(E / numOfNonZeroWeights);
+                if(weights->isScalar())
+                    dLdw->assign(E.reduceNumber(reduce::Sum) / double(numOfNonZeroWeights));
+                else if(weights != weightsBroad) {
+                    std::vector<int> axesToReduceAlong = ShapeUtils::evalBroadcastBackwardAxis(weights->shapeInfo(), weightsBroad->shapeInfo());
+                    E.reduceAlongDimension(reduce::Sum, *dLdw, axesToReduceAlong, true);
+                    *dLdw /= numOfNonZeroWeightsScalar;
+                }
+                else
+                    dLdw->assign(E / numOfNonZeroWeights);
 
-				NDArray temp = *weightsBroad / numOfNonZeroWeightsScalar;
-				*dLdp *= temp;
-			}
-			break;
-		}
-	}
+                NDArray temp = *weightsBroad / numOfNonZeroWeightsScalar;
+                *dLdp *= temp;
+            }
+            break;
+        }
+    }
 
-	dLdl->assign(-(*dLdp));
+    dLdl->assign(-(*dLdp));
 
     if(weightsBroad != weights)
-    	delete weightsBroad;
+        delete weightsBroad;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(mean_sqerr_loss_grad) {
 
-	getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+    getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 DECLARE_SHAPE_FN(mean_sqerr_loss_grad) {
 
-	auto predictionsShapeInfo = inputShape->at(0);
-	auto weightsShapeInfo 	  = inputShape->at(1);
-    auto labelsShapeInfo  	  = inputShape->at(2);
+    auto predictionsShapeInfo = inputShape->at(0);
+    auto weightsShapeInfo       = inputShape->at(1);
+    auto labelsShapeInfo        = inputShape->at(2);
 
     // labels and predictions must have the same shapes
     REQUIRE_TRUE(shape::shapeEquals(labelsShapeInfo, predictionsShapeInfo), 0, "MEAN_SQERR_LOSS_GRAD OP: labels and predictions arrays must have the same shapes, but got %s and %s correspondingly !", ShapeUtils::shapeAsString(labelsShapeInfo).c_str(), ShapeUtils::shapeAsString(predictionsShapeInfo).c_str());

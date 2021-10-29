@@ -32,7 +32,7 @@ namespace sd {
 
             auto input = INPUT_VARIABLE(0);
 
-            return input->isR() || input->isZ() ? ND4J_STATUS_TRUE : ND4J_STATUS_FALSE;
+            return input->isR() || input->isZ() ? sd::Status::TRUE : sd::Status::FALSE;
         }
 
         DECLARE_TYPES(is_numeric_tensor) {

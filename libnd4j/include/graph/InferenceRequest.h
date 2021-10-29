@@ -21,18 +21,16 @@
 //
 #ifndef DEV_TESTS_INFERENCEREQUEST_H
 #define DEV_TESTS_INFERENCEREQUEST_H
-
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
-#include <system/dll.h>
+#include <system/common.h>
 #include <graph/Variable.h>
 #include "ExecutorConfiguration.h"
 
 namespace sd {
     namespace graph {
-        class ND4J_EXPORT InferenceRequest {
+        class SD_LIB_EXPORT InferenceRequest {
         private:
-            Nd4jLong _id;
+            sd::LongType _id;
             std::vector<Variable*> _variables;
             std::vector<Variable*> _deletables;
 
@@ -41,7 +39,7 @@ namespace sd {
             void insertVariable(Variable* variable);
         public:
 
-            InferenceRequest(Nd4jLong graphId, ExecutorConfiguration *configuration = nullptr);
+            InferenceRequest(sd::LongType graphId, ExecutorConfiguration *configuration = nullptr);
             ~InferenceRequest();
 
             void appendVariable(int id, NDArray *array);
@@ -56,7 +54,6 @@ namespace sd {
         };
     }
 }
-
 
 
 #endif //DEV_TESTS_INFERENCEREQUEST_H

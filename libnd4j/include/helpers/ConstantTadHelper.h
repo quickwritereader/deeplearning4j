@@ -24,9 +24,7 @@
 #ifndef DEV_TESTS_CONSTANTTADHELPER_H
 #define DEV_TESTS_CONSTANTTADHELPER_H
 
-#include <system/dll.h>
 #include <system/op_boilerplate.h>
-#include <system/pointercast.h>
 #include <map>
 #include <vector>
 #include <mutex>
@@ -36,10 +34,10 @@
 #include <array/ConstantDescriptor.h>
 #include <array/ConstantDataBuffer.h>
 namespace sd {
-    class ND4J_EXPORT ConstantTadHelper {
+    class SD_LIB_EXPORT ConstantTadHelper {
     private:
         std::mutex _mutex;
-        std::vector<MAP_IMPL<TadDescriptor, TadPack>> _cache;
+        std::vector<SD_MAP_IMPL<TadDescriptor, TadPack>> _cache;
 
         ConstantTadHelper();
     public:
@@ -55,9 +53,9 @@ namespace sd {
          * @param keepUnitiesInShape
          * @return
          */
-        TadPack tadForDimensions(const Nd4jLong *originalShape, const std::vector<int> &dimensions, const bool keepUnitiesInShape = false);
-        TadPack tadForDimensions(const Nd4jLong *originalShape, int* dimensions, int dimLength, const bool keepUnitiesInShape = false);
-        TadPack tadForDimensions(const Nd4jLong *originalShape, int dimensions, const bool keepUnitiesInShape = false);
+        TadPack tadForDimensions(const sd::LongType *originalShape, const std::vector<int> &dimensions, const bool keepUnitiesInShape = false);
+        TadPack tadForDimensions(const sd::LongType *originalShape, int* dimensions, int dimLength, const bool keepUnitiesInShape = false);
+        TadPack tadForDimensions(const sd::LongType *originalShape, int dimensions, const bool keepUnitiesInShape = false);
         TadPack tadForDimensions(ShapeDescriptor &descriptor, std::vector<int> &dimensions, const bool keepUnitiesInShape = false);
         TadPack tadForDimensions(TadDescriptor &descriptor);
 
@@ -65,7 +63,7 @@ namespace sd {
          * This method returns number of cached TAD shapes/offsets on specific device
          * @return
          */
-        FORCEINLINE int cachedEntriesForDevice(int deviceId) {
+        SD_INLINE int cachedEntriesForDevice(int deviceId) {
             if (deviceId > _cache.size())
                 throw std::runtime_error("deviceId > number of actual devices");
 
@@ -76,7 +74,7 @@ namespace sd {
          * This method returns total number of cached TAD shapes/offsets on all devices
          * @return
          */
-        FORCEINLINE int totalCachedEntries() {
+        SD_INLINE int totalCachedEntries() {
             int total = 0;
 
             for (int e = 0; e < _cache.size(); e++)

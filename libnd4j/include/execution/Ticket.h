@@ -22,8 +22,8 @@
 
 #ifndef SAMEDIFF_TICKET_H
 #define SAMEDIFF_TICKET_H
-
 #include <vector>
+#include <system/common.h>
 #include <execution/BlockingQueue.h>
 #include <execution/CallableWithArguments.h>
 #include <execution/CallableInterface.h>
@@ -31,7 +31,7 @@
 #include <mutex>
 
 namespace samediff {
-    class ND4J_EXPORT Ticket {
+    class SD_LIB_EXPORT Ticket {
     private:
         bool _acquired = false;
         std::vector<BlockingQueue<CallableWithArguments*>*> _queues;

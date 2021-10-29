@@ -37,7 +37,7 @@ namespace sd {
             input->reduceNumber(reduce::SquaredNorm, *output);
             (*output) /= 2.;
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(l2_loss) {
             return SHAPELIST(ConstantShapeHelper::getInstance().scalarShapeInfo(ArrayOptions::dataType(inputShape->at(0))));

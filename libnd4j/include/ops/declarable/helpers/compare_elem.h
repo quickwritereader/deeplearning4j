@@ -19,7 +19,6 @@
 
 #ifndef LIBND4J_COMPARE_ELEM_H
 #define LIBND4J_COMPARE_ELEM_H
-
 #include <ops/declarable/helpers/helpers.h>
 #include "array/NDArray.h"
 
@@ -27,7 +26,7 @@ namespace sd {
     namespace ops {
         namespace helpers {
 
-            void compare_elem(sd::LaunchContext * context, NDArray* input, bool isStrictlyIncreasing, bool& output);
+        SD_LIB_HIDDEN void compare_elem(sd::LaunchContext * context, NDArray* input, bool isStrictlyIncreasing, bool& output);
         }
     }
 }

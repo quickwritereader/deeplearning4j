@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(selu) {
@@ -53,7 +53,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::SELUDerivativeE, epsilon, z, nullptr);
             helpers::seluDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(selu_bp) {

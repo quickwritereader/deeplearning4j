@@ -35,7 +35,7 @@ namespace sd {
 
             if(input->isEmpty()){
                 output->p<double>(0, std::numeric_limits<double>::quiet_NaN());
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             int numZeros = 0;
@@ -43,11 +43,11 @@ namespace sd {
 //                if ((*input)(e) == T(0))
 //                    numZeros++;
             auto countZero = input->reduceNumber(reduce::CountZero);
-            //nd4j_printf("Zero count is %f for %i elements.", countZero.e<double>(0), input->lengthOf());
+            //sd_printf("Zero count is %f for %i elements.", countZero.e<double>(0), input->lengthOf());
             //countZero /= double(input->lengthOf());
-            output->p<double>(0, countZero.e<Nd4jLong>(0) / double(input->lengthOf())); //printIndexedBuffer("Zero count");
+            output->p<double>(0, countZero.e<sd::LongType>(0) / double(input->lengthOf())); //printIndexedBuffer("Zero count");
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(zero_fraction) {
             return SHAPELIST(ConstantShapeHelper::getInstance().scalarShapeInfo(sd::DataType::DOUBLE));

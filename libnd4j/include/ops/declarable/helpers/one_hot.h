@@ -22,15 +22,14 @@
 
 #ifndef DEV_TESTS_ONE_HOT_H
 #define DEV_TESTS_ONE_HOT_H
-
 #include <system/op_boilerplate.h>
 #include <array/NDArray.h>
 
-namespace sd 		{
-namespace ops 		{
-namespace helpers 	{
+namespace sd         {
+namespace ops         {
+namespace helpers     {
 
-	void onehot(const sd::LaunchContext* context, const NDArray *indices, NDArray *output, const uint axis, const uint depth, const double on, const double off);
+SD_LIB_HIDDEN void onehot(const sd::LaunchContext* context, const NDArray *indices, NDArray *output, const sd::Unsigned axis, const sd::Unsigned depth, const double on, const double off);
 
 }
 }

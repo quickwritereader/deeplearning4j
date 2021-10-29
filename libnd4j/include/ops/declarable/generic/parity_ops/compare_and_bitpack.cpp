@@ -34,7 +34,7 @@ namespace sd {
             auto z = OUTPUT_VARIABLE(0);
 
             sd::ops::helpers::compareAndBitpack(block, *x, *y, *z);
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(compare_and_bitpack) {
@@ -49,7 +49,7 @@ namespace sd {
             auto shapes = shape::shapeOf(inShape);
             const int rank = shape::rank(inShape);
             REQUIRE_TRUE(!shape::isScalar(inShape), 0, "Input should not be a scalar");
-            std::vector<Nd4jLong> shapeDims {shapes, shapes + rank};
+            std::vector<sd::LongType> shapeDims {shapes, shapes + rank};
             REQUIRE_TRUE(shapeDims[rank-1] % 8 ==0 , 0, "Last dimension of the input (which is %i) should be divisible by 8 ", shapeDims[rank-1]);
             shapeDims[rank-1] = shapeDims[rank-1] / 8 ;
             DataType newType = DataType::UINT8;

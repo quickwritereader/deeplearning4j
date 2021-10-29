@@ -23,7 +23,6 @@
 
 #ifndef DEV_TESTS_SCALAR_INPLACE_H
 #define DEV_TESTS_SCALAR_INPLACE_H
-
 #include <ops.h>
 #include <types/types.h>
 #include <system/op_boilerplate.h>
@@ -36,17 +35,17 @@ namespace functions {
         template <typename X, typename Y, typename Z>
         class ScalarInplace {
         public:
-            static FORCEINLINE _CUDA_D void transformCudaLegacy(int opNum, void* vscalar, void *vy, Nd4jLong *yShapeInfo, void *vparams, void *vz, Nd4jLong *zShapeInfo, int *allocationBuffer);
+            static SD_INLINE SD_DEVICE void transformCudaLegacy(int opNum, void* vscalar, void *vy, sd::LongType *yShapeInfo, void *vparams, void *vz, sd::LongType *zShapeInfo, int *allocationBuffer);
 
             template <typename OpClass>
-            static FORCEINLINE _CUDA_D void transformCuda(void* vscalar, void *vy, Nd4jLong *yShapeInfo, void *vparams, void *vz, Nd4jLong *zShapeInfo, int *allocationBuffer);
+            static SD_INLINE SD_DEVICE void transformCuda(void* vscalar, void *vy, sd::LongType *yShapeInfo, void *vparams, void *vz, sd::LongType *zShapeInfo, int *allocationBuffer);
         };
 
         template<typename X, typename Y, typename Z>
-        FORCEINLINE _CUDA_D void ScalarInplace<X,Y,Z>::transformCudaLegacy(int opNum, void* vscalar,
-                                                                    void *vy, Nd4jLong *yShapeInfo,
+        SD_INLINE SD_DEVICE void ScalarInplace<X,Y,Z>::transformCudaLegacy(int opNum, void* vscalar,
+                                                                    void *vy, sd::LongType *yShapeInfo,
                                                                     void *vparams,
-                                                                    void *vz, Nd4jLong *zShapeInfo,
+                                                                    void *vz, sd::LongType *zShapeInfo,
                                                                     int *allocationBuffer) {
 
             DISPATCH_BY_OPNUM_TTT(transformCuda, PARAMS(vscalar, vy, yShapeInfo, vparams, vz, zShapeInfo, allocationBuffer), SCALAR_OPS);
@@ -54,10 +53,10 @@ namespace functions {
 
         template<typename X, typename Y, typename Z>
         template<typename OpType>
-        FORCEINLINE _CUDA_D void ScalarInplace<X,Y,Z>::transformCuda(void* vscalar,
-                                                              void *vy, Nd4jLong *yShapeInfo,
+        SD_INLINE SD_DEVICE void ScalarInplace<X,Y,Z>::transformCuda(void* vscalar,
+                                                              void *vy, sd::LongType *yShapeInfo,
                                                               void *vparams,
-                                                              void *vz, Nd4jLong *zShapeInfo,
+                                                              void *vz, sd::LongType *zShapeInfo,
                                                               int *allocationBuffer) {
 
             auto scalar = reinterpret_cast<X*>(vscalar)[0];
@@ -68,13 +67,13 @@ namespace functions {
             int totalThreads = gridDim.x * blockDim.x;
             int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-            __shared__ Nd4jLong length;
+            __shared__ sd::LongType length;
             if(threadIdx.x == 0)
                 length = shape::length(yShapeInfo);
             __syncthreads();
 
 
-            for (Nd4jLong i = tid; i < length; i+= totalThreads) {
+            for (sd::LongType i = tid; i < length; i+= totalThreads) {
                 z[shape::getIndexOffset(i, zShapeInfo)] = OpType::op(y[shape::getIndexOffset(i, yShapeInfo)], scalar, params);
             }
         }

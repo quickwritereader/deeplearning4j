@@ -56,7 +56,7 @@ namespace ops  {
         output->applyTrueBroadcast(sd::BroadcastOpsTuple::Divide(), stdev, *output, false);
         output->applyScalar(sd::scalar::ReplaceNans, 0, *output);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -121,7 +121,7 @@ namespace ops  {
 
         output->applyScalar(sd::scalar::ReplaceNans, 0, *output);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(standardize_bp) {
@@ -132,7 +132,7 @@ namespace ops  {
 
     DECLARE_SHAPE_FN(standardize_bp) {
         auto in = inputShape->at(0);
-        Nd4jLong *out;
+        sd::LongType *out;
         COPY_SHAPE(in, out);
 
         return SHAPELIST(CONSTANT(out));

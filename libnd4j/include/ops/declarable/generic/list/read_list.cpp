@@ -55,7 +55,7 @@ namespace sd {
 
 //            OVERWRITE_RESULT(result);
             setupResult(result, block);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArrayReadV3, read_list);
         DECLARE_SYN(tensorarrayreadv3, read_list);

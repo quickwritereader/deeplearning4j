@@ -23,11 +23,9 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
-
 #include <helpers/MKLDNNStream.h>
 #include "mkldnnUtils.h"
 #include <ops/declarable/helpers/convolutions.h>
@@ -402,7 +400,7 @@ PLATFORM_IMPL(batchnorm, ENGINE_CPU) {
 
     delete weights;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -485,7 +483,7 @@ PLATFORM_CHECK(batchnorm, ENGINE_CPU) {
 //     else
 //         axes.push_back(input->rankOf() - 1);
 
-//     std::vector<Nd4jLong> shape({2, mean->lengthOf()});
+//     std::vector<sd::LongType> shape({2, mean->lengthOf()});
 //     NDArray weights = NDArrayFactory::create<float>('c', shape, block.launchContext());
 //     weights({0, 1, 0, 0}).assign(1.0f);
 //     weights({1, 2, 0, 0}).assign(0.0f);
@@ -551,7 +549,7 @@ PLATFORM_CHECK(batchnorm, ENGINE_CPU) {
 //     }
 //     stream.wait();
 
-//     return Status::OK();
+//     return sd::Status::OK;
 // }
 
 //////////////////////////////////////////////////////////////////////////
@@ -681,7 +679,7 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CPU) {
         delete dLdW;
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

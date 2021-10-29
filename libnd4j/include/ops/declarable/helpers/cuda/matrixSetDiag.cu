@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <array/ResultSet.h>
 #include <ops/declarable/helpers/matrixSetDiag.h>
 #include <helpers/PointersManager.h>
@@ -30,7 +29,7 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-__global__ static void matrixSetDiagCuda(const void* vx, const Nd4jLong* xShapeInfo, const void* vy, const Nd4jLong* yShapeInfo, void* vz, const Nd4jLong* zShapeInfo, const bool zeroPad) {
+SD_KERNEL static void matrixSetDiagCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vy, const sd::LongType* yShapeInfo, void* vz, const sd::LongType* zShapeInfo, const bool zeroPad) {
 
     // x - input,    shape [A,B,C]
     // y - diagonal, shape [A,B]
@@ -42,7 +41,7 @@ __global__ static void matrixSetDiagCuda(const void* vx, const Nd4jLong* xShapeI
           auto z = reinterpret_cast<T*>(vz);
 
     __shared__ int xRank, *sharedMem;       // xRank = zRank, xRank = yRank + 1
-    __shared__ Nd4jLong xLen;   // xLen = zLen
+    __shared__ sd::LongType xLen;   // xLen = zLen
     __shared__ bool areSameOffsets;
 
     if (threadIdx.x == 0) {
@@ -61,7 +60,7 @@ __global__ static void matrixSetDiagCuda(const void* vx, const Nd4jLong* xShapeI
     auto coords = sharedMem + threadIdx.x * xRank;               // we provide (xRank * sizeof(int) * threadIdx.x) amount of shared memory per each thread
     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (Nd4jLong i = tid; i < xLen; i += gridDim.x * blockDim.x) {
+    for (sd::LongType i = tid; i < xLen; i += gridDim.x * blockDim.x) {
 
         shape::index2coords(i, xShapeInfo, coords);
 
@@ -78,22 +77,22 @@ __global__ static void matrixSetDiagCuda(const void* vx, const Nd4jLong* xShapeI
 
 ///////////////////////////////////////////////////////////////////
 template<typename T>
-static void matrixSetDiagCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,  const void* vx, const Nd4jLong* xShapeInfo, const void* vy, const Nd4jLong* yShapeInfo, void* vz, const Nd4jLong* zShapeInfo, const bool zeroPad) {
+static void matrixSetDiagCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,  const void* vx, const sd::LongType* xShapeInfo, const void* vy, const sd::LongType* yShapeInfo, void* vz, const sd::LongType* zShapeInfo, const bool zeroPad) {
 
     matrixSetDiagCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, zeroPad);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
+void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
 
-    const int threadsPerBlock = MAX_NUM_THREADS / 2;
+    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
     const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
     const int sharedMem = threadsPerBlock * sizeof(int) * input.rankOf() + 128;
 
     PointersManager manager(context, "matrixSetDiag");
 
     NDArray::prepareSpecialUse({&output}, {&input, &diagonal});
-    BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiagCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), diagonal.specialBuffer(), diagonal.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), zeroPad), LIBND4J_TYPES);
+    BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiagCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), diagonal.specialBuffer(), diagonal.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo(), zeroPad), SD_COMMON_TYPES);
     NDArray::registerSpecialUse({&output}, {&input, &diagonal});
 
     manager.synchronize();

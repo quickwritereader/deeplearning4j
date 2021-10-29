@@ -33,7 +33,7 @@ namespace sd {
 
             x->applyTransform(transform::Not, *z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(boolean_not) {

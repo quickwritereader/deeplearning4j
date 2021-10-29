@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_EXECUTION_RESULT
 #define LIBND4J_EXECUTION_RESULT
-
 #include <vector>
 #include <initializer_list>
 #include <unordered_map>
@@ -36,8 +35,8 @@ namespace sd {
         class ExecutionResult {
         private:
             std::vector<Variable *> _variables;
-            MAP_IMPL<std::string, Variable *> _stringIdMap;
-            MAP_IMPL<std::pair<int, int>, Variable *> _pairIdMap;
+            SD_MAP_IMPL<std::string, Variable *> _stringIdMap;
+            SD_MAP_IMPL<std::pair<int, int>, Variable *> _pairIdMap;
 
             // this flag is used to optionally release variables
             bool _releasable = false;
@@ -81,7 +80,7 @@ namespace sd {
              * This method returns number of elements stored in this entity
              * @return
              */
-            Nd4jLong size();
+            sd::LongType size();
 
 #ifndef __JAVACPP_HACK__
             /**

@@ -19,7 +19,6 @@
  //
  // @author raver119@gmail.com
  //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <array/NDArrayFactory.h>
@@ -31,7 +30,6 @@
 #include <ops/specials_cuda.h>
 #include <helpers/TAD.h>
 #include <ops/declarable/CustomOperations.h>
-
 #include <cuda.h>
 
 using namespace sd;
@@ -51,9 +49,9 @@ static cudaError_t allocateDeviceMem(LaunchContext& lc, std::vector<void*>& devi
     cudaError_t cudaResult;
 
     void* reductionPointer;
-    cudaResult = cudaMalloc(reinterpret_cast<void **>(&reductionPointer),  1024*1024);			if(cudaResult != 0) return cudaResult;
+    cudaResult = cudaMalloc(reinterpret_cast<void **>(&reductionPointer),  1024*1024);            if(cudaResult != 0) return cudaResult;
     int* allocationPointer;
-    cudaResult = cudaMalloc(reinterpret_cast<void **>(&allocationPointer), 1024*1024);			if(cudaResult != 0) return cudaResult;
+    cudaResult = cudaMalloc(reinterpret_cast<void **>(&allocationPointer), 1024*1024);            if(cudaResult != 0) return cudaResult;
 
     lc.setReductionPointer(reductionPointer);
     lc.setAllocationPointer(allocationPointer);
@@ -168,7 +166,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_1) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 2, 4, 6, 8, 10 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -176,7 +174,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_1) {
     //res = cudaMalloc(reinterpret_cast<void **>(&devShapePtrX), shape::shapeInfoByteLength(x.shapeInfo()));
     //ASSERT_EQ(0, res);
 
-    Nd4jPointer nativeStream = (Nd4jPointer)malloc(sizeof(cudaStream_t));
+    sd::Pointer nativeStream = (sd::Pointer)malloc(sizeof(cudaStream_t));
     CHECK_ALLOC(nativeStream, "Failed to allocate memory for new CUDA stream", sizeof(cudaStream_t));
     cudaError_t dZ = cudaStreamCreate(reinterpret_cast<cudaStream_t *>(&nativeStream));
     auto stream = reinterpret_cast<cudaStream_t *>(&nativeStream);
@@ -203,7 +201,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_2) {
 
     NDArray exp('c', { 5 }, { 2, 4, 6, 8, 10 });
 
-    Nd4jPointer nativeStream = (Nd4jPointer)malloc(sizeof(cudaStream_t));
+    sd::Pointer nativeStream = (sd::Pointer)malloc(sizeof(cudaStream_t));
     CHECK_ALLOC(nativeStream, "Failed to allocate memory for new CUDA stream", sizeof(cudaStream_t));
     cudaError_t dZ = cudaStreamCreate(reinterpret_cast<cudaStream_t *>(&nativeStream));
     auto stream = reinterpret_cast<cudaStream_t *>(&nativeStream);
@@ -227,7 +225,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_3) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 2, 4, 6, 8, 10 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -235,7 +233,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_3) {
     //res = cudaMalloc(reinterpret_cast<void **>(&devShapePtrX), shape::shapeInfoByteLength(x.shapeInfo()));
     //ASSERT_EQ(0, res);
 
-    Nd4jPointer nativeStream = (Nd4jPointer)malloc(sizeof(cudaStream_t));
+    sd::Pointer nativeStream = (sd::Pointer)malloc(sizeof(cudaStream_t));
     CHECK_ALLOC(nativeStream, "Failed to allocate memory for new CUDA stream", sizeof(cudaStream_t));
     cudaError_t dZ = cudaStreamCreate(reinterpret_cast<cudaStream_t *>(&nativeStream));
     auto stream = reinterpret_cast<cudaStream_t *>(&nativeStream);
@@ -275,7 +273,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_4) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 2, 4, 6, 8, 10 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -304,7 +302,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_5) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 2, 4, 6, 8, 10 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -337,7 +335,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_6) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 3, 4, 5, 6, 7 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -367,7 +365,7 @@ TEST_F(NDArrayCudaBasicsTests, TestAdd_7) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 3, 4, 5, 6, 7 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -397,7 +395,7 @@ TEST_F(NDArrayCudaBasicsTests, TestMultiply_1) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 1, 4, 9, 16, 25 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -429,7 +427,7 @@ TEST_F(NDArrayCudaBasicsTests, TestMultiply_2) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 1, 4, 9, 16, 25 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -458,7 +456,7 @@ TEST_F(NDArrayCudaBasicsTests, TestMultiply_3) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 1, 4, 9, 16, 25 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -490,7 +488,7 @@ TEST_F(NDArrayCudaBasicsTests, TestMultiply_4) {
     auto exp = NDArrayFactory::create<double>('c', { 5 }, { 1, 4, 9, 16, 25 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -708,19 +706,19 @@ TEST_F(NDArrayCudaBasicsTests, TestRawBroadcast_2) {
 
     // prepare input arrays for prepareDataForCuda function
     std::vector<std::pair<void*,size_t>> hostData;
-    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(int));							// 0 -- dimensions
-    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));	// 1 -- xTadShapeInfo
-    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(Nd4jLong));							// 2 -- xTadOffsets
+    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(int));                            // 0 -- dimensions
+    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));    // 1 -- xTadShapeInfo
+    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(sd::LongType));                            // 2 -- xTadOffsets
     std::vector<void*> devicePtrs(hostData.size(), nullptr);
 
     // create cuda stream and LaunchContext
     cudaError_t cudaResult;
     cudaStream_t stream;
-    cudaResult = cudaStreamCreate(&stream);	ASSERT_EQ(0, cudaResult);
+    cudaResult = cudaStreamCreate(&stream);    ASSERT_EQ(0, cudaResult);
     LaunchContext lc(&stream);
 
     // allocate required amount of global device memory and copy host data to it
-    cudaResult = allocateDeviceMem(lc, devicePtrs, hostData);	ASSERT_EQ(0, cudaResult);
+    cudaResult = allocateDeviceMem(lc, devicePtrs, hostData);    ASSERT_EQ(0, cudaResult);
 
     // call cuda kernel which calculates result
     NativeOpExecutioner::execBroadcast(&lc, sd::broadcast::Multiply,
@@ -728,7 +726,7 @@ TEST_F(NDArrayCudaBasicsTests, TestRawBroadcast_2) {
                                        nullptr, y.shapeInfo(), y.specialBuffer(), y.specialShapeInfo(),
                                        nullptr, z.shapeInfo(), z.specialBuffer(), z.specialShapeInfo(),
                                        (int*)devicePtrs[0], dimensions.size(),
-                                       (Nd4jLong*)devicePtrs[1], (Nd4jLong*)devicePtrs[2],
+                                       (sd::LongType*)devicePtrs[1], (sd::LongType*)devicePtrs[2],
                                        nullptr, nullptr);
 
     cudaResult = cudaStreamSynchronize(stream); ASSERT_EQ(0, cudaResult);
@@ -768,19 +766,19 @@ TEST_F(NDArrayCudaBasicsTests, TestRawBroadcast_3) {
 
     // prepare input arrays for prepareDataForCuda function
     std::vector<std::pair<void*,size_t>> hostData;
-    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(int));							// 0 -- dimensions
-    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));	// 1 -- xTadShapeInfo
-    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(Nd4jLong));							// 2 -- xTadOffsets
+    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(int));                            // 0 -- dimensions
+    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));    // 1 -- xTadShapeInfo
+    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(sd::LongType));                            // 2 -- xTadOffsets
     std::vector<void*> devicePtrs(hostData.size(), nullptr);
 
     // create cuda stream and LaunchContext
     cudaError_t cudaResult;
     //cudaStream_t stream;
-    //cudaResult = cudaStreamCreate(&stream);	ASSERT_EQ(0, cudaResult);
+    //cudaResult = cudaStreamCreate(&stream);    ASSERT_EQ(0, cudaResult);
     LaunchContext* pLc = x.getContext();//(&stream);
     cudaStream_t* stream = pLc->getCudaStream();
     // allocate required amount of global device memory and copy host data to it
-//    cudaResult = allocateDeviceMem(*pLc, devicePtrs, hostData);	ASSERT_EQ(0, cudaResult);
+//    cudaResult = allocateDeviceMem(*pLc, devicePtrs, hostData);    ASSERT_EQ(0, cudaResult);
     for(int i = 0; i < devicePtrs.size(); ++i) {
 
         cudaResult = cudaMalloc(reinterpret_cast<void **>(&devicePtrs[i]), hostData[i].second); ASSERT_EQ(0, cudaResult);
@@ -794,7 +792,7 @@ TEST_F(NDArrayCudaBasicsTests, TestRawBroadcast_3) {
                                        nullptr, y.shapeInfo(), y.specialBuffer(), y.specialShapeInfo(),
                                        nullptr, z.shapeInfo(), z.specialBuffer(), z.specialShapeInfo(),
                                        (int*)devicePtrs[0], dimensions.size(),
-                                       (Nd4jLong*)devicePtrs[1], (Nd4jLong*)devicePtrs[2],
+                                       (sd::LongType*)devicePtrs[1], (sd::LongType*)devicePtrs[2],
                                        nullptr, nullptr);
 
     //cudaResult = cudaStreamSynchronize(stream); ASSERT_EQ(0, cudaResult);
@@ -821,7 +819,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply_1) {
     auto exp = NDArrayFactory::create<double>('c', { 2, 3 }, { 3, 6, 9, 12, 15, 18 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -851,7 +849,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply_01) {
     auto exp = NDArrayFactory::create<double>('c', { 2, 3 }, { 3, 6, 9, 12, 15, 18 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -884,7 +882,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply_02) {
     auto exp = NDArrayFactory::create<double>('c', { 2, 3 }, { 3, 6, 9, 12, 15, 18 });
     //if (x.isActualOnHostSide() && !x.isActualOnDeviceSide())
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -918,7 +916,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply_002) {
     auto exp = NDArrayFactory::create<double>('c', { 2, 3 }, { 2, 6, 9, 12, 15, 18 });
     //if (x.isActualOnHostSide() && !x.isActualOnDeviceSide())
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -966,9 +964,9 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastRaw_1) {
 
     // prepare input arrays for prepareDataForCuda function
     std::vector<std::pair<void*,size_t>> hostData;
-    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(Nd4jLong));							// 0 -- dimensions
-    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));	// 1 -- xTadShapeInfo
-    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(Nd4jLong));							// 2 -- xTadOffsets
+    hostData.emplace_back(dimensions.data(), dimensions.size() * sizeof(sd::LongType));                            // 0 -- dimensions
+    hostData.emplace_back(xTad.tadOnlyShapeInfo, shape::shapeInfoByteLength(xTad.tadOnlyShapeInfo));    // 1 -- xTadShapeInfo
+    hostData.emplace_back(xTad.tadOffsets, xTad.numTads * sizeof(sd::LongType));                            // 2 -- xTadOffsets
     std::vector<void*> devicePtrs(hostData.size(), nullptr);
 
     // create cuda stream and LaunchContext
@@ -977,7 +975,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastRaw_1) {
     LaunchContext* pLc = x.getContext();
 
     // allocate required amount of global device memory and copy host data to it
-    //cudaResult = allocateDeviceMem(*pLc, devicePtrs, hostData);	ASSERT_EQ(0, cudaResult);
+    //cudaResult = allocateDeviceMem(*pLc, devicePtrs, hostData);    ASSERT_EQ(0, cudaResult);
     for(size_t i = 0; i < devicePtrs.size(); ++i) {
         cudaResult = cudaMalloc(&devicePtrs[i], hostData[i].second); //if(cudaResult != 0) return cudaResult;
         ASSERT_EQ(cudaResult, 0);
@@ -990,7 +988,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastRaw_1) {
                                        nullptr, y.shapeInfo(), y.specialBuffer(), y.specialShapeInfo(),
                                        nullptr, z.shapeInfo(), z.specialBuffer(), z.specialShapeInfo(),
                                        (int*)devicePtrs[0], dimensions.size(),
-                                       (Nd4jLong*)devicePtrs[1], (Nd4jLong*)devicePtrs[2],
+                                       (sd::LongType*)devicePtrs[1], (sd::LongType*)devicePtrs[2],
                                        nullptr, nullptr);
 
     cudaResult = cudaStreamSynchronize(*stream); ASSERT_EQ(0, cudaResult);
@@ -1019,7 +1017,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply) {
     auto exp = NDArrayFactory::create<double>('c', { 2, 3 }, { 2, 6, 12, 8, 15, 24 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -1052,7 +1050,7 @@ TEST_F(NDArrayCudaBasicsTests, TestBroadcastMultiply_2) {
     auto expZ = NDArrayFactory::create<double>('c', { 2, 3 }, { 2, 6, 12, 8, 15, 24 });
 
     // making raw buffers
-    //Nd4jPointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
+    //sd::Pointer devBufferPtrX, devBufferPtrZ, devShapePtrX;
     //cudaError_t res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrX), x.lengthOf() * x.sizeOfT());
     //ASSERT_EQ(0, res);
     //res = cudaMalloc(reinterpret_cast<void **>(&devBufferPtrZ), x.lengthOf() * x.sizeOfT());
@@ -1918,30 +1916,30 @@ TEST_F(NDArrayCudaBasicsTests, subarray_1)
     NDArray x('c', {2,3,4}, {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}, sd::DataType::FLOAT32);
     NDArray y('f', {2,3,4}, {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24}, sd::DataType::FLOAT32);
 
-    Nd4jLong shapeExpX0[] = {1, 2, 12, 8192, 1, 99};
+    sd::LongType shapeExpX0[] = {1, 2, 12, 8192, 1, 99};
     float    buffExpX0[]  = {1.f, 13.f};
-    Nd4jLong shapeExpX1[] = {1, 2, 12, 8192, 1, 99};
+    sd::LongType shapeExpX1[] = {1, 2, 12, 8192, 1, 99};
     float    buffExpX1[]  = {2.f, 14.f};
-    Nd4jLong shapeExpX2[] = {3, 2, 1, 1, 12, 4, 1, 8192, 1, 99};
+    sd::LongType shapeExpX2[] = {3, 2, 1, 1, 12, 4, 1, 8192, 1, 99};
     float    buffExpX2[]  = {1.f, 13.f};
-    Nd4jLong shapeExpX3[] = {2, 2, 4, 12, 1, 8192, 1, 99};
+    sd::LongType shapeExpX3[] = {2, 2, 4, 12, 1, 8192, 1, 99};
     float    buffExpX3[]  = {9.f, 10.f, 11.f, 12.f, 21.f, 22.f, 23.f, 24.f};
-    Nd4jLong shapeExpX4[] = {3, 2, 1, 4, 12, 4, 1, 8192, 1, 99};
+    sd::LongType shapeExpX4[] = {3, 2, 1, 4, 12, 4, 1, 8192, 1, 99};
     float    buffExpX4[]  = {9.f, 10.f, 11.f, 12.f, 21.f, 22.f, 23.f, 24.f};
-    Nd4jLong shapeExpX5[] = {2, 2, 3, 12, 4, 8192, 1, 99};
+    sd::LongType shapeExpX5[] = {2, 2, 3, 12, 4, 8192, 1, 99};
     float    buffExpX5[]  = {4.f, 8.f, 12.f, 16.f, 20.f, 24.f};
 
-    Nd4jLong shapeExpY0[] = {1, 2, 1, 8192, 1, 99};
+    sd::LongType shapeExpY0[] = {1, 2, 1, 8192, 1, 99};
     float    buffExpY0[]  = {1.f, 2.f};
-    Nd4jLong shapeExpY1[] = {1, 2, 1, 8192, 1, 99};
+    sd::LongType shapeExpY1[] = {1, 2, 1, 8192, 1, 99};
     float    buffExpY1[]  = {7.f, 8.f};
-    Nd4jLong shapeExpY2[] = {3, 2, 1, 1, 1, 2, 6, 8192, 1, 102};
+    sd::LongType shapeExpY2[] = {3, 2, 1, 1, 1, 2, 6, 8192, 1, 102};
     float    buffExpY2[]  = {1.f, 2.f};
-    Nd4jLong shapeExpY3[] = {2, 2, 4, 1, 6, 8192, 1, 99};
+    sd::LongType shapeExpY3[] = {2, 2, 4, 1, 6, 8192, 1, 99};
     float    buffExpY3[]  = {5.f, 11.f, 17.f, 23.f, 6.f, 12.f, 18.f, 24.f};
-    Nd4jLong shapeExpY4[] = {3, 2, 1, 4, 1, 2, 6, 8192, 1, 102};
+    sd::LongType shapeExpY4[] = {3, 2, 1, 4, 1, 2, 6, 8192, 1, 102};
     float    buffExpY4[]  = {5.f, 11.f, 17.f, 23.f, 6.f, 12.f, 18.f, 24.f};
-    Nd4jLong shapeExpY5[] = {2, 2, 3, 1, 2, 8192, 1, 99};
+    sd::LongType shapeExpY5[] = {2, 2, 3, 1, 2, 8192, 1, 99};
     float    buffExpY5[]  = {19.f, 21.f, 23.f, 20.f, 22.f, 24.f};
 
 
@@ -2068,11 +2066,11 @@ TEST_F(NDArrayCudaBasicsTests, Test_diagonal_1) {
 
     auto diag = x.diagonal('c');
     //diag.syncToDevice();
-    for (Nd4jLong e = 0; e < exp.lengthOf(); ++e) {
+    for (sd::LongType e = 0; e < exp.lengthOf(); ++e) {
         printf("VAL[%ld] = %f\n", e, diag.e<float>(e)); //, exp.e<float>(e), 1.e-5);
     }
 
-    for (Nd4jLong e = 0; e < exp.lengthOf(); ++e) {
+    for (sd::LongType e = 0; e < exp.lengthOf(); ++e) {
         ASSERT_NEAR(diag.e<float>(e), exp.e<float>(e), 1.e-5);
     }
     double eps(1.e-5);

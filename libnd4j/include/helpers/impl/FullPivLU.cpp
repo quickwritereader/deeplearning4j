@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/FullPivLU.h>
 #include <ops/declarable/helpers/triangular_solve.h>
 #include <numeric>
@@ -48,7 +47,7 @@ void FullPivLU<T>::solve(const NDArray& A, const NDArray& b, NDArray& x) {
 
     const int rows    = LU.sizeAt(0);
     const int cols    = LU.sizeAt(1);
-    const int diagLen = math::nd4j_min<int>(rows, cols);
+    const int diagLen = math::sd_min<int>(rows, cols);
 
     std::vector<int> rowsInds(rows), colsInds(cols);
 
@@ -60,12 +59,12 @@ void FullPivLU<T>::solve(const NDArray& A, const NDArray& b, NDArray& x) {
     for(int k = 0; k < diagLen; ++k) {
 
         NDArray bottomRightCorner = LU({k,rows, k,cols}, true);
-        const int indPivot = static_cast<int>(bottomRightCorner.indexReduceNumber(indexreduce::IndexAbsoluteMax).t<Nd4jLong>(0));
+        const int indPivot = static_cast<int>(bottomRightCorner.indexReduceNumber(indexreduce::IndexAbsoluteMax).t<sd::LongType>(0));
 
         int colPivot = indPivot % (cols-k);
         int rowPivot = indPivot / (cols-k);
 
-        T currentMax = math::nd4j_abs<T>(bottomRightCorner.t<T>(rowPivot, colPivot));
+        T currentMax = math::sd_abs<T>(bottomRightCorner.t<T>(rowPivot, colPivot));
 
         // take into account that this was calculated in corner, not in whole LU
         rowPivot += k;
@@ -113,7 +112,7 @@ void FullPivLU<T>::solve(const NDArray& A, const NDArray& b, NDArray& x) {
 
     int  nonZeroPivots2 = 0;
     for(int i = 0; i < nonZeroPivots1; ++i)
-        nonZeroPivots2 += static_cast<int>(math::nd4j_abs<T>(LU.t<T>(i,i)) > threshold);
+        nonZeroPivots2 += static_cast<int>(math::sd_abs<T>(LU.t<T>(i,i)) > threshold);
 
     if(nonZeroPivots2 == 0) {
         x.nullify();
@@ -127,10 +126,10 @@ void FullPivLU<T>::solve(const NDArray& A, const NDArray& b, NDArray& x) {
     std::iota(colsPermut.begin(), colsPermut.end(), 0);
 
     for(int k = diagLen-1; k >= 0; --k)
-        math::nd4j_swap<int>(rowsPermut1[k], rowsPermut1[rowsInds[k]]);
+        math::sd_swap<int>(rowsPermut1[k], rowsPermut1[rowsInds[k]]);
 
     for(int k = 0; k < diagLen; ++k)
-        math::nd4j_swap<int>(colsPermut[k], colsPermut[colsInds[k]]);
+        math::sd_swap<int>(colsPermut[k], colsPermut[colsInds[k]]);
 
     for(int i = 0; i < rows; ++i)
         for(int j = 0; j < rows; ++j)
@@ -162,7 +161,7 @@ void FullPivLU<T>::solve(const NDArray& A, const NDArray& b, NDArray& x) {
         x({colsPermut[i],colsPermut[i]+1, 0,0}, true).nullify();
 }
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL FullPivLU, ,FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template class  FullPivLU, ,SD_FLOAT_TYPES);
 
 }
 }

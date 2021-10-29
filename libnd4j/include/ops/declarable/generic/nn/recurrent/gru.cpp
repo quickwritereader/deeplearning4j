@@ -47,10 +47,10 @@ CUSTOM_OP_IMPL(gru, 5, 1, false, 0, 0) {
     const int nIn  = x->sizeAt(2);
     const int nOut = hI->sizeAt(1);
 
-    const std::vector<Nd4jLong> h0CorrectShape = {bS, nOut};
-    const std::vector<Nd4jLong> wxCorrectShape = {nIn, 3*nOut};
-    const std::vector<Nd4jLong> whCorrectShape = {nOut, 3*nOut};
-    const std::vector<Nd4jLong> bCorrectShape  = {3*nOut};
+    const std::vector<sd::LongType> h0CorrectShape = {bS, nOut};
+    const std::vector<sd::LongType> wxCorrectShape = {nIn, 3*nOut};
+    const std::vector<sd::LongType> whCorrectShape = {nOut, 3*nOut};
+    const std::vector<sd::LongType> bCorrectShape  = {3*nOut};
 
     REQUIRE_TRUE(hI->isSameShape(h0CorrectShape), 0, "GRU operation: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(h0CorrectShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(Wx->isSameShape(wxCorrectShape), 0, "GRU operation: wrong shape of input-to-hidden weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wxCorrectShape).c_str(), ShapeUtils::shapeAsString(Wx).c_str());
@@ -59,7 +59,7 @@ CUSTOM_OP_IMPL(gru, 5, 1, false, 0, 0) {
 
     helpers::gruTimeLoop(block.launchContext(), x, hI, Wx, Wh, b, h);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,10 +84,10 @@ DECLARE_SHAPE_FN(gru) {
     const int nIn  = x->sizeAt(2);
     const int nOut = hI->sizeAt(1);
 
-    const std::vector<Nd4jLong> h0CorrectShape = {bS, nOut};
-    const std::vector<Nd4jLong> wxCorrectShape = {nIn, 3*nOut};
-    const std::vector<Nd4jLong> whCorrectShape = {nOut, 3*nOut};
-    const std::vector<Nd4jLong> bCorrectShape  = {3*nOut};
+    const std::vector<sd::LongType> h0CorrectShape = {bS, nOut};
+    const std::vector<sd::LongType> wxCorrectShape = {nIn, 3*nOut};
+    const std::vector<sd::LongType> whCorrectShape = {nOut, 3*nOut};
+    const std::vector<sd::LongType> bCorrectShape  = {3*nOut};
 
     REQUIRE_TRUE(hI->isSameShape(h0CorrectShape), 0, "GRU operation: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(h0CorrectShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(Wx->isSameShape(wxCorrectShape), 0, "GRU operation: wrong shape of input-to-hidden weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wxCorrectShape).c_str(), ShapeUtils::shapeAsString(Wx).c_str());
@@ -123,11 +123,11 @@ CUSTOM_OP_IMPL(gru_bp, 6, 5, false, 0, 0) {
     const int nIn  = x->sizeAt(2);
     const int nOut = hI->sizeAt(1);
 
-    const std::vector<Nd4jLong> h0CorrectShape = {bS, nOut};
-    const std::vector<Nd4jLong> wxCorrectShape = {nIn, 3*nOut};
-    const std::vector<Nd4jLong> whCorrectShape = {nOut, 3*nOut};
-    const std::vector<Nd4jLong> bCorrectShape  = {3*nOut};
-    const std::vector<Nd4jLong> hCorrectShape  = {time, bS, nOut};
+    const std::vector<sd::LongType> h0CorrectShape = {bS, nOut};
+    const std::vector<sd::LongType> wxCorrectShape = {nIn, 3*nOut};
+    const std::vector<sd::LongType> whCorrectShape = {nOut, 3*nOut};
+    const std::vector<sd::LongType> bCorrectShape  = {3*nOut};
+    const std::vector<sd::LongType> hCorrectShape  = {time, bS, nOut};
 
     REQUIRE_TRUE(hI->isSameShape(h0CorrectShape), 0, "GRU_BP operation: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(h0CorrectShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(Wx->isSameShape(wxCorrectShape), 0, "GRU_BP operation: wrong shape of input-to-hidden weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wxCorrectShape).c_str(), ShapeUtils::shapeAsString(Wx).c_str());
@@ -137,7 +137,7 @@ CUSTOM_OP_IMPL(gru_bp, 6, 5, false, 0, 0) {
 
     helpers::gruTimeLoopBp(block.launchContext(), x, hI, Wx, Wh, b, dLdh, dLdx, dLdhI, dLdWx, dLdWh, dLdb);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -164,11 +164,11 @@ DECLARE_SHAPE_FN(gru_bp) {
     const int nIn  = x->sizeAt(2);
     const int nOut = hI->sizeAt(1);
 
-    const std::vector<Nd4jLong> h0CorrectShape = {bS, nOut};
-    const std::vector<Nd4jLong> wxCorrectShape = {nIn, 3*nOut};
-    const std::vector<Nd4jLong> whCorrectShape = {nOut, 3*nOut};
-    const std::vector<Nd4jLong> bCorrectShape  = {3*nOut};
-    const std::vector<Nd4jLong> hCorrectShape  = {time, bS, nOut};
+    const std::vector<sd::LongType> h0CorrectShape = {bS, nOut};
+    const std::vector<sd::LongType> wxCorrectShape = {nIn, 3*nOut};
+    const std::vector<sd::LongType> whCorrectShape = {nOut, 3*nOut};
+    const std::vector<sd::LongType> bCorrectShape  = {3*nOut};
+    const std::vector<sd::LongType> hCorrectShape  = {time, bS, nOut};
 
     REQUIRE_TRUE(hI->isSameShape(h0CorrectShape), 0, "GRU_BP operation: wrong shape of previous cell output array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(h0CorrectShape).c_str(), ShapeUtils::shapeAsString(hI).c_str());
     REQUIRE_TRUE(Wx->isSameShape(wxCorrectShape), 0, "GRU_BP operation: wrong shape of input-to-hidden weights array, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(wxCorrectShape).c_str(), ShapeUtils::shapeAsString(Wx).c_str());

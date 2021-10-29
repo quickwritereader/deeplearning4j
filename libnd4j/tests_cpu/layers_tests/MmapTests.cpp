@@ -19,7 +19,6 @@
 //
 // Created by raver on 5/13/2018.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -40,7 +39,7 @@ TEST_F(MmapTests, Test_Basic_Mmap_1) {
         return;
 
     // just 10GB
-    Nd4jLong size = 100000L;
+    sd::LongType size = 100000L;
 
     std::ofstream ofs("file", std::ios::binary | std::ios::out);
     ofs.seekp(size + 1024L);

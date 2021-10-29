@@ -32,15 +32,15 @@ namespace sd {
 
             auto result = NDArrayFactory::create_<int>(list->height(), block.launchContext());
 
-            //nd4j_printf("List size: [%i]\n", list->height());
+            //sd_printf("List size: [%i]\n", list->height());
             result->printIndexedBuffer("actual height");
 
-            //nd4j_printf("List size: [%i]\n", list->height());
+            //sd_printf("List size: [%i]\n", list->height());
             result->printIndexedBuffer("actual height");
 
             //OVERWRITE_RESULT(result);
             setupResult(result, block);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(TensorArraySizeV3, size_list);
         DECLARE_SYN(tensorarraysizev3, size_list);

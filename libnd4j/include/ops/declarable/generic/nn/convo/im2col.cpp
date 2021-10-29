@@ -43,8 +43,8 @@ namespace sd {
             int strideX = INT_ARG(3);
             int padHeight = INT_ARG(4);
             int padWidth = INT_ARG(5);
-            int dY = INT_ARG(6);			//Dilation, height/y dimension
-            int dX = INT_ARG(7);			//Dilation, width/x dimension
+            int dY = INT_ARG(6);            //Dilation, height/y dimension
+            int dX = INT_ARG(7);            //Dilation, width/x dimension
             bool isSameMode = INT_ARG(8) > 0;
             double zeroPadVal = 0.0;
             if (block.getTArguments()->size() > 0)
@@ -54,7 +54,7 @@ namespace sd {
             LaunchContext* ctx = block.launchContext();
             sd::ops::helpers::im2col(*ctx, *x, *z, kernelHeight, kernelWidth, strideY, strideX, padHeight, padWidth, dY, dX, NDArrayFactory::create(zeroPadVal, block.launchContext()));
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(im2col) {
@@ -71,13 +71,13 @@ namespace sd {
             int sX = INT_ARG(3);
             int pY = INT_ARG(4);
             int pX = INT_ARG(5);
-            int dY = INT_ARG(6);			//Dilation, height/y dimension
-            int dX = INT_ARG(7);			//Dilation, width/x dimension
+            int dY = INT_ARG(6);            //Dilation, height/y dimension
+            int dX = INT_ARG(7);            //Dilation, width/x dimension
             bool isSameMode = INT_ARG(8) > 0;
 
             // output is always 6d for im2col
-            Nd4jLong* zShape;
-            ALLOCATE(zShape, block.getWorkspace(), shape::shapeInfoLength(6), Nd4jLong);
+            sd::LongType* zShape;
+            ALLOCATE(zShape, block.getWorkspace(), shape::shapeInfoLength(6), sd::LongType);
 
             int oY = 0;
             int oX = 0;
@@ -103,13 +103,13 @@ namespace sd {
             return SHAPELIST(CONSTANT(zShape));
         }
 
-		CUSTOM_OP_IMPL(im2col_bp, 2, 1, false, 0, 9) {
+        CUSTOM_OP_IMPL(im2col_bp, 2, 1, false, 0, 9) {
             auto input = INPUT_VARIABLE(0);
-			auto gradAtOutput = INPUT_VARIABLE(1);
+            auto gradAtOutput = INPUT_VARIABLE(1);
             auto z = OUTPUT_NULLIFIED(0);
 
             REQUIRE_TRUE(input->rankOf() == 4, 0, "im2col_bp input should be 4D, but got %i instead", input->rankOf());
-			REQUIRE_TRUE(gradAtOutput->rankOf() == 6, 0, "im2col_bp gradient at output (input idx 1) should be 6D, but got %i instead", gradAtOutput->rankOf());
+            REQUIRE_TRUE(gradAtOutput->rankOf() == 6, 0, "im2col_bp gradient at output (input idx 1) should be 6D, but got %i instead", gradAtOutput->rankOf());
             REQUIRE_TRUE(z->rankOf() == 4, 0, "im2col_bp output (grad at input) should be 4D, but got %i instead", z->rankOf());
 
             int kernelHeight = INT_ARG(0);
@@ -118,22 +118,22 @@ namespace sd {
             int strideX = INT_ARG(3);
             int pH = INT_ARG(4);
             int pW = INT_ARG(5);
-            int dY = INT_ARG(6);			//Dilation, height/y dimension
-            int dX = INT_ARG(7);			//Dilation, width/x dimension
+            int dY = INT_ARG(6);            //Dilation, height/y dimension
+            int dX = INT_ARG(7);            //Dilation, width/x dimension
             bool isSameMode = INT_ARG(8) > 0;
             double zeroPadVal = 0.0;
             if (block.getTArguments()->size() > 0)
                 zeroPadVal = T_ARG(0);
 
-			//Assuming NCHW format here
-			int imgH = input->sizeAt(2);
-			int imgW = input->sizeAt(3);
-			
+            //Assuming NCHW format here
+            int imgH = input->sizeAt(2);
+            int imgW = input->sizeAt(3);
+            
             LaunchContext* ctx = block.launchContext();
             // FIXME:: all helpers should accept NDArray
-			ops::helpers::col2im(*ctx, *gradAtOutput, *z, strideY, strideX, pH, pW, imgH, imgW, dY, dX);
+            ops::helpers::col2im(*ctx, *gradAtOutput, *z, strideY, strideX, pH, pW, imgH, imgW, dY, dX);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(im2col) {
@@ -149,13 +149,13 @@ namespace sd {
                     ->setAllowedOutputTypes(0, DataType::INHERIT)
                     ->setSameMode(true);
         }
-		
-		DECLARE_SHAPE_FN(im2col_bp) {
-            Nd4jLong *inShape;
+        
+        DECLARE_SHAPE_FN(im2col_bp) {
+            sd::LongType *inShape;
             COPY_SHAPE(inputShape->at(0), inShape);
 
-			return SHAPELIST(CONSTANT(inShape));
-		}
+            return SHAPELIST(CONSTANT(inShape));
+        }
     }
 }
 

@@ -20,7 +20,6 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include "../DataBuffer.h"
 #include <array/DataTypeUtils.h>
 #include <system/op_boilerplate.h>
@@ -165,7 +164,7 @@ void DataBuffer::copyCounters(const DataBuffer& other) {
 }
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const Nd4jLong offsetThis, const Nd4jLong offsetOther) {     // copies only to special buffer
+void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const sd::LongType offsetThis, const sd::LongType offsetOther) {     // copies only to special buffer
 
     if(other._primaryBuffer == nullptr && other._specialBuffer == nullptr)
         return;
@@ -192,7 +191,7 @@ void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinByte
 }
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes, const Nd4jLong offsetThis, const Nd4jLong offsetHostBuffer) {     // copies only to special buffer
+void DataBuffer::copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinBytes, const sd::LongType offsetThis, const sd::LongType offsetHostBuffer) {     // copies only to special buffer
 
     if(hostBuffer == nullptr)
         return;

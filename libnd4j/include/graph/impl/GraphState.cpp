@@ -19,14 +19,13 @@
 //
 // Created by raver119 on 23.01.18.
 //
-
 #include <graph/GraphState.h>
 #include <graph/Node.h>
 
 
 namespace sd {
 namespace graph {
-    GraphState::GraphState(Nd4jLong id) {
+    GraphState::GraphState(sd::LongType id) {
         _id = id;
         _graph = new Graph(nullptr, &_variableSpace);
     };
@@ -44,29 +43,29 @@ namespace graph {
         delete _graph;
     };
 
-    Nd4jStatus GraphState::registerScope(int scopeId) {
+    sd::Status GraphState::registerScope(int scopeId) {
         auto scope = new Scope(scopeId);
         _scopes[scopeId] = scope;
 
         auto scopeWrapper = new Node(OpType_LOGIC, 10, scopeId);
         _graph->addNode(scopeWrapper);
 
-        return Status::OK();
+        return sd::Status::OK;
     };
 
-    Nd4jStatus GraphState::forgetScope(int scopeId) {
+    sd::Status GraphState::forgetScope(int scopeId) {
         if (_scopes.count(scopeId) > 0)
             _scopes.erase(scopeId);
         else
-            return Status::THROW("Non-existent scope requested");
+            return Logger::logKernelFailureMsg("Non-existent scope requested");
 
-        return Status::OK();
+        return sd::Status::OK;
     };
 
 #ifndef __JAVACPP_HACK__
-    Nd4jStatus GraphState::attachOpToScope(int scopeId, int nodeId, ops::DeclarableOp *op, ArgumentsList inputs) {
+    sd::Status GraphState::attachOpToScope(int scopeId, int nodeId, ops::DeclarableOp *op, ArgumentsList inputs) {
         if (_scopes.count(scopeId) == 0)
-            return Status::THROW("GraphState: can't attach op to unknown scope");
+            return Logger::logKernelFailureMsg("GraphState: can't attach op to unknown scope");
         
         auto scope = _scopes[scopeId];
         
@@ -89,7 +88,7 @@ namespace graph {
                 _variableSpace.putVariable(p.first(), p.second(), var);
             }
 
-            // nd4j_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
+            // sd_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
             node->pickInput(p.first(), p.second());
         }
 
@@ -97,7 +96,7 @@ namespace graph {
 
         _graph->addNode(node);
 
-        return Status::OK();
+        return sd::Status::OK;
     };
 
     Graph* GraphState::graph() {
@@ -106,16 +105,16 @@ namespace graph {
 
     Scope* GraphState::getScope(int scopeId) {
         if (_scopes.count(scopeId) == 0) {
-            nd4j_printf("GraphState: Unknown scope requested %i\n", scopeId);
+            sd_printf("GraphState: Unknown scope requested %i\n", scopeId);
             return nullptr;
         }
 
         return _scopes[scopeId];
     }
 #endif
-    Nd4jStatus GraphState::defineReturn(int scopeId, int nodeId, ArgumentsList args) {
+    sd::Status GraphState::defineReturn(int scopeId, int nodeId, ArgumentsList args) {
         if (_scopes.count(scopeId) == 0)
-            return Status::THROW("GraphState: can't attach op to unknown scope");
+            return Logger::logKernelFailureMsg("GraphState: can't attach op to unknown scope");
 
         auto scope = _scopes[scopeId];
 
@@ -136,7 +135,7 @@ namespace graph {
                 _variableSpace.putVariable(p.first(), p.second(), var);
             }
 
-            // nd4j_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
+            // sd_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
             node->pickInput(p.first(), p.second());
             node->pickOutput(0, e);
         }
@@ -146,7 +145,7 @@ namespace graph {
         _graph->addNode(node);
 
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     bool GraphState::hasScope(int scopeId) {
@@ -157,13 +156,13 @@ namespace graph {
         return &_variableSpace;
     };
 
-    Nd4jLong GraphState::id() {
+    sd::LongType GraphState::id() {
         return _id;
     }
 
-    Nd4jStatus GraphState::attachOpToScope(int scopeId, Nd4jLong opNum, int type, ArgumentsList inputs) {
+    sd::Status GraphState::attachOpToScope(int scopeId, sd::LongType opNum, int type, ArgumentsList inputs) {
         // we should use OpRegistrator here, to create Node and push it to specific scope
-        return Status::OK();
+        return sd::Status::OK;
     }
 }
 }

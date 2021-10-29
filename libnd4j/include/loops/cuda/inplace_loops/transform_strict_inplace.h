@@ -22,7 +22,6 @@
 
 #ifndef DEV_TESTS_TRANSFORM_FLOAT_INPLACE_H
 #define DEV_TESTS_TRANSFORM_FLOAT_INPLACE_H
-
 #include <ops.h>
 #include <types/types.h>
 #include <system/op_boilerplate.h>
@@ -39,21 +38,21 @@ namespace functions {
         template <typename X>
         class TransformStrictInplace {
         public:
-            static FORCEINLINE _CUDA_D void transformCudaLegacy(int opNum, void *dy, Nd4jLong *shapeInfo, void *params, void *result, Nd4jLong *zShapeInfo, int *allocationPointer, void *reductionPointer, Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets);
+            static SD_INLINE SD_DEVICE void transformCudaLegacy(int opNum, void *dy, sd::LongType *shapeInfo, void *params, void *result, sd::LongType *zShapeInfo, int *allocationPointer, void *reductionPointer, sd::LongType *tadShapeInfo, sd::LongType *tadOffsets);
 
             template <typename OpClass>
-            static FORCEINLINE _CUDA_D void transformCuda(void *vdy, Nd4jLong *shapeInfo, void *vparams, void *vresult, Nd4jLong *zShapeInfo, int *allocationPointer, void *vreductionPointer, Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets);
+            static SD_INLINE SD_DEVICE void transformCuda(void *vdy, sd::LongType *shapeInfo, void *vparams, void *vresult, sd::LongType *zShapeInfo, int *allocationPointer, void *vreductionPointer, sd::LongType *tadShapeInfo, sd::LongType *tadOffsets);
         };
 
         template<typename X>
         template <typename OpType>
-        FORCEINLINE _CUDA_D void TransformStrictInplace<X>::transformCuda(
+        SD_INLINE SD_DEVICE void TransformStrictInplace<X>::transformCuda(
                 void *vdy,
-                Nd4jLong *shapeInfo,
+                sd::LongType *shapeInfo,
                 void *vparams,
                 void *vresult,
-                Nd4jLong *zShapeInfo,
-                int *allocationPointer, void *vreductionPointer, Nd4jLong *tadShapeInfo, Nd4jLong *tadOffsets) {
+                sd::LongType *zShapeInfo,
+                int *allocationPointer, void *vreductionPointer, sd::LongType *tadShapeInfo, sd::LongType *tadOffsets) {
 
             auto dy = static_cast<X*>(vdy);
             auto result = static_cast<X*>(vresult);
@@ -67,13 +66,13 @@ namespace functions {
             auto zEws = shape::elementWiseStride(zShapeInfo);
             auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-            __shared__ Nd4jLong length;
+            __shared__ sd::LongType length;
             if(threadIdx.x == 0)
                 length = shape::length(shapeInfo);
             __syncthreads();
 
 
-            for (Nd4jLong i = tid; i < length; i+= gridDim.x * blockDim.x) {
+            for (sd::LongType i = tid; i < length; i+= gridDim.x * blockDim.x) {
                 auto xOffset2 = shape::getIndexOffset(i, shapeInfo);
                 auto zOffset2 = shape::getIndexOffset(i, zShapeInfo);
                 result[zOffset2] = OpType::op(dy[xOffset2], params);
@@ -81,17 +80,17 @@ namespace functions {
         }
 
         template<typename X>
-        FORCEINLINE _CUDA_D void TransformStrictInplace<X>::transformCudaLegacy(
+        SD_INLINE SD_DEVICE void TransformStrictInplace<X>::transformCudaLegacy(
                 int opNum,
                 void *dy,
-                Nd4jLong *shapeInfo,
+                sd::LongType *shapeInfo,
                 void *params,
                 void *result,
-                Nd4jLong *zShapeInfo,
+                sd::LongType *zShapeInfo,
                 int *allocationPointer,
                 void *reductionPointer,
-                Nd4jLong *tadShapeInfo,
-                Nd4jLong *tadOffsets) {
+                sd::LongType *tadShapeInfo,
+                sd::LongType *tadOffsets) {
             DISPATCH_BY_OPNUM_T(transformCuda, PARAMS(dy, shapeInfo, params, result, zShapeInfo, allocationPointer, reductionPointer, tadShapeInfo, tadOffsets), LOCAL_TRANSFORM_STRICT_OPS);
         }
     }

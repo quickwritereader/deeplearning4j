@@ -38,7 +38,7 @@ CUSTOM_OP_IMPL(trace, 1, 1, false, 0, 0) {
 
     helpers::trace(block.launchContext(), *input, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(trace) {
@@ -52,8 +52,8 @@ DECLARE_SHAPE_FN(trace) {
     REQUIRE_TRUE(inShapeInfo[0] >= 2, 0, "TRACE op: the rank of input array must be >=2, but got %i instead!", inShapeInfo[0]);    
     const int rank = inShapeInfo[0] - 2;
 
-    Nd4jLong* outShapeInfo(nullptr);
-    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong); 
+    sd::LongType* outShapeInfo(nullptr);
+    ALLOCATE(outShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType); 
 
     outShapeInfo[0] = rank;
     for(int i=1; i <= rank; ++i)

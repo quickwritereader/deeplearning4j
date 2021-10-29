@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <helpers/PointersManager.h>
 #include <array/ExtraArguments.h>
@@ -35,7 +34,7 @@ class JavaInteropCudaTests : public testing::Test {
 public:
 
 };
-
+#if 0
 TEST_F(JavaInteropCudaTests, test_DeclarableOp_execution_1) {
     auto x = NDArrayFactory::create<float>('c', {3, 5});
     auto y = NDArrayFactory::create<float>('c', {5}, {1.f, 1.f, 1.f, 1.f, 1.f});
@@ -87,3 +86,4 @@ TEST_F(JavaInteropCudaTests, test_DeclarableOp_execution_2) {
     ASSERT_EQ(e, z);
 }
 
+#endif

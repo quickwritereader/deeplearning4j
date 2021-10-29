@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include <helpers/EnumUtils.h>
 #include <graph/Variable.h>
 #include <array/DataTypeUtils.h>
@@ -46,13 +45,13 @@ namespace sd {
 
             // FIXME: add support for ArrayList
             if (this->_list != nullptr) {
-                nd4j_printf("ArrayList not supported yet\n", "");
+                sd_printf("ArrayList not supported yet\n", "");
                 throw std::runtime_error("ArrayList not supported yet for asT");
             }
 
             return result;
         }
-        BUILD_SINGLE_TEMPLATE(template ND4J_EXPORT Variable* Variable::asT, (), LIBND4J_TYPES);
+        BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT Variable* Variable::asT, (), SD_COMMON_TYPES);
 
         sd::graph::Variable* sd::graph::Variable::clone() {
             auto result = new Variable(this->isPlaceholder());
@@ -137,7 +136,7 @@ namespace sd {
 
         void sd::graph::Variable::markRemovable(bool reallyRemovable) {
             if (!reallyRemovable)
-                nd4j_debug("","");
+                sd_debug("","");
             this->_removable = reallyRemovable;
         }
 
@@ -147,7 +146,7 @@ namespace sd {
 
         sd::NDArray * sd::graph::Variable::getNDArray() {
             if (_variableType != VariableType::NDARRAY) {
-                nd4j_printf("Variable[%i:%i/<%s>] is has [%s] type, but NDArray was requested\n", this->_id, this->_index, this->_name.c_str(), EnumUtils::_VariableTypeToString(_variableType));
+                sd_printf("Variable[%i:%i/<%s>] is has [%s] type, but NDArray was requested\n", this->_id, this->_index, this->_name.c_str(), EnumUtils::_VariableTypeToString(_variableType));
             }
 
             if (this->_ndarray == nullptr) {
@@ -166,7 +165,7 @@ namespace sd {
 
         sd::NDArrayList * sd::graph::Variable::getNDArrayList() {
             if (_variableType != VariableType::ARRAY_LIST) {
-                nd4j_debug("Variable[%i:%i/<%s>] is has [%s] type, but NDArrayList was requested\n", this->_id, this->_index, this->_name.c_str(), EnumUtils::_VariableTypeToString(_variableType));
+                sd_debug("Variable[%i:%i/<%s>] is has [%s] type, but NDArrayList was requested\n", this->_id, this->_index, this->_name.c_str(), EnumUtils::_VariableTypeToString(_variableType));
             }
             return this->_list;
         }
@@ -272,7 +271,7 @@ namespace sd {
             }
         }
 
-        std::vector<Nd4jLong>& sd::graph::Variable::shape() {
+        std::vector<sd::LongType>& sd::graph::Variable::shape() {
             return _shape;
         }
 
@@ -302,9 +301,9 @@ namespace sd {
 
 
         sd::graph::Variable::~Variable() {
-            //nd4j_printf("Removing variable [%i:%i]\n", _id, _index);
+            //sd_printf("Removing variable [%i:%i]\n", _id, _index);
             if (_variableType == VariableType::NDARRAY) {
-                nd4j_debug("Removing variable <%i:%i>\n", _id, _index);
+                sd_debug("Removing variable <%i:%i>\n", _id, _index);
                 if (_ndarray != nullptr && _removable && !_readOnly)
                     delete _ndarray;
             }

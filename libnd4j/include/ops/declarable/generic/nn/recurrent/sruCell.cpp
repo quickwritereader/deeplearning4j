@@ -46,9 +46,9 @@ CUSTOM_OP_IMPL(sruCell, 4, 2, false, 0, 0) {
     const int inSize = xt->sizeAt(1);                   // inSize - number of features
 
     // input shapes validation
-    const std::vector<Nd4jLong> correctCt_1Shape = {bS, inSize};
-    const std::vector<Nd4jLong> correctWShape    = {inSize, 3*inSize};
-    const std::vector<Nd4jLong> correctBShape    = {2*inSize};
+    const std::vector<sd::LongType> correctCt_1Shape = {bS, inSize};
+    const std::vector<sd::LongType> correctWShape    = {inSize, 3*inSize};
+    const std::vector<sd::LongType> correctBShape    = {2*inSize};
 
     REQUIRE_TRUE(ct_1->isSameShape(correctCt_1Shape), 0, "SRUCELL operation: wrong shape of previous cell state, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctCt_1Shape).c_str(), ShapeUtils::shapeAsString(ct_1).c_str());
     REQUIRE_TRUE(w->isSameShape(correctWShape),    0, "SRUCELL operation: wrong shape of weights, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctWShape).c_str(), ShapeUtils::shapeAsString(w).c_str());
@@ -58,7 +58,7 @@ CUSTOM_OP_IMPL(sruCell, 4, 2, false, 0, 0) {
     // fixme: shitty initializer lists
     helpers::sruCell(block.launchContext(), xt, ct_1, w, b, ht, ct);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
         DECLARE_TYPES(sruCell) {
@@ -79,18 +79,18 @@ DECLARE_SHAPE_FN(sruCell) {
     const int inSize = xtShapeInfo[2];                   // inSize - number of features
 
     // input shapes validation
-    const std::vector<Nd4jLong> correctCt_1Shape = {bS, inSize};
-    const std::vector<Nd4jLong> correctWShape    = {inSize, 3*inSize};
-    const std::vector<Nd4jLong> correctBShape    = {2*inSize};
+    const std::vector<sd::LongType> correctCt_1Shape = {bS, inSize};
+    const std::vector<sd::LongType> correctWShape    = {inSize, 3*inSize};
+    const std::vector<sd::LongType> correctBShape    = {2*inSize};
 
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(ct_1ShapeInfo, correctCt_1Shape) , 0, "SRUCELL operation: wrong shape of previous cell state, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctCt_1Shape).c_str(), ShapeUtils::shapeAsString(ct_1ShapeInfo).c_str());
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(wShapeInfo ,correctWShape),    0, "SRUCELL operation: wrong shape of weights, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctWShape).c_str(), ShapeUtils::shapeAsString(wShapeInfo).c_str());
     REQUIRE_TRUE(ShapeUtils::areShapesEqual(bShapeInfo ,correctBShape),    0, "SRUCELL operation: wrong shape of biases, expected is %s, but got %s instead !", ShapeUtils::shapeAsString(correctBShape).c_str(), ShapeUtils::shapeAsString(bShapeInfo).c_str());
 
     // evaluate output shapeInfos
-    Nd4jLong *hShapeInfo(nullptr), *cShapeInfo(nullptr);
-    ALLOCATE(hShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);      // [bS x numProj]
-    ALLOCATE(cShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), Nd4jLong);      // [bS x numUnits]
+    sd::LongType *hShapeInfo(nullptr), *cShapeInfo(nullptr);
+    ALLOCATE(hShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);      // [bS x numProj]
+    ALLOCATE(cShapeInfo, block.getWorkspace(), shape::shapeInfoLength(rank), sd::LongType);      // [bS x numUnits]
 
     hShapeInfo[0] = cShapeInfo[0] = rank;
     hShapeInfo[1] = cShapeInfo[1] = bS;

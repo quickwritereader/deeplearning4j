@@ -19,16 +19,15 @@
 //
 // Created by raver119 on 20.10.2017.
 //
-
 #include <graph/execution/LogicConditional.h>
 #include <graph/GraphExecutioner.h>
 #include <graph/execution/LogicReturn.h>
-#include <graph/Status.h>
+
 
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicConditional::processNode(Graph *graph, Node *node) {
+        sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
             auto __variableSpace = graph->getVariableSpace();
 
             auto size = node->input()->size();
@@ -67,7 +66,7 @@ namespace sd {
             }
 
             // now we should take result of the Scope run, and evaluate it
-            //nd4j_debug("", "");
+            //sd_debug("", "");
             auto result = __variableSpace->getVariable(lastNode)->getNDArray();
             //result->printBuffer("Result of the last node:");
 
@@ -132,7 +131,7 @@ namespace sd {
                 }
             }
 
-            return sd::Status::OK();
+            return sd::Status::OK;
         }
     }
 }

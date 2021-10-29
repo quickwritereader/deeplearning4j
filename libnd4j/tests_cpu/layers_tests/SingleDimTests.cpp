@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -72,7 +71,7 @@ TEST_F(SingleDimTests, Test_Concat_1) {
     sd::ops::concat op;
     auto result = op.evaluate({&x, &y}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -106,7 +105,7 @@ TEST_F(SingleDimTests, Test_ExpandDims_1) {
     sd::ops::expand_dims op;
     auto result = op.evaluate({&x}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -124,7 +123,7 @@ TEST_F(SingleDimTests, Test_ExpandDims_2) {
     sd::ops::expand_dims op;
     auto result = op.evaluate({&x}, {}, {1});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -136,7 +135,7 @@ TEST_F(SingleDimTests, Test_ExpandDims_2) {
 
 
 TEST_F(SingleDimTests, Test_Squeeze_1) {
-    std::vector<Nd4jLong> vecS({1});
+    std::vector<sd::LongType> vecS({1});
     std::vector<float> vecB({3.0f});
     auto x = NDArrayFactory::create<float>('c', vecS, vecB);
     auto exp = NDArrayFactory::create<float>(3.0f);
@@ -144,7 +143,7 @@ TEST_F(SingleDimTests, Test_Squeeze_1) {
     sd::ops::squeeze op;
     auto result = op.evaluate({&x}, {}, {});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -160,7 +159,7 @@ TEST_F(SingleDimTests, Test_Squeeze_2) {
 
     sd::ops::squeeze op;
     auto result = op.evaluate({&x}, {}, {});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -176,7 +175,7 @@ TEST_F(SingleDimTests, Test_Permute_1) {
 
     sd::ops::permute op;
     auto result = op.evaluate({&x}, {}, {0});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 

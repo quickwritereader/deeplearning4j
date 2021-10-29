@@ -22,12 +22,10 @@
 
 #ifndef DEV_TESTS_UTF8STRING_H
 #define DEV_TESTS_UTF8STRING_H
-
 #include <string>
-#include <system/dll.h>
 
 namespace sd {
-    struct ND4J_EXPORT utf8string {
+    struct utf8string {
     private:
         bool _allocated = false;
     public:

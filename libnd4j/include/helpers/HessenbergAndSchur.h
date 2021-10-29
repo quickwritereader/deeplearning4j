@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_HESSENBERGANDSCHUR_H
 #define LIBND4J_HESSENBERGANDSCHUR_H
-
 #include <array/NDArray.h>
 
 namespace sd {
@@ -77,22 +76,22 @@ class Schur {
 
     private:
 
-    	static const int _maxItersPerRow = 40;
+        static const int _maxItersPerRow = 40;
 
         void evalData(const NDArray& matrix);
 
-	    //////////////////////////////////////////////////////////////////////////
-		FORCEINLINE int getSmallSubdiagEntry(const int inInd) {
+        //////////////////////////////////////////////////////////////////////////
+        SD_INLINE int getSmallSubdiagEntry(const int inInd) {
 
-			int outInd = inInd;
-			while (outInd > 0) {
-		    	T factor = math::nd4j_abs<T>(_T.t<T>(outInd-1, outInd-1)) + math::nd4j_abs<T>(_T.t<T>(outInd, outInd));
-		    	if (math::nd4j_abs<T>(_T.t<T>(outInd, outInd-1)) <= DataTypeUtils::eps<T>() * factor)
-		      		break;
-				outInd--;
-		  	}
-			return outInd;
-		}
+            int outInd = inInd;
+            while (outInd > 0) {
+                T factor = math::sd_abs<T>(_T.t<T>(outInd-1, outInd-1)) + math::sd_abs<T>(_T.t<T>(outInd, outInd));
+                if (math::sd_abs<T>(_T.t<T>(outInd, outInd-1)) <= DataTypeUtils::eps<T>() * factor)
+                      break;
+                outInd--;
+              }
+            return outInd;
+        }
 };
 
 

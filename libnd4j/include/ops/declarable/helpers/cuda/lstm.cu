@@ -27,7 +27,6 @@
 // https://research.google.com/pubs/archive/43905.pdf
 // Hasim Sak, Andrew Senior, and Francoise Beaufays. "Long short-term memory recurrent neural network architectures for large scale acoustic modeling." INTERSPEECH, 2014.
 
-
 #include<ops/declarable/helpers/lstm.h>
 #include<ops/declarable/helpers/lstmBlock.h>
 #include <ops/declarable/CustomOperations.h>
@@ -36,14 +35,13 @@
 #include <array/NDArrayList.h>
 #include <iterator>
 
-namespace sd 	  {
-namespace ops 	  {
+namespace sd       {
+namespace ops       {
 namespace helpers {
 
 
-
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
+void lstmCell(sd::LaunchContext * context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1, const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b,
               NDArray* ht, NDArray* ct, const std::vector<double>& params) {
 
     // xt   input [bS x nIn]
@@ -107,8 +105,7 @@ ND4J_LOCAL void lstmCell(sd::LaunchContext * context, const NDArray* xt, const N
 }
 
 
-
-ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
+void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast,
                    const NDArray* W, const NDArray* Wci, const NDArray* Wcf, const NDArray* Wco, const NDArray* b,
                    NDArray* i, NDArray* c, NDArray* f, NDArray* o, NDArray* z, NDArray* h, NDArray* y, const std::vector<double>& params) {
     /* Input arrays:
@@ -153,10 +150,10 @@ ND4J_LOCAL void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDA
     m += (*b);                          // addiRowVector
 
     //Note: weights are ordered [inputGate, blockInput, forgetGate, outputGate] to match TF (TF code comments state [i,f,z/ci,o] but behaviour is [i,z,f,o])
-    auto zi = m({0,0, 0,        nOut});      	// z for input modulation gate, [bS, nOut]
+    auto zi = m({0,0, 0,        nOut});          // z for input modulation gate, [bS, nOut]
     auto zz = m({0,0, nOut,   2*nOut});         // z for block input, [bS, nOut]
-    auto zf = m({0,0, 2*nOut, 3*nOut});      	// z for forget gate, [bS, nOut]
-    auto zo = m({0,0, 3*nOut, 4*nOut});      	// z for output gate, [bS, nOut]
+    auto zf = m({0,0, 2*nOut, 3*nOut});          // z for forget gate, [bS, nOut]
+    auto zo = m({0,0, 3*nOut, 4*nOut});          // z for output gate, [bS, nOut]
 
     if(peephole) {                                              // add peephole connections: z  +  ct_1*Wc
         zi += (*cLast) * (*Wci);       // add peephole connections to input gate

@@ -35,7 +35,7 @@ namespace sd {
                 REQUIRE_TRUE(false, 0, "Assertion failed for node [%i]\n", block.getNodeId());
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_TYPES(Assert) {
             getOpDescriptor()

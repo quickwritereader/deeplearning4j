@@ -36,7 +36,7 @@ namespace sd {
 
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(softplus) {
@@ -53,7 +53,7 @@ namespace sd {
 
             //input->applyPairwiseTransform(pairwise::SoftplusDerivativeE, epsilon, z, nullptr);
             helpers::softPlusDerivative(block.launchContext(), input, epsilon, z);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(SoftplusGrad, softplus_bp);
 

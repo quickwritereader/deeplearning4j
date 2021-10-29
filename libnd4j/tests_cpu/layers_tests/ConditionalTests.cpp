@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include "testlayers.h"
 #include <graph/Graph.h>
 #include <graph/GraphExecutioner.h>
@@ -98,8 +97,8 @@ TEST_F(ConditionalTests, BasicTests_1) {
 
     ASSERT_EQ(4, graph.totalNodes());
 
-    Nd4jStatus status = GraphExecutioner::execute(&graph);
-    ASSERT_EQ(ND4J_STATUS_OK, status);
+    sd::Status status = GraphExecutioner::execute(&graph);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(variableSpace->hasVariable(10, 0));
     auto conditionalResult = variableSpace->getVariable(10, 0)->getNDArray();
@@ -122,7 +121,7 @@ TEST_F(ConditionalTests, Flat_Test_1) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(15));
 
@@ -152,7 +151,7 @@ TEST_F(ConditionalTests, Flat_Test_2) {
     graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(15));
 
@@ -180,7 +179,7 @@ TEST_F(ConditionalTests, Flat_Test_3) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(17));
 
@@ -207,7 +206,7 @@ TEST_F(ConditionalTests, Flat_Test_4) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(17));
 
@@ -236,7 +235,7 @@ TEST_F(ConditionalTests, Flat_Test_5) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(17));
 
@@ -265,7 +264,7 @@ TEST_F(ConditionalTests, Flat_Test_6) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(25));
 
@@ -292,7 +291,7 @@ TEST_F(ConditionalTests, Flat_Test_7) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(25));
 
@@ -317,7 +316,7 @@ TEST_F(ConditionalTests, Flat_Test_8) {
     //graph->printOut();
 
     auto status = GraphExecutioner::execute(graph);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_TRUE(varSpace->hasVariable(52));
 

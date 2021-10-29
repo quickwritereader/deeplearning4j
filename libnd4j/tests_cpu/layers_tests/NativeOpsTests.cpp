@@ -19,7 +19,6 @@
 //
 // Created by GS <sgazeos@gmail.com> on 22.07.2019.
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <helpers/ShapeUtils.h>
@@ -116,7 +115,7 @@ TEST_F(NativeOpsTests, ThresholdTests_2) {
 
 TEST_F(NativeOpsTests, ExecIndexReduce_1) {
     auto x = NDArrayFactory::create<float>('c', {5}, {1,2,3,4,5});
-    auto exp = NDArrayFactory::create<Nd4jLong>(120);
+    auto exp = NDArrayFactory::create<sd::LongType>(120);
     x.linspace(1.0);
 #ifdef __CUDABLAS__
     printf("Unsupported for cuda now.\n");
@@ -131,14 +130,14 @@ TEST_F(NativeOpsTests, ExecIndexReduce_1) {
                                         &expBuf, exp.shapeInfo(),
                                         nullptr);
 
-    ASSERT_TRUE(exp.e<Nd4jLong>(0) == 4LL);
+    ASSERT_TRUE(exp.e<sd::LongType>(0) == 4LL);
 #endif
 
 }
 
 TEST_F(NativeOpsTests, ExecIndexReduce_2) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
-    auto exp = NDArrayFactory::create<Nd4jLong>(120);
+    auto exp = NDArrayFactory::create<sd::LongType>(120);
     x.linspace(1.0);
 #ifdef __CUDABLAS__
     printf("Unsupported for cuda now.\n");
@@ -157,7 +156,7 @@ TEST_F(NativeOpsTests, ExecIndexReduce_2) {
                                    &dimensionBuf, dimension.shapeInfo(),
                                    nullptr);
 
-    ASSERT_TRUE(exp.e<Nd4jLong>(0) == 24LL);
+    ASSERT_TRUE(exp.e<sd::LongType>(0) == 24LL);
 #endif
 
 }
@@ -344,7 +343,7 @@ TEST_F(NativeOpsTests, ReduceTest_3) {
 
 TEST_F(NativeOpsTests, ReduceTest_4) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
-    auto exp = NDArrayFactory::create<Nd4jLong>(120LL);
+    auto exp = NDArrayFactory::create<sd::LongType>(120LL);
     x.linspace(1.0);
 
 #ifdef __CUDABLAS__
@@ -360,14 +359,14 @@ TEST_F(NativeOpsTests, ReduceTest_4) {
                             &expBuf, exp.shapeInfo(), nullptr);
 //    x.printIndexedBuffer("Input");
 //    exp.printIndexedBuffer("Reduce CountNonZero");
-    ASSERT_TRUE(exp.e<Nd4jLong>(0) == 25LL);
+    ASSERT_TRUE(exp.e<sd::LongType>(0) == 25LL);
 #endif
 
 }
 
 TEST_F(NativeOpsTests, ReduceTest_5) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
-    auto exp = NDArrayFactory::create<Nd4jLong>(120LL);
+    auto exp = NDArrayFactory::create<sd::LongType>(120LL);
     x.linspace(1.0);
 
 #ifdef __CUDABLAS__
@@ -386,15 +385,15 @@ TEST_F(NativeOpsTests, ReduceTest_5) {
                             &dimBuf, dimension.shapeInfo(), dimension.specialShapeInfo());
 //    x.printIndexedBuffer("Input");
 //    exp.printIndexedBuffer("Reduce CountNonZero");
-    ASSERT_TRUE(exp.e<Nd4jLong>(0) == 25LL);
+    ASSERT_TRUE(exp.e<sd::LongType>(0) == 25LL);
 #endif
 
 }
 
 TEST_F(NativeOpsTests, ReduceTest_6) {
     auto x = NDArrayFactory::create<float>('c', {5, 5});
-    auto z = NDArrayFactory::create<Nd4jLong>({5, 4, 3, 2, 1});
-    auto exp = NDArrayFactory::create<Nd4jLong>({1,2,3,4,6});
+    auto z = NDArrayFactory::create<sd::LongType>({5, 4, 3, 2, 1});
+    auto exp = NDArrayFactory::create<sd::LongType>({1,2,3,4,6});
     x.linspace(1.0);
 
 #ifdef __CUDABLAS__
@@ -430,7 +429,7 @@ TEST_F(NativeOpsTests, ReduceTest_7) {
 
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     x.syncToHost();
     extra[1] = x.getContext()->getCudaStream();
@@ -462,7 +461,7 @@ TEST_F(NativeOpsTests, ReduceTest_8) {
 
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -494,7 +493,7 @@ TEST_F(NativeOpsTests, ReduceTest_9) {
     auto z = NDArrayFactory::create<bool>(true);
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -527,7 +526,7 @@ TEST_F(NativeOpsTests, Reduce3Test_1) {
     auto z = NDArrayFactory::create<float>(650.);
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -561,7 +560,7 @@ TEST_F(NativeOpsTests, Reduce3Test_2) {
     auto z = NDArrayFactory::create<float>(650.);
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -595,7 +594,7 @@ TEST_F(NativeOpsTests, Reduce3Test_3) {
     auto z = NDArrayFactory::create<float>(650.);
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -633,7 +632,7 @@ TEST_F(NativeOpsTests, Reduce3Test_4) {
     auto z = NDArrayFactory::create<float>(650.);
 
     auto dimension = NDArrayFactory::create<int>('c', {2}, {0, 1});
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -678,7 +677,7 @@ TEST_F(NativeOpsTests, ScalarTest_1) {
     auto exp = NDArrayFactory::create<float>('c', {5,5});
     auto z = NDArrayFactory::create<float>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -713,7 +712,7 @@ TEST_F(NativeOpsTests, ScalarTest_2) {
     auto exp = NDArrayFactory::create<bool>('c', {5,5});
     auto z = NDArrayFactory::create<bool>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -747,7 +746,7 @@ TEST_F(NativeOpsTests, SummaryStatsScalarTest_1) {
     auto exp = NDArrayFactory::create<float>(0.9f);
     auto z = NDArrayFactory::create<float>(0.21587136f);
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -773,7 +772,7 @@ TEST_F(NativeOpsTests, SummaryStatsScalarTest_2) {
     auto exp = NDArrayFactory::create<double>(0.9);
     auto z = NDArrayFactory::create<double>(0.21587136);
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -798,7 +797,7 @@ TEST_F(NativeOpsTests, SummaryStatsScalarTest_3) {
     auto exp = NDArrayFactory::create<double>(0.9);
     auto z = NDArrayFactory::create<double>(0.21587136);
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -829,7 +828,7 @@ TEST_F(NativeOpsTests, TransformTest_1) {
     auto exp = NDArrayFactory::create<double>('c', {5, 5});
     auto z = NDArrayFactory::create<double>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -858,7 +857,7 @@ TEST_F(NativeOpsTests, TransformTest_2) {
     auto exp = NDArrayFactory::create<float>('c', {5, 5});
     auto z = NDArrayFactory::create<float>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -887,7 +886,7 @@ TEST_F(NativeOpsTests, TransformTest_3) {
     auto exp = NDArrayFactory::create<bool>('c', {5, 5});
     auto z = NDArrayFactory::create<bool>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -921,7 +920,7 @@ TEST_F(NativeOpsTests, TransformTest_4) {
                                                         0.000796, 0.000796, 0.000796, -1, -1, -1, 1., 1., 1.0, 1.0,
                                                         0.540302, 0.540302, -0.416147, -0.416147, -0.416147, 0.540302, 1., 1.});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -949,7 +948,7 @@ TEST_F(NativeOpsTests, ScalarTadTest_1) {
     auto exp = NDArrayFactory::create<float>('c', {5,5});
     auto z = NDArrayFactory::create<float>('c', {5,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -992,7 +991,7 @@ TEST_F(NativeOpsTests, ScalarTadTest_2) {
     auto exp = NDArrayFactory::create<bool>('c', {5,5});
     auto z = NDArrayFactory::create<bool>('c', {5, 5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -1041,7 +1040,7 @@ TEST_F(NativeOpsTests, ConcatTest_2) {
     auto exp = NDArrayFactory::create<float>('c', {10,5});
     auto z = NDArrayFactory::create<float>('c', {10,5});
 
-    Nd4jPointer extra[6];
+    sd::Pointer extra[6];
 #ifdef __CUDABLAS__
     extra[1] = x.getContext()->getCudaStream();
     extra[0] = extra[2] = extra[3] = extra[4] = extra[5] = nullptr;
@@ -1062,8 +1061,8 @@ TEST_F(NativeOpsTests, ConcatTest_2) {
     //auto tadPackX = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), dimensions, dimension.lengthOf());
     auto tadPackZ = sd::ConstantTadHelper::getInstance().tadForDimensions(z.shapeInfo(), dimensions, dimension.lengthOf());
     exp.linspace(1);
-    Nd4jPointer datas[] = {x.buffer(), y.buffer()};
-    Nd4jPointer shapes[] = {(Nd4jPointer)x.shapeInfo(), (Nd4jPointer)y.shapeInfo()};
+    sd::Pointer datas[] = {x.buffer(), y.buffer()};
+    sd::Pointer shapes[] = {(sd::Pointer)x.shapeInfo(), (sd::Pointer)y.shapeInfo()};
 
     ::specialConcat(extra, 0, 2, datas, shapes, z.buffer(), z.shapeInfo(), nullptr, nullptr);
 
@@ -1121,16 +1120,16 @@ TEST_F(NativeOpsTests, PullRowsTest_1) {
     NDArray z('c', {4, 1}, sd::DataType::DOUBLE);
     NDArray exp('c', {4, 1}, {0,2,3,4});
 
-    Nd4jLong indexes[] = {0,2,3,4};
+    sd::LongType indexes[] = {0,2,3,4};
     PointersManager pm(LaunchContext::defaultContext(), "NativeOpsTests::pullRows");
-    auto pidx = reinterpret_cast<Nd4jLong *>(pm.replicatePointer(indexes, 4 * sizeof(Nd4jLong)));
+    auto pidx = reinterpret_cast<sd::LongType *>(pm.replicatePointer(indexes, 4 * sizeof(sd::LongType)));
 
     std::vector<int> dims = {1};
 
     auto xTadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), dims);
     auto zTadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(z.shapeInfo(), dims);
 
-    Nd4jPointer nativeStart[2];
+    sd::Pointer nativeStart[2];
 
 #ifdef __CUDABLAS__
     nativeStart[1] = (x.getContext()->getCudaStream());
@@ -1169,8 +1168,8 @@ TEST_F(NativeOpsTests, AverageTest_1) {
 #endif
     x.linspace(1);
     exp.linspace(1);
-    Nd4jPointer xList[] = {x.buffer(), x.buffer()};
-    Nd4jPointer dxList[] = {x.specialBuffer(), x.specialBuffer()};
+    sd::Pointer xList[] = {x.buffer(), x.buffer()};
+    sd::Pointer dxList[] = {x.specialBuffer(), x.specialBuffer()};
     ::average(nullptr,
                             xList, x.shapeInfo(),
                             dxList, x.specialShapeInfo(),
@@ -1193,8 +1192,8 @@ TEST_F(NativeOpsTests, AccumulateTest_1) {
 #endif
     x.linspace(1);
     exp.linspace(2,2);
-    Nd4jPointer xList[] = {x.buffer(), x.buffer()};
-    Nd4jPointer dxList[] = {x.specialBuffer(), x.specialBuffer()};
+    sd::Pointer xList[] = {x.buffer(), x.buffer()};
+    sd::Pointer dxList[] = {x.specialBuffer(), x.specialBuffer()};
     ::accumulate(nullptr,
                      xList, x.shapeInfo(),
                      dxList, x.specialShapeInfo(),
@@ -1223,18 +1222,18 @@ TEST_F(NativeOpsTests, ShuffleTest_1) {
     x.linspace(1);
     y.linspace(34);
     exp.linspace(2,2);
-    Nd4jPointer xList[] = {x.buffer(), x.buffer()};
-    Nd4jPointer dxList[] = {x.specialBuffer(), y.specialBuffer()};
-    Nd4jPointer xShapeList[] = {(Nd4jPointer)x.shapeInfo(), (Nd4jPointer)y.shapeInfo()};
-    Nd4jPointer dxShapeList[] = {(Nd4jPointer)x.specialShapeInfo(), (Nd4jPointer)y.specialShapeInfo()};
-    Nd4jPointer zList[] = {z.buffer(), z.buffer()};
-    Nd4jPointer dzList[] = {z.specialBuffer(), z.specialBuffer()};
-    Nd4jPointer zShapeList[] = {(Nd4jPointer)z.shapeInfo(), (Nd4jPointer)z.shapeInfo()};
-    Nd4jPointer dzShapeList[] = {(Nd4jPointer)z.specialShapeInfo(), (Nd4jPointer)z.specialShapeInfo()};
+    sd::Pointer xList[] = {x.buffer(), x.buffer()};
+    sd::Pointer dxList[] = {x.specialBuffer(), y.specialBuffer()};
+    sd::Pointer xShapeList[] = {(sd::Pointer)x.shapeInfo(), (sd::Pointer)y.shapeInfo()};
+    sd::Pointer dxShapeList[] = {(sd::Pointer)x.specialShapeInfo(), (sd::Pointer)y.specialShapeInfo()};
+    sd::Pointer zList[] = {z.buffer(), z.buffer()};
+    sd::Pointer dzList[] = {z.specialBuffer(), z.specialBuffer()};
+    sd::Pointer zShapeList[] = {(sd::Pointer)z.shapeInfo(), (sd::Pointer)z.shapeInfo()};
+    sd::Pointer dzShapeList[] = {(sd::Pointer)z.specialShapeInfo(), (sd::Pointer)z.specialShapeInfo()};
     int shuffleMap[] = {1, 0, 4, 3, 2};
     auto zTadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(x.shapeInfo(), {1});
-    Nd4jPointer zListOffset[] = {(Nd4jPointer)zTadPack.platformOffsets(), (Nd4jPointer)zTadPack.platformOffsets()};
-    Nd4jPointer zListTADs[] = {(Nd4jPointer)zTadPack.platformShapeInfo(), (Nd4jPointer)zTadPack.platformShapeInfo()};
+    sd::Pointer zListOffset[] = {(sd::Pointer)zTadPack.platformOffsets(), (sd::Pointer)zTadPack.platformOffsets()};
+    sd::Pointer zListTADs[] = {(sd::Pointer)zTadPack.platformShapeInfo(), (sd::Pointer)zTadPack.platformShapeInfo()};
     ::shuffle(nullptr,
                         xList, xShapeList,
                         dxList, dxShapeList,
@@ -1272,7 +1271,7 @@ TEST_F(NativeOpsTests, ConvertTypesTest_1) {
 //    ops.execAggregate(nullptr, 0, maxArgs, maxShapes, maxIntArrays, maxIntArraySize, maxIndexArguments, maxRealArguments, pointer.data(), sd::DataType::FLOAT32);
 //    void **arguments,
 //    int numArguments,
-//    Nd4jLong **shapeArguments,
+//    sd::LongType **shapeArguments,
 //    int numShapeArguments,
 //    int *indexArguments,
 //    int numIndexArguments,
@@ -1285,7 +1284,7 @@ TEST_F(NativeOpsTests, ConvertTypesTest_1) {
 
 TEST_F(NativeOpsTests, RandomTest_1) {
     auto z = NDArrayFactory::create<double>('c', {100});
-    Nd4jPointer extra[] = {nullptr, nullptr};
+    sd::Pointer extra[] = {nullptr, nullptr};
 #ifdef __CUDABLAS__
     return;
     extra[1] = z.getContext()->getCudaStream();
@@ -1300,7 +1299,7 @@ TEST_F(NativeOpsTests, RandomTest_1) {
 TEST_F(NativeOpsTests, RandomTest_2) {
     auto x = NDArrayFactory::create<double>('c', {100});
     auto z = NDArrayFactory::create<double>('c', {100});
-    Nd4jPointer extra[] = {nullptr, nullptr};
+    sd::Pointer extra[] = {nullptr, nullptr};
 #ifdef __CUDABLAS__
     return;
     extra[1] = z.getContext()->getCudaStream();
@@ -1318,7 +1317,7 @@ TEST_F(NativeOpsTests, RandomTest_3) {
     auto x = NDArrayFactory::create<double>('c', {100});
     auto y = NDArrayFactory::create<double>('c', {100});
     auto z = NDArrayFactory::create<double>('c', {100});
-    Nd4jPointer extra[] = {nullptr, nullptr};
+    sd::Pointer extra[] = {nullptr, nullptr};
 #ifdef __CUDABLAS__
     return;
     extra[1] = z.getContext()->getCudaStream();
@@ -1359,12 +1358,12 @@ TEST_F(NativeOpsTests, SortTest_1) {
 }
 
 TEST_F(NativeOpsTests, SortTests_2) {
-    auto k = NDArrayFactory::create<Nd4jLong>('c', {10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
+    auto k = NDArrayFactory::create<sd::LongType>('c', {10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
     auto v = NDArrayFactory::create<double>('c', {10}, {1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5});
 
-    auto ek = NDArrayFactory::create<Nd4jLong>('c', {10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+    auto ek = NDArrayFactory::create<sd::LongType>('c', {10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
     auto ev = NDArrayFactory::create<double>('c', {10}, {0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5});
-    Nd4jPointer extras[2];
+    sd::Pointer extras[2];
 #ifdef __CUDABLAS__
     extras[1] = LaunchContext::defaultContext()->getCudaStream();
 #endif
@@ -1382,16 +1381,16 @@ TEST_F(NativeOpsTests, SortTests_2) {
 }
 
 TEST_F(NativeOpsTests, SortTest_3) {
-    auto k = NDArrayFactory::create<Nd4jLong>('c', {10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
+    auto k = NDArrayFactory::create<sd::LongType>('c', {10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
     auto v = NDArrayFactory::create<double>('c', {10}, {1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5});
 
-    auto ek = NDArrayFactory::create<Nd4jLong>('c', {10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+    auto ek = NDArrayFactory::create<sd::LongType>('c', {10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
     auto ev = NDArrayFactory::create<double>('c', {10}, {0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5});
 
 #ifdef __CUDABLAS__
-    Nd4jPointer extras[2] = {nullptr, LaunchContext::defaultContext()->getCudaStream()};
+    sd::Pointer extras[2] = {nullptr, LaunchContext::defaultContext()->getCudaStream()};
 #else
-    Nd4jPointer extras[2];
+    sd::Pointer extras[2];
 #endif
 
     ::sortByKey(extras, k.buffer(), k.shapeInfo(), k.specialBuffer(), k.specialShapeInfo(), v.buffer(), v.shapeInfo(), v.specialBuffer(), v.specialShapeInfo(), false);
@@ -1422,13 +1421,13 @@ TEST_F(NativeOpsTests, SortTest_4) {
 }
 
 TEST_F(NativeOpsTests, SortTests_5) {
-    auto k = NDArrayFactory::create<Nd4jLong>('c', {2, 10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8,   1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
+    auto k = NDArrayFactory::create<sd::LongType>('c', {2, 10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8,   1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
     auto v = NDArrayFactory::create<double>('c', {2, 10}, {1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5,   1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5});
 
-    auto ek = NDArrayFactory::create<Nd4jLong>('c', {2, 10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,     0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+    auto ek = NDArrayFactory::create<sd::LongType>('c', {2, 10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,     0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
     auto ev = NDArrayFactory::create<double>('c', {2, 10}, {0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5,     0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5});
 
-    Nd4jPointer extras[2];
+    sd::Pointer extras[2];
 #ifdef __CUDABLAS__
     extras[1] = LaunchContext::defaultContext()->getCudaStream();
 #endif
@@ -1447,13 +1446,13 @@ TEST_F(NativeOpsTests, SortTests_5) {
 }
 
 TEST_F(NativeOpsTests, SortTests_6) {
-    auto k = NDArrayFactory::create<Nd4jLong>('c', {2, 10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8,   1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
+    auto k = NDArrayFactory::create<sd::LongType>('c', {2, 10}, {1, 3, 5, 9, 0, 2, 4, 6, 7, 8,   1, 3, 5, 9, 0, 2, 4, 6, 7, 8});
     auto v = NDArrayFactory::create<double>('c', {2, 10}, {1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5,   1.5, 3.5, 5.5, 9.5, 0.5, 2.5, 4.5, 6.5, 7.5, 8.5});
 
-    auto ek = NDArrayFactory::create<Nd4jLong>('c', {2, 10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,     0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
+    auto ek = NDArrayFactory::create<sd::LongType>('c', {2, 10}, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,     0, 1, 2, 3, 4, 5, 6, 7, 8, 9});
     auto ev = NDArrayFactory::create<double>('c', {2, 10}, {0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5,     0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5});
 
-    Nd4jPointer extras[2];
+    sd::Pointer extras[2];
 #ifdef __CUDABLAS__
     extras[1] = LaunchContext::defaultContext()->getCudaStream();
 #endif
@@ -1495,15 +1494,15 @@ TEST_F(NativeOpsTests, CustomOpTest_1) {
 
     sd::ops::squeeze op;
 
-    Nd4jPointer ptrsInBuffer[] = {(Nd4jPointer) x.buffer(), x.specialBuffer()};
-    Nd4jPointer ptrsInShapes[] = {(Nd4jPointer) x.shapeInfo(), (Nd4jPointer)x.specialShapeInfo()};
+    sd::Pointer ptrsInBuffer[] = {(sd::Pointer) x.buffer(), x.specialBuffer()};
+    sd::Pointer ptrsInShapes[] = {(sd::Pointer) x.shapeInfo(), (sd::Pointer)x.specialShapeInfo()};
 
-    Nd4jPointer ptrsOutBuffers[] = {(Nd4jPointer) z.buffer(), z.specialBuffer()};
-    Nd4jPointer ptrsOutShapes[] = {(Nd4jPointer) z.shapeInfo(), (Nd4jPointer)z.specialShapeInfo()};
+    sd::Pointer ptrsOutBuffers[] = {(sd::Pointer) z.buffer(), z.specialBuffer()};
+    sd::Pointer ptrsOutShapes[] = {(sd::Pointer) z.shapeInfo(), (sd::Pointer)z.specialShapeInfo()};
 
 
     auto status = ::execCustomOp(nullptr, op.getOpHash(), ptrsInBuffer, ptrsInShapes, 1, ptrsOutBuffers, ptrsOutShapes, 1, nullptr, 0, nullptr, 0, nullptr, 0, false);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 
     ASSERT_EQ(e, z);
 }
@@ -1538,9 +1537,9 @@ TEST_F(NativeOpsTests, CalculateOutputShapeTests_1) {
     sd::ops::conv2d op;
 
     std::vector<double> tArgs({});
-    std::vector<Nd4jLong> iArgs({2, 2, 1, 1, 0, 0, 1, 1, 1});
+    std::vector<sd::LongType> iArgs({2, 2, 1, 1, 0, 0, 1, 1, 1});
 
-    Nd4jPointer ptrs[] = {(Nd4jPointer) input.shapeInfo(), (Nd4jPointer) weights.shapeInfo()};
+    sd::Pointer ptrs[] = {(sd::Pointer) input.shapeInfo(), (sd::Pointer) weights.shapeInfo()};
 #ifdef __CUDABLAS__
     return;
 #endif
@@ -1549,17 +1548,17 @@ TEST_F(NativeOpsTests, CalculateOutputShapeTests_1) {
 
     ASSERT_EQ(1, shapeList->size());
 
-    ASSERT_EQ(exp.rankOf(), shape::rank((Nd4jLong *)shapeList->at(0)));
-    ASSERT_EQ(exp.sizeAt(0), shape::shapeOf((Nd4jLong *)shapeList->at(0))[0]);
-    ASSERT_EQ(exp.sizeAt(1), shape::shapeOf((Nd4jLong *)shapeList->at(0))[1]);
-    ASSERT_EQ(exp.sizeAt(2), shape::shapeOf((Nd4jLong *)shapeList->at(0))[2]);
-    ASSERT_EQ(exp.sizeAt(3), shape::shapeOf((Nd4jLong *)shapeList->at(0))[3]);
+    ASSERT_EQ(exp.rankOf(), shape::rank((sd::LongType *)shapeList->at(0)));
+    ASSERT_EQ(exp.sizeAt(0), shape::shapeOf((sd::LongType *)shapeList->at(0))[0]);
+    ASSERT_EQ(exp.sizeAt(1), shape::shapeOf((sd::LongType *)shapeList->at(0))[1]);
+    ASSERT_EQ(exp.sizeAt(2), shape::shapeOf((sd::LongType *)shapeList->at(0))[2]);
+    ASSERT_EQ(exp.sizeAt(3), shape::shapeOf((sd::LongType *)shapeList->at(0))[3]);
 
     //int *ptr = (int *) shapeList[0];
     //delete[] ptr;
     //delete shapeList;
 
-    ::deleteShapeList((Nd4jPointer) shapeList);
+    ::deleteShapeList((sd::Pointer) shapeList);
 }
 
 TEST_F(NativeOpsTests, CalculateOutputShapeTests_2) {
@@ -1571,30 +1570,30 @@ TEST_F(NativeOpsTests, CalculateOutputShapeTests_2) {
 
     std::vector<double> tArgs({});
     std::vector<bool> bArgsF({});
-    std::vector<Nd4jLong> iArgs({2, 2, 1, 1, 0, 0, 1, 1, 1});
+    std::vector<sd::LongType> iArgs({2, 2, 1, 1, 0, 0, 1, 1, 1});
 
-    Nd4jPointer shapePtrs[] = {(Nd4jPointer) input.shapeInfo(), (Nd4jPointer) weights.shapeInfo()};
-    Nd4jPointer dataPtrs[] = {(Nd4jPointer)input.buffer(), (Nd4jPointer)weights.buffer()};
+    sd::Pointer shapePtrs[] = {(sd::Pointer) input.shapeInfo(), (sd::Pointer) weights.shapeInfo()};
+    sd::Pointer dataPtrs[] = {(sd::Pointer)input.buffer(), (sd::Pointer)weights.buffer()};
 #ifdef __CUDABLAS__
     return;
 #endif
 
     auto shapeList = ::calculateOutputShapes2(nullptr, op.getOpHash(), dataPtrs, shapePtrs, 2, const_cast<double*>(tArgs.data()), tArgs.size(),
-                                                     const_cast<Nd4jLong*>(iArgs.data()), iArgs.size(), nullptr, bArgsF.size(), nullptr, 0);
-//                               Nd4jPointer* extraPointers, Nd4jLong hash, Nd4jPointer* inputBuffers, Nd4jPointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, Nd4jLong *iArgs, int numIArgs, bool *bArgs, int numBArgs
+                                                     const_cast<sd::LongType*>(iArgs.data()), iArgs.size(), nullptr, bArgsF.size(), nullptr, 0);
+//                               sd::Pointer* extraPointers, sd::LongType hash, sd::Pointer* inputBuffers, sd::Pointer* inputShapes, int numInputShapes, double* tArgs, int numTArgs, sd::LongType *iArgs, int numIArgs, bool *bArgs, int numBArgs
     ASSERT_EQ(1, shapeList->size());
 
-    ASSERT_EQ(exp.rankOf(), shape::rank((Nd4jLong *)shapeList->at(0)));
-    ASSERT_EQ(exp.sizeAt(0), shape::shapeOf((Nd4jLong *)shapeList->at(0))[0]);
-    ASSERT_EQ(exp.sizeAt(1), shape::shapeOf((Nd4jLong *)shapeList->at(0))[1]);
-    ASSERT_EQ(exp.sizeAt(2), shape::shapeOf((Nd4jLong *)shapeList->at(0))[2]);
-    ASSERT_EQ(exp.sizeAt(3), shape::shapeOf((Nd4jLong *)shapeList->at(0))[3]);
+    ASSERT_EQ(exp.rankOf(), shape::rank((sd::LongType *)shapeList->at(0)));
+    ASSERT_EQ(exp.sizeAt(0), shape::shapeOf((sd::LongType *)shapeList->at(0))[0]);
+    ASSERT_EQ(exp.sizeAt(1), shape::shapeOf((sd::LongType *)shapeList->at(0))[1]);
+    ASSERT_EQ(exp.sizeAt(2), shape::shapeOf((sd::LongType *)shapeList->at(0))[2]);
+    ASSERT_EQ(exp.sizeAt(3), shape::shapeOf((sd::LongType *)shapeList->at(0))[3]);
 
     //int *ptr = (int *) shapeList[0];
     //delete[] ptr;
     //delete shapeList;
 
-    ::deleteShapeList((Nd4jPointer) shapeList);
+    ::deleteShapeList((sd::Pointer) shapeList);
 }
 
 

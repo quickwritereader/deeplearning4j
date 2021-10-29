@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 15.10.2017.
 //
-
 #include "ops/declarable/LogicOp.h"
 
 namespace sd {
@@ -29,9 +28,9 @@ namespace sd {
             //this->_descriptor->
         }
 
-        Nd4jStatus LogicOp::validateAndExecute(sd::graph::Context &block) {
-            nd4j_logger("WARNING: LogicOps should NOT be ever called\n", "");
-            return ND4J_STATUS_BAD_INPUT;
+        sd::Status LogicOp::validateAndExecute(sd::graph::Context &block) {
+            sd_logger("WARNING: LogicOps should NOT be ever called\n", "");
+            return sd::Status::BAD_INPUT;
         }
 
         ShapeList* LogicOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {

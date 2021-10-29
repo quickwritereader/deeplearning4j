@@ -19,13 +19,12 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include <graph/execution/LogicNextIteration.h>
 
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicNextIeration::processNode(Graph *graph, Node *node) {
+        sd::Status LogicNextIeration::processNode(Graph *graph, Node *node) {
             auto __variableSpace = graph->getVariableSpace();
             auto __flowPath = __variableSpace->flowPath();
 
@@ -46,7 +45,7 @@ namespace sd {
             lvar->setNDArray(array);
             lvar->markReadOnly(true);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
     }
 }

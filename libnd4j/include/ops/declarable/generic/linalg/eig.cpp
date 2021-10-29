@@ -46,7 +46,7 @@ CUSTOM_OP_IMPL(eig, 1, 2, false, 0, 0) {
 
     sd::ops::helpers::eig(*input, *eig_vals, *eig_vectors);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_TYPES(eig) {

@@ -51,8 +51,8 @@ namespace sd {
                             }
                         } else {
                             for (int e = 0; e < condition->lengthOf(); e++) {
-                                auto r = condition->e<bool>(e) ? y->e<Nd4jLong>(0)
-                                                                              : x->e<Nd4jLong>(e);
+                                auto r = condition->e<bool>(e) ? y->e<sd::LongType>(0)
+                                                                              : x->e<sd::LongType>(e);
                                 z->p(e, r);
                             }
                         }
@@ -72,11 +72,11 @@ namespace sd {
                         } else {
                             for (int e = 0; e < condition->lengthOf(); e++) {
                                 if (condition->e<bool>(e)) {
-                                    auto r = y->e<Nd4jLong>(numMatches);
+                                    auto r = y->e<sd::LongType>(numMatches);
                                     z->p(e, r);
                                     numMatches++;
                                 } else {
-                                    auto r = x->e<Nd4jLong>(e);
+                                    auto r = x->e<sd::LongType>(e);
                                     z->p(e, r);
                                 }
                             }
@@ -103,7 +103,7 @@ namespace sd {
 
                 REQUIRE_TRUE(block.width() == 1, 0, "Where op takes either 1 or 3 operands, But got %d operands instead", block.width());
 //                if (output->isEmpty())
-                Nd4jLong width = condition->rankOf();
+                sd::LongType width = condition->rankOf();
 
                 sd::ops::Where op;
                 auto res(op.evaluate({condition}));
@@ -111,21 +111,21 @@ namespace sd {
                 NDArray* whereTrue = res.at(0);
 
                 if (whereTrue->isEmpty())
-                    return ND4J_STATUS_OK;
-                for (Nd4jLong outNext = 0; outNext < width; ++outNext) {
+                    return sd::Status::OK;
+                for (sd::LongType outNext = 0; outNext < width; ++outNext) {
                     auto output = OUTPUT_VARIABLE(outNext);
-                    for (Nd4jLong e = 0; e < output->lengthOf(); ++e) {
-                        output->p<Nd4jLong>(e, whereTrue->e<Nd4jLong>(e, outNext));
+                    for (sd::LongType e = 0; e < output->lengthOf(); ++e) {
+                        output->p<sd::LongType>(e, whereTrue->e<sd::LongType>(e, outNext));
                     }
                 }
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(where_np) {
             auto shapes = SHAPELIST();
-            Nd4jLong *newShape;
+            sd::LongType *newShape;
             if (block.width() == 3) {
                 auto inShape = inputShape->at(1);
                 COPY_SHAPE(inShape, newShape);
@@ -134,13 +134,13 @@ namespace sd {
             } else {
                 auto condition = INPUT_VARIABLE(0);
 
-                Nd4jLong numOfTrue = 0LL; //condition->reduceNumber(reduce::CountNonZero).e<Nd4jLong>(0);
-                for (Nd4jLong i = 0; i < condition->lengthOf(); ++i)
+                sd::LongType numOfTrue = 0LL; //condition->reduceNumber(reduce::CountNonZero).e<sd::LongType>(0);
+                for (sd::LongType i = 0; i < condition->lengthOf(); ++i)
                     if (condition->e<bool>(i)) numOfTrue++;
 
                 // output shape - a tuple of rank(inShape) 1D tensors with numOfTrue len
                 if (numOfTrue) {
-                    for (Nd4jLong e = 0; e < condition->rankOf(); ++e) {
+                    for (sd::LongType e = 0; e < condition->rankOf(); ++e) {
                         shapes->push_back(ConstantShapeHelper::getInstance().vectorShapeInfo(numOfTrue, sd::DataType::INT64));
                     }
                 }

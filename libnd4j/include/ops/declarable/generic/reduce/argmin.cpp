@@ -44,7 +44,7 @@ namespace sd {
             auto output = OUTPUT_VARIABLE(0);
 
             if (output->isEmpty())
-                return Status::OK();
+                return sd::Status::OK;
 
             // axis might be dynamic (i.e. tf mode)
             if (block.width() > 1 && axis.size() == 0) {
@@ -59,7 +59,7 @@ namespace sd {
 
             STORE_RESULT(output);
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(argmin) {

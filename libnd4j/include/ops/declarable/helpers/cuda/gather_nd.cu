@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 20.04.2018
 //
 
-
 #include<ops/declarable/helpers/transforms.h>
 #include <array/ResultSet.h>
 #include <helpers/ShapeUtils.h>
@@ -37,25 +36,25 @@ namespace sd {
             ///////////////////////////////////////////////////////////////////
 // x - input, y - indices, z - output
             template<typename X, typename Y>
-            __global__ static void gatherNDCuda(const void *vx, const Nd4jLong *xShapeInfo,
-                                                const void *vy, const Nd4jLong *yShapeInfo,
-                                                void *vz, const Nd4jLong *zShapeInfo) {
+            SD_KERNEL static void gatherNDCuda(const void *vx, const sd::LongType *xShapeInfo,
+                                                const void *vy, const sd::LongType *yShapeInfo,
+                                                void *vz, const sd::LongType *zShapeInfo) {
 
                 const auto x = reinterpret_cast<const X*>(vx);
                 const auto y = reinterpret_cast<const Y*>(vy);
                 auto z = reinterpret_cast<X*>(vz);
 
                 __shared__ int xRank, yRank, zRank, maxRank, yLastDim;
-                __shared__ Nd4jLong zLen, totalThreads, *sharedMem;
+                __shared__ sd::LongType zLen, totalThreads, *sharedMem;
 
                 if (threadIdx.x == 0) {
                     extern __shared__ unsigned char shmem[];
-                    sharedMem = reinterpret_cast<Nd4jLong*>(shmem);
+                    sharedMem = reinterpret_cast<sd::LongType*>(shmem);
 
                     xRank   = shape::rank(xShapeInfo);
                     yRank   = shape::rank(yShapeInfo);
                     zRank   = shape::rank(zShapeInfo);
-                    maxRank = sd::math::nd4j_max<int>(yRank, sd::math::nd4j_max<int>(xRank, zRank));
+                    maxRank = sd::math::sd_max<int>(yRank, sd::math::sd_max<int>(xRank, zRank));
 
                     zLen     = shape::length(zShapeInfo);
                     yLastDim = yShapeInfo[yRank];
@@ -66,7 +65,7 @@ namespace sd {
 
                 auto coord = sharedMem + threadIdx.x * maxRank;
 
-                Nd4jLong *zCoordStart, *xCoordStart;
+                sd::LongType *zCoordStart, *xCoordStart;
 
                 if(yLastDim == xRank) {
                     zCoordStart = coord;
@@ -83,7 +82,7 @@ namespace sd {
 
                 const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-                for (Nd4jLong i = tid; i < zLen; i += totalThreads) {
+                for (sd::LongType i = tid; i < zLen; i += totalThreads) {
 
                     shape::index2coords(i, zShapeInfo, zCoordStart);
 
@@ -102,7 +101,7 @@ namespace sd {
                         zCoordStart[yRank - 1] = coordToRestore;
 
                     // construct coordinates for x
-                    for(uint j = 0; j < yLastDim; ++j)
+                    for(sd::Unsigned j = 0; j < yLastDim; ++j)
                         xCoordStart[j] = y[yOffset + j * yShapeInfo[2 * yRank]];   // last stride
 
                     const auto xOffset = shape::getOffset(xShapeInfo, xCoordStart);
@@ -115,17 +114,17 @@ namespace sd {
 ///////////////////////////////////////////////////////////////////
             template<typename X, typename Y>
             static void gatherNDCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                                             const void *vx, const Nd4jLong *xShapeInfo,
-                                             const void *vy, const Nd4jLong *yShapeInfo,
-                                             void *vz, const Nd4jLong *zShapeInfo) {
+                                             const void *vx, const sd::LongType *xShapeInfo,
+                                             const void *vy, const sd::LongType *yShapeInfo,
+                                             void *vz, const sd::LongType *zShapeInfo) {
 
                 gatherNDCuda<X,Y><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo);
             }
 
 ///////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void gatherND(sd::LaunchContext * context, NDArray& input, NDArray& indices, NDArray& output) {
+            void gatherND(sd::LaunchContext * context, NDArray& input, NDArray& indices, NDArray& output) {
 
-                const int maxRank = sd::math::nd4j_max<int>(indices.rankOf(), sd::math::nd4j_max<int>(input.rankOf(), output.rankOf()));
+                const int maxRank = sd::math::sd_max<int>(indices.rankOf(), sd::math::sd_max<int>(input.rankOf(), output.rankOf()));
 
                 const int threadsPerBlock = 256;
                 const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
@@ -137,7 +136,7 @@ namespace sd {
                 PointersManager manager(context, "gatherND");
 
                 NDArray::prepareSpecialUse({&output}, {&input, &indices});
-                BUILD_DOUBLE_SELECTOR(xType, yType, gatherNDCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), indices.specialBuffer(), indices.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo()), LIBND4J_TYPES, INDEXING_TYPES);
+                BUILD_DOUBLE_SELECTOR(xType, yType, gatherNDCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), indices.specialBuffer(), indices.specialShapeInfo(), output.specialBuffer(), output.specialShapeInfo()), SD_COMMON_TYPES, SD_INDEXING_TYPES);
                 NDArray::registerSpecialUse({&output}, {&input, &indices});
 
                 manager.synchronize();

@@ -23,7 +23,6 @@
 // @author Abdelrauf (rauf@konduit.ai)
 
 // https://arxiv.org/pdf/2010.07468.pdf
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -53,11 +52,11 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
     const T epsilon = static_cast<T>(dEpsilon);
     const T iteration = static_cast<T>(nIteration);
 
-    const T beta1T = sd::math::nd4j_pow<T, T, T>(beta1, (iteration + 1));
-    const T beta2T = sd::math::nd4j_pow<T, T, T>(beta2, (iteration + 1));
+    const T beta1T = sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
+    const T beta2T = sd::math::sd_pow<T, T, T>(beta2, (iteration + 1));
 
-    T epsilonT = lr * sd::math::nd4j_sqrt<T, T>(1. - beta2T) / (1.0 - beta1T);
-    if (sd::math::nd4j_isnan(epsilonT) || 0 == epsilonT || sd::math::nd4j_isinf(epsilonT))
+    T epsilonT = lr * sd::math::sd_sqrt<T, T>(1. - beta2T) / (1.0 - beta1T);
+    if (sd::math::sd_isnan(epsilonT) || 0 == epsilonT || sd::math::sd_isinf(epsilonT))
         epsilonT = epsilon;
 
     bool bEws1 = 1 == gradient.ews() && 1 == update.ews() && 1 == stateM.ews() && 1 == initStateM.ews() && 1 == stateU.ews() && 1 == initStateU.ews();
@@ -73,7 +72,7 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
                      stM[i] = beta1 * initM[i] + grad[i] * (1 - beta1);
                      stU[i] = beta2 * initU[i] + (grad[i] - stM[i]) * (grad[i] - stM[i]) * (1 - beta2) + epsilon;
 
-                     up[i] = (stM[i] * epsilonT) / (sd::math::nd4j_sqrt<T, T>(stU[i]) + epsilon);
+                     up[i] = (stM[i] * epsilonT) / (sd::math::sd_sqrt<T, T>(stU[i]) + epsilon);
                  }
             };
 
@@ -89,7 +88,7 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < stop; i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -102,7 +101,7 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
             stM[stMOffset] = beta1 * initM[initMOffset] + grad[xOffset] * (1 - beta1);
             stU[stUOffset] = beta2 * initU[initUOffset] + (grad[xOffset] - stM[stMOffset]) * (grad[xOffset] - stM[stMOffset]) * (1 - beta2) + epsilon;
 
-            up[zOffset] = (stM[stMOffset] * epsilonT) / (sd::math::nd4j_sqrt<T, T>(stU[stUOffset]) + epsilon);
+            up[zOffset] = (stM[stMOffset] * epsilonT) / (sd::math::sd_sqrt<T, T>(stU[stUOffset]) + epsilon);
         }
     };
 
@@ -110,8 +109,8 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
     return;
 }
 
- void updaterAdaBelief(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateU, const NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM,  const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaBeliefUpdater_, (gradient, initStateU, initStateM, update, stateU, stateM, dLr, dBeta1, dBeta2, dEpsilon, nIteration), FLOAT_TYPES);
+void updaterAdaBelief(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateU, const NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM,  const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaBeliefUpdater_, (gradient, initStateU, initStateM, update, stateU, stateM, dLr, dBeta1, dBeta2, dEpsilon, nIteration), SD_FLOAT_TYPES);
 }
 
 }

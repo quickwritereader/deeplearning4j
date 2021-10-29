@@ -20,7 +20,6 @@
 //  @author raver119@gmail.com
 //
 
-#include <system/dll.h>
 #include <graph/VariableProxy.h>
 
 namespace sd {
@@ -119,7 +118,7 @@ namespace sd {
             if (_backed->hasVariable(id))
                 return _backed->getVariable(id);
 
-            nd4j_printf("Unable to get Variable to proxy: [%i]\n", id);
+            sd_printf("Unable to get Variable to proxy: [%i]\n", id);
             throw std::runtime_error("Bad arguments");
         }
 
@@ -131,7 +130,7 @@ namespace sd {
             if (_backed->hasVariable(id, idx))
                 return _backed->getVariable(id, idx);
 
-            nd4j_printf("Unable to get Variable to proxy: [%i:%i]\n", id, idx);
+            sd_printf("Unable to get Variable to proxy: [%i:%i]\n", id, idx);
             throw std::runtime_error("Bad arguments");
         }
 
@@ -143,7 +142,7 @@ namespace sd {
             if (_backed->hasVariable(pair))
                 return _backed->getVariable(pair);
 
-            nd4j_printf("Unable to get Variable to proxy: [%i:%i]\n", pair.first, pair.second);
+            sd_printf("Unable to get Variable to proxy: [%i:%i]\n", pair.first, pair.second);
             throw std::runtime_error("Bad arguments");
         }
 
@@ -155,7 +154,7 @@ namespace sd {
             if (_backed->hasVariable(symbol))
                 return _backed->getVariable(symbol);
 
-            nd4j_printf("Unable to get Variable to proxy: [%s]\n", symbol->c_str());
+            sd_printf("Unable to get Variable to proxy: [%s]\n", symbol->c_str());
             throw std::runtime_error("Bad arguments");
         }
 
@@ -232,17 +231,17 @@ namespace sd {
         }
 
         
-        Nd4jLong VariableProxy::externalMemory() {
+        sd::LongType VariableProxy::externalMemory() {
             return _backed->externalMemory() + _current->externalMemory();
         }
 
         
-        Nd4jLong VariableProxy::internalMemory() {
+        sd::LongType VariableProxy::internalMemory() {
             return _backed->internalMemory() + _current->internalMemory();
         }
 
         
-        Nd4jLong VariableProxy::totalMemory() {
+        sd::LongType VariableProxy::totalMemory() {
             return _backed->totalMemory() + _current->totalMemory();
         }
 
@@ -275,7 +274,7 @@ namespace sd {
         VariableSpace& VariableProxy::operator=(const VariableSpace& other) {
             if (this == &other) return *this;
 
-            nd4j_printf("VariableProxy = not implemented\n","");
+            sd_printf("VariableProxy = not implemented\n","");
 
             return *this;
         }  

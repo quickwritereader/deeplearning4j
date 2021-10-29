@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <helpers/HessenbergAndSchur.h>
 #include <helpers/EigenValsAndVecs.h>
 
@@ -53,7 +52,6 @@ EigenValsAndVecs<T>::EigenValsAndVecs(const NDArray& matrix) {
 }
 
 
-
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 void calcEigenVals_(const NDArray& schurMatrixT, NDArray& _Vals) {
@@ -69,7 +67,7 @@ void calcEigenVals_(const NDArray& schurMatrixT, NDArray& _Vals) {
             _Vals.r<T>(i, 0) = schurMatrixT.t<T>(i, i); // real part
             _Vals.r<T>(i, 1) = T(0);                    // imaginary part
 
-            if(!math::nd4j_isfin<T>(_Vals.t<T>(i, 0))) {
+            if(!math::sd_isfin<T>(_Vals.t<T>(i, 0))) {
                 throw std::runtime_error("ops::helpers::igenValsAndVec::calcEigenVals: got infinite eigen value !");
                 return;
             }
@@ -83,18 +81,18 @@ void calcEigenVals_(const NDArray& schurMatrixT, NDArray& _Vals) {
             {
                 T t0 = schurMatrixT.t<T>(i+1, i);
                 T t1 = schurMatrixT.t<T>(i, i+1);
-                T maxval = math::nd4j_max<T>(math::nd4j_abs<T>(p), math::nd4j_max<T>(math::nd4j_abs<T>(t0), math::nd4j_abs<T>(t1)));
+                T maxval = math::sd_max<T>(math::sd_abs<T>(p), math::sd_max<T>(math::sd_abs<T>(t0), math::sd_abs<T>(t1)));
                 t0 /= maxval;
                 t1 /= maxval;
                 T p0 = p / maxval;
-                z = maxval * math::nd4j_sqrt<T,T>(math::nd4j_abs<T>(p0 * p0 + t0 * t1));
+                z = maxval * math::sd_sqrt<T,T>(math::sd_abs<T>(p0 * p0 + t0 * t1));
             }
 
             _Vals.r<T>(i, 0)  = _Vals.r<T>(i+1, 0) = schurMatrixT.t<T>(i+1, i+1) + p;
             _Vals.r<T>(i, 1)  = z;
             _Vals.r<T>(i+1,1) = -z;
 
-            if(!(math::nd4j_isfin<T>(_Vals.t<T>(i,0)) && math::nd4j_isfin<T>(_Vals.t<T>(i+1,0)) && math::nd4j_isfin<T>(_Vals.t<T>(i,1))) && math::nd4j_isfin<T>(_Vals.t<T>(i+1,1))) {
+            if(!(math::sd_isfin<T>(_Vals.t<T>(i,0)) && math::sd_isfin<T>(_Vals.t<T>(i+1,0)) && math::sd_isfin<T>(_Vals.t<T>(i,1))) && math::sd_isfin<T>(_Vals.t<T>(i+1,1))) {
                 throw std::runtime_error("ops::helpers::igenValsAndVec::calcEigenVals: got infinite eigen value !");
                 return;
             }
@@ -116,7 +114,7 @@ void calcPseudoEigenVecs_(NDArray& schurMatrixT, NDArray& schurMatrixU, NDArray&
 
     T norm = 0;
     for (int j = 0; j < numOfCols; ++j)
-        norm += schurMatrixT({j,j+1, math::nd4j_max<Nd4jLong>(j-1, 0),numOfCols}).reduceNumber(reduce::ASum).template t<T>(0);
+        norm += schurMatrixT({j,j+1, math::sd_max<sd::LongType>(j-1, 0),numOfCols}).reduceNumber(reduce::ASum).template t<T>(0);
 
     if (norm == T(0))
         return;
@@ -160,14 +158,14 @@ void calcPseudoEigenVecs_(NDArray& schurMatrixT, NDArray& schurMatrixU, NDArray&
                         T t = (x * lastr - lastw * r) / denom;
                         schurMatrixT.r<T>(i, n) = t;
 
-                        if (math::nd4j_abs<T>(x) > math::nd4j_abs<T>(lastw))
+                        if (math::sd_abs<T>(x) > math::sd_abs<T>(lastw))
                           schurMatrixT.r<T>(i+1, n) = (-r - w * t) / x;
                         else
                           schurMatrixT.r<T>(i+1, n) = (-lastr - y * t) / lastw;
                       }
 
 
-                    T t = math::nd4j_abs<T>(schurMatrixT.t<T>(i, n));
+                    T t = math::sd_abs<T>(schurMatrixT.t<T>(i, n));
                     if((DataTypeUtils::eps<T>() * t) * t > T(1))
                         schurMatrixT({schurMatrixT.sizeAt(0)-numOfCols+i,-1, n,n+1}) /= t;
                 }
@@ -178,7 +176,7 @@ void calcPseudoEigenVecs_(NDArray& schurMatrixT, NDArray& schurMatrixU, NDArray&
             T lastra(0), lastsa(0), lastw(0);
             int l = n - 1;
 
-            if(math::nd4j_abs<T>(schurMatrixT.t<T>(n, n-1)) > math::nd4j_abs<T>(schurMatrixT.t<T>(n-1, n))) {
+            if(math::sd_abs<T>(schurMatrixT.t<T>(n, n-1)) > math::sd_abs<T>(schurMatrixT.t<T>(n-1, n))) {
 
                 schurMatrixT.r<T>(n-1, n-1) = q / schurMatrixT.t<T>(n, n-1);
                 schurMatrixT.r<T>(n-1, n)   = -(schurMatrixT.t<T>(n, n) - p) / schurMatrixT.t<T>(n, n-1);
@@ -217,11 +215,11 @@ void calcPseudoEigenVecs_(NDArray& schurMatrixT, NDArray& schurMatrixU, NDArray&
                         T vi = (_Vals.t<T>(i, 0) - p) * T(2) * q;
 
                         if ((vr == T(0)) && (vi == T(0)))
-                            vr = DataTypeUtils::eps<T>() * norm * (math::nd4j_abs<T>(w) + math::nd4j_abs<T>(q) + math::nd4j_abs<T>(x) + math::nd4j_abs<T>(y) + math::nd4j_abs<T>(lastw));
+                            vr = DataTypeUtils::eps<T>() * norm * (math::sd_abs<T>(w) + math::sd_abs<T>(q) + math::sd_abs<T>(x) + math::sd_abs<T>(y) + math::sd_abs<T>(lastw));
 
                         EigenValsAndVecs<T>::divideComplexNums(x*lastra-lastw*ra+q*sa,x*lastsa-lastw*sa-q*ra, vr,vi, schurMatrixT.r<T>(i,n-1),schurMatrixT.r<T>(i,n));
 
-                        if(math::nd4j_abs<T>(x) > (math::nd4j_abs<T>(lastw) + math::nd4j_abs<T>(q))) {
+                        if(math::sd_abs<T>(x) > (math::sd_abs<T>(lastw) + math::sd_abs<T>(q))) {
 
                             schurMatrixT.r<T>(i+1,n-1) = (-ra - w * schurMatrixT.t<T>(i,n-1) + q * schurMatrixT.t<T>(i,n))   / x;
                             schurMatrixT.r<T>(i+1,n)   = (-sa - w * schurMatrixT.t<T>(i,n)   - q * schurMatrixT.t<T>(i,n-1)) / x;
@@ -230,7 +228,7 @@ void calcPseudoEigenVecs_(NDArray& schurMatrixT, NDArray& schurMatrixU, NDArray&
                             EigenValsAndVecs<T>::divideComplexNums(-lastra-y*schurMatrixT.t<T>(i,n-1),-lastsa-y*schurMatrixT.t<T>(i,n), lastw,q, schurMatrixT.r<T>(i+1,n-1),schurMatrixT.r<T>(i+1,n));
                     }
 
-                    T t = math::nd4j_max<T>(math::nd4j_abs<T>(schurMatrixT.t<T>(i, n-1)), math::nd4j_abs<T>(schurMatrixT.t<T>(i,n)));
+                    T t = math::sd_max<T>(math::sd_abs<T>(schurMatrixT.t<T>(i, n-1)), math::sd_abs<T>(schurMatrixT.t<T>(i,n)));
                     if ((DataTypeUtils::eps<T>() * t) * t > T(1))
                         schurMatrixT({i,numOfCols, n-1,n+1}) /= t;
                 }
@@ -260,7 +258,7 @@ void calcEigenVecs_(const NDArray& schurMatrixU, const NDArray& _Vals, NDArray& 
 
     for (int j = 0; j < numOfCols; ++j) {
 
-        if(math::nd4j_abs<T>(_Vals.t<T>(j, 1)) <= math::nd4j_abs<T>(_Vals.t<T>(j, 0)) * precision || j+1 == numOfCols) {    // real
+        if(math::sd_abs<T>(_Vals.t<T>(j, 1)) <= math::sd_abs<T>(_Vals.t<T>(j, 0)) * precision || j+1 == numOfCols) {    // real
 
             _Vecs.syncToDevice();
             _Vecs({0,0, j,j+1, 0,1}).assign(schurMatrixU({0,0, j,j+1}));
@@ -269,7 +267,7 @@ void calcEigenVecs_(const NDArray& schurMatrixU, const NDArray& _Vals, NDArray& 
             // normalize
             const T norm2 = _Vecs({0,0, j,j+1, 0,1}).reduceNumber(reduce::SquaredNorm).template t<T>(0);
             if(norm2 > (T)0)
-                _Vecs({0,0, j,j+1, 0,1}) /= math::nd4j_sqrt<T,T>(norm2);
+                _Vecs({0,0, j,j+1, 0,1}) /= math::sd_sqrt<T,T>(norm2);
         }
         else { // complex
 
@@ -282,12 +280,12 @@ void calcEigenVecs_(const NDArray& schurMatrixU, const NDArray& _Vals, NDArray& 
             // normalize
             T norm2 = _Vecs({0,0, j,j+1, 0,0}).reduceNumber(reduce::SquaredNorm).template t<T>(0);
             if(norm2 > (T)0)
-                _Vecs({0,0, j,j+1, 0,0}) /= math::nd4j_sqrt<T,T>(norm2);
+                _Vecs({0,0, j,j+1, 0,0}) /= math::sd_sqrt<T,T>(norm2);
 
             // normalize
             norm2 = _Vecs({0,0, j+1,j+2, 0,0}).reduceNumber(reduce::SquaredNorm).template t<T>(0);
             if(norm2 > (T)0)
-                _Vecs({0,0, j+1,j+2, 0,0}) /= math::nd4j_sqrt<T,T>(norm2);
+                _Vecs({0,0, j+1,j+2, 0,0}) /= math::sd_sqrt<T,T>(norm2);
 
             ++j;
         }
@@ -317,12 +315,12 @@ void eig_(const NDArray& input, NDArray& vals,  NDArray& vecs ){
 
 
 void eig(const NDArray& input, NDArray& vals, NDArray& vecs){
-    BUILD_SINGLE_SELECTOR(input.dataType(), eig_, (input, vals, vecs), FLOAT_TYPES );
+    BUILD_SINGLE_SELECTOR(input.dataType(), eig_, (input, vals, vecs), SD_FLOAT_TYPES );
 }
 
-BUILD_SINGLE_TEMPLATE(template void eig_, (const NDArray& input, NDArray& vals, NDArray& vecs), FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void eig_, (const NDArray& input, NDArray& vals, NDArray& vecs), SD_FLOAT_TYPES);
 
-BUILD_SINGLE_TEMPLATE(template class ND4J_LOCAL EigenValsAndVecs,,FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template class  EigenValsAndVecs,,SD_FLOAT_TYPES);
 
 }
 }

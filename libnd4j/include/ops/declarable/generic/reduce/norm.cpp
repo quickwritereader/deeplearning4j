@@ -94,7 +94,7 @@ namespace sd {
                 OVERWRITE_RESULT(output);
             }
 
-            return ND4J_STATUS_OK;
+            return sd::Status::OK;
         };
 
         DECLARE_TYPES(norm) {

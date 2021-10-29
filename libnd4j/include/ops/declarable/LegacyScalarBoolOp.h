@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_LEGACYSCALAR_BOOL_OP_H
 #define LIBND4J_LEGACYSCALAR_BOOL_OP_H
-
 #include <ops/declarable/LegacyOp.h>
 
 namespace sd {
@@ -30,9 +29,9 @@ namespace sd {
         /**
         *   This class provides wrapper for scalar transform operations, i.e. a + b = c, where either a or b is scalar primitive and other operand is NDArray
         */
-        class ND4J_EXPORT LegacyScalarBoolOp : public LegacyOp {
+        class SD_LIB_EXPORT LegacyScalarBoolOp : public LegacyOp {
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override;
+            sd::Status validateAndExecute(Context& block) override;
 
         public:
             LegacyScalarBoolOp();

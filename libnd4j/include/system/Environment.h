@@ -22,17 +22,15 @@
 
 #ifndef LIBND4J_ENVIRONMENT_H
 #define LIBND4J_ENVIRONMENT_H
-
 #include <atomic>
 #include <vector>
-#include <system/dll.h>
 #include <stdexcept>
 #include <array/DataType.h>
 #include <types/pair.h>
-#include <system/pointercast.h>
+
 
 namespace sd{
-    class ND4J_EXPORT Environment {
+    class SD_LIB_EXPORT Environment {
     private:
         std::atomic<int> _tadThreshold;
         std::atomic<int> _elementThreshold;
@@ -55,7 +53,7 @@ namespace sd{
 
         bool _blasFallback = false;
 
-#ifdef __ND4J_EXPERIMENTAL__
+#ifdef SD_EXPERIMENTAL_ENABLED
         const bool _experimental = true;
 #else
         const bool _experimental = false;
@@ -116,14 +114,14 @@ namespace sd{
         /*
          * Methods for memory limits/counters
          */
-        void setGroupLimit(int group, Nd4jLong numBytes);
-        void setDeviceLimit(int deviceId, Nd4jLong numBytes);
+        void setGroupLimit(int group, sd::LongType numBytes);
+        void setDeviceLimit(int deviceId, sd::LongType numBytes);
 
-        Nd4jLong getGroupLimit(int group);
-        Nd4jLong getDeviceLimit(int deviceId);
+        sd::LongType getGroupLimit(int group);
+        sd::LongType getDeviceLimit(int deviceId);
 
-        Nd4jLong getGroupCounter(int group);
-        Nd4jLong  getDeviceCounter(int deviceId);
+        sd::LongType getGroupCounter(int group);
+        sd::LongType  getDeviceCounter(int deviceId);
         ////////////////////////
 
         bool isUseONEDNN() { return _useONEDNN.load(); }

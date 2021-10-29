@@ -55,7 +55,7 @@ CUSTOM_OP_IMPL(reduce_sum, -1, 1, false, 0, 0) {
 
     input->reduceAlongDimension(reduce::Sum, *output, dimensions, keepDims);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_sum) {
@@ -130,7 +130,7 @@ CUSTOM_OP_IMPL(reduce_sum_bp, -1, 1, false, 0, 0) {
             gradI->applyTrueBroadcast(sd::BroadcastOpsTuple::Assign(), *gradO, *gradI);
     }
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_sum_bp) {
@@ -146,7 +146,7 @@ DECLARE_SHAPE_FN(reduce_sum_bp) {
     for(const auto& item : dimensions)
         REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0, "REDUCE_SUM_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-    Nd4jLong* outShapeInfo;
+    sd::LongType* outShapeInfo;
     COPY_SHAPE(inputShape->at(0), outShapeInfo);
 
     return SHAPELIST(CONSTANT(outShapeInfo));

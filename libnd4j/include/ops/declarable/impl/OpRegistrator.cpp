@@ -20,8 +20,6 @@
 // Created by raver119 on 07.10.2017.
 //
 
-
-
 #include <ops/declarable/OpRegistrator.h>
 #include <sstream>
 
@@ -59,8 +57,8 @@ namespace sd {
         }
 
 
-        void OpRegistrator::updateMSVC(Nd4jLong newHash, std::string& oldName) {
-            std::pair<Nd4jLong, std::string> pair(newHash, oldName);
+        void OpRegistrator::updateMSVC(sd::LongType newHash, std::string& oldName) {
+            std::pair<sd::LongType, std::string> pair(newHash, oldName);
             _msvc.insert(pair);
         }
 
@@ -124,7 +122,7 @@ namespace sd {
             _locker.lock();
 
             if (!isInit) {
-                for (MAP_IMPL<std::string, sd::ops::DeclarableOp*>::iterator it=_declarablesD.begin(); it!=_declarablesD.end(); ++it) {
+                for (SD_MAP_IMPL<std::string, sd::ops::DeclarableOp*>::iterator it=_declarablesD.begin(); it!=_declarablesD.end(); ++it) {
                     std::string op = it->first + ":"
                                      + local_to_string(it->second->getOpDescriptor()->getHash()) + ":"
                                      + local_to_string(it->second->getOpDescriptor()->getNumberOfInputs()) + ":"
@@ -151,7 +149,7 @@ namespace sd {
             _declarablesD.insert(pair);
 
             auto hash = sd::ops::HashHelper::getInstance().getLongHash(str);
-            std::pair<Nd4jLong, sd::ops::DeclarableOp*> pair2(hash, op);
+            std::pair<sd::LongType, sd::ops::DeclarableOp*> pair2(hash, op);
             _declarablesLD.insert(pair2);
             return true;
         }
@@ -167,18 +165,18 @@ namespace sd {
         }
 
         void OpRegistrator::registerHelper(sd::ops::platforms::PlatformHelper* op) {
-            std::pair<Nd4jLong, samediff::Engine> p = {op->hash(), op->engine()};
+            std::pair<sd::LongType, samediff::Engine> p = {op->hash(), op->engine()};
             if (_helpersLH.count(p) > 0)
                 throw std::runtime_error("Tried to double register PlatformHelper");
 
             _uniqueH.emplace_back(op);
 
-            nd4j_debug("Adding helper for op \"%s\": [%lld - %i]\n", op->name().c_str(), op->hash(), (int) op->engine());
+            sd_debug("Adding helper for op \"%s\": [%lld - %i]\n", op->name().c_str(), op->hash(), (int) op->engine());
 
             std::pair<std::pair<std::string, samediff::Engine>, sd::ops::platforms::PlatformHelper*> pair({op->name(), op->engine()}, op);
             _helpersH.insert(pair);
 
-            std::pair<std::pair<Nd4jLong, samediff::Engine>, sd::ops::platforms::PlatformHelper*> pair2(p, op);
+            std::pair<std::pair<sd::LongType, samediff::Engine>, sd::ops::platforms::PlatformHelper*> pair2(p, op);
             _helpersLH.insert(pair2);
         }
 
@@ -193,10 +191,10 @@ namespace sd {
          * @param name
          * @return
          */
-        sd::ops::DeclarableOp *OpRegistrator::getOperation(Nd4jLong hash) {
+        sd::ops::DeclarableOp *OpRegistrator::getOperation(sd::LongType hash) {
             if (!_declarablesLD.count(hash)) {
                 if (!_msvc.count(hash)) {
-                    nd4j_printf("Unknown D operation requested by hash: [%lld]\n", hash);
+                    sd_printf("Unknown D operation requested by hash: [%lld]\n", hash);
                     return nullptr;
                 } else {
                     _locker.lock();
@@ -205,7 +203,7 @@ namespace sd {
                     auto op = _declarablesD.at(str);
                     auto oHash = op->getOpDescriptor()->getHash();
 
-                    std::pair<Nd4jLong, sd::ops::DeclarableOp*> pair(oHash, op);
+                    std::pair<sd::LongType, sd::ops::DeclarableOp*> pair(oHash, op);
                     _declarablesLD.insert(pair);
 
                     _locker.unlock();
@@ -217,23 +215,23 @@ namespace sd {
 
         sd::ops::DeclarableOp *OpRegistrator::getOperation(std::string& name) {
             if (!_declarablesD.count(name)) {
-                nd4j_debug("Unknown operation requested: [%s]\n", name.c_str());
+                sd_debug("Unknown operation requested: [%s]\n", name.c_str());
                 return nullptr;
             }
 
             return _declarablesD.at(name);
         }
 
-        sd::ops::platforms::PlatformHelper* OpRegistrator::getPlatformHelper(Nd4jLong hash, samediff::Engine engine) {
-            std::pair<Nd4jLong, samediff::Engine> p = {hash, engine};
+        sd::ops::platforms::PlatformHelper* OpRegistrator::getPlatformHelper(sd::LongType hash, samediff::Engine engine) {
+            std::pair<sd::LongType, samediff::Engine> p = {hash, engine};
             if (_helpersLH.count(p) == 0)
                 throw std::runtime_error("Requested helper can't be found");
 
             return _helpersLH[p];
         }
 
-        bool OpRegistrator::hasHelper(Nd4jLong hash, samediff::Engine engine) {
-            std::pair<Nd4jLong, samediff::Engine> p = {hash, engine};
+        bool OpRegistrator::hasHelper(sd::LongType hash, samediff::Engine engine) {
+            std::pair<sd::LongType, samediff::Engine> p = {hash, engine};
             return _helpersLH.count(p) > 0;
         }
 
@@ -241,8 +239,8 @@ namespace sd {
             return (int) _declarablesLD.size();
         }
 
-        std::vector<Nd4jLong> OpRegistrator::getAllHashes() {
-            std::vector<Nd4jLong> result;
+        std::vector<sd::LongType> OpRegistrator::getAllHashes() {
+            std::vector<sd::LongType> result;
 
             for (auto &v:_declarablesLD) {
                 result.emplace_back(v.first);
@@ -254,9 +252,9 @@ namespace sd {
 }
 
 namespace std {
-    size_t hash<std::pair<Nd4jLong, samediff::Engine>>::operator()(const std::pair<Nd4jLong, samediff::Engine>& k) const {
+    size_t hash<std::pair<sd::LongType, samediff::Engine>>::operator()(const std::pair<sd::LongType, samediff::Engine>& k) const {
         using std::hash;
-        auto res = std::hash<Nd4jLong>()(k.first);
+        auto res = std::hash<sd::LongType>()(k.first);
         res ^= std::hash<int>()((int) k.second)  + 0x9e3779b9 + (res << 6) + (res >> 2);
         return res;
     }

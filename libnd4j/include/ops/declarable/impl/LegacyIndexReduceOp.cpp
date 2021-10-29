@@ -19,11 +19,10 @@
 //
 // Created by raver119 on 16.10.2017.
 //
-
 #include <ops/declarable/LegacyIndexReduceOp.h>
 #include <helpers/ShapeUtils.h>
 #include <helpers/TAD.h>
-#include <graph/Status.h>
+
 #include <helpers/ConstantTadHelper.h>
 
 
@@ -45,9 +44,9 @@ namespace sd {
             auto inShape = inputShape->at(0);
 
             if (block.getAxis()->size() == 0 && block.width() == 1) {
-                Nd4jLong *newShape;
+                sd::LongType *newShape;
                 // in this case we just return scalar
-                ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
                 newShape[0] = 2;
                 newShape[1] = 1;
                 newShape[2] = 1;
@@ -69,7 +68,7 @@ namespace sd {
             else {
                 bool allAxes = false;
                 auto indices = INPUT_VARIABLE(1);
-                Nd4jLong rank = shape::rank(inShape);
+                sd::LongType rank = shape::rank(inShape);
                 if (indices->lengthOf() == rank)
                     allAxes = true;
 
@@ -80,9 +79,9 @@ namespace sd {
                     axis[e] = f >= 0 ? f : f += rank;
                 }
                 if (allAxes){
-                    Nd4jLong *newShape;
+                    sd::LongType *newShape;
                         // in this case we just return scalar
-                        ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), Nd4jLong);
+                        ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
                         newShape[0] = 2;
                         newShape[1] = 1;
                         newShape[2] = 1;
@@ -106,7 +105,7 @@ namespace sd {
         *   For all reductions rules are simple: either you return scalar, or you return reduced NDArray.
         *   It solely depends on input shape, and requested dimensions
         */
-        Nd4jStatus LegacyIndexReduceOp::validateAndExecute(Context &block) {
+        sd::Status LegacyIndexReduceOp::validateAndExecute(Context &block) {
             auto x = INPUT_VARIABLE(0);
             auto z = OUTPUT_VARIABLE(0);
 
@@ -146,7 +145,7 @@ namespace sd {
                     NativeOpExecutioner::execIndexReduce(block.launchContext(), opNum, x->buffer(), x->shapeInfo(),
                                                         x->specialBuffer(), x->specialShapeInfo(),
                                                         extras.argumentsAsT(x->dataType()),
-                                                        reinterpret_cast<Nd4jLong *>(z->buffer()), z->shapeInfo(),
+                                                        reinterpret_cast<sd::LongType *>(z->buffer()), z->shapeInfo(),
                                                         z->specialBuffer(), z->specialShapeInfo(),
                                                         nullptr, (int) dims.size(),
                                                         Environment::getInstance().isCPU() ? tadPack.primaryShapeInfo() : tadPack.specialShapeInfo(), Environment::getInstance().isCPU() ? tadPack.primaryOffsets() : tadPack.specialOffsets());
@@ -182,7 +181,7 @@ namespace sd {
                     NativeOpExecutioner::execIndexReduce(block.launchContext(), opNum,
                             x->buffer(), x->shapeInfo(), x->specialBuffer(), x->specialShapeInfo(),
                             extras.argumentsAsT(x->dataType()),
-                            reinterpret_cast<Nd4jLong *>(z->buffer()),
+                            reinterpret_cast<sd::LongType *>(z->buffer()),
                             z->shapeInfo(), z->specialBuffer(), z->specialShapeInfo(),
                             nullptr, (int) axis.size(),
                             Environment::getInstance().isCPU() ? tadPack.primaryShapeInfo() : tadPack.specialShapeInfo(),
@@ -193,7 +192,7 @@ namespace sd {
             manager.synchronize();
             STORE_RESULT(*z);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
     }
 }

@@ -19,7 +19,6 @@
 //
 //  @author GS <sgazeos@gmail.com>
 //
-
 #include <ops/declarable/helpers/sequence_mask.h>
 
 namespace sd {
@@ -27,11 +26,11 @@ namespace ops {
 namespace helpers {
 
     template <typename I, typename B>
-    static __global__ void sequenceMaskKernel(const void* inputBuf, const Nd4jLong* inputShape, void* outputBuf, const Nd4jLong* outputShape, int maxIndex) {
+    static SD_KERNEL void sequenceMaskKernel(const void* inputBuf, const sd::LongType* inputShape, void* outputBuf, const sd::LongType* outputShape, int maxIndex) {
 
         __shared__ const I* input;
         __shared__ B* output;
-        __shared__ Nd4jLong inputLen, outputLen;
+        __shared__ sd::LongType inputLen, outputLen;
         if (threadIdx.x == 0) {
             input = reinterpret_cast<const I*>(inputBuf);
             output = reinterpret_cast<B*>(outputBuf);
@@ -56,11 +55,11 @@ namespace helpers {
         NDArray::registerSpecialUse({output}, {input});
     }
 
-    ND4J_LOCAL void sequenceMask(sd::LaunchContext * context, NDArray* input, NDArray* output, int maxIndex) {
-        BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), sequenceMask_, (context, input, output, maxIndex), INTEGER_TYPES, LIBND4J_TYPES_EXTENDED);
+    void sequenceMask(sd::LaunchContext * context, NDArray* input, NDArray* output, int maxIndex) {
+        BUILD_DOUBLE_SELECTOR(input->dataType(), output->dataType(), sequenceMask_, (context, input, output, maxIndex), SD_INTEGER_TYPES, SD_COMMON_TYPES_EXTENDED);
     }
 
-    BUILD_DOUBLE_TEMPLATE(template ND4J_LOCAL void sequenceMask_, (sd::LaunchContext* context, NDArray* input, NDArray* output, int maxIndex), INTEGER_TYPES, LIBND4J_TYPES_EXTENDED);
+    BUILD_DOUBLE_TEMPLATE(template void sequenceMask_, (sd::LaunchContext* context, NDArray* input, NDArray* output, int maxIndex), SD_INTEGER_TYPES, SD_COMMON_TYPES_EXTENDED);
 }
 }
 }

@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
     // FIXME: this op should be fully moved to helpers
 
     if (output->isEmpty())
-        return Status::OK();
+        return sd::Status::OK;
 
     if (numInArrs > 0) {
         if(numInArrs == 1) {
@@ -122,7 +122,7 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
     if (localD)
         delete d;
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(range) {
@@ -131,7 +131,7 @@ DECLARE_SHAPE_FN(range) {
     const int numTArgs  = block.getTArguments()->size();
     const int numIArgs  = block.getIArguments()->size();    
 
-    Nd4jLong steps = 0;
+    sd::LongType steps = 0;
     sd::DataType dataType = block.numD() ? D_ARG(0) : sd::DataType::INHERIT;
 
     if (numInArrs > 0) {
@@ -160,28 +160,28 @@ DECLARE_SHAPE_FN(range) {
 
             REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-            steps = static_cast<Nd4jLong >((limit - start) / delta);
+            steps = static_cast<sd::LongType >((limit - start) / delta);
 
             if (!block.numD())
                 dataType = INPUT_VARIABLE(0)->dataType();
 
-            if(math::nd4j_abs<double>(start + steps * delta) < math::nd4j_abs<double >(limit))
+            if(math::sd_abs<double>(start + steps * delta) < math::sd_abs<double >(limit))
                 ++steps;
         } else if (isZ) {
-            Nd4jLong start(0), limit, delta(1);
+            sd::LongType start(0), limit, delta(1);
 
             if (numInArrs == 1)
-                limit = INPUT_VARIABLE(0)->e<Nd4jLong>(0);
+                limit = INPUT_VARIABLE(0)->e<sd::LongType>(0);
             else if (numInArrs == 2) {
-                start = INPUT_VARIABLE(0)->e<Nd4jLong>(0);
-                limit = INPUT_VARIABLE(1)->e<Nd4jLong>(0);
+                start = INPUT_VARIABLE(0)->e<sd::LongType>(0);
+                limit = INPUT_VARIABLE(1)->e<sd::LongType>(0);
             } else {
-                start = INPUT_VARIABLE(0)->e<Nd4jLong>(0);
-                limit = INPUT_VARIABLE(1)->e<Nd4jLong>(0);
-                delta = INPUT_VARIABLE(2)->e<Nd4jLong>(0);
+                start = INPUT_VARIABLE(0)->e<sd::LongType>(0);
+                limit = INPUT_VARIABLE(1)->e<sd::LongType>(0);
+                delta = INPUT_VARIABLE(2)->e<sd::LongType>(0);
             }
 
-            //nd4j_printf("Start: [%lld]; Limit: [%lld]; Delta: [%lld];\n", start, limit, delta)
+            //sd_printf("Start: [%lld]; Limit: [%lld]; Delta: [%lld];\n", start, limit, delta)
 
             if (limit == start){
                 //Return [0] to match TF
@@ -190,16 +190,16 @@ DECLARE_SHAPE_FN(range) {
 
             REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-            steps = static_cast<Nd4jLong >((limit - start) / delta);
+            steps = static_cast<sd::LongType >((limit - start) / delta);
 
             if (!block.numD())
                 dataType = INPUT_VARIABLE(0)->dataType();
 
-            if(math::nd4j_abs<double>(start + steps * delta) < math::nd4j_abs<double >(limit))
+            if(math::sd_abs<double>(start + steps * delta) < math::sd_abs<double >(limit))
                 ++steps;
         }
     } else if (numIArgs > 0) {
-        Nd4jLong start(0), limit, delta(1);
+        sd::LongType start(0), limit, delta(1);
 
         if(numIArgs == 1)
             limit = INT_ARG(0);
@@ -229,7 +229,7 @@ DECLARE_SHAPE_FN(range) {
 
         steps = (limit - start) / delta;
 
-        if(math::nd4j_abs<Nd4jLong>(start + steps * delta) < math::nd4j_abs<Nd4jLong>(limit))
+        if(math::sd_abs<sd::LongType>(start + steps * delta) < math::sd_abs<sd::LongType>(limit))
             ++steps;
     }         
     else if (numTArgs > 0) {
@@ -255,7 +255,7 @@ DECLARE_SHAPE_FN(range) {
 
         REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-        steps = static_cast<Nd4jLong >((limit - start) / delta);
+        steps = static_cast<sd::LongType >((limit - start) / delta);
 
         if (!block.numD()) {
             if (Environment::getInstance().precisionBoostAllowed())
@@ -264,7 +264,7 @@ DECLARE_SHAPE_FN(range) {
                 dataType = Environment::getInstance().defaultFloatDataType();
         }
 
-        if(math::nd4j_abs<double>(start + steps * delta) < math::nd4j_abs<double >(limit))
+        if(math::sd_abs<double>(start + steps * delta) < math::sd_abs<double >(limit))
             ++steps;
     } else {
         REQUIRE_TRUE(false, 0, "CUSTOM RANGE OP: op should have inputs defined in any possible way: T_args, INT_args, or INPUT variables!");

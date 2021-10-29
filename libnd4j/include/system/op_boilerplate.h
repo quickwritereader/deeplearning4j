@@ -29,7 +29,7 @@
  *
  * I.e. here's macro call which generates CUDA kernels for RANDOM_OPS:
  *
- * DISPATCH_KERNEL_SIMPLE(randomSingle_, randomSingleGeneric, float, INPUT(Nd4jPointer state, float *z, int *zShapeBuffer, float *extraArguments), PARAMS(state, z, zShapeBuffer, extraArguments), OPS_A(RANDOM_OPS))
+ * DISPATCH_KERNEL_SIMPLE(randomSingle_, randomSingleGeneric, float, INPUT(sd::Pointer state, float *z, int *zShapeBuffer, float *extraArguments), PARAMS(state, z, zShapeBuffer, extraArguments), OPS_A(RANDOM_OPS))
  *
  * we provide arguments:
  *      output method template
@@ -67,79 +67,12 @@
 #ifndef OP_BOILERPLATE_HH
 #define OP_BOILERPLATE_HH
 
-#include <system/openmp_pragmas.h>
+#include <system/common.h>
 #include <system/type_boilerplate.h>
 #include <exceptions/allocation_exception.h>
 #include <memory/MemoryTracker.h>
 #include <string.h>
 #include <stdlib.h>
-
-// define macros for compiler enforcement to make function inline  
-#ifdef __clang__
-#define INLINE_LOOPS
-#define FORCEINLINE inline
-#elif _MSC_VER
-#define FORCEINLINE __forceinline
-#elif __GNUC__
-#define INLINE_LOOPS
-#define FORCEINLINE __attribute__((always_inline)) inline 
-#elif __CUDACC__
-#define FORCEINLINE __forceinline__ inline 
-#else
-#define FORCEINLINE inline 
-#endif
-
-#if defined(_ISOC11_SOURCE) && defined(__AVX2__)
-#define DESIRED_ALIGNMENT 32
-#define USE_ALIGNED_ALLOC 1
-#endif
-
-#ifdef __CUDACC__
-
-#define meta_def inline __device__
-#define op_def inline __device__ __host__
-#define op_def_special __noinline__ __device__
-
-// 610 is for tests only
-// 600 is Tesla P100
-// 530 is Tegra
-#if __CUDA_ARCH__ == 600 || __CUDA_ARCH__ == 530 || __CUDA_ARCH__ == 700 || __CUDA_ARCH__ == 720 || __CUDA_ARCH__ == 750
-#define NATIVE_HALFS
-#endif
-
-#define linkage
-
-#elif __JAVACPP_HACK__
-
-#define meta_def
-#define op_def
-#define op_def_special
-#define linkage
-
-#elif _MSC_VER
-
-// it's "CUDA backend CPU code" only actually, so we don't care about inlining here
-// __pragma("omp declare simd")
-#define op_def  __forceinline
-#define meta_def  __forceinline
-#define op_def_special  __forceinline
-#define linkage
-
-#elif __clang__
-
-#define op_def inline
-#define op_def_special inline
-#define meta_def inline
-#define linkage
-
-#elif __GNUC__
-
-#define linkage
-#define meta_def _Pragma("omp declare simd") inline __attribute__((always_inline))
-#define op_def _Pragma("omp declare simd") inline __attribute__((always_inline))
-#define op_def_special _Pragma("omp declare simd") inline __attribute__((always_inline))
-
-#endif
 
 
 #define ELEMENT_THRESHOLD sd::Environment::getInstance().elementwiseThreshold()
@@ -949,7 +882,6 @@
 #define FK_70(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B, ...) WHAT(FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B)EVAL(FK_69(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, __VA_ARGS__))
 
 
-
 #define FI_1(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B) WHAT(FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B)
 #define FI_2(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B, ...) WHAT(FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B)EVAL(FI_1(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, __VA_ARGS__))
 #define FI_3(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B, ...) WHAT(FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, OPNUM_PAIR_B)EVAL(FI_2(WHAT, FN, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR, __VA_ARGS__))
@@ -1144,8 +1076,8 @@
 #define _EXPAND_PACKED_DIRECT(PARAMZ, OPNUM_PAIR) EVALUATING_PASTE(_EXPAND, _OP_DIRECT(PARAMZ, UNPAREN(OPNUM_PAIR)))
 #define _EXPAND_PACKED_CALL_T(TYPE, OPNUM_PAIR) EVALUATING_PASTE(_EXPAND, _OP_CALL_T(TYPE, UNPAREN(OPNUM_PAIR)))
 
-#define _EXPAND_KERNEL_CALL(NAME, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, NUM_A, TYPE_A, NUM_B, TYPE_B) extern "C" __global__ void ARGMIX4(NAME, NUM_A, NUM_B, TYPE)INPUTZ {KERNEL<TYPE, OPCLASS<TYPE, TYPE_A<TYPE>, TYPE_B<TYPE>>>PARAMZ ;};
-#define _EXPAND_KERNEL_SIMPLE(NAME, KERNEL, TYPE, INPUTZ, PARAMZ, NUM_A, TYPE_A) extern "C" __global__ void ARGMIX3(NAME, NUM_A, TYPE)INPUTZ {KERNEL<TYPE, TYPE_A<TYPE>>PARAMZ ;};
+#define _EXPAND_KERNEL_CALL(NAME, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, NUM_A, TYPE_A, NUM_B, TYPE_B) extern "C" SD_KERNEL void ARGMIX4(NAME, NUM_A, NUM_B, TYPE)INPUTZ {KERNEL<TYPE, OPCLASS<TYPE, TYPE_A<TYPE>, TYPE_B<TYPE>>>PARAMZ ;};
+#define _EXPAND_KERNEL_SIMPLE(NAME, KERNEL, TYPE, INPUTZ, PARAMZ, NUM_A, TYPE_A) extern "C" SD_KERNEL void ARGMIX3(NAME, NUM_A, TYPE)INPUTZ {KERNEL<TYPE, TYPE_A<TYPE>>PARAMZ ;};
 #define _EXPAND_PACKED_SIMPLE(NAME, TYPE, PARAMZ, OPNUM_PAIR) EVALUATING_PASTE(_EXPAND, _OP_SIMPLE(NAME, TYPE, PARAMZ, UNPAREN(OPNUM_PAIR)))
 #define _EXPAND_PACKED_KERNEL_SIMPLE(NAME, KERNEL, TYPE, INPUTZ, PARAMZ, OPNUM_PAIR) EVALUATING_PASTE(_EXPAND, _KERNEL_SIMPLE (NAME, KERNEL, TYPE, INPUTZ, PARAMZ, UNPAREN(OPNUM_PAIR)))
 #define _EXPAND_PACKED_KERNEL_CALL(NAME, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, OPNUM_PAIR_A, OPNUM_PAIR_B) EVALUATING_PASTE(_EXPAND, _KERNEL_CALL (NAME, KERNEL, TYPE, OPCLASS, INPUTZ, PARAMZ, UNPAREN(OPNUM_PAIR_B), UNPAREN(OPNUM_PAIR_A)))
@@ -1249,18 +1181,16 @@
 #define DIRECT(A, B) EXPAND(_EXPAND_PACKED_DIRECT(A, B))
 
 
-
-
 /// graph definitions
-#define REQUIRE_OK(A)  if (sd::ops::resultHelper( (A), #A, __FILE__, __LINE__ ) != 0) return ND4J_STATUS_VALIDATION;
-#define REQUIRE_TRUE(COND, ...) if (!(COND)) { if (sd::ops::conditionHelper(__FILE__, __LINE__, COND, __VA_ARGS__) != 0) throw std::invalid_argument("Op validation failed");};
+#define REQUIRE_OK(A)  if (sd::ops::resultHelper( (A), #A, __FILE__, __LINE__ ) != sd::Status::OK) return sd::Status::VALIDATION;
+#define REQUIRE_TRUE(COND, ...) if (!(COND)) { if (sd::ops::conditionHelper(__FILE__, __LINE__, COND, __VA_ARGS__) != sd::Status::OK) throw std::invalid_argument("Op validation failed");};
 
-#define DECLARE_ENTRY(NAME, ...)           template struct ND4J_EXPORT __registratorFloat<NAME<float>>; \
-                                      template struct ND4J_EXPORT __registratorHalf<NAME<float16>>; \
-                                      template struct ND4J_EXPORT __registratorDouble<NAME<double>>; \
-                                      template struct ND4J_EXPORT __registratorSynonymHalf<NAME<float16>>; \
-                                      template struct ND4J_EXPORT __registratorSynonymDouble<NAME<double>>; \
-                                      template struct ND4J_EXPORT __registratorSynonymFloat<NAME<float>>;
+#define DECLARE_ENTRY(NAME, ...)      template struct SD_LIB_EXPORT __registratorFloat<NAME<float>>; \
+                                      template struct SD_LIB_EXPORT __registratorHalf<NAME<float16>>; \
+                                      template struct SD_LIB_EXPORT __registratorDouble<NAME<double>>; \
+                                      template struct SD_LIB_EXPORT __registratorSynonymHalf<NAME<float16>>; \
+                                      template struct SD_LIB_EXPORT __registratorSynonymDouble<NAME<double>>; \
+                                      template struct SD_LIB_EXPORT __registratorSynonymFloat<NAME<float>>;
 
 
 #define NOT_EXCLUDED(NAME) NAME == 1 || SD_ALL_OPS == 1 || SD_ALL_OPS == true
@@ -1297,53 +1227,52 @@
 #define REGISTER_C(NAME)
 #endif
 
-#define DECLARE_OP(NAME, NIN, NOUT, INPLACEABLE)   class ND4J_EXPORT NAME: public sd::ops::DeclarableOp { \
+#define DECLARE_OP(NAME, NIN, NOUT, INPLACEABLE)   class SD_LIB_EXPORT NAME: public sd::ops::DeclarableOp { \
                                                 public:\
                                                     NAME(); \
                                                     sd::ShapeList* calculateOutputShape(sd::ShapeList* inputShape, sd::graph::Context& block); \
                                                 protected: \
                                                     void registerTypes(); \
-                                                    Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                                    sd::Status validateAndExecute(sd::graph::Context& block); \
                                                 };\
                                                 REGISTER_H(NAME)
 
-#define DECLARE_BOOLEAN_OP(NAME, NIN, SCALAR)   class ND4J_EXPORT NAME: public sd::ops::BooleanOp { \
+#define DECLARE_BOOLEAN_OP(NAME, NIN, SCALAR)   class SD_LIB_EXPORT NAME: public sd::ops::BooleanOp { \
                                                 public:\
                                                     NAME(); \
                                                 protected: \
                                                     void registerTypes(); \
-                                                    Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                                    sd::Status validateAndExecute(sd::graph::Context& block); \
                                                 }; \
                                                 REGISTER_H(NAME)
 
 #define BOOLEAN_OP_IMPL(NAME, NIN, SCALAR)   NAME::NAME() : sd::ops::BooleanOp(#NAME, NIN, SCALAR) { }; \
                                                 REGISTER_C(NAME) \
-                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
-#define DECLARE_LIST_OP(NAME, NIN, NOUT, TARGS, IARGS)      class ND4J_EXPORT  NAME: public sd::ops::DeclarableListOp { \
+#define DECLARE_LIST_OP(NAME, NIN, NOUT, TARGS, IARGS)      class SD_LIB_EXPORT  NAME: public sd::ops::DeclarableListOp { \
                                                             public:\
                                                                 NAME(); \
                                                             protected: \
-                                                                Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                                                sd::Status validateAndExecute(sd::graph::Context& block); \
                                                             };\
                                                             REGISTER_H(NAME)
 
 #define LIST_OP_IMPL(NAME, NIN, NOUT, TARGS, IARGS)         NAME::NAME() : sd::ops::DeclarableListOp(NIN, NOUT, #NAME, TARGS, IARGS) { }; \
                                                             REGISTER_C(NAME) \
-                                                            Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                            sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
-#define DECLARE_LOGIC_OP(NAME)      class ND4J_EXPORT NAME: public sd::ops::LogicOp { \
+#define DECLARE_LOGIC_OP(NAME)      class SD_LIB_EXPORT NAME: public sd::ops::LogicOp { \
                                     public:\
                                         NAME(); \
                                     protected: \
-                                        Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                        sd::Status validateAndExecute(sd::graph::Context& block); \
                                     };\
                                     REGISTER_H(NAME)
 
 #define LOGIC_OP_IMPL(NAME)     NAME::NAME() : sd::ops::LogicOp(#NAME) { }; \
                                 REGISTER_C(NAME) \
-                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block) { return sd::ops::LogicOp::validateAndExecute(block); };
-
+                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block) { return sd::ops::LogicOp::validateAndExecute(block); };
 
 
 #define OP_IMPL(NAME, NIN, NOUT, INPLACEABLE)   NAME::NAME() : sd::ops::DeclarableOp(NIN, NOUT, #NAME, INPLACEABLE) { }; \
@@ -1357,7 +1286,7 @@
                                                     } \
                                                     return shapeList; \
                                                 } \
-                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 
 #define DECLARE_SYN(NAME, ORIGINAL) template <typename OpName>  \
@@ -1375,12 +1304,12 @@
                                         };\
                                         static sd::ops::__registratorSynonym_##NAME<ORIGINAL> zzz_register_opd_##NAME(#NAME, #ORIGINAL)
 
-#define DECLARE_DIVERGENT_OP(NAME, NIN, NOUT, INPLACEABLE)  class ND4J_EXPORT NAME: public sd::ops::DeclarableOp { \
+#define DECLARE_DIVERGENT_OP(NAME, NIN, NOUT, INPLACEABLE)  class SD_LIB_EXPORT NAME: public sd::ops::DeclarableOp { \
                                                             public:\
                                                                 NAME(); \
                                                                 sd::ShapeList* calculateOutputShape(sd::ShapeList* inputShape, sd::graph::Context& block); \
                                                             protected: \
-                                                                Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                                                sd::Status validateAndExecute(sd::graph::Context& block); \
                                                             };\
                                                             REGISTER_H(NAME)
 
@@ -1390,21 +1319,21 @@
                                                                 auto shapeList = SHAPELIST(); \
                                                                 auto opLimit = this->getOpDescriptor()->getNumberOfOutputs() < 1 ? block.width() : this->getOpDescriptor()->getNumberOfOutputs(); \
                                                                 for (int e = 0; e < opLimit; e++) { \
-                                                                    Nd4jLong* newshape; \
+                                                                    sd::LongType* newshape; \
                                                                     COPY_SHAPE(inputShape->at(0), newshape); \
                                                                     shapeList->push_back(CONSTANT(newshape)); \
                                                                 } \
                                                                 return shapeList; \
                                                             } \
-                                                            Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                            sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
-#define DECLARE_CONFIGURABLE_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)     class ND4J_EXPORT NAME: public sd::ops::DeclarableOp { \
+#define DECLARE_CONFIGURABLE_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)     class SD_LIB_EXPORT NAME: public sd::ops::DeclarableOp { \
                                                                                 public:\
                                                                                     NAME(); \
                                                                                     sd::ShapeList* calculateOutputShape(sd::ShapeList* inputShape, sd::graph::Context& block); \
                                                                                 protected: \
                                                                                     void registerTypes(); \
-                                                                                    Nd4jStatus validateAndExecute(sd::graph::Context& block); \
+                                                                                    sd::Status validateAndExecute(sd::graph::Context& block); \
                                                                                 };\
                                                                                 REGISTER_H(NAME)
 
@@ -1419,26 +1348,26 @@
                                                                                     } \
                                                                                     return shapeList; \
                                                                                 } \
-                                                                                Nd4jStatus sd::ops::NAME::validateAndExecute(Context& block)
+                                                                                sd::Status sd::ops::NAME::validateAndExecute(Context& block)
 
-#define DECLARE_REDUCTION_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)        class ND4J_EXPORT NAME: public sd::ops::DeclarableReductionOp { \
+#define DECLARE_REDUCTION_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)        class SD_LIB_EXPORT NAME: public sd::ops::DeclarableReductionOp { \
                                                                                 public:\
                                                                                     NAME(); \
                                                                                 protected: \
                                                                                     void registerTypes(); \
-                                                                                    Nd4jStatus validateAndExecute(Context& block); \
+                                                                                    sd::Status validateAndExecute(Context& block); \
                                                                                 };\
                                                                                 REGISTER_H(NAME)
 
 #define REDUCTION_OP_IMPL(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)           NAME::NAME() : sd::ops::DeclarableReductionOp(NIN, NOUT, #NAME, INPLACEABLE, TARGS, IARGS) { }; \
                                                                                 REGISTER_C(NAME) \
-                                                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 
-#define DECLARE_CUSTOM_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)           class ND4J_EXPORT NAME: public sd::ops::DeclarableCustomOp { \
+#define DECLARE_CUSTOM_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)           class SD_LIB_EXPORT NAME: public sd::ops::DeclarableCustomOp { \
                                                                                 protected: \
                                                                                     void registerTypes(); \
-                                                                                    Nd4jStatus validateAndExecute(Context& block); \
+                                                                                    sd::Status validateAndExecute(Context& block); \
                                                                                 public:\
                                                                                     NAME(); \
                                                                                     sd::ShapeList* calculateOutputShape(sd::ShapeList* inputShape, sd::graph::Context& block); \
@@ -1447,7 +1376,7 @@
 
 #define CUSTOM_OP_IMPL(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)              NAME::NAME(): sd::ops::DeclarableCustomOp(NIN, NOUT, #NAME, INPLACEABLE, TARGS, IARGS) { }; \
                                                                                 REGISTER_C(NAME) \
-                                                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 // this declaration MUST follow DECLARE_CUSTOM_OP
 #define DECLARE_SHAPE_FN(NAME)                                                  sd::ShapeList* sd::ops::NAME::calculateOutputShape(sd::ShapeList* inputShape, sd::graph::Context& block)
@@ -1457,19 +1386,19 @@
 
 #define DECLARE_TYPES(NAME)                                                     void sd::ops::NAME::registerTypes()
 
-#define DECLARE_BROADCASTABLE_OP(NAME,TARGS, IARGS)                             class ND4J_EXPORT NAME: public sd::ops::BroadcastableOp { \
+#define DECLARE_BROADCASTABLE_OP(NAME,TARGS, IARGS)                             class SD_LIB_EXPORT NAME: public sd::ops::BroadcastableOp { \
                                                                                 protected: \
                                                                                     void registerTypes(); \
-                                                                                    Nd4jStatus validateAndExecute(Context& block); \
+                                                                                    sd::Status validateAndExecute(Context& block); \
                                                                                 public:\
                                                                                     NAME(); \
                                                                                 };\
                                                                                 REGISTER_H(NAME)
 
-#define DECLARE_BROADCASTABLE_BOOL_OP(NAME,TARGS, IARGS)                        class ND4J_EXPORT NAME: public sd::ops::BroadcastableBoolOp { \
+#define DECLARE_BROADCASTABLE_BOOL_OP(NAME,TARGS, IARGS)                        class SD_LIB_EXPORT NAME: public sd::ops::BroadcastableBoolOp { \
                                                                                 protected: \
                                                                                     void registerTypes(); \
-                                                                                    Nd4jStatus validateAndExecute(Context& block); \
+                                                                                    sd::Status validateAndExecute(Context& block); \
                                                                                 public:\
                                                                                     NAME(); \
                                                                                 };\
@@ -1478,11 +1407,11 @@
 
 #define BROADCASTABLE_OP_IMPL(NAME, TARGS, IARGS)                               NAME::NAME(): sd::ops::BroadcastableOp(#NAME, TARGS, IARGS) { }; \
                                                                                 REGISTER_C(NAME) \
-                                                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 #define BROADCASTABLE_BOOL_OP_IMPL(NAME, TARGS, IARGS)                          NAME::NAME(): sd::ops::BroadcastableBoolOp(#NAME, TARGS, IARGS) { }; \
                                                                                 REGISTER_C(NAME) \
-                                                                                Nd4jStatus sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
+                                                                                sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 
 #define DECLARE_DEVICE_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS)
@@ -1518,15 +1447,15 @@
 
 
 template<typename TT, typename WW>
-FORCEINLINE TT* internal_alloc_host(WW workSpace, Nd4jLong len){
+SD_INLINE TT* internal_alloc_host(WW workSpace, sd::LongType len){
     TT* var;
     if (workSpace == nullptr){
-#if defined(USE_ALIGNED_ALLOC)
-      var = static_cast<TT*>(aligned_alloc(DESIRED_ALIGNMENT, (len * sizeof(TT) + DESIRED_ALIGNMENT-1) & (-DESIRED_ALIGNMENT) ));
+#if defined(SD_ALIGNED_ALLOC)
+      var = static_cast<TT*>(aligned_alloc(SD_DESIRED_ALIGNMENT, (len * sizeof(TT) + SD_DESIRED_ALIGNMENT-1) & (-SD_DESIRED_ALIGNMENT) ));
 #else
       var = new TT[len];
 #endif 
-#if	!defined(_RELEASE)
+#if    !defined(_RELEASE)
       sd::memory::MemoryTracker::getInstance().countIn(sd::memory::MemoryType::HOST, var, len * sizeof(TT));
 #endif
     } else {
@@ -1537,12 +1466,12 @@ FORCEINLINE TT* internal_alloc_host(WW workSpace, Nd4jLong len){
 }
 
 template<typename TT_PTR, typename WW>
-FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
+SD_INLINE void internal_release_host(WW workspace, TT_PTR var){
     if(workspace == nullptr) {
-#if	!defined(_RELEASE)
+#if    !defined(_RELEASE)
       sd::memory::MemoryTracker::getInstance().countOut(var);
 #endif
-#if defined(USE_ALIGNED_ALLOC)
+#if defined(SD_ALIGNED_ALLOC)
       free(var);
 #else
       delete[] var;
@@ -1556,7 +1485,6 @@ FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
 #define CONSTANT(SHAPE) ConstantShapeHelper::getInstance().createFromExisting(SHAPE, block.workspace())
 
 
-
 #define STORE_RESULT(A)     this->storeResult(block, 0, A)
 #define OVERWRITE_RESULT(A)     this->overwriteResult(block, 0, A)
 #define OVERWRITE_2_RESULTS(A, B)     this->overwriteResult(block, 0, A); this->overwriteResult(block, 1, B)
@@ -1564,7 +1492,7 @@ FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
 #define STORE_3_RESULTS(A, B, C)    this->storeResult(block, 0, A); this->storeResult(block, 1, B); this->storeResult(block, 2, C)
 #define STORE_4_RESULTS(A, B, C, D)     this->storeResult(block, 0, A); this->storeResult(block, 1, B); this->storeResult(block, 2, C); this->storeResult(block, 3, D)
 #define STORE_5_RESULTS(A, B, C, D, E)      this->storeResult(block, 0, A); this->storeResult(block, 1, B); this->storeResult(block, 2, C); this->storeResult(block, 3, D); this->storeResult(block, 4, E)
-#define BROADCAST_CHECK_EMPTY(X,Y,Z)     if(X->isEmpty() || Y->isEmpty()){ if(!Z->isEmpty()){ throw std::invalid_argument("Broadcast op validation failed: if x or y are empty, z must be empty");} return Status::OK();}
+#define BROADCAST_CHECK_EMPTY(X,Y,Z)     if(X->isEmpty() || Y->isEmpty()){ if(!Z->isEmpty()){ throw std::invalid_argument("Broadcast op validation failed: if x or y are empty, z must be empty");} return sd::Status::OK;}
 
 #define STASH(NAME, ARRAY)  block.getStash()->storeArray(block.getNodeId(), NAME, ARRAY);
 #define CHECK_STASH(NAME)   block.getStash()->checkStash(block.getNodeId(), NAME);
@@ -1587,51 +1515,35 @@ FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
 
 #define COPY_SHAPE_EX(SRC, TGT, WORKSPACE)    TGT = ShapeBuilders::copyShapeInfo(SRC, true, WORKSPACE)
 
-#ifdef __CUDACC__
-
-#define _CUDA_H  __host__
-#define _CUDA_D __device__
-#define _CUDA_G __global__
-#define _CUDA_HD __host__ __device__
-
-#else
-
-#define _CUDA_H
-#define _CUDA_D
-#define _CUDA_G
-#define _CUDA_HD
-
-#endif // CUDACC
 
 #define CHECK_ALLOC(PTR, MSG, BYTES) if (PTR == nullptr) { throw sd::allocation_exception::build(MSG, BYTES); };
 
 
-
 #ifdef __CUDABLAS__
 
-#define LAMBDA_T(X, ...) [=] __host__ __device__ (T X) -> T
-#define LAMBDA_TT(X, Y, ...) [=] __device__ (T X, T Y) -> T
-#define LAMBDA_TTT(t, u, v, ...) [=] __device__ (T t, T u, T v) -> T
+#define LAMBDA_T(X, ...) [=] SD_HOST_DEVICE (T X) -> T
+#define LAMBDA_TT(X, Y, ...) [=] SD_DEVICE (T X, T Y) -> T
+#define LAMBDA_TTT(t, u, v, ...) [=] SD_DEVICE (T t, T u, T v) -> T
 
-#define ILAMBDA_T(X, ...) [=] __device__ (Nd4jLong _idx, T X) -> T
-#define ILAMBDA_TT(X, Y, ...) [=] __device__ (Nd4jLong _idx, T X, T Y) -> T
+#define ILAMBDA_T(X, ...) [=] SD_DEVICE (sd::LongType _idx, T X) -> T
+#define ILAMBDA_TT(X, Y, ...) [=] SD_DEVICE (sd::LongType _idx, T X, T Y) -> T
 
-#define LAMBDA_D(X, ...) [=] __host__ __device__ (double X) -> double
-#define LAMBDA_DD(X, Y, ...) [=] __host__ __device__ (double X, double Y) -> double
-#define LAMBDA_DDD(t, u, v, ...) [=] __host__ __device__ (double t, double u, double v) -> double
+#define LAMBDA_D(X, ...) [=] SD_HOST_DEVICE (double X) -> double
+#define LAMBDA_DD(X, Y, ...) [=] SD_HOST_DEVICE (double X, double Y) -> double
+#define LAMBDA_DDD(t, u, v, ...) [=] SD_HOST_DEVICE (double t, double u, double v) -> double
 
-#define LAMBDA_H(X, ...) [__VA_ARGS__] __host__ __device__ (float16 X) -> float16
-#define LAMBDA_HH(X, Y, ...) [__VA_ARGS__] __host__ __device__ (float16 X, float16 Y) -> float16
+#define LAMBDA_H(X, ...) [__VA_ARGS__] SD_HOST_DEVICE (float16 X) -> float16
+#define LAMBDA_HH(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE (float16 X, float16 Y) -> float16
 
-#define ILAMBDA_D(X, ...) [__VA_ARGS__] __host__ __device__ (Nd4jLong _idx, double X) -> double
-#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__] __host__ __device__ (Nd4jLong _idx, double X, double Y) -> double
+#define ILAMBDA_D(X, ...) [__VA_ARGS__] SD_HOST_DEVICE (sd::LongType _idx, double X) -> double
+#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE (sd::LongType _idx, double X, double Y) -> double
 
-#define ILAMBDA_F(X, ...) [__VA_ARGS__] __host__ __device__ (Nd4jLong _idx, float X) -> float
-#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__] __host__ __device__ (Nd4jLong _idx, float X, float Y) -> float
+#define ILAMBDA_F(X, ...) [__VA_ARGS__] SD_HOST_DEVICE (sd::LongType _idx, float X) -> float
+#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE (sd::LongType _idx, float X, float Y) -> float
 
-#define LAMBDA_F(X, ...) [__VA_ARGS__] __host__ __device__ (float X) -> float
-#define LAMBDA_FF(X, Y, ...) [__VA_ARGS__] __host__ __device__ (float X, float Y) -> float
-#define LAMBDA_FFF(t, u, v, ...) [__VA_ARGS__] __host__ __device__ (float t, float u, float v) -> float
+#define LAMBDA_F(X, ...) [__VA_ARGS__] SD_HOST_DEVICE (float X) -> float
+#define LAMBDA_FF(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE (float X, float Y) -> float
+#define LAMBDA_FFF(t, u, v, ...) [__VA_ARGS__] SD_HOST_DEVICE (float t, float u, float v) -> float
 
 #else
 
@@ -1639,8 +1551,8 @@ FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
 #define LAMBDA_TT(X, Y, ...) [__VA_ARGS__] (T X, T Y) -> T
 #define LAMBDA_TTT(t, u, v, ...) [__VA_ARGS__] (T t, T u, T v) -> T
 
-#define ILAMBDA_T(X, ...) [__VA_ARGS__] (Nd4jLong _idx, T X) -> T
-#define ILAMBDA_TT(X, Y, ...) [__VA_ARGS__] (Nd4jLong _idx, T X, T Y) -> T
+#define ILAMBDA_T(X, ...) [__VA_ARGS__] (sd::LongType _idx, T X) -> T
+#define ILAMBDA_TT(X, Y, ...) [__VA_ARGS__] (sd::LongType _idx, T X, T Y) -> T
 
 #define LAMBDA_D(X, ...) [__VA_ARGS__] (double X) -> double
 #define LAMBDA_DD(X, Y, ...) [__VA_ARGS__] (double X, double Y) -> double
@@ -1649,11 +1561,11 @@ FORCEINLINE void internal_release_host(WW workspace, TT_PTR var){
 #define LAMBDA_H(X, ...) [__VA_ARGS__] (float16 X) -> float16
 #define LAMBDA_HH(X, Y, ...) [__VA_ARGS__] (float16 X, float16 Y) -> float16
 
-#define ILAMBDA_D(X, ...) [__VA_ARGS__] (Nd4jLong _idx, double X) -> double
-#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__] (Nd4jLong _idx, double X, double Y) -> double
+#define ILAMBDA_D(X, ...) [__VA_ARGS__] (sd::LongType _idx, double X) -> double
+#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__] (sd::LongType _idx, double X, double Y) -> double
 
-#define ILAMBDA_F(X, ...) [__VA_ARGS__] (Nd4jLong _idx, float X) -> float
-#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__] (Nd4jLong _idx, float X, float Y) -> float
+#define ILAMBDA_F(X, ...) [__VA_ARGS__] (sd::LongType _idx, float X) -> float
+#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__] (sd::LongType _idx, float X, float Y) -> float
 
 #define LAMBDA_F(X, ...) [__VA_ARGS__] (float X) -> float
 #define LAMBDA_FF(X, Y, ...) [__VA_ARGS__] (float X, float Y) -> float

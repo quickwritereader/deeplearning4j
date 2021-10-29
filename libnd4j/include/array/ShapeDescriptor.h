@@ -22,11 +22,9 @@
 
 #ifndef DEV_TESTS_SHAPEDESCRIPTOR_H
 #define DEV_TESTS_SHAPEDESCRIPTOR_H
-
 #include <unordered_map>
 #include <vector>
-#include <system/dll.h>
-#include <system/pointercast.h>
+#include <system/common.h>
 #include <array/ArrayOptions.h>
 #include <array/DataType.h>
 #include <initializer_list>
@@ -39,49 +37,49 @@ namespace sd {
 #define SHAPE_DESC_INCORRECT_EWS 2 //ews neither matches stride nor continuity
 #define SHAPE_DESC_INCORRECT_RANK 4 //rank > 32 or shape size and rank does not match
 
-class ND4J_EXPORT ShapeDescriptor {
+class SD_LIB_EXPORT ShapeDescriptor {
 
     private:
         int _rank = 0;
-        std::vector<Nd4jLong> _shape;
-        std::vector<Nd4jLong> _strides;
-        Nd4jLong _ews = 1;
+        std::vector<sd::LongType> _shape;
+        std::vector<sd::LongType> _strides;
+        sd::LongType _ews = 1;
         char _order = 'c';
         DataType _dataType;
-        Nd4jLong _extraProperties = 0;
-        Nd4jLong _paddedAllocSize = 0;
+        sd::LongType _extraProperties = 0;
+        sd::LongType _paddedAllocSize = 0;
 
     public:
         ShapeDescriptor(const ShapeDescriptor &other);
-        ShapeDescriptor(const Nd4jLong *shapeInfo, bool inheritDtype = true);
-        explicit ShapeDescriptor(const Nd4jLong *shapeInfo, const sd::DataType dtypeOverride);
-        explicit ShapeDescriptor(const Nd4jLong *shapeInfo, const Nd4jLong *dtypeOverride);
-        explicit ShapeDescriptor(const Nd4jLong *shapeInfo, const Nd4jLong *dtypeOverride, const Nd4jLong *orderOverride);
-        explicit ShapeDescriptor(const DataType type, const Nd4jLong length);
-        explicit ShapeDescriptor(const DataType type, const char order, const Nd4jLong *shape, const int rank);
-        explicit ShapeDescriptor(const DataType type, const char order, const std::initializer_list<Nd4jLong> &shape);
-        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<Nd4jLong> &shape);
-        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<Nd4jLong> &shape, const std::vector<Nd4jLong> &strides);
-        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<Nd4jLong> &shape, const std::vector<Nd4jLong> &strides, const Nd4jLong ews);
-        explicit ShapeDescriptor(const DataType type, const char order, const Nd4jLong *shape, const Nd4jLong *strides, const int rank, Nd4jLong ews, Nd4jLong extras);
+        ShapeDescriptor(const sd::LongType *shapeInfo, bool inheritDtype = true);
+        explicit ShapeDescriptor(const sd::LongType *shapeInfo, const sd::DataType dtypeOverride);
+        explicit ShapeDescriptor(const sd::LongType *shapeInfo, const sd::LongType *dtypeOverride);
+        explicit ShapeDescriptor(const sd::LongType *shapeInfo, const sd::LongType *dtypeOverride, const sd::LongType *orderOverride);
+        explicit ShapeDescriptor(const DataType type, const sd::LongType length);
+        explicit ShapeDescriptor(const DataType type, const char order, const sd::LongType *shape, const int rank);
+        explicit ShapeDescriptor(const DataType type, const char order, const std::initializer_list<sd::LongType> &shape);
+        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<sd::LongType> &shape);
+        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<sd::LongType> &shape, const std::vector<sd::LongType> &strides);
+        explicit ShapeDescriptor(const DataType type, const char order, const std::vector<sd::LongType> &shape, const std::vector<sd::LongType> &strides, const sd::LongType ews);
+        explicit ShapeDescriptor(const DataType type, const char order, const sd::LongType *shape, const sd::LongType *strides, const int rank, sd::LongType ews, sd::LongType extras);
 
         ShapeDescriptor() = default;
         ~ShapeDescriptor() = default;
 
         int rank() const;
-        Nd4jLong ews() const;
-        Nd4jLong arrLength() const;
+        sd::LongType ews() const;
+        sd::LongType arrLength() const;
         char order() const;
         DataType dataType() const;
         bool isEmpty() const;
-        std::vector<Nd4jLong>& shape();
-        std::vector<Nd4jLong>& strides();
+        std::vector<sd::LongType>& shape();
+        std::vector<sd::LongType>& strides();
 
         //returns minimal allocation length
-        Nd4jLong allocLength() const;
+        sd::LongType allocLength() const;
 
         //returns Status for the correctness
-        Nd4jLong validate() const;
+        sd::LongType validate() const;
 
         // we use default copy assignment operator
         ShapeDescriptor& operator=(const ShapeDescriptor& other) = default;
@@ -95,16 +93,15 @@ class ND4J_EXPORT ShapeDescriptor {
         // less than operator
         bool operator<(const ShapeDescriptor &other) const;
 
-        Nd4jLong* toShapeInfo() const;
-
+        sd::LongType* toShapeInfo() const;
 
 
         static ShapeDescriptor emptyDescriptor(const DataType type);
         static ShapeDescriptor scalarDescriptor(const DataType type);
-        static ShapeDescriptor vectorDescriptor(const Nd4jLong length, const DataType type);
+        static ShapeDescriptor vectorDescriptor(const sd::LongType length, const DataType type);
 
         //create Descriptor with padded buffer.
-        static ShapeDescriptor paddedBufferDescriptor(const DataType type, const char order, const std::vector<Nd4jLong>& shape, const std::vector<Nd4jLong>& paddings);
+        static ShapeDescriptor paddedBufferDescriptor(const DataType type, const char order, const std::vector<sd::LongType>& shape, const std::vector<sd::LongType>& paddings);
     };
 }
 
@@ -112,7 +109,7 @@ class ND4J_EXPORT ShapeDescriptor {
 
 namespace std {
     template<>
-    class ND4J_EXPORT hash<sd::ShapeDescriptor> {
+    class SD_LIB_EXPORT hash<sd::ShapeDescriptor> {
     public:
         size_t operator()(const sd::ShapeDescriptor &k) const;
     };

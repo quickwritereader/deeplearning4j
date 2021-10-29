@@ -36,7 +36,7 @@ namespace sd {
 
             if(input->isEmpty()){
                 //No-op
-                return Status::OK();
+                return sd::Status::OK;
             }
 
             const bool exclusive = INT_ARG(0) == 1;
@@ -64,7 +64,7 @@ namespace sd {
                 sd::ops::helpers::prefix(block.launchContext(), scalar::Multiply, input, output, dims, exclusive, reverse);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(cumprod) {
@@ -136,19 +136,19 @@ namespace sd {
                     sd::ops::helpers::prefix(block.launchContext(), scalar::Add, &val, output, true, false);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
 
         DECLARE_SHAPE_FN(cumprod_bp) {
             auto inp = inputShape->at(0);
-            Nd4jLong *newShapeX = nullptr;
+            sd::LongType *newShapeX = nullptr;
             COPY_SHAPE(inp, newShapeX);
 
             if (block.width() == 2) {
                 return SHAPELIST(CONSTANT(newShapeX));
             } else {
-                Nd4jLong *newShapeA = nullptr;
+                sd::LongType *newShapeA = nullptr;
                 COPY_SHAPE(inputShape->at(1), newShapeA);
 
                 return SHAPELIST(CONSTANT(newShapeX), CONSTANT(newShapeA));

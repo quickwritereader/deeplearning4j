@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 03.01.2018
 //
-
 #include <helpers/svd.h>
 #include <array/NDArrayFactory.h>
 #include <helpers/jacobiSVD.h>
@@ -70,8 +69,8 @@ static void svd_(const NDArray* x, const std::vector<NDArray*>& outArrs, const b
 }
 
 //////////////////////////////////////////////////////////////////////////
-ND4J_LOCAL void svd(sd::LaunchContext * context, const NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV, const bool calcUV, const int switchNum) {
-    BUILD_SINGLE_SELECTOR(x->dataType(), svd_, (x, outArrs, fullUV, calcUV, switchNum), FLOAT_TYPES);
+void svd(sd::LaunchContext * context, const NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV, const bool calcUV, const int switchNum) {
+    BUILD_SINGLE_SELECTOR(x->dataType(), svd_, (x, outArrs, fullUV, calcUV, switchNum), SD_FLOAT_TYPES);
 }
 
 

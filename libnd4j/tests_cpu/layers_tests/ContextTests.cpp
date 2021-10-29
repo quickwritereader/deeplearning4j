@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 30.10.2017.
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 

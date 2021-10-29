@@ -50,7 +50,7 @@ namespace ops  {
             REQUIRE_TRUE(bias->rankOf() == 1 && bias->sizeAt(0) == input->sizeAt(dimC), 0, "LAYER_NORM OP: wrong shape of bias array, expected is {%i}, but got %s instead !", input->sizeAt(dimC), ShapeUtils::shapeAsString(bias).c_str());
         }
 
-        std::vector<Nd4jLong> longAxis = ArrayUtils::toLongVector(axis);
+        std::vector<sd::LongType> longAxis = ArrayUtils::toLongVector(axis);
 
         sd::ops::standardize standardizeOp;
         std::vector<NDArray *> inputs = {input};
@@ -67,7 +67,7 @@ namespace ops  {
             helpers::addBias(block, *output, *bias, *output, isNCHW);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 
@@ -93,7 +93,7 @@ namespace ops  {
 
         std::vector<int> axis = *block.getIArguments();
 
-        std::vector<Nd4jLong> longAxis = ArrayUtils::toLongVector(axis);
+        std::vector<sd::LongType> longAxis = ArrayUtils::toLongVector(axis);
 
         if(bias != nullptr) {
             REQUIRE_TRUE(bias->rankOf() == 1 && bias->sizeAt(0) == input->sizeAt(dimC), 0, "LAYER_NORM_BP OP: wrong shape of bias array, expected is {%i}, but got %s instead !", input->sizeAt(dimC), ShapeUtils::shapeAsString(bias).c_str());
@@ -122,7 +122,7 @@ namespace ops  {
         std::vector<NDArray *> standardizeBpOut = {dLdx};
         standardizeBp.execute(standardizeBpArgs, standardizeBpOut, targs, longAxis, bargs);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(layer_norm_bp) {
@@ -131,12 +131,12 @@ namespace ops  {
     }
 
     DECLARE_SHAPE_FN(layer_norm_bp) {
-        Nd4jLong *dLdx_shape;
+        sd::LongType *dLdx_shape;
         COPY_SHAPE(inputShape->at(0), dLdx_shape);
-        Nd4jLong *dLdg_shape;
+        sd::LongType *dLdg_shape;
         COPY_SHAPE(inputShape->at(1), dLdg_shape);
         if(inputShape->size() > 3){
-            Nd4jLong *dLdb_shape;
+            sd::LongType *dLdb_shape;
             COPY_SHAPE(inputShape->at(2), dLdb_shape);
             return SHAPELIST(CONSTANT(dLdx_shape), CONSTANT(dLdg_shape), CONSTANT(dLdb_shape));
         }

@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/ArrayOptions.h>
 #include <array/NDArray.h>
@@ -118,7 +117,7 @@ TEST_F(MultiDataTypeTests, Basic_Test_5) {
         return;
 
     auto x = NDArrayFactory::create<int>('c', {2, 3}, {0, 1, 2, 3, 4, 5});
-    auto y = NDArrayFactory::create<Nd4jLong>(2);
+    auto y = NDArrayFactory::create<sd::LongType>(2);
     auto e = NDArrayFactory::create<int>('c', {2, 3}, {0, 2, 4, 6, 8, 10});
 
     auto z = x * y;
@@ -136,7 +135,7 @@ TEST_F(MultiDataTypeTests, Basic_Test_7) {
 
     sd::ops::add op;
     auto result = op.evaluate({&x, &y});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -148,9 +147,9 @@ TEST_F(MultiDataTypeTests, Basic_Test_6) {
     if (!Environment::getInstance().isExperimentalBuild())
         return;
 
-    auto x = NDArrayFactory::create<Nd4jLong>('c', {2, 3}, {0, 1, 2, 3, 4, 5});
+    auto x = NDArrayFactory::create<sd::LongType>('c', {2, 3}, {0, 1, 2, 3, 4, 5});
     auto y = NDArrayFactory::create<int>(2);
-    auto e = NDArrayFactory::create<Nd4jLong >('c', {2, 3}, {0, 2, 4, 6, 8, 10});
+    auto e = NDArrayFactory::create<sd::LongType >('c', {2, 3}, {0, 2, 4, 6, 8, 10});
 
     auto z = x * y;
 
@@ -518,7 +517,7 @@ TEST_F(MultiDataTypeTests, ndarray_operatorPlusEqual_test2) {
     NDArray x1('c', {2,2}, {0, 1, 2, 3}, sd::DataType::FLOAT32);
     NDArray x2('c', {2,2}, {0, 1, 2, 3}, sd::DataType::INT32);
 
-    const Nd4jLong val1 = 1;
+    const sd::LongType val1 = 1;
     const float16  val2 = 1.5;
     const double   val3 = 2.2;
 
@@ -596,7 +595,7 @@ TEST_F(MultiDataTypeTests, ndarray_operatorMinusEqual_test2) {
     NDArray x1('c', {2,2}, {0, 1, 2, 3}, sd::DataType::FLOAT32);
     NDArray x2('c', {2,2}, {0, 1, 2, 3}, sd::DataType::INT32);
 
-    const Nd4jLong val1 = 1;
+    const sd::LongType val1 = 1;
     const float16  val2 = 1.5;
     const double   val3 = 2.2;
 
@@ -674,7 +673,7 @@ TEST_F(MultiDataTypeTests, ndarray_operatorMultiplyEqual_test2) {
     NDArray x1('c', {2,2}, {0, 1, 2, 3}, sd::DataType::FLOAT32);
     NDArray x2('c', {2,2}, {0, 1, 2, 3}, sd::DataType::INT32);
 
-    const Nd4jLong val1 = 1;
+    const sd::LongType val1 = 1;
     const float16  val2 = 1.5;
     const double   val3 = 2.2;
 
@@ -752,7 +751,7 @@ TEST_F(MultiDataTypeTests, ndarray_operatorDivideEqual_test2) {
     NDArray x1('c', {2,2}, {0, 2, 4, 6}, sd::DataType::FLOAT32);
     NDArray x2('c', {2,2}, {0, 2, 4, 6}, sd::DataType::INT32);
 
-    const Nd4jLong val1 = 1;
+    const sd::LongType val1 = 1;
     const float16  val2 = 2.;
     const double   val3 = 2.2;
 
@@ -1338,7 +1337,7 @@ TEST_F(MultiDataTypeTests, ndarray_applyScalar_test1) {
     x4.applyScalar<double>(sd::scalar::Add, 1.1, x3);
     ASSERT_EQ(x3, exp4);
 
-    x4.applyScalar<Nd4jLong>(sd::scalar::Add, 1, x4);
+    x4.applyScalar<sd::LongType>(sd::scalar::Add, 1, x4);
     ASSERT_EQ(x4, exp5);
 }
 
@@ -1354,7 +1353,7 @@ TEST_F(MultiDataTypeTests, ndarray_applyScalar_test2) {
     NDArray exp1('c', {2,2}, {0, 1, 0, 0}, sd::DataType::BOOL);
     NDArray exp2('c', {2,2}, {0, 1, 1, 0}, sd::DataType::BOOL);
 
-    x1.applyScalar<Nd4jLong>(sd::scalar::EqualTo, 1, x4);
+    x1.applyScalar<sd::LongType>(sd::scalar::EqualTo, 1, x4);
     ASSERT_EQ(x4, exp1);
 
     x2.applyScalar<float>(sd::scalar::EqualTo, 1.5, x4);
@@ -1394,10 +1393,10 @@ TEST_F(MultiDataTypeTests, ndarray_applyLambda_test1) {
     x1.applyLambda<double>(func1, x4);
     ASSERT_EQ(x4, exp1);
 
-    x2.applyLambda<Nd4jLong>(func1, x2);
+    x2.applyLambda<sd::LongType>(func1, x2);
     ASSERT_EQ(x2, exp2);
 
-    x2.applyLambda<Nd4jLong>(func2, x2);
+    x2.applyLambda<sd::LongType>(func2, x2);
     ASSERT_EQ(x2, exp2);
 
     x3.applyLambda<float>(func3, x3);
@@ -1424,11 +1423,11 @@ TEST_F(MultiDataTypeTests, ndarray_applyIndexedLambda_test1) {
 
     const float item1  = 0.1;
     const double item2 = 0.1;
-    auto func1 = [=](Nd4jLong idx, float elem) { return idx + elem + item1; };
-    auto func2 = [=](Nd4jLong idx, int elem) { return idx + elem + item1; };
-    auto func3 = [=](Nd4jLong idx, int elem) { return idx + elem + item2; };
-    auto func4 = [=](Nd4jLong idx, double elem) { return idx + elem + item1; };
-    auto func5 = [=](Nd4jLong idx, float elem) { return idx + elem - (int)1; };
+    auto func1 = [=](sd::LongType idx, float elem) { return idx + elem + item1; };
+    auto func2 = [=](sd::LongType idx, int elem) { return idx + elem + item1; };
+    auto func3 = [=](sd::LongType idx, int elem) { return idx + elem + item2; };
+    auto func4 = [=](sd::LongType idx, double elem) { return idx + elem + item1; };
+    auto func5 = [=](sd::LongType idx, float elem) { return idx + elem - (int)1; };
 
     NDArray exp1('c', {2,2}, {0.1, 2.1, 4.1, 6.1}, sd::DataType::DOUBLE);
     NDArray exp2('c', {2,2}, {0, 2, 4, 6}, sd::DataType::INT64);
@@ -1440,10 +1439,10 @@ TEST_F(MultiDataTypeTests, ndarray_applyIndexedLambda_test1) {
     x1.applyIndexedLambda<double>(func1, x4);
     ASSERT_EQ(x4, exp1);
 
-    x2.applyIndexedLambda<Nd4jLong>(func1, x2);
+    x2.applyIndexedLambda<sd::LongType>(func1, x2);
     ASSERT_EQ(x2, exp2);
 
-    x2.applyIndexedLambda<Nd4jLong>(func2, x2);
+    x2.applyIndexedLambda<sd::LongType>(func2, x2);
     ASSERT_EQ(x2, exp6);
 
     x3.applyIndexedLambda<float>(func3, x3);
@@ -1486,10 +1485,10 @@ TEST_F(MultiDataTypeTests, ndarray_applyPairwiseLambda_test1) {
     x1.applyPairwiseLambda<double>(other2, func1, x4);
     ASSERT_EQ(x4, exp1);
 
-    x2.applyPairwiseLambda<Nd4jLong>(other3, func1, x2);
+    x2.applyPairwiseLambda<sd::LongType>(other3, func1, x2);
     ASSERT_EQ(x2, exp2);
 
-    x2.applyPairwiseLambda<Nd4jLong>(other3, func2, x2);
+    x2.applyPairwiseLambda<sd::LongType>(other3, func2, x2);
     ASSERT_EQ(x2, other3);
 
     x3.applyPairwiseLambda<float>(other1, func3, x3);
@@ -1517,11 +1516,11 @@ TEST_F(MultiDataTypeTests, ndarray_applyIndexedPairwiseLambda_test1) {
     NDArray other3('c', {2,2}, {0., -1, -2, -3}, sd::DataType::INT64);
     NDArray other4('c', {2,2}, {1, 0, 0.1, 0}, sd::DataType::BOOL);
 
-    auto func1 = [](Nd4jLong idx, float elem1, float elem2) { return elem1 + elem2 + idx; };
-    auto func2 = [](Nd4jLong idx, int elem1, float elem2) { return elem1 + elem2 + idx; };
-    auto func3 = [](Nd4jLong idx, int elem1, double elem2) { return elem1 + elem2 + idx; };
-    auto func4 = [](Nd4jLong idx, double elem1, float elem2) { return elem1 + elem2 + idx; };
-    auto func5 = [](Nd4jLong idx, float elem1, int elem2) { return elem1 - elem2 + idx; };
+    auto func1 = [](sd::LongType idx, float elem1, float elem2) { return elem1 + elem2 + idx; };
+    auto func2 = [](sd::LongType idx, int elem1, float elem2) { return elem1 + elem2 + idx; };
+    auto func3 = [](sd::LongType idx, int elem1, double elem2) { return elem1 + elem2 + idx; };
+    auto func4 = [](sd::LongType idx, double elem1, float elem2) { return elem1 + elem2 + idx; };
+    auto func5 = [](sd::LongType idx, float elem1, int elem2) { return elem1 - elem2 + idx; };
 
     NDArray exp1('c', {2,2}, {0.1, 2.1, 4.1, 6.1}, sd::DataType::DOUBLE);
     NDArray exp2('c', {2,2}, {0., 1, 2, 3}, sd::DataType::INT64);
@@ -1532,10 +1531,10 @@ TEST_F(MultiDataTypeTests, ndarray_applyIndexedPairwiseLambda_test1) {
     x1.applyIndexedPairwiseLambda<double>(other2, func1, x4);
     ASSERT_EQ(x4, exp1);
 
-    x2.applyIndexedPairwiseLambda<Nd4jLong>(other3, func1, x2);
+    x2.applyIndexedPairwiseLambda<sd::LongType>(other3, func1, x2);
     ASSERT_EQ(x2, exp2);
 
-    x2.applyIndexedPairwiseLambda<Nd4jLong>(other3, func2, x2);
+    x2.applyIndexedPairwiseLambda<sd::LongType>(other3, func2, x2);
     ASSERT_EQ(x2, exp2);
 
     x3.applyIndexedPairwiseLambda<float>(other1, func3, x3);

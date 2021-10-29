@@ -19,7 +19,6 @@
 //
 // Created by raver119 on 11.12.17.
 //
-
 #include "testlayers.h"
 #include <graph/GraphHolder.h>
 
@@ -34,7 +33,7 @@ public:
 
 TEST_F(GraphHolderTests, SimpleTests_1) {
     Graph graph;
-    Nd4jLong graphId = 119;
+    sd::LongType graphId = 119;
     GraphHolder::getInstance().registerGraph(graphId, &graph);
 
     ASSERT_TRUE(GraphHolder::getInstance().hasGraph(graphId));
@@ -45,10 +44,9 @@ TEST_F(GraphHolderTests, SimpleTests_1) {
 }
 
 
-
 TEST_F(GraphHolderTests, SimpleTests_2) {
     auto graph = new Graph;
-    Nd4jLong graphId = 117;
+    sd::LongType graphId = 117;
     GraphHolder::getInstance().registerGraph(graphId, graph);
 
     ASSERT_TRUE(GraphHolder::getInstance().hasGraph(graphId));
@@ -69,7 +67,7 @@ TEST_F(GraphHolderTests, SimpleTests_2) {
 
 TEST_F(GraphHolderTests, SimpleTests_3) {
     auto graph = new Graph;
-    Nd4jLong graphId = 117;
+    sd::LongType graphId = 117;
     GraphHolder::getInstance().registerGraph(graphId, graph);
 
     ASSERT_TRUE(GraphHolder::getInstance().hasGraph(graphId));

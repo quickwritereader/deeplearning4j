@@ -20,14 +20,13 @@
 // @author raver119@gmail.com
 // @author Yurii Shyrma, created on 15.11.2018
 //
-
 #include <loops/special_kernels.h>
 
 namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __device__ void averagingKernel(void **vdx, void *vdz, int n, Nd4jLong length, bool propagate) {
+    SD_DEVICE void averagingKernel(void **vdx, void *vdz, int n, sd::LongType length, bool propagate) {
 
         auto dx = reinterpret_cast<T **>(vdx);
         auto dz = reinterpret_cast<T *>(vdz);
@@ -46,7 +45,7 @@ namespace sd {
         for (int r = blockDim.x * blockIdx.x; r < length; r += blockDim.x * gridDim.x) {
             shmem[threadIdx.x] = (T) 0.0f;
 
-            Nd4jLong baseIdx = r;
+            sd::LongType baseIdx = r;
 
             // aggregation step, we roll over all arrays
             for (int ar = 0; ar < n; ar++) {
@@ -86,7 +85,7 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __global__ void execAveragingKernel(void **vdx, void *vdz, int n, Nd4jLong length, bool propagate) {
+    SD_KERNEL void execAveragingKernel(void **vdx, void *vdz, int n, sd::LongType length, bool propagate) {
 
         averagingKernel<T>(vdx, vdz, n, length, propagate);
     }
@@ -94,13 +93,13 @@ namespace sd {
 
 ///////////////////////////////////////////////////////////////////////
     template<typename T>
-    __host__ void
-    averagingKernelGeneric(dim3 &launchDims, cudaStream_t *stream, void **vdx, void *vdz, int n, Nd4jLong length,
+    SD_HOST void
+    averagingKernelGeneric(dim3 &launchDims, cudaStream_t *stream, void **vdx, void *vdz, int n, sd::LongType length,
                            bool propagate) {
 
         execAveragingKernel<T><<< launchDims.x, launchDims.y, launchDims.z, *stream>>>(vdx, vdz, n, length, propagate);
         sd::DebugHelper::checkErrorCode(stream, "averaging(...) failed");
     }
 
-    BUILD_SINGLE_TEMPLATE(template void ND4J_LOCAL averagingKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * *vdx, void * vdz, int n, Nd4jLong length, bool propagate), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void SD_LIB_HIDDEN averagingKernelGeneric, (dim3 & launchDims, cudaStream_t * stream, void * *vdx, void * vdz, int n, sd::LongType length, bool propagate), SD_COMMON_TYPES);
 }

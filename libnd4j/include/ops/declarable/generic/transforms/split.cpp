@@ -52,14 +52,14 @@ namespace ops {
             }
         }
 
-		//Edge case: splitting empty array (mainly for TF import compatibility) -> return N empty arrays
-		if(input->isEmpty()){
-			for( int i=0; i< num_splits; i++ ){
-				REQUIRE_TRUE(OUTPUT_VARIABLE(i)->isEmpty(), 0, "Split: When input array is empty, all output arrays must be empty");
-			}
-			//No op
-			return Status::OK();
-		}
+        //Edge case: splitting empty array (mainly for TF import compatibility) -> return N empty arrays
+        if(input->isEmpty()){
+            for( int i=0; i< num_splits; i++ ){
+                REQUIRE_TRUE(OUTPUT_VARIABLE(i)->isEmpty(), 0, "Split: When input array is empty, all output arrays must be empty");
+            }
+            //No op
+            return sd::Status::OK;
+        }
 
         if (block.numI() == 2)
             axis = INT_ARG(1);
@@ -75,7 +75,7 @@ namespace ops {
 
         helpers::split(block.launchContext(), *input, outArrs, axis);
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(split) {
@@ -92,7 +92,7 @@ namespace ops {
         // axis is 0 by default
         int axis = 0;
 
-		int inputVar = 0;
+        int inputVar = 0;
         if (inputShape->size() != 1) {
             auto shape0 = inputShape->at(0);
             auto shape1 = inputShape->at(1);
@@ -102,26 +102,26 @@ namespace ops {
                 auto _a = INPUT_VARIABLE(0);
                 axis = _a->e<int>(0);
                 dataType = ArrayOptions::dataType(shape1);
-				inputVar = 1;
+                inputVar = 1;
             } else if (shape::isScalar(shape1)) {
                 input = shape0;
                 auto _a = INPUT_VARIABLE(1);
                 axis = _a->e<int>(0);
                 dataType = ArrayOptions::dataType(shape0);
-				inputVar = 0;
+                inputVar = 0;
             }
         }
 
-		auto shapes = SHAPELIST();
+        auto shapes = SHAPELIST();
 
-		//Edge case: splitting empty array (mainly for TF import compatibility) -> return N empty arrays
-		// if(INPUT_VARIABLE(inputVar)->isEmpty()){
-		// 	for (int e = 0; e < num_splits; e++) {
+        //Edge case: splitting empty array (mainly for TF import compatibility) -> return N empty arrays
+        // if(INPUT_VARIABLE(inputVar)->isEmpty()){
+        //     for (int e = 0; e < num_splits; e++) {
   //               auto empty = ConstantShapeHelper::getInstance().emptyShapeInfo(dataType);
-		// 		shapes->push_back(empty);
-		// 	}
-		// 	return shapes;
-		// }
+        //         shapes->push_back(empty);
+        //     }
+        //     return shapes;
+        // }
 
         if (block.numI() == 2)
             axis = INT_ARG(1);
@@ -129,7 +129,7 @@ namespace ops {
         if (axis < 0)
             axis += shape::rank(input);
 
-        std::vector<Nd4jLong> shape(shape::rank(input));
+        std::vector<sd::LongType> shape(shape::rank(input));
 
         for (int e = 0; e < shape::rank(input); e++)
             if (e == axis)

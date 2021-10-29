@@ -20,7 +20,6 @@
 // @author Yurii Shyrma (iuriish@yahoo.com), created on 27.08.2018
 //
 
-
 #include <ops/declarable/helpers/range.h>
 #include <execution/Threads.h>
 
@@ -34,7 +33,7 @@ namespace helpers {
 template <typename T>
 static void _range(const NDArray& start, const NDArray& delta, NDArray& outVector) {
         
-    const Nd4jLong len = outVector.lengthOf();
+    const sd::LongType len = outVector.lengthOf();
 
     auto buff = reinterpret_cast<T *>(outVector.buffer());
     auto s = start.e<T>(0);
@@ -47,11 +46,11 @@ static void _range(const NDArray& start, const NDArray& delta, NDArray& outVecto
     samediff::Threads::parallel_for(func, 0, len);
 }
 
-     void range(sd::LaunchContext * context, const NDArray& start, const NDArray& delta, NDArray& outVector) {
-        BUILD_SINGLE_SELECTOR(outVector.dataType(), _range, (start, delta, outVector), LIBND4J_TYPES);
+    void range(sd::LaunchContext * context, const NDArray& start, const NDArray& delta, NDArray& outVector) {
+        BUILD_SINGLE_SELECTOR(outVector.dataType(), _range, (start, delta, outVector), SD_COMMON_TYPES);
     }
 
-BUILD_SINGLE_TEMPLATE(template  void _range, (const NDArray& start, const NDArray& delta, NDArray& outVector), LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void _range, (const NDArray& start, const NDArray& delta, NDArray& outVector), SD_COMMON_TYPES);
 
 
 }

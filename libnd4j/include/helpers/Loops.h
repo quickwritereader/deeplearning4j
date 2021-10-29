@@ -22,9 +22,7 @@
 
 #ifndef LIBND4J_LOOPS_H
 #define LIBND4J_LOOPS_H
-
 #include <functional>
-#include <system/pointercast.h>
 #include <helpers/shape.h>
 #include <helpers/LoopKind.h>
 #include <helpers/OmpLaunchHelper.h>
@@ -32,108 +30,108 @@
 #include <ops/ops.h>
 #include <loops/indexreduce.h>
 #include <helpers/ConstantTadHelper.h>
-#include <system/openmp_pragmas.h>
+
 #include <execution/Threads.h>
 
 namespace sd {
 
     template <typename X, typename Z, typename E>
-    class ND4J_LOCAL ReductionLoops {
+    class SD_LIB_HIDDEN ReductionLoops {
     protected:
     public:
 
         template <typename OpType>
-        static FORCEINLINE void loopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, E* extraParams);
+        static SD_INLINE void loopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, E* extraParams);
     };
 
     template <typename X, typename Z>
-    class ND4J_LOCAL ReductionFloatLoops : public ReductionLoops<X, Z, Z> {
+    class SD_LIB_HIDDEN ReductionFloatLoops : public ReductionLoops<X, Z, Z> {
     public:
-        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, Z* extraParams);
+        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, Z* extraParams);
 
         template <typename OpType>
-        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, Z* extraParams);
+        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, Z* extraParams);
     };
 
     template <typename X, typename Z>
-    class ND4J_LOCAL ReductionBoolLoops : public ReductionLoops<X, Z, X> {
+    class SD_LIB_HIDDEN ReductionBoolLoops : public ReductionLoops<X, Z, X> {
     public:
-        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
 
         template <typename OpType>
-        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
     };
 
     template <typename X, typename Z>
-    class ND4J_LOCAL ReductionLongLoops : public ReductionLoops<X, Z, X> {
+    class SD_LIB_HIDDEN ReductionLongLoops : public ReductionLoops<X, Z, X> {
     public:
-        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
 
         template <typename OpType>
-        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
     };
 
     template <typename X>
-    class ND4J_LOCAL ReductionSameLoops : public ReductionLoops<X, X, X> {
+    class SD_LIB_HIDDEN ReductionSameLoops : public ReductionLoops<X, X, X> {
     public:
-        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, X* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void wrapper(int opNum, sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, X* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
 
         template <typename OpType>
-        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, X* z, const Nd4jLong *zShapeInfo, const int* dims, X* extraParams);
+        static void innerloopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, X* z, const sd::LongType *zShapeInfo, const int* dims, X* extraParams);
     };
 
 
     template <typename X, typename Z>
-    class ND4J_LOCAL IndexReductionLoops {
+    class SD_LIB_HIDDEN IndexReductionLoops {
     private:
     public:
-        static void wrapIndexReduce(int opNum, const void* x, const Nd4jLong* xShapeInfo, void* z, const Nd4jLong* zShapeInfo, const Nd4jLong* tadShapeInfo, const Nd4jLong* tadOffsets, void* extraParams);
+        static void wrapIndexReduce(int opNum, const void* x, const sd::LongType* xShapeInfo, void* z, const sd::LongType* zShapeInfo, const sd::LongType* tadShapeInfo, const sd::LongType* tadOffsets, void* extraParams);
 
         template <typename OpType>
-        static void loopIndexReduce(const X* x, const Nd4jLong* xShapeInfo, Z* z, const Nd4jLong* zShapeInfo, const Nd4jLong* tadShapeInfo, const Nd4jLong* tadOffsets, X* extraParams);
+        static void loopIndexReduce(const X* x, const sd::LongType* xShapeInfo, Z* z, const sd::LongType* zShapeInfo, const sd::LongType* tadShapeInfo, const sd::LongType* tadOffsets, X* extraParams);
     };
 
 
     template <typename X, typename Z, typename E>
-    class ND4J_LOCAL TransformLoops {
+    class SD_LIB_HIDDEN TransformLoops {
 
     public:
 
         template<typename OpType>
-        static FORCEINLINE void loopTransform(const X* x, const Nd4jLong* xShapeInfo, Z* z, const Nd4jLong* zShapeInfo, E* extraParams, uint64_t threadId, uint64_t numThreads);
+        static SD_INLINE void loopTransform(const X* x, const sd::LongType* xShapeInfo, Z* z, const sd::LongType* zShapeInfo, E* extraParams, uint64_t threadId, uint64_t numThreads);
     };
 
     template <typename X, typename Z>
-    class ND4J_LOCAL Reduction3Loops {
+    class SD_LIB_HIDDEN Reduction3Loops {
     public:
 
         template <typename OpType>
-        static FORCEINLINE void loopReduce3(const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
+        static SD_INLINE void loopReduce3(const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
 
         template <typename OpType>
-        static FORCEINLINE void loopReduce3All(const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets, const Nd4jLong* yTadShapeInfo, const Nd4jLong* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
+        static SD_INLINE void loopReduce3All(const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets, const sd::LongType* yTadShapeInfo, const sd::LongType* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
 
-        static void wrapper(int opNum, const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
+        static void wrapper(int opNum, const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
 
-        static void wrapperAll(int opNum, const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets, const Nd4jLong* yTadShapeInfo, const Nd4jLong* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
-
-        template <typename OpType>
-        static void innerloopReduce3(const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
+        static void wrapperAll(int opNum, const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets, const sd::LongType* yTadShapeInfo, const sd::LongType* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
 
         template <typename OpType>
-        static void innerloopReduce3All(const X* x, const Nd4jLong* xShapeInfo, const X* y, const Nd4jLong* yShapeInfo, Z* z, const Nd4jLong* zShapeInfo, const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets, const Nd4jLong* yTadShapeInfo, const Nd4jLong* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
+        static void innerloopReduce3(const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, int* dims, int dimsLen, Z* extraParams, int64_t start, int64_t stop);
+
+        template <typename OpType>
+        static void innerloopReduce3All(const X* x, const sd::LongType* xShapeInfo, const X* y, const sd::LongType* yShapeInfo, Z* z, const sd::LongType* zShapeInfo, const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets, const sd::LongType* yTadShapeInfo, const sd::LongType* yTadOffsets, Z* extraParams, int64_t start, int64_t stop);
     };
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-static void reduceExec21(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+static void reduceExec21(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, 0);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, 0);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
 
     auto func = PRAGMA_THREADS_FOR {
 
@@ -145,13 +143,13 @@ static void reduceExec21(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4
             auto s = OpType::startingValue(x0);
 
             if(xStrd1 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
                     s = OpType::update(s, OpType::op(x0[i1], extraParams), extraParams);
             else
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
                     s = OpType::update(s, OpType::op(x0[i1 * xStrd1], extraParams), extraParams);
 
-            *z0 = OpType::postProcess(s, static_cast<Nd4jLong>(xAxis1), extraParams);
+            *z0 = OpType::postProcess(s, static_cast<sd::LongType>(xAxis1), extraParams);
         }
     };
 
@@ -160,19 +158,19 @@ static void reduceExec21(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-static void reduceExec31(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+static void reduceExec31(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, 0);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, 0);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis1 * xAxis2);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis1 * xAxis2);
 
     auto func = PRAGMA_THREADS_FOR {
 
@@ -184,16 +182,16 @@ static void reduceExec31(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4
             auto s = OpType::startingValue(x0);
 
             if(xStrd1 == 1)
-                for (uint i2 = 0; i2 < xAxis2; ++i2)
-                    for (uint i1 = 0; i1 < xAxis1; ++i1)
+                for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                    for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
                         s = OpType::update(s, OpType::op(x0[i1 + i2*xStrd2], extraParams), extraParams);
             else if(xStrd2 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                         s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2], extraParams), extraParams);
             else
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                         s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2], extraParams), extraParams);
 
             *z0 = OpType::postProcess(s, tadLen, extraParams);
@@ -205,18 +203,18 @@ static void reduceExec31(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec32(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec32(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
 
     auto func = PRAGMA_THREADS_FOR_2D {
@@ -230,13 +228,13 @@ ND4J_LOCAL void reduceExec32(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                 auto s = OpType::startingValue(x1);
 
                 if(xStrd2 == 1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                         s = OpType::update(s, OpType::op(x1[i2], extraParams), extraParams);
                 else
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                         s = OpType::update(s, OpType::op(x1[i2 * xStrd2], extraParams), extraParams);
 
-                *z1 = OpType::postProcess(s, static_cast<Nd4jLong>(xAxis2), extraParams);
+                *z1 = OpType::postProcess(s, static_cast<sd::LongType>(xAxis2), extraParams);
             }
         }
     };
@@ -246,22 +244,22 @@ ND4J_LOCAL void reduceExec32(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec41(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec41(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, 0);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, 0);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis1 * xAxis2 * xAxis3);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis1 * xAxis2 * xAxis3);
 
     auto func = PRAGMA_THREADS_FOR {
 
@@ -273,24 +271,24 @@ ND4J_LOCAL void reduceExec41(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
             auto s = OpType::startingValue(x0);
 
             if(xStrd1 == 1)
-                for (uint i3 = 0; i3 < xAxis3; ++i3)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i1 = 0; i1 < xAxis1; ++i1)
+                for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
                         s = OpType::update(s, OpType::op(x0[i1 + i2*xStrd2 + i3*xStrd3], extraParams), extraParams);
             else if(xStrd2 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i3 = 0; i3 < xAxis3; ++i3)
-                        for (uint i2 = 0; i2 < xAxis2; ++i2)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                             s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2 + i3*xStrd3], extraParams), extraParams);
             else if(xStrd3 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2 + i3], extraParams), extraParams);
             else
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2 + i3*xStrd3], extraParams), extraParams);
 
             *z0 = OpType::postProcess(s, tadLen, extraParams);
@@ -302,23 +300,23 @@ ND4J_LOCAL void reduceExec41(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec42(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec42(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis2 * xAxis3);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis2 * xAxis3);
 
     auto func = PRAGMA_THREADS_FOR_2D {
 
@@ -331,16 +329,16 @@ ND4J_LOCAL void reduceExec42(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                 auto s = OpType::startingValue(x1);
 
                 if(xStrd2 == 1)
-                    for (uint i3 = 0; i3 < xAxis3; ++i3)
-                        for (uint i2 = 0; i2 < xAxis2; ++i2)
+                    for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                             s = OpType::update(s, OpType::op(x1[i2 + i3*xStrd3], extraParams), extraParams);
                 else if(xStrd3 == 1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x1[i2*xStrd2 + i3], extraParams), extraParams);
                 else
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x1[i2*xStrd2 + i3*xStrd3], extraParams), extraParams);
 
                 *z1 = OpType::postProcess(s, tadLen, extraParams);
@@ -353,22 +351,22 @@ ND4J_LOCAL void reduceExec42(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec43(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec43(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, 1);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, 1);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
-    const Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
+    const sd::LongType zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
     auto func = PRAGMA_THREADS_FOR_3D {
 
@@ -382,13 +380,13 @@ ND4J_LOCAL void reduceExec43(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                     auto s = OpType::startingValue(x2);
 
                     if(xStrd3 == 1)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x2[i3], extraParams), extraParams);
                     else
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                             s = OpType::update(s, OpType::op(x2[i3*xStrd3], extraParams), extraParams);
 
-                    *z2 = OpType::postProcess(s, static_cast<Nd4jLong>(xAxis3), extraParams);
+                    *z2 = OpType::postProcess(s, static_cast<sd::LongType>(xAxis3), extraParams);
                 }
             }
         }
@@ -399,25 +397,25 @@ ND4J_LOCAL void reduceExec43(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec51(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec51(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, 0);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   dims[0]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, dims[0]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, 0);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
-    const uint     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
-    const Nd4jLong xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
+    const sd::Unsigned     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
+    const sd::LongType xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis1 * xAxis2 * xAxis3 * xAxis4);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis1 * xAxis2 * xAxis3 * xAxis4);
 
     auto func = PRAGMA_THREADS_FOR {
 
@@ -429,34 +427,34 @@ ND4J_LOCAL void reduceExec51(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
             auto s = OpType::startingValue(x0);
 
             if(xStrd1 == 1)
-                for (uint i4 = 0; i4 < xAxis4; ++i4)
-                    for (uint i3 = 0; i3 < xAxis3; ++i3)
-                        for (uint i2 = 0; i2 < xAxis2; ++i2)
-                            for (uint i1 = 0; i1 < xAxis1; ++i1)
+                for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                    for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                            for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
                                 s = OpType::update(s, OpType::op(x0[i1 + i2*xStrd2 + i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
             else if(xStrd2 == 1)
-                for (uint i4 = 0; i4 < xAxis4; ++i4)
-                    for (uint i3 = 0; i3 < xAxis3; ++i3)
-                        for (uint i1 = 0; i1 < xAxis1; ++i1)
-                            for (uint i2 = 0; i2 < xAxis2; ++i2)
+                for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                    for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                            for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                                 s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2 + i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
             else if(xStrd3 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i4 = 0; i4 < xAxis4; ++i4)
-                            for (uint i3 = 0; i3 < xAxis3; ++i3)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                            for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                                 s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2 + i3 + i4*xStrd4], extraParams), extraParams);
             else if(xStrd4 == 1)
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2 + i3*xStrd3 + i4], extraParams), extraParams);
             else
-                for (uint i1 = 0; i1 < xAxis1; ++i1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                for (sd::Unsigned i1 = 0; i1 < xAxis1; ++i1)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x0[i1*xStrd1 + i2*xStrd2 + i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
 
             *z0 = OpType::postProcess(s, tadLen, extraParams);
@@ -468,26 +466,26 @@ ND4J_LOCAL void reduceExec51(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec52(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec52(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[1]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 1);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[0]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 0);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   dims[2]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, dims[2]);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
-    const uint     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
-    const Nd4jLong xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
+    const sd::Unsigned     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
+    const sd::LongType xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis2 * xAxis3 * xAxis4);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis2 * xAxis3 * xAxis4);
 
     auto func = PRAGMA_THREADS_FOR_2D {
 
@@ -500,24 +498,24 @@ ND4J_LOCAL void reduceExec52(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                 auto s = OpType::startingValue(x1);
 
                 if(xStrd2 == 1)
-                    for (uint i4 = 0; i4 < xAxis4; ++i4)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i2 = 0; i2 < xAxis2; ++i2)
+                    for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
                                 s = OpType::update(s, OpType::op(x1[i2 + i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
                 else if(xStrd3 == 1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i4 = 0; i4 < xAxis4; ++i4)
-                            for (uint i3 = 0; i3 < xAxis3; ++i3)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                            for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                                 s = OpType::update(s, OpType::op(x1[i2*xStrd2 + i3 + i4*xStrd4], extraParams), extraParams);
                 else if(xStrd4 == 1)
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x1[i2*xStrd2 + i3*xStrd3 + i4], extraParams), extraParams);
                 else
-                    for (uint i2 = 0; i2 < xAxis2; ++i2)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                    for (sd::Unsigned i2 = 0; i2 < xAxis2; ++i2)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x1[i2*xStrd2 + i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
 
                 *z1 = OpType::postProcess(s, tadLen, extraParams);
@@ -530,27 +528,27 @@ ND4J_LOCAL void reduceExec52(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec53(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec53(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[2]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 2);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, 1);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   dims[1]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, dims[1]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, 1);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
-    const Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[0]);
+    const sd::LongType zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 0);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   dims[3]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, dims[3]);
 
-    const uint     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
-    const Nd4jLong xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
+    const sd::Unsigned     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
+    const sd::LongType xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
 
-    const Nd4jLong tadLen = static_cast<Nd4jLong>(xAxis3 * xAxis4);
+    const sd::LongType tadLen = static_cast<sd::LongType>(xAxis3 * xAxis4);
 
     auto func = PRAGMA_THREADS_FOR_3D {
 
@@ -564,16 +562,16 @@ ND4J_LOCAL void reduceExec53(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                     auto s = OpType::startingValue(x2);
 
                     if(xStrd3 == 1)
-                        for (uint i4 = 0; i4 < xAxis4; ++i4)
-                            for (uint i3 = 0; i3 < xAxis3; ++i3)
+                        for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
+                            for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
                                 s = OpType::update(s, OpType::op(x2[i3 + i4*xStrd4], extraParams), extraParams);
                     else if(xStrd4 == 1)
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x2[i3*xStrd3 + i4], extraParams), extraParams);
                     else
-                        for (uint i3 = 0; i3 < xAxis3; ++i3)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                        for (sd::Unsigned i3 = 0; i3 < xAxis3; ++i3)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x2[i3*xStrd3 + i4*xStrd4], extraParams), extraParams);
 
                     *z2 = OpType::postProcess(s, tadLen, extraParams);
@@ -587,26 +585,26 @@ ND4J_LOCAL void reduceExec53(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceExec54(const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceExec54(const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
-    const uint     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[3]);
-    const Nd4jLong xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[3]);
-    const Nd4jLong zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
+    const sd::Unsigned     xAxis0 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[0] : dims[3]);
+    const sd::LongType xStrd0 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[0] : dims[3]);
+    const sd::LongType zStrd0 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 0 : 3);
 
-    const uint     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[2]);
-    const Nd4jLong xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[2]);
-    const Nd4jLong zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
+    const sd::Unsigned     xAxis1 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[1] : dims[2]);
+    const sd::LongType xStrd1 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[1] : dims[2]);
+    const sd::LongType zStrd1 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 1 : 2);
 
-    const uint     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[1]);
-    const Nd4jLong xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[1]);
-    const Nd4jLong zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
+    const sd::Unsigned     xAxis2 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[2] : dims[1]);
+    const sd::LongType xStrd2 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[2] : dims[1]);
+    const sd::LongType zStrd2 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 2 : 1);
 
-    const uint     xAxis3 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[3] : dims[0]);
-    const Nd4jLong xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[3] : dims[0]);
-    const Nd4jLong zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
+    const sd::Unsigned     xAxis3 = shape::sizeAt(xShapeInfo,   shape::order(zShapeInfo) == 'c' ? dims[3] : dims[0]);
+    const sd::LongType xStrd3 = shape::strideAt(xShapeInfo, shape::order(zShapeInfo) == 'c' ? dims[3] : dims[0]);
+    const sd::LongType zStrd3 = shape::strideAt(zShapeInfo, shape::order(zShapeInfo) == 'c' ? 3 : 0);
 
-    const uint     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
-    const Nd4jLong xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
+    const sd::Unsigned     xAxis4 = shape::sizeAt(xShapeInfo,   dims[4]);
+    const sd::LongType xStrd4 = shape::strideAt(xShapeInfo, dims[4]);
 
     auto func = PRAGMA_THREADS_FOR_3D {
 
@@ -621,13 +619,13 @@ ND4J_LOCAL void reduceExec54(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
                         auto s = OpType::startingValue(x3);
 
                        if(xStrd4 == 1)
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x3[i4], extraParams), extraParams);
                         else
-                            for (uint i4 = 0; i4 < xAxis4; ++i4)
+                            for (sd::Unsigned i4 = 0; i4 < xAxis4; ++i4)
                                 s = OpType::update(s, OpType::op(x3[i4*xStrd4], extraParams), extraParams);
 
-                        *z3 = OpType::postProcess(s, static_cast<Nd4jLong>(xAxis4), extraParams);
+                        *z3 = OpType::postProcess(s, static_cast<sd::LongType>(xAxis4), extraParams);
                     }
                 }
             }
@@ -640,33 +638,33 @@ ND4J_LOCAL void reduceExec54(const X *x, const Nd4jLong *xShapeInfo, Z* z, const
 
 ////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z, typename E, typename OpType>
-ND4J_LOCAL void reduceDefault(sd::memory::Workspace* workspace, const X *x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int *dims, E* extraParams) {
+SD_LIB_HIDDEN void reduceDefault(sd::memory::Workspace* workspace, const X *x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int *dims, E* extraParams) {
 
     const int zRank = shape::rank(zShapeInfo);
     const int tadRank = shape::rank(xShapeInfo) - zRank;
 
-    Nd4jLong* outerXTadShapeInfo = sd::ShapeBuilders::createSubArrShapeInfo(xShapeInfo, dims, zRank);
-    Nd4jLong* innerXTadShapeInfo = sd::ShapeBuilders::createSubArrShapeInfo(xShapeInfo, dims+zRank, tadRank);
+    sd::LongType* outerXTadShapeInfo = sd::ShapeBuilders::createSubArrShapeInfo(xShapeInfo, dims, zRank);
+    sd::LongType* innerXTadShapeInfo = sd::ShapeBuilders::createSubArrShapeInfo(xShapeInfo, dims+zRank, tadRank);
 
     const bool sameOffsets1 = shape::haveSameShapeAndStrides(zShapeInfo, outerXTadShapeInfo);
     const bool sameOffsets2 = shape::haveSameShapeAndStrides(zShapeInfo, innerXTadShapeInfo);
 
-    const Nd4jLong zLen   = shape::length(zShapeInfo);
-    const Nd4jLong tadLen = shape::length(innerXTadShapeInfo);
+    const sd::LongType zLen   = shape::length(zShapeInfo);
+    const sd::LongType tadLen = shape::length(innerXTadShapeInfo);
 
-    Nd4jLong* zOffsets = nullptr;
-    ALLOCATE(zOffsets, workspace, zLen, Nd4jLong);
+    sd::LongType* zOffsets = nullptr;
+    ALLOCATE(zOffsets, workspace, zLen, sd::LongType);
     shape::calcOffsets(zShapeInfo, zOffsets);
 
-    Nd4jLong* outerXTadOffsets = zOffsets;
+    sd::LongType* outerXTadOffsets = zOffsets;
     if(!sameOffsets1) {
-        ALLOCATE(outerXTadOffsets, workspace, zLen, Nd4jLong);
+        ALLOCATE(outerXTadOffsets, workspace, zLen, sd::LongType);
         shape::calcOffsets(outerXTadShapeInfo, outerXTadOffsets);
     }
 
-    Nd4jLong* innerXTadOffsets = zOffsets;
+    sd::LongType* innerXTadOffsets = zOffsets;
     if(!sameOffsets2) {
-        ALLOCATE(innerXTadOffsets, workspace, tadLen, Nd4jLong);
+        ALLOCATE(innerXTadOffsets, workspace, tadLen, sd::LongType);
         shape::calcOffsets(innerXTadShapeInfo, innerXTadOffsets);
     }
 
@@ -677,7 +675,7 @@ ND4J_LOCAL void reduceDefault(sd::memory::Workspace* workspace, const X *x, cons
             const auto tad = x + outerXTadOffsets[i];
             auto s = OpType::startingValue(tad);
 
-            for (Nd4jLong j = 0; j < tadLen; j++)
+            for (sd::LongType j = 0; j < tadLen; j++)
                 s = OpType::update(s, OpType::op(tad[innerXTadOffsets[j]], extraParams), extraParams);
 
             z[zOffsets[i]] = OpType::postProcess(s, tadLen, extraParams);
@@ -698,7 +696,7 @@ ND4J_LOCAL void reduceDefault(sd::memory::Workspace* workspace, const X *x, cons
 //////////////////////////////////////////////////////////////////////////////
 template<typename X, typename Z, typename E>
 template <typename OpType>
-ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* workspace, const X* x, const Nd4jLong *xShapeInfo, Z* z, const Nd4jLong *zShapeInfo, const int* dims, E* extraParams) {
+SD_LIB_HIDDEN void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* workspace, const X* x, const sd::LongType *xShapeInfo, Z* z, const sd::LongType *zShapeInfo, const int* dims, E* extraParams) {
 
     const int xRank = shape::rank(xShapeInfo);
     const int zRank = shape::rank(zShapeInfo);
@@ -732,22 +730,21 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 }
 
 
-
     //////////////////////////////////////////////////////////////////////////////
     template <typename X, typename Z, typename E>
     template <typename OpType>
-    ND4J_LOCAL void sd::TransformLoops<X, Z, E>::loopTransform(const X* x, const Nd4jLong* xShapeInfo,
-                                                    Z* z, const Nd4jLong* zShapeInfo,
+    SD_LIB_HIDDEN void sd::TransformLoops<X, Z, E>::loopTransform(const X* x, const sd::LongType* xShapeInfo,
+                                                    Z* z, const sd::LongType* zShapeInfo,
                                                     E* extraParams,
                                                     uint64_t threadId, uint64_t numThreads) {
 
         const LoopKind::Kind kindOfLoop = LoopKind::deduceKindOfLoopXZ(xShapeInfo, zShapeInfo);
 
-        const Nd4jLong* xShape = shape::shapeOf(const_cast<Nd4jLong*>(xShapeInfo));
-        const Nd4jLong* xStride = shape::stride(const_cast<Nd4jLong*>(xShapeInfo));
-        const Nd4jLong* zStride = shape::stride(const_cast<Nd4jLong*>(zShapeInfo));
+        const sd::LongType* xShape = shape::shapeOf(const_cast<sd::LongType*>(xShapeInfo));
+        const sd::LongType* xStride = shape::stride(const_cast<sd::LongType*>(xShapeInfo));
+        const sd::LongType* zStride = shape::stride(const_cast<sd::LongType*>(zShapeInfo));
 
-        const Nd4jLong len = shape::length(xShapeInfo);
+        const sd::LongType len = shape::length(xShapeInfo);
 
         if (len == 0)
             return;
@@ -766,8 +763,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         case LoopKind::EWSNONZERO: {
-            const uint xEws = shape::elementWiseStride(xShapeInfo);
-            const uint zEws = shape::elementWiseStride(zShapeInfo);
+            const sd::Unsigned xEws = shape::elementWiseStride(xShapeInfo);
+            const sd::Unsigned zEws = shape::elementWiseStride(zShapeInfo);
 
             auto span = samediff::Span::build(threadId, numThreads, 0, len, 1);
             int64_t start = span.startX(), stop = span.stopX();
@@ -779,9 +776,9 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         case LoopKind::Z_EWSNONZERO: {
-            const uint zEws = shape::elementWiseStride(zShapeInfo);
-            uint castXShapeInfo[MAX_RANK];
-            const bool canCastX = sd::DataTypeUtils::castShapeInfo<uint>(xShapeInfo, castXShapeInfo);
+            const sd::Unsigned zEws = shape::elementWiseStride(zShapeInfo);
+            sd::Unsigned castXShapeInfo[SD_MAX_RANK];
+            const bool canCastX = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(xShapeInfo, castXShapeInfo);
 
             auto span = samediff::Span::build(threadId, numThreads, 0, len, 1);
             int64_t start = span.startX(), stop = span.stopX();
@@ -812,8 +809,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         case LoopKind::RANK2: {
-            auto uXShape0 = static_cast<uint>(xShape[0]);
-            auto uXShape1 = static_cast<uint>(xShape[1]);
+            auto uXShape0 = static_cast<sd::Unsigned>(xShape[0]);
+            auto uXShape1 = static_cast<sd::Unsigned>(xShape[1]);
 
             auto loop = samediff::ThreadsHelper::pickLoop2d(numThreads, uXShape0, uXShape1);
             auto span = samediff::Span2::build(loop, threadId, numThreads, 0, uXShape0, 1, 0, uXShape1, 1);
@@ -843,7 +840,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     auto z0 = i0 * zStride[0] + i1 * zStride[1];
                     auto x0 = i0 * xStride[0] + i1 * xStride[1];
 
-                    for (Nd4jLong i2 = 0; i2 < uXShape2; ++i2)
+                    for (sd::LongType i2 = 0; i2 < uXShape2; ++i2)
                         z[z0 + i2 * zStride[2]] = OpType::op(x[x0 + i2 * xStride[2]], extraParams);
                 }
         }
@@ -865,7 +862,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                         auto x0 = i0 * xStride[0] + i1 * xStride[1] + i2 * xStride[2];
                         auto z0 = i0 * zStride[0] + i1 * zStride[1] + i2 * zStride[2];
 
-                        for (Nd4jLong i3 = 0; i3 < uXShape3; ++i3)
+                        for (sd::LongType i3 = 0; i3 < uXShape3; ++i3)
                             z[z0 + i3 * zStride[3]] = OpType::op(x[x0 + i3 * xStride[3]], extraParams);
                     }
         }
@@ -889,12 +886,12 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                         auto z0 = i0 * zStride[0] + i1 * zStride[1] + i2 * zStride[2];
                         auto x0 = i0 * xStride[0] + i1 * xStride[1] + i2 * xStride[2];
 
-                        for (Nd4jLong i3 = 0; i3 < uXShape3; ++i3) {
+                        for (sd::LongType i3 = 0; i3 < uXShape3; ++i3) {
 
                             auto z1 = z0 + i3 * zStride[3];
                             auto x1 = x0 + i3 * xStride[3];
 
-                            for (Nd4jLong i4 = 0; i4 < uXShape4; ++i4)
+                            for (sd::LongType i4 = 0; i4 < uXShape4; ++i4)
                                 z[z1 + i4 * zStride[4]] = OpType::op(x[x1 + i4 * xStride[4]], extraParams);
 
                         }
@@ -905,8 +902,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         default: {
-            uint xShapeInfoCast[MAX_RANK];
-            uint zShapeInfoCast[MAX_RANK];
+            sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
+            sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
 
             bool canCastX = DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
             bool canCastZ = DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
@@ -927,9 +924,9 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
     //////////////////////////////////////////////////////////////////////////////
     template<typename X, typename Z>
     template <typename OpType>
-    void sd::Reduction3Loops<X, Z>::loopReduce3(const X* x, const Nd4jLong* xShapeInfo,
-                                                const X* y, const Nd4jLong* yShapeInfo,
-                                                Z* z, const Nd4jLong* zShapeInfo,
+    void sd::Reduction3Loops<X, Z>::loopReduce3(const X* x, const sd::LongType* xShapeInfo,
+                                                const X* y, const sd::LongType* yShapeInfo,
+                                                Z* z, const sd::LongType* zShapeInfo,
                                                 int* dims, int dimsLen,
                                                 Z* extraParameters, int64_t start, int64_t stop) {
 
@@ -937,12 +934,12 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         Z param0(OpType::startingValue(x)), param1(OpType::startingValue(x)), param2(extraParameters ? extraParameters[0] : OpType::startingValue(x));
 
-        const Nd4jLong xLen = shape::length(xShapeInfo);
-        const Nd4jLong yLen = shape::length(yShapeInfo);
+        const sd::LongType xLen = shape::length(xShapeInfo);
+        const sd::LongType yLen = shape::length(yShapeInfo);
 
-        const Nd4jLong* xTadShapeInfo = nullptr, * yTadShapeInfo = nullptr, * xTadOffsets = nullptr, * yTadOffsets = nullptr;
+        const sd::LongType* xTadShapeInfo = nullptr, * yTadShapeInfo = nullptr, * xTadOffsets = nullptr, * yTadOffsets = nullptr;
         TadPack tadPackX, tadPackY;
-        std::vector<Nd4jLong> zeroOffsets;
+        std::vector<sd::LongType> zeroOffsets;
 
         if (xLen == yLen) {
             tadPackX = sd::ConstantTadHelper::getInstance().tadForDimensions(xShapeInfo, dims, dimsLen);
@@ -995,7 +992,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong j = 0; j < tadLen; ++j)
+                for (sd::LongType j = 0; j < tadLen; ++j)
                     s = OpType::update(s, OpType::op(xTad[j], yTad[j], extraParams), extraParams);
 
                 z[i] = OpType::postProcess(s, tadLen, extraParams);
@@ -1015,7 +1012,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong j = 0; j < tadLen; ++j)
+                for (sd::LongType j = 0; j < tadLen; ++j)
                     s = OpType::update(s, OpType::op(xTad[j * xTadEws], yTad[j * yTadEws], extraParams), extraParams);
 
                 z[i * zEws] = OpType::postProcess(s, tadLen, extraParams);
@@ -1035,7 +1032,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong i0 = 0; i0 < tadLen; ++i0) {
+                for (sd::LongType i0 = 0; i0 < tadLen; ++i0) {
                     const auto xTadOffset = i0 * xTadStride[0];
                     const auto yTadOffset = i0 * yTadStride[0];
                     s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1058,8 +1055,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                    for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
+                for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                    for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
                         const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1];
                         const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1];
                         s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1082,9 +1079,9 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                    for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                        for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
+                for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                    for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                        for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
                             const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2];
                             const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2];
                             s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1108,10 +1105,10 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                    for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                        for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
-                            for (Nd4jLong i3 = 0; i3 < tadShape[3]; ++i3) {
+                for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                    for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                        for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
+                            for (sd::LongType i3 = 0; i3 < tadShape[3]; ++i3) {
                                 const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2] + i3 * xTadStride[3];
                                 const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2] + i3 * yTadStride[3];
                                 s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1136,11 +1133,11 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                 auto s = OpType::startingValue(xTad);
 
-                for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                    for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                        for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
-                            for (Nd4jLong i3 = 0; i3 < tadShape[3]; ++i3) {
-                                for (Nd4jLong i4 = 0; i4 < tadShape[4]; ++i4) {
+                for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                    for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                        for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
+                            for (sd::LongType i3 = 0; i3 < tadShape[3]; ++i3) {
+                                for (sd::LongType i4 = 0; i4 < tadShape[4]; ++i4) {
                                     const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2] + i3 * xTadStride[3] + i4 * xTadStride[4];
                                     const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2] + i3 * yTadStride[3] + i4 * yTadStride[4];
                                     s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1156,8 +1153,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         default: {
-            uint castXTadShapeInfo[MAX_RANK];
-            const bool canCastXTad = sd::DataTypeUtils::castShapeInfo<uint>(xTadShapeInfo, castXTadShapeInfo);
+            sd::Unsigned castXTadShapeInfo[SD_MAX_RANK];
+            const bool canCastXTad = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(xTadShapeInfo, castXTadShapeInfo);
 
             if (shape::haveSameShapeAndStrides(xTadShapeInfo, yTadShapeInfo)) {
                 Z extraParams[3];
@@ -1170,7 +1167,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                     auto s = OpType::startingValue(xTad);
 
-                    for (Nd4jLong j = 0; j < tadLen; ++j) {
+                    for (sd::LongType j = 0; j < tadLen; ++j) {
                         const auto tadOffset = shape::indexOffset(j, xTadShapeInfo, castXTadShapeInfo, canCastXTad);
                         s = OpType::update(s, OpType::op(xTad[tadOffset], yTad[tadOffset], extraParams), extraParams);
                     }
@@ -1179,8 +1176,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 };
             }
             else {
-                uint castYTadShapeInfo[MAX_RANK];
-                const bool canCastYTad = sd::DataTypeUtils::castShapeInfo<uint>(yTadShapeInfo, castYTadShapeInfo);
+                sd::Unsigned castYTadShapeInfo[SD_MAX_RANK];
+                const bool canCastYTad = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(yTadShapeInfo, castYTadShapeInfo);
 
                 Z extraParams[3];
                 for (auto i = start; i < stop; i++) {
@@ -1192,7 +1189,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto yTad = yTadOffsets ? y + yTadOffsets[i] : y;
                     auto s = OpType::startingValue(xTad);
 
-                    for (Nd4jLong j = 0; j < tadLen; ++j) {
+                    for (sd::LongType j = 0; j < tadLen; ++j) {
                         const auto xTadOffset = shape::indexOffset(j, xTadShapeInfo, castXTadShapeInfo, canCastXTad);
                         const auto yTadOffset = shape::indexOffset(j, yTadShapeInfo, castYTadShapeInfo, canCastYTad);
                         s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1207,11 +1204,11 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
     //////////////////////////////////////////////////////////////////////////////
     template<typename X, typename Z>
     template <typename OpType>
-    void sd::Reduction3Loops<X, Z>::loopReduce3All(const X* x, const Nd4jLong* xShapeInfo,
-                                                   const X* y, const Nd4jLong* yShapeInfo,
-                                                   Z* z, const Nd4jLong* zShapeInfo,
-                                                   const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets,
-                                                   const Nd4jLong* yTadShapeInfo, const Nd4jLong* yTadOffsets,
+    void sd::Reduction3Loops<X, Z>::loopReduce3All(const X* x, const sd::LongType* xShapeInfo,
+                                                   const X* y, const sd::LongType* yShapeInfo,
+                                                   Z* z, const sd::LongType* zShapeInfo,
+                                                   const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets,
+                                                   const sd::LongType* yTadShapeInfo, const sd::LongType* yTadOffsets,
                                                    Z* extraParameters,
                                                    int64_t start, int64_t stop) {
 
@@ -1243,8 +1240,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::EWS1: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1254,7 +1251,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong j = 0; j < tadLen; ++j)
+                    for (sd::LongType j = 0; j < tadLen; ++j)
                         s = OpType::update(s, OpType::op(xTad[j], yTad[j], extraParams), extraParams);
 
                     z[zInd] = OpType::postProcess(s, tadLen, extraParams);
@@ -1266,8 +1263,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::EWSNONZERO: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1277,7 +1274,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong j = 0; j < tadLen; ++j)
+                    for (sd::LongType j = 0; j < tadLen; ++j)
                         s = OpType::update(s, OpType::op(xTad[j * xTadEws], yTad[j * yTadEws], extraParams), extraParams);
 
                     z[zInd * zEws] = OpType::postProcess(s, tadLen, extraParams);
@@ -1289,8 +1286,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::RANK1: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1300,7 +1297,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong i0 = 0; i0 < tadLen; ++i0) {
+                    for (sd::LongType i0 = 0; i0 < tadLen; ++i0) {
                         const auto xTadOffset = i0 * xTadStride[0];
                         const auto yTadOffset = i0 * yTadStride[0];
                         s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1314,8 +1311,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::RANK2: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1325,8 +1322,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                        for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
+                    for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                        for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
                             const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1];
                             const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1];
                             s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1341,8 +1338,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::RANK3: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1352,9 +1349,9 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                        for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                            for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
+                    for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                        for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                            for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
                                 const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2];
                                 const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2];
                                 s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1370,8 +1367,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::RANK4: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1381,10 +1378,10 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                        for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                            for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
-                                for (Nd4jLong i3 = 0; i3 < tadShape[3]; ++i3) {
+                    for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                        for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                            for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
+                                for (sd::LongType i3 = 0; i3 < tadShape[3]; ++i3) {
                                     const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2] + i3 * xTadStride[3];
                                     const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2] + i3 * yTadStride[3];
                                     s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1401,8 +1398,8 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         //*********************************************//
         case LoopKind::RANK5: {
             Z extraParams[3];
-            for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+            for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                for (sd::LongType iy = 0; iy < numYTads; iy++) {
                     extraParams[0] = param0;
                     extraParams[1] = param1;
                     extraParams[2] = param2;
@@ -1412,11 +1409,11 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                     const auto zInd = ix * numYTads + iy;
                     auto s = startVal;
 
-                    for (Nd4jLong i0 = 0; i0 < tadShape[0]; ++i0) {
-                        for (Nd4jLong i1 = 0; i1 < tadShape[1]; ++i1) {
-                            for (Nd4jLong i2 = 0; i2 < tadShape[2]; ++i2) {
-                                for (Nd4jLong i3 = 0; i3 < tadShape[3]; ++i3) {
-                                    for (Nd4jLong i4 = 0; i4 < tadShape[4]; ++i4) {
+                    for (sd::LongType i0 = 0; i0 < tadShape[0]; ++i0) {
+                        for (sd::LongType i1 = 0; i1 < tadShape[1]; ++i1) {
+                            for (sd::LongType i2 = 0; i2 < tadShape[2]; ++i2) {
+                                for (sd::LongType i3 = 0; i3 < tadShape[3]; ++i3) {
+                                    for (sd::LongType i4 = 0; i4 < tadShape[4]; ++i4) {
                                         const auto xTadOffset = i0 * xTadStride[0] + i1 * xTadStride[1] + i2 * xTadStride[2] + i3 * xTadStride[3] + i4 * xTadStride[4];
                                         const auto yTadOffset = i0 * yTadStride[0] + i1 * yTadStride[1] + i2 * yTadStride[2] + i3 * yTadStride[3] + i4 * yTadStride[4];
                                         s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1433,13 +1430,13 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
 
         //*********************************************//
         default: {
-            uint castXTadShapeInfo[MAX_RANK];
-            const bool canCastXTad = sd::DataTypeUtils::castShapeInfo<uint>(xTadShapeInfo, castXTadShapeInfo);
+            sd::Unsigned castXTadShapeInfo[SD_MAX_RANK];
+            const bool canCastXTad = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(xTadShapeInfo, castXTadShapeInfo);
 
             if (shape::haveSameShapeAndStrides(xTadShapeInfo, yTadShapeInfo)) {
                 Z extraParams[3];
-                for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                    for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+                for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                    for (sd::LongType iy = 0; iy < numYTads; iy++) {
                         extraParams[0] = param0;
                         extraParams[1] = param1;
                         extraParams[2] = param2;
@@ -1449,7 +1446,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                         const auto zInd = ix * numYTads + iy;
                         auto s = startVal;
 
-                        for (Nd4jLong j = 0; j < tadLen; ++j) {
+                        for (sd::LongType j = 0; j < tadLen; ++j) {
                             const auto tadOffset = shape::indexOffset(j, xTadShapeInfo, castXTadShapeInfo, canCastXTad);
                             s = OpType::update(s, OpType::op(xTad[tadOffset], yTad[tadOffset], extraParams), extraParams);
                         }
@@ -1458,12 +1455,12 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                 };
             }
             else {
-                uint castYTadShapeInfo[MAX_RANK];
-                const bool canCastYTad = sd::DataTypeUtils::castShapeInfo<uint>(yTadShapeInfo, castYTadShapeInfo);
+                sd::Unsigned castYTadShapeInfo[SD_MAX_RANK];
+                const bool canCastYTad = sd::DataTypeUtils::castShapeInfo<sd::Unsigned>(yTadShapeInfo, castYTadShapeInfo);
 
                 Z extraParams[3];
-                for (Nd4jLong ix = 0; ix < numXTads; ix++) {
-                    for (Nd4jLong iy = 0; iy < numYTads; iy++) {
+                for (sd::LongType ix = 0; ix < numXTads; ix++) {
+                    for (sd::LongType iy = 0; iy < numYTads; iy++) {
                         extraParams[0] = param0;
                         extraParams[1] = param1;
                         extraParams[2] = param2;
@@ -1473,7 +1470,7 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
                         const auto zInd = ix * numYTads + iy;
                         auto s = startVal;
 
-                        for (Nd4jLong j = 0; j < tadLen; ++j) {
+                        for (sd::LongType j = 0; j < tadLen; ++j) {
                             const auto xTadOffset = shape::indexOffset(j, xTadShapeInfo, castXTadShapeInfo, canCastXTad);
                             const auto yTadOffset = shape::indexOffset(j, yTadShapeInfo, castYTadShapeInfo, canCastYTad);
                             s = OpType::update(s, OpType::op(xTad[xTadOffset], yTad[yTadOffset], extraParams), extraParams);
@@ -1486,7 +1483,6 @@ ND4J_LOCAL void sd::ReductionLoops<X, Z, E>::loopReduce(sd::memory::Workspace* w
         }
         }
     }
-
 
 
 }

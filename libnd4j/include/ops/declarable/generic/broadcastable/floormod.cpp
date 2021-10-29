@@ -38,12 +38,12 @@ namespace sd {
             REQUIRE_TRUE(!y->isB(), 0, "FLOORMOD OP: you can't divide by bool array!");
             auto tZ = BroadcastHelper::broadcastApply(BROADCAST(FloorMod), x, y, z);
             if (tZ == nullptr)
-                return ND4J_STATUS_KERNEL_FAILURE;
+                return sd::Status::KERNEL_FAILURE;
             else if (tZ != z) {
                 OVERWRITE_RESULT(tZ);
             }
 
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_TYPES(floormod) {
@@ -75,15 +75,15 @@ namespace sd {
                 epsNext->applyPairwiseTransform(pairwise::Multiply, temp, *gradY);
             else // epsNext is greater than gradY
             {
-                std::vector<Nd4jLong> dims(epsNext->rankOf() * 2);
-                Nd4jLong gap = epsNext->rankOf() - gradY->rankOf();
-                for (Nd4jLong d = 0; d < gap; d++) {
+                std::vector<sd::LongType> dims(epsNext->rankOf() * 2);
+                sd::LongType gap = epsNext->rankOf() - gradY->rankOf();
+                for (sd::LongType d = 0; d < gap; d++) {
                     dims[d * 2 + 1] = 1;
                 }
                 auto tempIn((temp)(dims));
                 (*epsNext)(dims).applyPairwiseTransform(pairwise::Multiply, tempIn, *gradY);
             }
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         DECLARE_SHAPE_FN(floormod_bp) {
@@ -94,8 +94,8 @@ namespace sd {
             // eps always has shape of x
             // grad always has shape of y
 
-            Nd4jLong* shapeE;
-            Nd4jLong* shapeG;
+            sd::LongType* shapeE;
+            sd::LongType* shapeG;
 
             COPY_SHAPE(x, shapeE);
             COPY_SHAPE(y, shapeG);

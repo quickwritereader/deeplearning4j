@@ -73,7 +73,7 @@ namespace sd {
 
             helpers::lrnBP(block, *input, *gradO, *gradI, depth, bias, alpha, beta);
 
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SYN(local_response_normalization, lrn);
       

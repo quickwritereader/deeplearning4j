@@ -19,11 +19,9 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/PlatformHelper.h>
 #include <ops/declarable/OpRegistrator.h>
 #include <system/platform_boilerplate.h>
-
 #include <helpers/MKLDNNStream.h>
 #include "mkldnnUtils.h"
 #include <numeric>
@@ -135,7 +133,7 @@ PLATFORM_IMPL(concat, ENGINE_CPU) {
     if(numOfNonEmptyArrs == 0){
         //All inputs are empty arrays -> return empty, mainly for TF import compatibility (no op)
         REQUIRE_TRUE(OUTPUT_VARIABLE(0)->isEmpty(), 0, "CONCAT MKLDNN op: If all input variables are empty, output must be empty");
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     const int rank = nonEmptyArrs[0]->rankOf();                     //  look up to first non-empty array
@@ -170,7 +168,7 @@ PLATFORM_IMPL(concat, ENGINE_CPU) {
     for(int index : arrsToDelete)
         delete nonEmptyArrs[index];
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////

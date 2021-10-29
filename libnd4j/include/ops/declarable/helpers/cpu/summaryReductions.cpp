@@ -18,7 +18,6 @@
  //
  // @author AbdelRauf 
  //
-
 #include <ops/declarable/helpers/reductions.h>
 #include <vector>
 
@@ -28,17 +27,17 @@ namespace sd {
 
             //////////////////////////////////////////////////////////////////////////
             template<typename X, typename Z>
-            ND4J_LOCAL void  variance_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected);
+            void  variance_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected);
             
             template<typename X, typename Z>
-            ND4J_LOCAL void  standardDeviation_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected);
+            void  standardDeviation_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected);
             //////////////////////////////////////////////////////////////////////////
-            ND4J_LOCAL void  variance(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
-                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), variance_, (input, output, dimensions, biasCorrected), LIBND4J_TYPES, FLOAT_TYPES);
+            void  variance(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), variance_, (input, output, dimensions, biasCorrected), SD_COMMON_TYPES, SD_FLOAT_TYPES);
             }
             
-             void  standardDeviation(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
-                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), standardDeviation_, (input, output, dimensions, biasCorrected), LIBND4J_TYPES, FLOAT_TYPES);
+            void  standardDeviation(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
+                BUILD_DOUBLE_SELECTOR(input.dataType(), output.dataType(), standardDeviation_, (input, output, dimensions, biasCorrected), SD_COMMON_TYPES, SD_FLOAT_TYPES);
             }
 
         }

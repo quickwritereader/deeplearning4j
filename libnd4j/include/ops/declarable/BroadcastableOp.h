@@ -22,7 +22,6 @@
 
 #ifndef LIBND4J_BROADCASTABLEOP_H
 #define LIBND4J_BROADCASTABLEOP_H
-
 #include <graph/Context.h>
 #include "OpDescriptor.h"
 #include "DeclarableOp.h"
@@ -30,9 +29,9 @@
 
 namespace sd {
     namespace ops {
-        class ND4J_EXPORT BroadcastableOp : public DeclarableCustomOp{
+        class SD_LIB_EXPORT BroadcastableOp : public DeclarableCustomOp{
         protected:
-            Nd4jStatus validateAndExecute(Context& block) override = 0;
+            sd::Status validateAndExecute(Context& block) override = 0;
         public:
             BroadcastableOp(const char *name, int numTArgs, int numIArgs);
 

@@ -20,7 +20,6 @@
 // Created by raver119 on 07.10.2017.
 // Modified by GS <sgazeos@gmail.com> on 3/9/2018
 //
-
 #include <ops/gemm.h>
 #include <types/types.h>
 #include <system/Environment.h>
@@ -97,7 +96,7 @@ namespace sd {
                             for (int k = 0; k < K; k++) {
                                 aIdx = (transAFlag ? linearIndexC(M, K, r, k) : linearIndexF(M, K, r, k));
                                 bIdx = (transBFlag ? linearIndexC(K, N, k, c) : linearIndexF(K, N, k, c));
-                                dot += static_cast<Z>(alpha) * static_cast<Z>(A[aIdx]) * static_cast<Z>(B[bIdx]);//A[aIdx]sd::math::nd4j_dot<T>(aX, bX, K) * alpha;
+                                dot += static_cast<Z>(alpha) * static_cast<Z>(A[aIdx]) * static_cast<Z>(B[bIdx]);//A[aIdx]sd::math::sd_dot<T>(aX, bX, K) * alpha;
                             }
                         }
 
@@ -136,7 +135,7 @@ namespace sd {
                     int aIdx = linearIndexC(M, N, r, 0);
                     auto aX = aT + aIdx;
 
-                    auto dot = sd::math::nd4j_dot<X, Y, Z>(aX, y, lda) * static_cast<Z>(alpha);
+                    auto dot = sd::math::sd_dot<X, Y, Z>(aX, y, lda) * static_cast<Z>(alpha);
                     z[r] = beta == 0.0f ? dot : dot + static_cast<Z>(beta) * z[r];
                 }
             };
@@ -146,7 +145,7 @@ namespace sd {
                 delete[] aT;
         }
 
-        //BUILD_TRIPLE_TEMPLATE(template class  GEMV, , LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
-        //BUILD_TRIPLE_TEMPLATE(template class  GEMM, , LIBND4J_TYPES, FLOAT_TYPES, FLOAT_TYPES);
+        //BUILD_TRIPLE_TEMPLATE(template class  GEMV, , SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
+        //BUILD_TRIPLE_TEMPLATE(template class  GEMM, , SD_COMMON_TYPES, SD_FLOAT_TYPES, SD_FLOAT_TYPES);
     }
 }

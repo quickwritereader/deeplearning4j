@@ -58,9 +58,9 @@ CUSTOM_OP_IMPL(batch_to_space_nd, 3, 1, false, 0, 0) {
 
     REQUIRE_TRUE(blockShape->rankOf() == 1, 0, "BatchToSpaceND: rank of blockShape array must be equal to one, but got %i instead !", blockShape->rankOf());
 
-    const uint numOfSpatialDims = blockShape->sizeAt(0);
+    const sd::Unsigned numOfSpatialDims = blockShape->sizeAt(0);
 
-    const auto product = blockShape->reduceNumber(sd::reduce::Prod).e<Nd4jLong>(0);
+    const auto product = blockShape->reduceNumber(sd::reduce::Prod).e<sd::LongType>(0);
     REQUIRE_TRUE(input->sizeAt(0) % product == 0, 0, "BatchToSpaceND: first dimension of input array must be divisible by product of blockShape array elements (= %lld), but got first dimension equal to %i", product, input->sizeAt(0));
 
     if(crop->sizeAt(0) != numOfSpatialDims || crop->sizeAt(1) != 2) {
@@ -69,10 +69,10 @@ CUSTOM_OP_IMPL(batch_to_space_nd, 3, 1, false, 0, 0) {
     }
 
     // FIXME - should we use this time-consuming validation ?
-    for (uint i = 0; i < numOfSpatialDims; ++i) {
-        const auto cropLeft      = crop->e<uint>(i,0);
-        const auto cropRight     = crop->e<uint>(i,1);
-        const auto outSpatialDim = input->sizeAt(i + 1) * blockShape->e<Nd4jLong>(i) - cropLeft - cropRight;
+    for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i) {
+        const auto cropLeft      = crop->e<sd::Unsigned>(i,0);
+        const auto cropRight     = crop->e<sd::Unsigned>(i,1);
+        const auto outSpatialDim = input->sizeAt(i + 1) * blockShape->e<sd::LongType>(i) - cropLeft - cropRight;
         REQUIRE_TRUE(outSpatialDim >= 0, 0, "BatchToSpaceND: crop left/right values are too big and cause negative output spatial dimension/dimensions !");
     }
 
@@ -81,7 +81,7 @@ CUSTOM_OP_IMPL(batch_to_space_nd, 3, 1, false, 0, 0) {
     else
         helpers::batchToSpaceND(block.launchContext(), input->dup(), *blockShape, *crop, *output);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ DECLARE_SHAPE_FN(batch_to_space_nd) {
 
     REQUIRE_TRUE(blockShapeInfo[0] == 1, 0, "BatchToSpaceND: rank of blockShape array must be equal to one, but got %i instead !", blockShapeInfo[0]);
 
-    const auto product = INPUT_VARIABLE(1)->reduceNumber(sd::reduce::Prod).e<Nd4jLong>(0);
+    const auto product = INPUT_VARIABLE(1)->reduceNumber(sd::reduce::Prod).e<sd::LongType>(0);
     REQUIRE_TRUE(inputShapeInfo[1] % product == 0, 0, "BatchToSpaceND: first dimension of input array must be divisible by product of blockShape array elements (= %lld), but got first dimension equal to %i", product, inputShapeInfo[1]);
 
     const auto numOfSpatialDims = blockShapeInfo[1];
@@ -113,12 +113,12 @@ DECLARE_SHAPE_FN(batch_to_space_nd) {
     }
 
 
-    std::vector<Nd4jLong> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
+    std::vector<sd::LongType> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
 
     outShape[0] /= product;
 
-    for (uint i = 0; i < numOfSpatialDims; ++i)
-        outShape[i + 1] = outShape[i + 1] * INPUT_VARIABLE(1)->e<Nd4jLong>(i) - INPUT_VARIABLE(2)->e<uint>(i,0) - INPUT_VARIABLE(2)->e<uint>(i,1);
+    for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i)
+        outShape[i + 1] = outShape[i + 1] * INPUT_VARIABLE(1)->e<sd::LongType>(i) - INPUT_VARIABLE(2)->e<sd::Unsigned>(i,0) - INPUT_VARIABLE(2)->e<sd::Unsigned>(i,1);
 
     return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inputShapeInfo), 'c', outShape));
 }

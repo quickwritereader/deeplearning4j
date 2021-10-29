@@ -21,7 +21,6 @@
 //
 // @author Oleh Semeniv (oleg.semeniv@gmail.com)
 //
-
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <execution/Threads.h>
 #include <math/platformmath.h>
@@ -60,7 +59,7 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
                  for (auto i = start; i < stop; i++) {
                       stMsg[i] = rho * initMsg[i] + grad[i] * grad[i] * rhoT;
                      
-                      up[i] = grad[i] * (sd::math::nd4j_sqrt<T, T>(initMsdx[i] + epsilon) / sd::math::nd4j_sqrt<T, T>(stMsg[i] + epsilon));
+                      up[i] = grad[i] * (sd::math::sd_sqrt<T, T>(initMsdx[i] + epsilon) / sd::math::sd_sqrt<T, T>(stMsg[i] + epsilon));
 
                       stMsdx[i] = rho * initMsdx[i] + up[i] * up[i] * rhoT;
                  }
@@ -79,7 +78,7 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
 
     auto func = PRAGMA_THREADS_FOR{
 
-        int coords[MAX_RANK];
+        int coords[SD_MAX_RANK];
         for (auto i = start; i < gradient.lengthOf(); i++) {
             shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
             const auto xOffset =  shape::getOffset(gradient.shapeInfo(), coords);
@@ -92,7 +91,7 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
             
             stMsg[stMsgOffset] = rho * initMsg[initMsgOffset] + grad[xOffset] * grad[xOffset] * rhoT;
             
-            up[zOffset] = grad[xOffset] * (sd::math::nd4j_sqrt<T, T>(initMsdx[initMsdxOffset] + epsilon) / sd::math::nd4j_sqrt<T, T>(stMsg[stMsgOffset] + epsilon));
+            up[zOffset] = grad[xOffset] * (sd::math::sd_sqrt<T, T>(initMsdx[initMsdxOffset] + epsilon) / sd::math::sd_sqrt<T, T>(stMsg[stMsgOffset] + epsilon));
             
             stMsdx[stMsdxOffset] = rho * initMsdx[initMsdxOffset] + up[zOffset] * up[zOffset] * rhoT;
         }
@@ -102,9 +101,9 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
     return;
 }
 
-ND4J_LOCAL void updaterAdaDelta(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateMsg, const NDArray& initStateMsdx, 
+void updaterAdaDelta(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateMsg, const NDArray& initStateMsdx, 
                       NDArray& update, NDArray& stateMsg, NDArray& stateMsdx, const double dRho, const double dEpsilon) {
-    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaDeltaUpdater_, (gradient, initStateMsg, initStateMsdx, update, stateMsg, stateMsdx, dRho, dEpsilon), FLOAT_TYPES);
+    BUILD_SINGLE_SELECTOR(gradient.dataType(), adaDeltaUpdater_, (gradient, initStateMsg, initStateMsdx, update, stateMsg, stateMsdx, dRho, dEpsilon), SD_FLOAT_TYPES);
 }
 
 }

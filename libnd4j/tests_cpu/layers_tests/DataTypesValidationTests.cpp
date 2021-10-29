@@ -19,7 +19,6 @@
 //
 // @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <array/NDArray.h>
 #include <graph/Context.h>
@@ -50,7 +49,7 @@ TEST_F(DataTypesValidationTests, Basic_Test_1) {
     sd::ops::conv2d op;
     auto result = op.evaluate({&input, &weights}, {1, 1, 1, 1, 0, 0, 1, 1, 0, 0});
 
-    ASSERT_EQ(ND4J_STATUS_VALIDATION, result.status());
+    ASSERT_EQ(sd::Status::VALIDATION, result.status());
 }
 
 TEST_F(DataTypesValidationTests, Basic_Test_2) {
@@ -63,7 +62,7 @@ TEST_F(DataTypesValidationTests, Basic_Test_2) {
 
     sd::ops::conv2d op;
     auto result = op.evaluate({&input, &weights}, {1, 1, 1, 1, 0, 0, 1, 1, 0, 0});
-    ASSERT_EQ(Status::OK(), result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -83,7 +82,7 @@ TEST_F(DataTypesValidationTests, Basic_Test_3) {
 
     sd::ops::conv2d op;
     auto result = op.execute({&input, &weights}, {&out}, {}, {1, 1, 1, 1, 0, 0, 1, 1, 0, 0}, {});
-    ASSERT_EQ(Status::OK(), result);
+    ASSERT_EQ(sd::Status::OK, result);
 
     ASSERT_EQ(exp, out);
 }
@@ -99,7 +98,7 @@ TEST_F(DataTypesValidationTests, Basic_Test_4) {
 
     sd::ops::conv2d op;
     auto result = op.execute({&input, &weights}, {&out}, {}, {1, 1, 1, 1, 0, 0, 1, 1, 0, 0}, {});
-    ASSERT_EQ(ND4J_STATUS_VALIDATION, result);
+    ASSERT_EQ(sd::Status::VALIDATION, result);
 }
 
 TEST_F(DataTypesValidationTests, test_bfloat16_rand_1) {
@@ -139,13 +138,13 @@ TEST_F(DataTypesValidationTests, test_bits_hamming_distance_1) {
 
     sd::ops::bits_hamming_distance op;
     auto status = op.execute(&ctx);
-    ASSERT_NE(Status::OK(), status);
+    ASSERT_NE(sd::Status::OK, status);
 }
 
 TEST_F(DataTypesValidationTests, test_bits_hamming_distance_2) {
     auto x = NDArrayFactory::create<int>('c', {3}, {0b01011000, 0b01011111, 0b01111110});
     auto y = NDArrayFactory::create<int>('c', {3}, {0b00010110, 0b01011000, 0b01011000});
-    auto z = NDArrayFactory::create<Nd4jLong>(0);
+    auto z = NDArrayFactory::create<sd::LongType>(0);
 
     Context ctx(1);
     ctx.setInputArray(0, &x);
@@ -154,5 +153,5 @@ TEST_F(DataTypesValidationTests, test_bits_hamming_distance_2) {
 
     sd::ops::bits_hamming_distance op;
     auto status = op.execute(&ctx);
-    ASSERT_EQ(Status::OK(), status);
+    ASSERT_EQ(sd::Status::OK, status);
 }

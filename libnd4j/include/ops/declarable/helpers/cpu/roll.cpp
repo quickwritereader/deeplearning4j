@@ -19,7 +19,6 @@
 //
 //  @author sgazeos@gmail.com
 //
-
 #include <ops/declarable/helpers/roll.h>
 
 namespace sd {
@@ -52,7 +51,7 @@ namespace helpers {
                 auto _e0 = output->e<T>(e);
                 auto _e1 = output->e<T>(sourceIndex);
 
-                //sd::math::nd4j_swap((*output)(e), (*output)(sourceIndex));
+                //sd::math::sd_swap((*output)(e), (*output)(sourceIndex));
                 output->p<T>(e, _e1);
                 output->p<T>(sourceIndex, _e0);
             }
@@ -67,7 +66,7 @@ namespace helpers {
                     auto _e0 = output->e<T>(destinationIndex);
                     auto _e1 = output->e<T>(sourceIndex);
 
-                    //sd::math::nd4j_swap((*output)(destinationIndex), (*output)(sourceIndex));
+                    //sd::math::sd_swap((*output)(destinationIndex), (*output)(sourceIndex));
                     output->p<T>(destinationIndex, _e1);
                     output->p<T>(sourceIndex, _e0);
                 }
@@ -79,7 +78,7 @@ namespace helpers {
                 auto _e0 = output->e<T>(i);
                 auto _e1 = output->e<T>(i + remainShift);
 
-                //sd::math::nd4j_swap((*output)(i), (*output)(i + remainShift));
+                //sd::math::sd_swap((*output)(i), (*output)(i + remainShift));
 
                 output->p<T>(i, _e1);
                 output->p<T>(i + remainShift, _e0);
@@ -87,7 +86,7 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void rollFunctorFull(sd::LaunchContext * context, NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace){
+    void rollFunctorFull(sd::LaunchContext * context, NDArray* input, NDArray* output, std::vector<int> const& shifts, std::vector<int> const& axes, bool inplace){
 
         if (!inplace)
             output->assign(input);
@@ -99,7 +98,7 @@ namespace helpers {
                 ResultSet listOfTensors = source->allTensorsAlongDimension({axe});
                 ResultSet listOfOutTensors = output->allTensorsAlongDimension({axe});
                 int fullLen = listOfTensors.size();
-                nd4j_debug("Roll: fullLen at last dimension is %d\n",fullLen);
+                sd_debug("Roll: fullLen at last dimension is %d\n",fullLen);
                 int theShift = shifts[i];
                 if (theShift > 0) {
                     theShift %= fullLen;
@@ -121,7 +120,7 @@ namespace helpers {
                 //
                 int fullLen = listOfTensors.size();
                 int sizeAt = input->sizeAt(axe);
-                nd4j_debug("Roll: fullLen at  dimension %d is %d\n",i,fullLen);
+                sd_debug("Roll: fullLen at  dimension %d is %d\n",i,fullLen);
 
                 int theShift = shifts[i];
 
@@ -155,11 +154,11 @@ namespace helpers {
         }
     }
 
-    ND4J_LOCAL void rollFunctorLinear(sd::LaunchContext * context, NDArray* input, NDArray* output, int shift, bool inplace){
-        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorLinear_, (input, output, shift, inplace), LIBND4J_TYPES);
+    void rollFunctorLinear(sd::LaunchContext * context, NDArray* input, NDArray* output, int shift, bool inplace){
+        BUILD_SINGLE_SELECTOR(input->dataType(), rollFunctorLinear_, (input, output, shift, inplace), SD_COMMON_TYPES);
     }
 
-    BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void rollFunctorLinear_, (NDArray* input, NDArray* output, int shift, bool inplace), LIBND4J_TYPES);
+    BUILD_SINGLE_TEMPLATE(template void rollFunctorLinear_, (NDArray* input, NDArray* output, int shift, bool inplace), SD_COMMON_TYPES);
 }
 }
 }

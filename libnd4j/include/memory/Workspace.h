@@ -29,8 +29,8 @@
 #include <atomic>
 #include <vector>
 #include <mutex>
-#include <system/dll.h>
-#include <system/pointercast.h>
+
+#include <system/common.h>
 #include <types/float16.h>
 #include <memory/ExternalWorkspace.h>
 #include <memory/MemoryType.h>
@@ -38,7 +38,7 @@
 namespace sd {
     namespace memory {
 
-        class ND4J_EXPORT Workspace {
+        class SD_LIB_EXPORT Workspace {
         protected:
             char* _ptrHost = nullptr;
             char* _ptrDevice = nullptr;
@@ -46,14 +46,14 @@ namespace sd {
             bool _allocatedHost = false;
             bool _allocatedDevice = false;
 
-            std::atomic<Nd4jLong> _offset;
-            std::atomic<Nd4jLong> _offsetSecondary;
+            std::atomic<sd::LongType> _offset;
+            std::atomic<sd::LongType> _offsetSecondary;
 
-            Nd4jLong _initialSize = 0L;
-            Nd4jLong _initialSizeSecondary = 0L;
+            sd::LongType _initialSize = 0L;
+            sd::LongType _initialSizeSecondary = 0L;
 
-            Nd4jLong _currentSize = 0L;
-            Nd4jLong _currentSizeSecondary = 0L;
+            sd::LongType _currentSize = 0L;
+            sd::LongType _currentSizeSecondary = 0L;
 
             std::mutex _mutexAllocation;
             std::mutex _mutexSpills;
@@ -63,38 +63,38 @@ namespace sd {
             std::vector<void*> _spills;
             std::vector<void*> _spillsSecondary;
 
-            std::atomic<Nd4jLong> _spillsSize;
-            std::atomic<Nd4jLong> _cycleAllocations;
+            std::atomic<sd::LongType> _spillsSize;
+            std::atomic<sd::LongType> _cycleAllocations;
 
-            std::atomic<Nd4jLong> _spillsSizeSecondary;
-            std::atomic<Nd4jLong> _cycleAllocationsSecondary;
+            std::atomic<sd::LongType> _spillsSizeSecondary;
+            std::atomic<sd::LongType> _cycleAllocationsSecondary;
 
-            void init(Nd4jLong primaryBytes, Nd4jLong secondaryBytes = 0L);
+            void init(sd::LongType primaryBytes, sd::LongType secondaryBytes = 0L);
             void freeSpills();
         public:
             explicit Workspace(ExternalWorkspace *external);
-            Workspace(Nd4jLong initialSize = 0L, Nd4jLong secondaryBytes = 0L);
+            Workspace(sd::LongType initialSize = 0L, sd::LongType secondaryBytes = 0L);
             ~Workspace();
 
-            Nd4jLong getAllocatedSize();
-            Nd4jLong getCurrentSize();
-            Nd4jLong getCurrentOffset();
-            Nd4jLong getSpilledSize();
-            Nd4jLong getUsedSize();
+            sd::LongType getAllocatedSize();
+            sd::LongType getCurrentSize();
+            sd::LongType getCurrentOffset();
+            sd::LongType getSpilledSize();
+            sd::LongType getUsedSize();
 
-            Nd4jLong getAllocatedSecondarySize();
-            Nd4jLong getCurrentSecondarySize();
-            Nd4jLong getCurrentSecondaryOffset();
-            Nd4jLong getSpilledSecondarySize();
-            Nd4jLong getUsedSecondarySize();
+            sd::LongType getAllocatedSecondarySize();
+            sd::LongType getCurrentSecondarySize();
+            sd::LongType getCurrentSecondaryOffset();
+            sd::LongType getSpilledSecondarySize();
+            sd::LongType getUsedSecondarySize();
 
-            void expandBy(Nd4jLong primaryBytes, Nd4jLong secondaryBytes = 0L);
-            void expandTo(Nd4jLong primaryBytes, Nd4jLong secondaryBytes = 0L);
+            void expandBy(sd::LongType primaryBytes, sd::LongType secondaryBytes = 0L);
+            void expandTo(sd::LongType primaryBytes, sd::LongType secondaryBytes = 0L);
 
 //            bool resizeSupported();
 
-            void* allocateBytes(Nd4jLong numBytes);
-            void* allocateBytes(MemoryType type, Nd4jLong numBytes);
+            void* allocateBytes(sd::LongType numBytes);
+            void* allocateBytes(MemoryType type, sd::LongType numBytes);
 
             void scopeIn();
             void scopeOut();

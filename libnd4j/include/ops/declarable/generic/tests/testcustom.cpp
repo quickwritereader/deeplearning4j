@@ -32,12 +32,12 @@ namespace sd {
             auto z = this->getZ(block);
 
             STORE_RESULT(*z);
-            return Status::OK();
+            return sd::Status::OK;
         }
         DECLARE_SHAPE_FN(testcustom) {
             // this test op will just return back original shape doubled
-            Nd4jLong *shapeOf;
-            ALLOCATE(shapeOf, block.getWorkspace(), shape::rank(inputShape->at(0)), Nd4jLong);
+            sd::LongType *shapeOf;
+            ALLOCATE(shapeOf, block.getWorkspace(), shape::rank(inputShape->at(0)), sd::LongType);
             for (int e = 0; e < shape::rank(inputShape->at(0)); e++)
                 shapeOf[e] = inputShape->at(0)[e+1] * 2;
 

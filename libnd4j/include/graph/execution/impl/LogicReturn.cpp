@@ -19,14 +19,13 @@
 //
 // Created by raver119 on 28.10.2017.
 //
-
 #include "graph/execution/LogicReturn.h"
 #include <helpers/EnumUtils.h>
-#include <graph/Status.h>
+
 
 namespace sd {
     namespace graph {
-        Nd4jStatus LogicReturn::processNode(Graph *graph, Node *node) {
+        sd::Status LogicReturn::processNode(Graph *graph, Node *node) {
             auto __variableSpace = graph->getVariableSpace();
 
             for (int e = 0; e < node->input()->size(); e++) {
@@ -37,21 +36,21 @@ namespace sd {
                 outputAddr.second = e;
 
                 if (Environment::getInstance().isDebugAndVerbose())
-                    nd4j_debug("Return input: <%i, %i>; Return output: <%i, %i>\n", inputAddr.first, inputAddr.second, outputAddr.first, outputAddr.second);
+                    sd_debug("Return input: <%i, %i>; Return output: <%i, %i>\n", inputAddr.first, inputAddr.second, outputAddr.first, outputAddr.second);
 
                 auto varIn = __variableSpace->getVariable(inputAddr);
                 auto varOut = __variableSpace->getVariable(outputAddr);
 
-                nd4j_debug("Returning varType: [%s]\n", EnumUtils::_VariableTypeToString(varIn->variableType()));
+                sd_debug("Returning varType: [%s]\n", EnumUtils::_VariableTypeToString(varIn->variableType()));
 
                 // FIXME: this is obviously wrong, we should keep depth track for backprop here
                 varOut->getNDArray()->assign(varIn->getNDArray());
 
                 if (Environment::getInstance().isDebugAndVerbose())
-                    nd4j_debug("In after: [%f]; Out after: [%f]\n", varIn->getNDArray()->meanNumber().e<float>(0), varOut->getNDArray()->meanNumber().e<float>(0));
+                    sd_debug("In after: [%f]; Out after: [%f]\n", varIn->getNDArray()->meanNumber().e<float>(0), varOut->getNDArray()->meanNumber().e<float>(0));
             }
 
-            return sd::Status::OK();
+            return sd::Status::OK;
         }
     }
 }

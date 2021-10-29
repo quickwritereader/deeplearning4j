@@ -22,12 +22,11 @@
 
 #ifndef LIBND4J_INDICESLIST_H
 #define LIBND4J_INDICESLIST_H
-
 #include <initializer_list>
 #include "NDIndex.h"
 
 namespace sd {
-    class ND4J_EXPORT IndicesList {
+    class SD_LIB_EXPORT IndicesList {
     protected:
         std::vector<NDIndex *> _indices;
     public:

@@ -19,7 +19,6 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
-
 #include <ops/declarable/helpers/top_k.h>
 #include <helpers/PointersManager.h>
 #include <helpers/ConstantTadHelper.h>
@@ -30,20 +29,20 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template<typename X, typename Y>
-__global__ static void inTopKCuda(const void* vx, const Nd4jLong* xShapeInfo,
-                                  const void* vy, const Nd4jLong* yShapeInfo,
-                                        void* vz, const Nd4jLong* zShapeInfo,
-                                  const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets,
-                                  const uint k) {
+SD_KERNEL static void inTopKCuda(const void* vx, const sd::LongType* xShapeInfo,
+                                  const void* vy, const sd::LongType* yShapeInfo,
+                                        void* vz, const sd::LongType* zShapeInfo,
+                                  const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets,
+                                  const sd::Unsigned k) {
 
 
     const auto y = reinterpret_cast<const Y*>(vy);
           auto z = reinterpret_cast<bool*>(vz);
 
-    __shared__ uint sharedMem[CUDA_BLOCK_SIZE];
+    __shared__ sd::Unsigned sharedMem[SD_CUDA_BLOCK_SIZE];
     __shared__ X elemToCompare;
     __shared__ const X* xTad;
-    __shared__ Nd4jLong idx, xTadLen;
+    __shared__ sd::LongType idx, xTadLen;
 
     if (threadIdx.x == 0) {
         xTadLen = shape::length(xTadShapeInfo);
@@ -56,14 +55,14 @@ __global__ static void inTopKCuda(const void* vx, const Nd4jLong* xShapeInfo,
     __syncthreads();
 
     sharedMem[threadIdx.x] = 0;
-    for (Nd4jLong i = threadIdx.x; i < xTadLen; i += blockDim.x)
+    for (sd::LongType i = threadIdx.x; i < xTadLen; i += blockDim.x)
         if(elemToCompare < xTad[shape::getIndexOffset(i, xTadShapeInfo)])
             ++sharedMem[threadIdx.x];
 
     __syncthreads();
 
     // aggregate sum
-    for (uint activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+    for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
         if (threadIdx.x < activeThreads)
             sharedMem[threadIdx.x] += sharedMem[threadIdx.x + activeThreads];
         __syncthreads();
@@ -76,23 +75,23 @@ __global__ static void inTopKCuda(const void* vx, const Nd4jLong* xShapeInfo,
 ///////////////////////////////////////////////////////////////////
 template<typename X, typename Y>
 static void inTopKCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem, const cudaStream_t *stream,
-                               const void *vx, const Nd4jLong *xShapeInfo,
-                               const void *vy, const Nd4jLong *yShapeInfo,
-                                     void *vz, const Nd4jLong *zShapeInfo,
-                               const Nd4jLong* xTadShapeInfo, const Nd4jLong* xTadOffsets,
-                               const uint k) {
+                               const void *vx, const sd::LongType *xShapeInfo,
+                               const void *vy, const sd::LongType *yShapeInfo,
+                                     void *vz, const sd::LongType *zShapeInfo,
+                               const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets,
+                               const sd::Unsigned k) {
 
     inTopKCuda<X,Y><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, xTadShapeInfo, xTadOffsets, k);
 }
 
 ///////////////////////////////////////////////////////////////////
-ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predictions, const NDArray* targets, NDArray* output, const uint k) {
+sd::Status inTopKFunctor(sd::LaunchContext * context, const NDArray* predictions, const NDArray* targets, NDArray* output, const sd::Unsigned k) {
 
     PointersManager manager(context, "in_top_k");
 
     const auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(predictions->shapeInfo(), {1});
 
-    const int threadsPerBlock = CUDA_BLOCK_SIZE;
+    const int threadsPerBlock = SD_CUDA_BLOCK_SIZE;
     const int blocksPerGrid = static_cast<int>(packX.numberOfTads());
     const int sharedMem = 1024;
 
@@ -100,16 +99,16 @@ ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predict
     const auto yType = targets->dataType();
 
     NDArray::prepareSpecialUse({output}, {predictions, targets});
-    BUILD_DOUBLE_SELECTOR(xType, yType, inTopKCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), predictions->specialBuffer(), predictions->specialShapeInfo(), targets->specialBuffer(), targets->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), packX.specialShapeInfo(), packX.specialOffsets(), k), FLOAT_TYPES, INDEXING_TYPES);
+    BUILD_DOUBLE_SELECTOR(xType, yType, inTopKCudaLauncher, (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), predictions->specialBuffer(), predictions->specialShapeInfo(), targets->specialBuffer(), targets->specialShapeInfo(), output->specialBuffer(), output->specialShapeInfo(), packX.specialShapeInfo(), packX.specialOffsets(), k), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
     NDArray::registerSpecialUse({output}, {predictions, targets});
 
     manager.synchronize();
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     template <typename X, typename Y>
-    static _CUDA_G void topValuesMover(void const* vx, Nd4jLong const* xTadShapeInfo, Nd4jLong const* xTadOffsets, void const* vi, Nd4jLong const* iTadShapeInfo, Nd4jLong const* iTadOffsets, void *vz, Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets, Nd4jLong tadLength, int numTads, int k) {
+    static SD_KERNEL void topValuesMover(void const* vx, sd::LongType const* xTadShapeInfo, sd::LongType const* xTadOffsets, void const* vi, sd::LongType const* iTadShapeInfo, sd::LongType const* iTadOffsets, void *vz, sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets, sd::LongType tadLength, int numTads, int k) {
         for (int t = blockIdx.x; t < numTads; t += gridDim.x) {
             auto x = reinterpret_cast<X const*>(vx) + xTadOffsets[t];
             auto i = reinterpret_cast<Y const*>(vi) + iTadOffsets[t];
@@ -125,7 +124,7 @@ ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predict
 
 
     template <typename X, typename Y>
-    static _CUDA_G void indicesAlongDimension(void const* vx, Nd4jLong const* xTadShapeInfo, Nd4jLong const* xTadOffsets, void* vi, Nd4jLong const* iTadShapeInfo, Nd4jLong const* iTadOffsets, void *vz, Nd4jLong const* zTadShapeInfo, Nd4jLong const* zTadOffsets, Nd4jLong tadLength, int numTads, int k, int scanWidth, bool needSort) {
+    static SD_KERNEL void indicesAlongDimension(void const* vx, sd::LongType const* xTadShapeInfo, sd::LongType const* xTadOffsets, void* vi, sd::LongType const* iTadShapeInfo, sd::LongType const* iTadOffsets, void *vz, sd::LongType const* zTadShapeInfo, sd::LongType const* zTadOffsets, sd::LongType tadLength, int numTads, int k, int scanWidth, bool needSort) {
         extern __shared__ char _shmem[];
 
         X* tempValues = reinterpret_cast<X*>(_shmem) + threadIdx.x * scanWidth;
@@ -165,7 +164,7 @@ ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predict
                 __syncthreads();
 
                 // at this point we have local part ready for merge and define global maximum for this iteration, and local maximum for next iteration
-                for (uint activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+                for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
                     if (threadIdx.x < activeThreads) {
                         if (tempValues[0] < tempValues[0 + activeThreads * scanWidth]) {
                             tempValues[0] = tempValues[0 + activeThreads * scanWidth];
@@ -240,7 +239,7 @@ ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predict
 
 
     template <typename X, typename Y>
-    static int topKFunctor_(sd::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort) {
+    static sd::Status topKFunctor_(sd::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const sd::Unsigned k, bool needSort) {
 
         auto packX = ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), {input->rankOf() - 1});
         auto packI = ConstantTadHelper::getInstance().tadForDimensions(indices->shapeInfo(), {input->rankOf() - 1});
@@ -262,18 +261,18 @@ ND4J_LOCAL int inTopKFunctor(sd::LaunchContext * context, const NDArray* predict
             indicesAlongDimension<X,Y><<<256, numTreads, shMemSize, *context->getCudaStream()>>>(input->specialBuffer(), packX.platformShapeInfo(), packX.platformOffsets(), indices->specialBuffer(), packI.platformShapeInfo(), packI.platformOffsets(), values->specialBuffer(), packZ.platformShapeInfo(), packZ.platformOffsets(), tadLength, packX.numberOfTads(), k, scanWidth, needSort);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
-    ND4J_LOCAL int topKFunctor(sd::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const uint k, bool needSort) {
+    sd::Status topKFunctor(sd::LaunchContext * context, const NDArray* input, NDArray* values, NDArray* indices, const sd::Unsigned k, bool needSort) {
         input->syncToDevice();
 
-        BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), topKFunctor_, (context, input, values, indices, k, needSort), LIBND4J_TYPES, INDEXING_TYPES);
+        BUILD_DOUBLE_SELECTOR(input->dataType(), indices->dataType(), topKFunctor_, (context, input, values, indices, k, needSort), SD_COMMON_TYPES, SD_INDEXING_TYPES);
 
         values->tickWriteDevice();
         indices->tickWriteDevice();
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
 }

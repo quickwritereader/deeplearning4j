@@ -19,7 +19,6 @@
 //
 // Created by GS <sgazeos@gmail.com> on 4/6/2018.
 //
-
 #include <array/ResultSet.h>
 #include <ops/declarable/helpers/diag.h>
 
@@ -43,12 +42,12 @@ static void _diagFunctor(const NDArray* input, NDArray* output) {
     void diagFunctor(sd::LaunchContext * context, const NDArray* input, NDArray* output) {
         auto xType = input->dataType();
 
-        BUILD_SINGLE_SELECTOR(xType, _diagFunctor, (input, output), LIBND4J_TYPES);
+        BUILD_SINGLE_SELECTOR(xType, _diagFunctor, (input, output), SD_COMMON_TYPES);
     }
 
-BUILD_SINGLE_TEMPLATE(template ND4J_LOCAL void _diagFunctor, (const NDArray* input, NDArray* output);, LIBND4J_TYPES);
+BUILD_SINGLE_TEMPLATE(template void _diagFunctor, (const NDArray* input, NDArray* output);, SD_COMMON_TYPES);
 
-ND4J_LOCAL void diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
+void diagPartFunctor(sd::LaunchContext * context, NDArray const* input, NDArray* output) {
     const int outLen = output->lengthOf();
     const int inLen = input->lengthOf();
     int i(0), j(0);

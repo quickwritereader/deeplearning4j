@@ -37,7 +37,7 @@ namespace ops  {
 
         if(output->isEmpty()){
             //No-op
-            return Status::OK();
+            return sd::Status::OK;
         }
 
         std::vector<int> axis;
@@ -57,7 +57,7 @@ namespace ops  {
             helpers::reverse(block.launchContext(), input, output, &axis);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_SYN(reverse_v2, reverse);
@@ -90,7 +90,7 @@ namespace ops  {
             helpers::reverse(block.launchContext(), eps, output, &axis);
         }
 
-        return Status::OK();
+        return sd::Status::OK;
     }
 
     DECLARE_TYPES(reverse_bp) {
@@ -101,7 +101,7 @@ namespace ops  {
 
     DECLARE_SHAPE_FN(reverse_bp) {
         auto in = inputShape->at(0);
-        Nd4jLong *out;
+        sd::LongType *out;
         COPY_SHAPE(in, out);
 
         return SHAPELIST(CONSTANT(out));

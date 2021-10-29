@@ -19,7 +19,6 @@
 //
 //  @author raver119@gmail.com
 //
-
 #include "testlayers.h"
 #include <ops/declarable/CustomOperations.h>
 #include <array/NDArray.h>
@@ -98,7 +97,7 @@ TEST_F(ScalarTests, Test_Concat_1) {
     sd::ops::concat op;
     auto result = op.evaluate({&t, &u, &v}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -118,7 +117,7 @@ TEST_F(ScalarTests, Test_Concat_2) {
     sd::ops::concat op;
     auto result = op.evaluate({&t, &u, &v}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
     // z->printIndexedBuffer();
@@ -139,7 +138,7 @@ TEST_F(ScalarTests, Test_Concat_3) {
     sd::ops::concat op;
     auto result = op.evaluate({&t, &u, &v}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -158,7 +157,7 @@ TEST_F(ScalarTests, Test_ExpandDims_1) {
     sd::ops::expand_dims op;
     auto result = op.evaluate({&x}, {}, {0});
 
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -174,7 +173,7 @@ TEST_F(ScalarTests, Test_Squeeze_1) {
 
     sd::ops::squeeze op;
     auto result = op.evaluate({&x}, {}, {});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -190,7 +189,7 @@ TEST_F(ScalarTests, Test_Permute_1) {
 
     sd::ops::permute op;
     auto result = op.evaluate({&x}, {}, {0});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -209,7 +208,7 @@ TEST_F(ScalarTests, Test_Concat_Scalar_1) {
 
     sd::ops::concat op;
     auto result = op.evaluate({&t, &u, &v, &w}, {}, {0});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 
@@ -228,7 +227,7 @@ TEST_F(ScalarTests, Test_Concat_Scalar_2) {
 
     sd::ops::concat op;
     auto result = op.evaluate({&t, &u, &v, &w}, {}, {1});
-    ASSERT_EQ(ND4J_STATUS_OK, result.status());
+    ASSERT_EQ(sd::Status::OK, result.status());
 
     auto z = result.at(0);
 

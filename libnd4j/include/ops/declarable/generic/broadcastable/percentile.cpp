@@ -54,7 +54,7 @@ CUSTOM_OP_IMPL(percentile, 1, 1, false, 1, -2) {
     std::vector<int> axises = *block.getIArguments();
     helpers::percentile(block.launchContext(), *input, *output, axises, q, interpolation);
 
-    return Status::OK();
+    return sd::Status::OK;
 }
 
     DECLARE_TYPES(percentile) {

@@ -23,19 +23,21 @@
 #ifndef LIBND4J_MEMORYREGISTRATOR_H
 #define LIBND4J_MEMORYREGISTRATOR_H
 
+
+#include <system/common.h>
 #include "Workspace.h"
 #include <system/op_boilerplate.h>
 #include <unordered_map>
 #include <map>
 #include <mutex>
-#include <system/dll.h>
+
 
 namespace sd {
     namespace memory {
-        class ND4J_EXPORT MemoryRegistrator {
+        class SD_LIB_EXPORT MemoryRegistrator {
         protected:
             Workspace* _workspace;
-            MAP_IMPL<Nd4jLong, Nd4jLong> _footprint;
+            SD_MAP_IMPL<sd::LongType, sd::LongType> _footprint;
             std::mutex _lock;
 
             MemoryRegistrator();
@@ -50,18 +52,18 @@ namespace sd {
             /**
              * This method allows you to set memory requirements for given graph
              */
-            void setGraphMemoryFootprint(Nd4jLong hash, Nd4jLong bytes);
+            void setGraphMemoryFootprint(sd::LongType hash, sd::LongType bytes);
 
             /**
              * This method allows you to set memory requirements for given graph, ONLY if
              * new amount of bytes is greater then current one
              */
-            void setGraphMemoryFootprintIfGreater(Nd4jLong hash, Nd4jLong bytes);
+            void setGraphMemoryFootprintIfGreater(sd::LongType hash, sd::LongType bytes);
 
             /**
              * This method returns memory requirements for given graph
              */ 
-            Nd4jLong getGraphMemoryFootprint(Nd4jLong hash);
+            sd::LongType getGraphMemoryFootprint(sd::LongType hash);
         };
     }
 }

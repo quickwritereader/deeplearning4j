@@ -91,7 +91,7 @@ CHECK_VECTORIZATION="OFF"
 NAME=
 OP_OUTPUT_FILE="include/generated/include_ops.h"
 USE_LTO=
-SANITIZE="OFF"
+SANITIZE="ON"
 
 
 while [[ $# -gt 0 ]]

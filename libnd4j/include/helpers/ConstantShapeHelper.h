@@ -38,12 +38,23 @@ class SD_LIB_EXPORT ConstantShapeHelper {
  private:
   std::mutex _mutex;
   std::vector<SD_MAP_IMPL<ShapeDescriptor, ConstantShapeBuffer>> _cache;
-
+#if defined(__NEC__)
+  bool _cache_existing_pointers = true;
+#endif
   ConstantShapeHelper();
 
  public:
   ~ConstantShapeHelper() = default;
+#if defined(__NEC__)
+  //Warning: Use it with caution. please, restore it to the previous state to avoid interfering internals
+  void disableExistingPointerCaching(){
+    _cache_existing_pointers = false;
+  }
 
+  void enableExistingPointerCaching(){
+    _cache_existing_pointers = true;
+  }
+#endif
   static ConstantShapeHelper& getInstance();
 
   ConstantShapeBuffer& bufferForShapeInfo(sd::DataType dataType, char order, const std::vector<sd::LongType>& shape);

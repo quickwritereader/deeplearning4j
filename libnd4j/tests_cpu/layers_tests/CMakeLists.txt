@@ -133,7 +133,7 @@ if (SD_CPU OR SD_AURORA)
 elseif (SD_CUDA)
     file(GLOB_RECURSE TEST_SOURCES false ./*.cpp ./*.cu ./*.h)
 endif()
-
+list(FILTER TEST_SOURCES  EXCLUDE  REGEX ".*simple_run.cpp")
 # Filter out any source files from */CMakeFiles/* paths. these tend to cause problems such a multiple main definitions.
 set (EXCLUDE_DIR "/CMakeFiles/")
 foreach (TMP_PATH ${TEST_SOURCES})
@@ -169,3 +169,11 @@ elseif(SD_CUDA)
 
     target_link_libraries(runtests samediff_obj ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_cusolver_LIBRARY} ${CUDNN} ${EXTERNAL_DEPENDENCY_LIBS} ${ONEDNN} gtest gtest_main)
 endif()
+
+
+add_executable(simple_run  "${CMAKE_CURRENT_SOURCE_DIR}/simple_run.cpp")
+   # applies to windows only
+   set_property(TARGET simple_run PROPERTY MSVC_RUNTIME_LIBRARY "${MSVC_RT_LIB}$<$<CONFIG:Debug>:Debug>") 
+
+ 
+target_link_libraries(simple_run samediff_obj  ${ONEDNN_LIBRARIES} ${OPENBLAS_LIBRARIES} ${EXTERNAL_DEPENDENCY_LIBS} ${ONEDNN}  ${BLAS_LIBRARIES} ${CPU_FEATURES}  ${ARMCOMPUTE_LIBRARIES} )

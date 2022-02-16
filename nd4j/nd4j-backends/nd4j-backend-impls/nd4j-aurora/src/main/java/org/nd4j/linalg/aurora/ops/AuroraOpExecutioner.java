@@ -86,7 +86,7 @@ public class AuroraOpExecutioner extends DefaultOpExecutioner {
     @Getter
     private AuroraTADManager tadManager = new AuroraTADManager();
     private boolean timeAuroraCalls = false;
-    private boolean useCalculateOutputShapesNec = false;
+
     //thread locals for custom op inputs and outputs to prevent allocations
     //every time exec(CustomOp) is called
     private ThreadLocal<Map<Integer,PointerPointer>> inputShapes = new ThreadLocal<>();
@@ -116,7 +116,6 @@ public class AuroraOpExecutioner extends DefaultOpExecutioner {
     public AuroraOpExecutioner() {
         tadManager.init(loop, constantHandler);
         timeAuroraCalls = Boolean.parseBoolean(System.getenv().getOrDefault("TIME_AURORA_CALLS","false"));
-        useCalculateOutputShapesNec = Boolean.parseBoolean(System.getenv().getOrDefault("USE_CALCULATE_OUTPUT_SHAPE_NEC","false"));
         experimentalMode.set(loop.isExperimentalEnabled());
 /*
         // filling vars for possible overrides
@@ -1695,7 +1694,8 @@ public class AuroraOpExecutioner extends DefaultOpExecutioner {
 
     @Override
     public List<LongShapeDescriptor> calculateOutputShape(@NonNull CustomOp op, OpContext opContext) {
-        if(useCalculateOutputShapesNec && opContext != null) return calculateOutputShapesNec( op, opContext);
+        //redirect output shape calculation to simplified direct version if possible
+        if(opContext != null) return calculateOutputShapesNec( op, opContext);
         val lc = op.opName().toLowerCase();
         val hash = op.opHash();
         

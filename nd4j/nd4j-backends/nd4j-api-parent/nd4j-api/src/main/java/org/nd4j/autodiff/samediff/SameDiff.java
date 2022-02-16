@@ -306,37 +306,57 @@ public class SameDiff extends SDBaseOps {
      * @return the inference Factory
      */
     public static InferenceFactory getInferenceFactory() {
+        if (INFERENCE_FACTORY == null){
+
+            synchronized(SameDiff.class){
+                if(INFERENCE_FACTORY == null) {
+                    //bind default one
+                    INFERENCE_FACTORY = new DefaultInferenceFactory();
+                }
+            }
+
+        }
         return INFERENCE_FACTORY;
     }
 
     /**
-     * Set the inference 
-     * factory
+     * Bind the inferenceFactory.
+     * 
+     * @implNote it will work when neither default
+     *           nor the one from the config is bound
+     * @param inferenceFactory
+     * @return true if the provided inferenceFactory is bound successfully
      */
-    public static void setInferenceFactory(InferenceFactory inferenceFactory) {
-        if(inferenceFactory != null) INFERENCE_FACTORY = inferenceFactory;
+    public static boolean bindInferenceFactory(InferenceFactory inferenceFactory) {
+        boolean success = false;
+        synchronized (SameDiff.class) {
+            if (inferenceFactory != null) {
+                INFERENCE_FACTORY = inferenceFactory;
+                success = true;
+            }
+        }
+        return success;
     }
 
     public static class DefaultInferenceFactory implements InferenceFactory {
-        public InferenceSession create(SameDiff sameDiff){
+        public InferenceSession create(SameDiff sameDiff) {
             return new InferenceSession(sameDiff);
         }
     };
 
     static {
-        //try to set the inferenceFactory using the config
+        // try to set the inferenceFactory using the config
         Properties props = Nd4jContext.getInstance().getConf();
         PropertyParser pp = new PropertyParser(props);
         String clazzNameInferenceFactory = pp.toString(INFERENCE_FACTORY_CLASS, "");
-        if(!clazzNameInferenceFactory.isEmpty()){
-            try{
-                Class<? extends InferenceFactory> inferenceClazz = ND4JClassLoading.loadClassByName(clazzNameInferenceFactory);
+        if (!clazzNameInferenceFactory.isEmpty()) {
+            try {
+                Class<? extends InferenceFactory> inferenceClazz = ND4JClassLoading
+                        .loadClassByName(clazzNameInferenceFactory);
                 INFERENCE_FACTORY = inferenceClazz.newInstance();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }else{
-            INFERENCE_FACTORY = new DefaultInferenceFactory();
         }
 
     }

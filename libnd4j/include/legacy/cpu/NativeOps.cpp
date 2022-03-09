@@ -1557,44 +1557,100 @@ sd::ShapeList *calculateOutputShapes2(sd::Pointer *extraPointers, sd::LongType h
     return nullptr;
   }
 }
+//#define timing 1
+#if defined(timing)  
+
+#include <chrono>
+#include <iostream>
+static long long int tt =0;
+#endif
 
 #if defined(__NEC__)
-void setGraphContextArgs(OpaqueContext *ctx, int numArr, sd::Pointer* inputArrDataShapePairs, int numIArgs, sd::LongType* iArgsPtr,
-                                      int numDArgs, int *dArgsPtr, int numTArgs, double *tArgsPtr, int numBArgs, bool *bArgsPtr){
-
-
-  if(numIArgs> 0 ) {
+void setGraphContextArgs(OpaqueContext *ctx, int numArr, sd::Pointer *inputArrDataShapePairs, int numIArgs,
+                         sd::LongType *iArgsPtr, int numDArgs, int *dArgsPtr, int numTArgs, double *tArgsPtr,
+                         int numBArgs, bool *bArgsPtr) {
+  auto  start0 = std::chrono::high_resolution_clock::now();
+  if (numIArgs > 0) {
     auto vecPtr = ctx->getIArguments();
     vecPtr->resize(numIArgs);
     auto vecData = vecPtr->data();
     for (int e = 0; e < numIArgs; e++) vecData[e] = iArgsPtr[e];
   }
 
-  if(numDArgs> 0 ) {
+  if (numDArgs > 0) {
     auto vecPtr = ctx->getDArguments();
     vecPtr->resize(numDArgs);
     auto vecData = vecPtr->data();
-    for (int e = 0; e < numDArgs; e++) vecData[e] =(sd::DataType)dArgsPtr[e];
+    for (int e = 0; e < numDArgs; e++) vecData[e] = (sd::DataType)dArgsPtr[e];
   }
 
-  if(numTArgs> 0 ) {
+  if (numTArgs > 0) {
     auto vecPtr = ctx->getTArguments();
     vecPtr->resize(numTArgs);
     auto vecData = vecPtr->data();
     for (int e = 0; e < numTArgs; e++) vecData[e] = tArgsPtr[e];
   }
 
-  if(numBArgs> 0 ) {
+  if (numBArgs > 0) {
     auto vecPtr = ctx->getBArguments();
     vecPtr->clear();
     for (int e = 0; e < numBArgs; e++) vecPtr->push_back(bArgsPtr[e]);
   }
-
-  int i = 0;
-  for (int e = 0; e < numArr; e+=2) {
-      ctx->setInputArray(i, inputArrDataShapePairs[e], inputArrDataShapePairs[e + 1], nullptr);
-      ++i;
+ 
+#if defined(timing)  
+  auto  start = std::chrono::high_resolution_clock::now();
+#endif
+  int index = 0;
+#if 1
+  auto arrayCount = numArr / 2;
+  auto _context = ctx->getContext();
+  auto &fastpath_in = ctx->fastpath_in();
+  fastpath_in.resize(arrayCount);
+  auto &handles = ctx->handles();
+  if (handles.size() > 0) {
+    // delete
+    for (auto &x : handles) {
+      delete x;
+    }
   }
+  handles.resize(arrayCount);
+#endif
+  for (int e = 0; e < numArr; e += 2) {
+#if 0
+    ctx->setInputArray(index, inputArrDataShapePairs[e], inputArrDataShapePairs[e + 1], nullptr);
+#else
+    auto dataBuffer = reinterpret_cast<InteropDataBuffer *>(inputArrDataShapePairs[e]);
+    auto shapeInfo = reinterpret_cast<sd::LongType const *>(inputArrDataShapePairs[e + 1]);
+    NDArray *array;
+    array = new NDArray();
+    if (dataBuffer != nullptr) {
+      
+      // we set shapeInfo directly as we assume its already coming from shapeInfoProvide
+      auto offset = dataBuffer->offset();
+      if( offset>0 ) offset = offset / DataTypeUtils::sizeOf(ArrayOptions::dataType(shapeInfo));
+      array->set2(dataBuffer->dataBuffer(), shapeInfo, offset);
+    } else {
+      sd_printf("%s %d\n",__FILE__,__LINE__);
+      array = new NDArray(nullptr, nullptr, shapeInfo);
+    }
+    fastpath_in[index] = array;
+    handles[index] = array;
+
+    if (_context != nullptr) array->setContext(_context);
+#endif
+    ++index;
+  }
+
+#if defined(timing)  
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto t = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    auto t0 = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start0).count();
+  tt += t0;
+
+  std::cout<<"elapsed: "<<t<<" -> "<<t0<<" -> "<<tt<<std::endl;
+#endif
+ 
 }
 
 sd::ShapeList *calculateOutputShapesFromContext(sd::graph::Context *ctx, sd::LongType hash) {

@@ -418,14 +418,24 @@ void Context::setOutputArray(int index, void *vdatabuffer, void const *shapeInfo
   if (_fastpath_out.size() < index + 1) _fastpath_out.resize(index + 1);
 
   NDArray *array;
-  if (dataBuffer != nullptr)
+  if (dataBuffer != nullptr){
+#if defined(__NEC__)
+      array = new NDArray();
+      // we set shapeInfo directly as we assume its already coming from shapeInfoProvide
+      auto shapePtr = reinterpret_cast<sd::LongType const *>(shapeInfo);
+      array->set2(dataBuffer->dataBuffer(), shapePtr,
+                  dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(shapePtr)));
+#else
     array = new NDArray(dataBuffer->dataBuffer(), reinterpret_cast<sd::LongType const *>(shapeInfo),
                         sd::LaunchContext::defaultContext(),
                         dataBuffer->offset() / DataTypeUtils::sizeOf(ArrayOptions::dataType(
                                                    reinterpret_cast<sd::LongType const *>(shapeInfo))));
-  else
-    array = new NDArray(nullptr, nullptr, reinterpret_cast<sd::LongType const *>(shapeInfo));
+#endif
+  }
+  else{
 
+    array = new NDArray(nullptr, nullptr, reinterpret_cast<sd::LongType const *>(shapeInfo));
+  }
   _fastpath_out[index] = array;
   _handles.emplace_back(array);
 

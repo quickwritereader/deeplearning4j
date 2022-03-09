@@ -186,6 +186,11 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
 #ifndef __JAVACPP_HACK__
   std::vector<NDArray*>& fastpath_in();
   std::vector<NDArray*>& fastpath_out();
+  
+#if defined(__NEC__)
+  LaunchContext* getContext(){ return _context;}
+  std::vector<NDArray *> &Context::handles() { return _handles; };
+#endif
 #endif
 
   void setInputArray(int index, NDArray* array, bool removable = false);
@@ -229,6 +234,7 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
 
   bool isTraining();
   bool isInference();
+
 };
 }  // namespace graph
 }  // namespace sd

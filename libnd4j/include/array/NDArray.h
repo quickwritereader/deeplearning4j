@@ -1295,6 +1295,17 @@ class SD_LIB_EXPORT NDArray {
   void setShapeInfo(const ShapeDescriptor &descriptor);
   void setShapeInfo(const ConstantShapeBuffer &shapeBuffer);
 
+#ifdef __NEC__
+  void setShapeInfoDirectly(const sd::LongType *shapeInfo);
+  void set2(std::shared_ptr<DataBuffer> buffer, const sd::LongType *shapeInfo, const sd::LongType offset){
+    setShapeInfoDirectly(shapeInfo);
+    _context = sd::LaunchContext::defaultContext();
+    _offset = offset;
+    _buffer = buffer;
+    _isView = offset > 0 || _length * DataTypeUtils::sizeOf(_dataType) < buffer->getLenInBytes();
+  }
+#endif
+
   /**
    *  returns absolute offset which corresponds to given sequential index
    */
@@ -1596,6 +1607,25 @@ void NDArray::setShapeInfo(sd::LongType *shapeInfo) {
     _length = 0;
   }
 }
+
+#ifdef __NEC__
+void NDArray::setShapeInfoDirectly(const sd::LongType *shapeInfo) {
+ 
+  _shapeInfo = shapeInfo;
+  _shapeInfoD = nullptr;
+
+  if (shapeInfo != nullptr) {
+    _dataType = ArrayOptions::dataType(_shapeInfo);
+    if (ArrayOptions::arrayType(_shapeInfo) == ArrayType::EMPTY)
+      _length = 0;
+    else
+      _length = shape::length(_shapeInfo);
+  } else {
+    _dataType = sd::DataType::INHERIT;
+    _length = 0;
+  }
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 void NDArray::setShapeInfo(sd::LongType *shapeInfo, const sd::DataType dtype) {

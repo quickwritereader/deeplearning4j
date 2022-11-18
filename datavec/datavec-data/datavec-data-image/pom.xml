@@ -139,20 +139,13 @@
                         <classpathDependencyExclude>com.google.android:android
                         </classpathDependencyExclude>
                     </classpathDependencyExcludes>
+                    <argLine>
+                        --add-exports java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED
+                    </argLine>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>nd4j-tests-cpu</id>
-        </profile>
-        <profile>
-            <id>nd4j-tests-cuda</id>
-        </profile>
-        <profile>
-            <id>nd4j-tests-aurora</id>
-        </profile>
-    </profiles>
+
 </project>

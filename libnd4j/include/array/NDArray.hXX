@@ -2280,12 +2280,12 @@ NDArray NDArray::asS() const {
                                                : unicode::offsetUtf8StringInUtf32(data + start, stop);
     } else if (dataType() == DataType::UTF16) {
       dataLength += (dtype == DataType::UTF32)
-                        ? unicode::offsetUtf16StringInUtf32(data + start, (stop / sizeof(char16_t)))
-                        : unicode::offsetUtf16StringInUtf8(data + start, (stop / sizeof(char16_t)));
+                    ? unicode::offsetUtf16StringInUtf32(data + start, (stop / sizeof(char16_t)))
+                    : unicode::offsetUtf16StringInUtf8(data + start, (stop / sizeof(char16_t)));
     } else {
       dataLength += (dtype == DataType::UTF16)
-                        ? unicode::offsetUtf32StringInUtf16(data + start, (stop / sizeof(char32_t)))
-                        : unicode::offsetUtf32StringInUtf8(data + start, (stop / sizeof(char32_t)));
+                    ? unicode::offsetUtf32StringInUtf16(data + start, (stop / sizeof(char32_t)))
+                    : unicode::offsetUtf32StringInUtf8(data + start, (stop / sizeof(char32_t)));
     }
   }
   offsets[lengthOf()] = dataLength;
@@ -2764,8 +2764,8 @@ void NDArray::applyTrueBroadcast(sd::BroadcastOpsTuple op, const NDArray &other,
   if (checkTargetShape) {
     const sd::LongType *newShapeInfo = nullptr;
     if (!ShapeUtils::evalBroadcastShapeInfo(
-            *this, other, true, newShapeInfo,
-            getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
+        *this, other, true, newShapeInfo,
+        getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
       throw std::runtime_error(
           "NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast "
           "operation !");
@@ -2819,8 +2819,8 @@ void NDArray::applyTrueBroadcast(sd::BroadcastBoolOpsTuple op, const NDArray &ot
   if (checkTargetShape) {
     const sd::LongType *newShapeInfo = nullptr;
     if (!ShapeUtils::evalBroadcastShapeInfo(
-            *this, other, true, newShapeInfo,
-            getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
+        *this, other, true, newShapeInfo,
+        getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
       throw std::runtime_error(
           "NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast "
           "operation !");
@@ -2878,8 +2878,8 @@ void NDArray::applyTrueBroadcast(sd::BroadcastIntOpsTuple op, const NDArray &oth
   if (checkTargetShape) {
     const sd::LongType *newShapeInfo = nullptr;
     if (!ShapeUtils::evalBroadcastShapeInfo(
-            *this, other, false, newShapeInfo,
-            getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
+        *this, other, false, newShapeInfo,
+        getContext()->getWorkspace()))  // the rank of target array must be equal to max->rankOf)()
       throw std::runtime_error(
           "NDArray::applyTrueBroadcast method: the shapes of this and other arrays are not suitable for broadcast "
           "operation !");
@@ -3257,8 +3257,6 @@ bool NDArray::reshapei(const char order, const std::vector<sd::LongType> &cshape
 
   if (isEmpty() && !isOutShapeEmpty)
     throw std::invalid_argument("NDArray::reshapei: can't reshape empty array to non-empty !");
-  if (!isEmpty() && isOutShapeEmpty)
-    throw std::invalid_argument("NDArray::reshapei: can't reshape non-empty array to empty !");
   if (isEmpty() && isOutShapeEmpty) {
     sd::LongType *shapeInfoNew = ShapeBuilders::emptyShapeInfo(dataType(), order, cshape, getContext()->getWorkspace());
     setShapeInfo(shapeInfoNew);
@@ -3792,7 +3790,7 @@ T NDArray::e(const sd::LongType i, const sd::LongType j, const sd::LongType k, c
 }
 BUILD_SINGLE_UNCHAINED_TEMPLATE(template SD_LIB_EXPORT,
                                 NDArray::e(const sd::LongType, const sd::LongType, const sd::LongType,
-                                           const sd::LongType) const,
+                                    const sd::LongType) const,
                                 SD_COMMON_TYPES_ALL);
 
 //////////////////////////////////////////////////////////////////////////
@@ -4670,8 +4668,10 @@ void NDArray::p(const sd::LongType i, const sd::LongType j, const sd::LongType k
 void NDArray::addRowVector(const NDArray &row, NDArray &target) const {
   if (isS()) throw std::runtime_error("NDArray::addRowVector: you can't use this method on String array!");
   if (rankOf() != 2 || target.rankOf() != 2 || rows() != target.rows() || columns() != target.columns() ||
-      !row.isRowVector() || columns() != row.lengthOf())
+      !row.isRowVector() || columns() != row.lengthOf()) {
+    sd_printf("NDArray::addiRowVector Input rank %d, Row is row vector %d, Number of columns: %d Row length: %d\n",rankOf(),row.isRowVector(),columns(),row.lengthOf());
     throw std::invalid_argument("NDArray::addRowVector: wrong arguments !");
+  }
   if (target.dataType() != DataTypeUtils::pickPairwiseResultType(dataType(), row.dataType()) &&
       !(isR() && row.isR() && target.isR()))
     throw std::invalid_argument("NDArray::addRowVector: wrong type of target array !");
@@ -4693,8 +4693,10 @@ void NDArray::addRowVector(const NDArray &row, NDArray &target) const {
 void NDArray::subRowVector(const NDArray &row, NDArray &target) const {
   if (isS()) throw std::runtime_error("NDArray::addRowVector: you can't use this method on String array!");
   if (rankOf() != 2 || target.rankOf() != 2 || rows() != target.rows() || columns() != target.columns() ||
-      !row.isRowVector() || columns() != row.lengthOf())
+      !row.isRowVector() || columns() != row.lengthOf()) {
+    sd_printf("NDArray::addRowVector Input rank %d, Row is row vector %d, Number of columns: %d Row length: %d\n",rankOf(),row.isRowVector(),columns(),row.lengthOf());
     throw std::invalid_argument("NDArray::addRowVector: wrong arguments !");
+  }
   if (target.dataType() != DataTypeUtils::pickPairwiseResultType(dataType(), row.dataType()) &&
       !(isR() && row.isR() && target.isR()))
     throw std::invalid_argument("NDArray::addRowVector: wrong type of target array !");
@@ -4716,8 +4718,10 @@ void NDArray::subRowVector(const NDArray &row, NDArray &target) const {
 void NDArray::mulRowVector(const NDArray &row, NDArray &target) const {
   if (isS()) throw std::runtime_error("NDArray::mulRowVector: you can't use this method on String array!");
   if (rankOf() != 2 || target.rankOf() != 2 || rows() != target.rows() || columns() != target.columns() ||
-      !row.isRowVector() || columns() != row.columns())
+      !row.isRowVector() || columns() != row.columns()) {
+    sd_printf("NDArray::mulRowVector Input rank %d, Row is row vector %d, Number of columns: %d Row length: %d\n",rankOf(),row.isRowVector(),columns(),row.lengthOf());
     throw std::invalid_argument("NDArray::mulRowVector: wrong arguments !");
+  }
   if (target.dataType() != DataTypeUtils::pickPairwiseResultType(dataType(), row.dataType()))
     throw std::invalid_argument("NDArray::mulRowVector: wrong type of target array !");
 
@@ -4739,8 +4743,10 @@ void NDArray::divRowVector(const NDArray &row, NDArray &target) const {
   if (isS()) throw std::runtime_error("NDArray::divRowVector: you can't use this method on String array!");
   if (row.isB()) throw std::runtime_error("NDArray::divRowVector: you can't divide by bool row!");
   if (rankOf() != 2 || target.rankOf() != 2 || rows() != target.rows() || columns() != target.columns() ||
-      !row.isRowVector() || columns() != row.columns())
+      !row.isRowVector() || columns() != row.columns()) {
+    sd_printf("NDArray::divRowVector Input rank %d, Row is row vector %d, Number of columns: %d Row length: %d\n",rankOf(),row.isRowVector(),columns(),row.lengthOf());
     throw std::invalid_argument("NDArray::divRowVector: wrong arguments !");
+    }
   if (target.dataType() != DataTypeUtils::pickPairwiseResultType(dataType(), row.dataType()))
     throw std::invalid_argument("NDArray::divRowVector: wrong type of target array !");
 
@@ -4761,9 +4767,10 @@ void NDArray::divRowVector(const NDArray &row, NDArray &target) const {
 // This method adds given row to all rows in this NDArray, this array becomes affected
 void NDArray::addiRowVector(const NDArray &row) {
   if (isS()) throw std::runtime_error("NDArray::addiRowVector: you can't use this method on String array!");
-  if (rankOf() != 2 || !row.isRowVector() || columns() != row.lengthOf())
+  if (rankOf() != 2 || !row.isRowVector() || columns() != row.lengthOf()) {
+    sd_printf("NDArray::addiRowVector Input rank %d, Row is row vector %d, Number of columns: %d Row length: %d\n",rankOf(),row.isRowVector(),columns(),row.lengthOf());
     throw std::invalid_argument("NDArray::addiRowVector: wrong arguments !");
-
+  }
   int dimension = 1;
 
   auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(this->shapeInfo(), dimension);
@@ -4781,8 +4788,10 @@ void NDArray::addiRowVector(const NDArray &row) {
 void NDArray::addColumnVector(const NDArray &column, NDArray &target) const {
   if (isS()) throw std::runtime_error("NDArray::addColumnVector: you can't use this method on String array!");
   if (rankOf() != 2 || target.rankOf() != 2 || rows() != target.rows() || columns() != target.columns() ||
-      !column.isColumnVector() || rows() != column.lengthOf())
+      !column.isColumnVector() || rows() != column.lengthOf()) {
+    sd_printf("NDArray::addColumnVector Input rank %d, Vector is column vector %d, Number of columns: %d Row length: %d\n",rankOf(),column.isColumnVector(),rows(),column.lengthOf());
     throw std::invalid_argument("NDArray::addColumnVector: wrong arguments !");
+  }
   if (target.dataType() != DataTypeUtils::pickPairwiseResultType(dataType(), column.dataType()))
     throw std::invalid_argument("NDArray::addColumnVector: wrong type of target array !");
 
@@ -4803,8 +4812,10 @@ void NDArray::addColumnVector(const NDArray &column, NDArray &target) const {
 // This method adds given column to all columns in this NDArray, this array becomes affected
 void NDArray::addiColumnVector(const NDArray &column) {
   if (isS()) throw std::runtime_error("NDArray::addiColumnVector: you can't use this method on String array!");
-  if (rankOf() != 2 || !column.isColumnVector() || rows() != column.lengthOf())
+  if (rankOf() != 2 || !column.isColumnVector() || rows() != column.lengthOf()) {
+    sd_printf("NDArray::addiColumnVector Input rank %d, Vector is column vector %d, Number of columns: %d Row length: %d\n",rankOf(),column.isColumnVector(),rows(),column.lengthOf());
     throw std::invalid_argument("NDArray::addiColumnVector: wrong arguments !");
+  }
 
   int dimension = 0;
 
@@ -4823,9 +4834,10 @@ void NDArray::addiColumnVector(const NDArray &column) {
 // This method multiplies each column of this array by given argument-column, this array becomes affected
 void NDArray::muliColumnVector(const NDArray &column) {
   if (isS()) throw std::runtime_error("NDArray::muliColumnVector: you can't use this method on String array!");
-  if (rankOf() != 2 || !column.isColumnVector() || rows() != column.lengthOf())
+  if (rankOf() != 2 || !column.isColumnVector() || rows() != column.lengthOf()) {
+    sd_printf("NDArray::muliColumnVector Input rank %d, Vector is column vector %d, Number of columns: %d Row length: %d\n",rankOf(),column.isColumnVector(),rows(),column.lengthOf());
     throw std::invalid_argument("NDArray::muliColumnVector: wrong arguments !");
-
+  }
   int dimension = 0;
 
   auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(this->shapeInfo(), dimension);

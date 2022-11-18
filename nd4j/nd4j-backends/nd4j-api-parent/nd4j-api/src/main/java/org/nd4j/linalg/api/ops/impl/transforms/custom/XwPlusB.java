@@ -36,6 +36,9 @@ import java.util.*;
 public class XwPlusB extends DynamicCustomOp {
 
 
+    private boolean aTranspose,bTranspose,cTranspose;
+
+
     public XwPlusB(SameDiff sameDiff, SDVariable input, SDVariable weights, SDVariable bias) {
         super(null, sameDiff, new SDVariable[] {input, weights, bias}, false);
     }
@@ -46,6 +49,19 @@ public class XwPlusB extends DynamicCustomOp {
 
     public XwPlusB(INDArray[] inputs, INDArray output){
         super(inputs, wrapOrNull(output));
+    }
+
+    public XwPlusB(SameDiff sd, SDVariable input, SDVariable weights, SDVariable bias, boolean transposeA, boolean transposeB, boolean transposeC) {
+        super(null,sd,new SDVariable[]{input,weights,bias});
+        addIArgument(transposeA ? 1 : 0, transposeB ? 1 : 0,transposeC ? 1 : 0);
+        this.aTranspose = transposeA;
+        this.bTranspose = transposeB;
+        this.cTranspose = transposeC;
+    }
+
+    public XwPlusB(INDArray input, INDArray weights, INDArray bias, boolean transposeA, boolean transposeB, boolean transposeC) {
+        super(null,new INDArray[]{input,weights,bias},null);
+        addIArgument(transposeA ? 1 : 0,transposeB ? 1 : 0,transposeC ? 1 : 0);
     }
 
     @Override
@@ -65,25 +81,42 @@ public class XwPlusB extends DynamicCustomOp {
     }
 
     @Override
-    public List<SDVariable> doDiff(List<SDVariable> gradient) {
-        SDVariable in = arg(0);
-        SDVariable w = arg(1);
-        SDVariable dLdOut = gradient.get(0);
+    public void configureFromArguments() {
+        if(!iArguments.isEmpty()) {
+            if(iArguments.size() == 1) {
+                this.aTranspose = iArguments.get(0) > 0;
+            }
 
-        SDVariable dLdb = dLdOut.sum(0);
-        SDVariable dLdIn = sameDiff.mmul(dLdOut, w, false, true, false);
-        SDVariable dLdW = sameDiff.mmul(in, dLdOut, true, false, false);
+            if(iArguments.size() > 1) {
+                this.bTranspose = iArguments.get(1) > 0;
+            }
 
-        return Arrays.asList(dLdIn, dLdW, dLdb);
+            if(iArguments.size() > 2) {
+                this.cTranspose = iArguments.get(2) > 0;
+            }
+
+
+        }
     }
 
     @Override
-    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes){
+    public List<SDVariable> doDiff(List<SDVariable> gradient) {
+        return Arrays.asList(new XwPlusBBp(
+                sameDiff,
+                arg(0),
+                arg(1),
+                arg(2),
+                gradient.get(0),
+                aTranspose,bTranspose).outputVariables());
+    }
+
+    @Override
+    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes) {
         Preconditions.checkState(dataTypes != null && dataTypes.size() == 3, "Expected exactly 3 input datatypes, got %s", dataTypes);
         DataType first = dataTypes.get(0);
-        for( int i=0; i<3; i++ ) {
+        for( int i = 0; i < 3; i++ ) {
             Preconditions.checkState(dataTypes.get(i).isFPType(), "Input %s datatype must be a floating point type, got datypes %s", dataTypes);
-            if(i > 0){
+            if(i > 0) {
                 Preconditions.checkState(first == dataTypes.get(i), "All datatypes must be same type, got input datatypes %s", dataTypes);
             }
         }

@@ -178,8 +178,6 @@ public class SDVariable implements Serializable {
      * created automatically when training is performed.
      */
     public SDVariable getGradient() {
-        Preconditions.checkState(dataType().isFPType(), "Cannot get gradient of %s datatype variable \"%s\": only floating" +
-                " point variables have gradients", dataType(), getVarName());
         return sameDiff.getGradForVariable(getVarName());
     }
 
@@ -189,7 +187,7 @@ public class SDVariable implements Serializable {
      * @return Shape of the variable
      */
     public long[] getShape() {
-        if (variableType == VariableType.PLACEHOLDER  || sameDiff.isEagerMode() && shape != null) {
+        if (variableType == VariableType.PLACEHOLDER  || shape != null) {
             return shape;
         } else if(variableType == VariableType.VARIABLE || variableType == VariableType.CONSTANT) {
             if(getArr() != null)

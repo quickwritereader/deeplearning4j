@@ -31,7 +31,11 @@ import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
 import org.deeplearning4j.models.sequencevectors.sequence.Sequence;
 import org.deeplearning4j.models.sequencevectors.sequence.SequenceElement;
 import org.deeplearning4j.models.word2vec.wordstore.VocabCache;
+import org.nd4j.common.primitives.Pair;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.api.ops.CustomOp;
+import org.nd4j.linalg.api.ops.OpContext;
+import org.nd4j.linalg.api.ops.executioner.DefaultOpExecutioner;
 import org.nd4j.linalg.api.rng.Random;
 import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
@@ -71,7 +75,7 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
 
     @Override
     public void configure(@NonNull VocabCache<T> vocabCache, @NonNull WeightLookupTable<T> lookupTable,
-                    @NonNull VectorsConfiguration configuration) {
+                          @NonNull VectorsConfiguration configuration) {
         this.vocabCache = vocabCache;
         this.lookupTable = lookupTable;
 
@@ -84,7 +88,7 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
     }
 
     /**
-     * DBOW doesn't involves any pretraining
+     * DBOW doesn't involve any pretraining
      *
      * @param iterator
      */
@@ -114,10 +118,41 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
         return false;
     }
 
-    protected void dbow(int i, Sequence<T> sequence, int b, AtomicLong nextRandom, double alpha, boolean isInference,
-                    INDArray inferenceVector, BatchSequences<T> batchSequences) {
 
-        //final T word = sequence.getElements().get(i);
+
+    protected List<CustomOp> getOps(int i, Sequence<T> sequence, int b, AtomicLong nextRandom, double alpha, boolean isInference,
+                                    INDArray inferenceVector) {
+
+
+        List<T> sentence = skipGram.applySubsampling(sequence, nextRandom).getElements();
+        List<CustomOp> ret = new ArrayList<>();
+
+        if (sequence.getSequenceLabel() == null)
+            return null;
+
+        List<T> labels = new ArrayList<>();
+        labels.addAll(sequence.getSequenceLabels());
+
+        if (sentence.isEmpty() || labels.isEmpty())
+            return null;
+
+        for (T lastWord : labels) {
+            for (T word : sentence) {
+                if (word == null)
+                    continue;
+
+                ret.add(skipGram.iterateSampleOp(word, lastWord, nextRandom, alpha, isInference, inferenceVector));
+
+            }
+        }
+
+        return ret;
+    }
+
+
+    protected void dbow(int i, Sequence<T> sequence, int b, AtomicLong nextRandom, double alpha, boolean isInference,
+                        INDArray inferenceVector, BatchSequences<T> batchSequences) {
+
         List<T> sentence = skipGram.applySubsampling(sequence, nextRandom).getElements();
 
 
@@ -131,7 +166,6 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
             return;
 
         int batchSize = configuration.getBatchSize();
-
         for (T lastWord : labels) {
             for (T word : sentence) {
                 if (word == null)
@@ -145,7 +179,7 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
         }
 
         if (skipGram != null && skipGram.getBatch() != null && skipGram.getBatch() != null
-                        && skipGram.getBatch().size() >= configuration.getBatchSize()) {
+                && skipGram.getBatch().size() >= configuration.getBatchSize()) {
             Nd4j.getExecutioner().exec(skipGram.getBatch());
             skipGram.getBatch().clear();
         }
@@ -161,28 +195,46 @@ public class DBOW<T extends SequenceElement> implements SequenceLearningAlgorith
      */
     @Override
     public INDArray inferSequence(Sequence<T> sequence, long nextRandom, double learningRate, double minLearningRate,
-                    int iterations) {
+                                  int iterations) {
         AtomicLong nr = new AtomicLong(nextRandom);
-
-        // we probably don't want subsampling here
-        // Sequence<T> seq = cbow.applySubsampling(sequence, nextRandom);
-        // if (sequence.getSequenceLabel() == null) throw new IllegalStateException("Label is NULL");
-
         if (sequence.isEmpty())
             return null;
 
 
-        Random random = Nd4j.getRandomFactory().getNewRandomInstance(configuration.getSeed() * sequence.hashCode(),
-                        lookupTable.layerSize() + 1);
-        INDArray ret = Nd4j.rand(new int[] {1, lookupTable.layerSize()}, random).subi(0.5)
-                        .divi(lookupTable.layerSize());
 
+
+        Random random = Nd4j.getRandomFactory().getNewRandomInstance(configuration.getSeed() * sequence.hashCode(),
+                lookupTable.layerSize() + 1);
+        INDArray ret = Nd4j.rand(random,new long[] {1, lookupTable.layerSize()}).subi(0.5)
+                .divi(lookupTable.layerSize());
+
+        OpContext ctx = Nd4j.getExecutioner().buildContext();
+        boolean setCtx = false;
+        List<CustomOp> ops = new ArrayList<>();
+        //build up a vector over iterations?
         for (int iter = 0; iter < iterations; iter++) {
             nr.set(Math.abs(nr.get() * 25214903917L + 11));
-            dbow(0, sequence, (int) nr.get() % window, nr, learningRate, true, ret, null);
+            List<CustomOp> ops1 = getOps(0, sequence, (int) nr.get() % window, nr, learningRate, true, ret);
+            if(!setCtx) {
+                ctx.setInputArrays(ops1.get(0).inputArguments());
+                ctx.setOutputArrays(ops1.get(0).outputArguments());
+                ctx.setBArguments(ops1.get(0).bArgs());
+                setCtx = true;
+            }
+
+            ctx.setTArguments(ops1.get(0).tArgs());
+            for(CustomOp customOp : ops) {
+                ctx.setIArguments(customOp.iArgs());
+                Nd4j.getExecutioner().exec(customOp,ctx);
+            }
 
             learningRate = ((learningRate - minLearningRate) / (iterations - iter)) + minLearningRate;
         }
+
+
+
+
+
 
         finish();
 

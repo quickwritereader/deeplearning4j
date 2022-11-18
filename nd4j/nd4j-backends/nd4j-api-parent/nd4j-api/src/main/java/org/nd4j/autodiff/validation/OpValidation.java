@@ -24,6 +24,8 @@ import org.nd4j.common.config.ND4JClassLoading;
 import org.nd4j.linalg.api.ops.custom.*;
 import org.nd4j.linalg.api.ops.impl.indexaccum.custom.ArgMax;
 import org.nd4j.linalg.api.ops.impl.indexaccum.custom.ArgMin;
+import org.nd4j.linalg.api.ops.impl.nlp.CbowInference;
+import org.nd4j.linalg.api.ops.impl.nlp.SkipGramInference;
 import org.nd4j.linalg.api.ops.impl.reduce.HashCode;
 import org.nd4j.shade.guava.collect.ImmutableSet;
 import org.nd4j.shade.guava.reflect.ClassPath;
@@ -35,7 +37,6 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.samediff.internal.SameDiffOp;
 import org.nd4j.autodiff.samediff.internal.Variable;
-import org.nd4j.autodiff.validation.listeners.NonInplaceValidationListener;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.imports.converters.DifferentialFunctionClassHolder;
 import org.nd4j.imports.descriptors.tensorflow.TensorflowDescriptorParser;
@@ -145,21 +146,6 @@ public class OpValidation {
 
         SameDiff sameDiff = testCase.sameDiff();
         List<Listener> listeners = sameDiff.getListeners();
-        if(listeners.isEmpty()) {
-            sameDiff.addListeners(new NonInplaceValidationListener());
-        } else {
-            boolean found = false;
-            for(Listener l : listeners){
-                if(l instanceof NonInplaceValidationListener) {
-                    found = true;
-                    break;
-                }
-            }
-            if(!found){
-                sameDiff.addListeners(new NonInplaceValidationListener());
-            }
-        }
-
         //Check forward pass:
         if (testCase.fwdTestFns() != null && testCase.fwdTestFns().size() > 0) {
             SameDiff sd = testCase.sameDiff();
@@ -236,7 +222,7 @@ public class OpValidation {
         } catch (IOException e){
             throw new RuntimeException("IOException deserializing from FlatBuffers", e);
         }
-        
+
         //Check variables:
         List<SDVariable> vars = original.variables();
         List<SDVariable> varsDe = deserialized.variables();
@@ -412,7 +398,7 @@ public class OpValidation {
         for (int i = 0; i < outShapes.size(); i++) {
             val act = outShapes.get(i);
             val exp = testCase.expShapes().get(i);
-            if(!Objects.equals(exp.dataType(), act.dataType())){
+            if(!Objects.equals(exp.dataType(), act.dataType())) {
                 return "Shape function check failed for output " + i + ": expected shape " + exp + ", actual shape " + act;
             }
             if(!Arrays.equals(act.getShape(), exp.getShape())){
@@ -978,6 +964,8 @@ public class OpValidation {
                 SpTreeCell.class,
                 CbowRound.class,
                 SkipGramRound.class,
+                SkipGramInference.class,
+                CbowInference.class,
                 HashCode.class,
                 HashCode.class,
                 BitCast.class,

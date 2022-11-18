@@ -69,6 +69,11 @@
             <artifactId>nd4j-native-preset</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>nd4j-cpu-backend-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 
@@ -154,8 +159,14 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <source>8</source>
-                    <target>8</target>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <compilerArgs>
+                        <arg>--add-exports</arg>
+                        <arg>java.base/java.nio=ALL-UNNAMED</arg>
+                        <arg>--add-opens</arg>
+                        <arg>java.base/java.nio=ALL-UNNAMED</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
             <plugin>
@@ -163,6 +174,11 @@
                 <artifactId>javacpp</artifactId>
                 <version>${javacpp.version}</version>
                 <dependencies>
+                    <dependency>
+                        <groupId>org.nd4j</groupId>
+                        <artifactId>nd4j-cpu-backend-common</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
                     <dependency>
                         <groupId>org.nd4j</groupId>
                         <artifactId>nd4j-native-preset</artifactId>
@@ -514,9 +530,6 @@
         </profile>
 
 
-        <profile>
-            <id>testresources</id>
-        </profile>
         <profile>
             <id>avx2</id>
             <activation>

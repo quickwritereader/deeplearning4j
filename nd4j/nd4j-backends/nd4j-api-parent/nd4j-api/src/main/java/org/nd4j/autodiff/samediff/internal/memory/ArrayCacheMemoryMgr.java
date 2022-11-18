@@ -20,18 +20,15 @@
 
 package org.nd4j.autodiff.samediff.internal.memory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.bytedeco.javacpp.Pointer;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.common.config.ND4JSystemProperties;
+import org.nd4j.common.primitives.AtomicDouble;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.BaseNDArray;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -51,21 +48,101 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
 
-    private final double maxMemFrac;
-    private long smallArrayThreshold;
-    private double largerArrayMaxMultiple;
+    private static Map<INDArray,INDArray> released = new IdentityHashMap<>();
 
-    private long maxCacheBytes;
-    private long totalMemBytes;
+    public final static double DEFAULT_MAX_MEM_FRACTION = 0.25;
+    public final static long DEFAULT_SMALL_ARRAY_THRESHOLD = 1024;
+    public final static double DEFAULT_LARGE_ARRAY_MAX_MULTIPLE = 2.0;
+    private static AtomicDouble largerArrayMaxMultiple;
 
-    private long currentCacheSize = 0;
+    private static AtomicLong maxCacheBytes;
+    private static AtomicLong totalMemBytes;
+    @Getter
+    @Setter
+    private static  AtomicDouble maxMemFrac;
+    private static AtomicLong currentCacheSize =  new AtomicLong(0);
 
-    private LinkedHashSet<Long> lruCache = new LinkedHashSet<>();
-    private Map<Long, INDArray> lruCacheValues = new HashMap<>();
 
-    private Table<DataType, String, List<INDArray>> arrays = HashBasedTable.create();
+    static {
+        setCacheDefaults();
+    }
 
-    private boolean enableCache = Boolean
+
+    public static void setCacheDefaults() {
+        maxMemFrac = new AtomicDouble(Double.parseDouble(System.getProperty(ND4JSystemProperties.CACHE_MEM_FRACTION,String.valueOf(DEFAULT_MAX_MEM_FRACTION))));
+        smallArrayThreshold = new AtomicLong(Long.parseLong(System.getProperty(ND4JSystemProperties.SMALL_ARRAY_THRESHOLD,String.valueOf(DEFAULT_SMALL_ARRAY_THRESHOLD))));
+        largerArrayMaxMultiple = new AtomicDouble(Double.parseDouble(System.getProperty(ND4JSystemProperties.LARGE_ARRAY_MAX_MULTIPLE,String.valueOf(DEFAULT_LARGE_ARRAY_MAX_MULTIPLE))));
+
+        if (isCpu()) {
+            totalMemBytes = new AtomicLong(Pointer.maxBytes());
+        } else {
+            Properties p = Nd4j.getExecutioner().getEnvironmentInformation();
+            List devList = (List) p.get("cuda.devicesInformation");
+            Map m = (Map) devList.get(0);
+            totalMemBytes = new AtomicLong((Long) m.get("cuda.totalMemory"));
+        }
+
+        long cacheValue = Math.round(maxMemFrac.get() * totalMemBytes.get());
+        maxCacheBytes = new AtomicLong(cacheValue);
+    }
+
+    @Getter
+    @Setter
+    private static AtomicLong smallArrayThreshold;
+
+    public static Set<Long> getLruCache() {
+        return lruCache;
+    }
+
+    public static Map<Long, INDArray> getLruCacheValues() {
+        return lruCacheValues;
+    }
+
+    public static AtomicDouble getMaxMemFrac() {
+        return maxMemFrac;
+    }
+
+    public static void setMaxMemFrac(AtomicDouble maxMemFrac) {
+        ArrayCacheMemoryMgr.maxMemFrac = maxMemFrac;
+    }
+
+    public static void setMaxMemFrac(double maxMemFrac) {
+        ArrayCacheMemoryMgr.maxMemFrac.set(maxMemFrac);
+    }
+
+    public static AtomicDouble getLargerArrayMaxMultiple() {
+        return largerArrayMaxMultiple;
+    }
+
+    public static void setLargerArrayMaxMultiple(AtomicDouble largerArrayMaxMultiple) {
+        ArrayCacheMemoryMgr.largerArrayMaxMultiple = largerArrayMaxMultiple;
+    }
+    public static void setLargerArrayMaxMultiple(double largerArrayMaxMultiple) {
+        ArrayCacheMemoryMgr.largerArrayMaxMultiple.set(largerArrayMaxMultiple);
+    }
+    public static AtomicLong getMaxCacheBytes() {
+        return maxCacheBytes;
+    }
+
+    public static void setMaxCacheBytes(AtomicLong maxCacheBytes) {
+        ArrayCacheMemoryMgr.maxCacheBytes = maxCacheBytes;
+    }
+
+    public static AtomicLong getCurrentCacheSize() {
+        return currentCacheSize;
+    }
+
+    public static void setCurrentCacheSize(AtomicLong currentCacheSize) {
+        ArrayCacheMemoryMgr.currentCacheSize = currentCacheSize;
+    }
+
+
+    private static Set<Long> lruCache = new ConcurrentSkipListSet<>();
+    private static Map<Long, INDArray> lruCacheValues = new ConcurrentHashMap<>();
+
+    private static Table<DataType, String, List<INDArray>> arrays = HashBasedTable.create();
+
+    private static boolean enableCache = Boolean
             .parseBoolean(System.getProperty(ND4JSystemProperties.SAMEDIFF_MEMORY_CACHE_DISABLE, "true"));
 
     /**
@@ -73,44 +150,12 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
      * {@link ArrayCacheMemoryMgr}
      */
     public ArrayCacheMemoryMgr() {
-        this(0.25, 1024, 2.0);
+
     }
 
-    /**
-     * @param maxMemFrac             Maximum memory fraction to use as cache
-     * @param smallArrayThreshold    Below this size (elements), don't apply the
-     *                               "largerArrayMaxMultiple" rule
-     * @param largerArrayMaxMultiple Maximum multiple of the requested size to
-     *                               return from the cache. If an array of size
-     *                               1024 is requested, and largerArrayMaxMultiple
-     *                               is 2.0, then we'll return from the cache
-     *                               the array with the smallest data buffer up to
-     *                               2.0*1024 elements; otherwise we'll return
-     *                               a new array
-     */
-    public ArrayCacheMemoryMgr(double maxMemFrac, long smallArrayThreshold, double largerArrayMaxMultiple) {
-        Preconditions.checkArgument(maxMemFrac > 0 && maxMemFrac < 1,
-                "Maximum memory fraction for cache must be between 0.0 and 1.0, got %s", maxMemFrac);
-        Preconditions.checkArgument(smallArrayThreshold >= 0, "Small array threshold must be >= 0, got %s",
-                smallArrayThreshold);
-        Preconditions.checkArgument(largerArrayMaxMultiple >= 1.0, "Larger array max multiple must be >= 1.0, got %s",
-                largerArrayMaxMultiple);
-        this.maxMemFrac = maxMemFrac;
-        this.smallArrayThreshold = smallArrayThreshold;
-        this.largerArrayMaxMultiple = largerArrayMaxMultiple;
 
-        if (isCpu()) {
-            totalMemBytes = Pointer.maxBytes();
-        } else {
-            Properties p = Nd4j.getExecutioner().getEnvironmentInformation();
-            List devList = (List) p.get("cuda.devicesInformation");
-            Map m = (Map) devList.get(0);
-            totalMemBytes = (Long) m.get("cuda.totalMemory");
-        }
-        maxCacheBytes = (long) (maxMemFrac * totalMemBytes);
-    }
 
-    private boolean isCpu() {
+    private static boolean isCpu() {
         String backend = Nd4j.getExecutioner().getEnvironmentInformation().getProperty("backend");
         return !"CUDA".equalsIgnoreCase(backend);
     }
@@ -119,26 +164,42 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
     public INDArray allocate(boolean detached, DataType dataType, long... shape) {
         String arrayShapeString = Arrays.toString(shape);
         if (arrays.contains(dataType, arrayShapeString) && enableCache) {
-            INDArray arr = !arrays.get(dataType, arrayShapeString).isEmpty()
-                    ? arrays.get(dataType, arrayShapeString).remove(0)
-                    : null;
-            if (arr != null && !arr.wasClosed()) {
-                // Decrement cache size
-                currentCacheSize -= dataType.width() * arr.data().length();
-                log.info("Cache hit for data type " + dataType + " and shape " + Arrays.toString(shape));
-                lruCache.remove(arr.getId());
-                lruCacheValues.remove(arr.getId());
-                // We need to assign new Id. this way we will break any possible relationship it
-                // had in Tracker.
-                // the old cache was recreating New Array using buffer and thus gaining new
-                // reference . Note that it had IdentityHash with references being keys
-                ((BaseNDArray) arr).assignNewId();
-                return arr; // Allocated from cache
+            INDArray arr = null;
+            boolean arrFound = false;
+            while(!arrFound) {
+                arr = !arrays.get(dataType, arrayShapeString).isEmpty()
+                        ? arrays.get(dataType, arrayShapeString).remove(0)
+                        : null;
+                if(arr != null && (!arr.closeable() || arr.wasClosed() || arr.isView())) {
+                    log.trace("Found array closeable, not returning from cache. Only closeable arrays are returnable from the cache.");
+                    if(arr.isView())
+                        arr.setCloseable(false);
+                    log.trace("Found view array with id " + arr.getId() + " in cache. Avoiding return. Allocating new array.");
+
+                    continue;
+                } else if(!arrays.contains(dataType, arrayShapeString) || arrays.get(dataType,arrayShapeString).isEmpty()) {
+                    break;
+                }
+
+                if (arr != null) {
+                    // Decrement cache size
+                    currentCacheSize.set(currentCacheSize.get() - dataType.width() * arr.data().length());
+                    lruCache.remove(arr.getId());
+                    lruCacheValues.remove(arr.getId());
+                    // We need to assign new Id. this way we will break any possible relationship it
+                    // had in Tracker.
+                    // the old cache was recreating New Array using buffer and thus gaining new
+                    // reference . Note that it had IdentityHash with references being keys
+                    ((BaseNDArray) arr).assignNewId();
+                    return arr; // Allocated from cache
+                }
             }
+
         }
 
         // Allocation failed, allocate new array
-        INDArray ret = Nd4j.createUninitializedDetached(dataType, shape);
+        //switch to using current workspace rather than detached
+        INDArray ret = detached ? Nd4j.createUninitializedDetached(dataType,shape) : Nd4j.create(dataType, shape);
         return ret;
     }
 
@@ -160,8 +221,15 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
             INDArray arr = null;
             List<INDArray> arrays2 = arrays.get(dataType, arrayShape);
 
-            if (arrays2.size() > 0) {
+            while (arrays2.size() > 0) {
                 arr = arrays2.remove(0);
+                if(arr.isView()) {
+                    //set closeable to prevent reuse elsewhere
+                    arr.setCloseable(false);
+                    log.trace("Found view array with id " + arr.getId() + " in cache. Avoiding allocation.");
+                } else {
+                    break;
+                }
             }
 
             if (arr != null && arr.ordering() != descriptor.getOrder()) {
@@ -170,8 +238,7 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
 
             if (arr != null && !arr.wasClosed()) {
                 // Decrement cache size
-                currentCacheSize -= dataType.width() * arr.data().length();
-                log.info("Cache hit for data type " + dataType + " and shape " + Arrays.toString(arr.shape()));
+                currentCacheSize.set(currentCacheSize.get() - dataType.width() * arr.data().length());
                 // We need to assign new Id. this way we will break any possible relationship it
                 // had in Tracker.
                 // the old cache was recreating New Array using buffer and thus gaining new
@@ -189,6 +256,8 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
 
     @Override
     public void release(@NonNull INDArray array) {
+       if(!array.closeable())
+           return;
         // Check for multiple releases of the array
         long id = array.getId();
         Preconditions.checkState(!lruCache.contains(id), "Array was released multiple times: id=%s, shape=%ndShape", id,
@@ -221,8 +290,8 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
             if (array.closeable()) {
                 array.close();
             }
-        } else if (currentCacheSize + thisBytes > maxCacheBytes) {
-            if (thisBytes > maxCacheBytes) {
+        } else if (currentCacheSize.get() + thisBytes > maxCacheBytes.get()) {
+            if (thisBytes > maxCacheBytes.get()) {
 
                 // Can't store even if we clear everything - too large
                 if (array.closeable())
@@ -233,7 +302,7 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
             // Need to deallocate some arrays to stay under limit - do in "oldest first"
             // order
             Iterator<Long> iter = lruCache.iterator();
-            while (currentCacheSize + thisBytes > maxCacheBytes) {
+            while (currentCacheSize.get() + thisBytes > maxCacheBytes.get()) {
                 long next = iter.next();
                 iter.remove();
                 INDArray nextOldest = lruCacheValues.remove(next);
@@ -242,7 +311,7 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
                 List<INDArray> listx = arrays.get(ndt, Arrays.toString(nextOldest.shape()));
                 if (listx != null)
                     listx.remove(nextOldest);
-                currentCacheSize -= nextBytes;
+                currentCacheSize.set(currentCacheSize.get() - nextBytes);
 
                 if (nextOldest.closeable()) {
                     nextOldest.close();
@@ -267,7 +336,7 @@ public class ArrayCacheMemoryMgr extends AbstractMemoryMgr {
         if (!arrays.contains(dt, arrayShapeString))
             arrays.put(dt, arrayShapeString, new ArrayList<>());
         arrays.get(dt, arrayShapeString).add(array);
-        currentCacheSize += array.data().length() * dt.width();
+        currentCacheSize.set(currentCacheSize.get() + array.data().length() * dt.width());
 
         lruCache.add(array.getId());
         lruCacheValues.put(array.getId(), array);

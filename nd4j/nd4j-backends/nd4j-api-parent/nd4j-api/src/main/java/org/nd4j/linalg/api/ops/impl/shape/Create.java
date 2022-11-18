@@ -83,24 +83,33 @@ public class Create extends DynamicCustomOp {
         super(sd,new SDVariable[]{shape});
         addDArgument(dataType);
         addBArgument(false);
-        addIArgument((int) 'c', dataType.toInt());
+        addIArgument('c', dataType.toInt());
+        this.outputType = dataType;
     }
 
     public Create(SameDiff sd, SDVariable shape, DataType dataType, String order, boolean initialize) {
         this(sd,shape,dataType);
-        addIArgument((int) order.charAt(0),dataType.toInt());
+        addIArgument(order.charAt(0),dataType.toInt());
         addBArgument(initialize);
+        this.outputType = dataType;
     }
 
     public Create(INDArray shape, DataType dataType, String order, boolean initialize) {
         super(new INDArray[]{shape},null);
         addBArgument(initialize);
-        addIArgument((int) order.charAt(0),dataType.toInt());
+        addIArgument(order.charAt(0),dataType.toInt());
     }
 
     protected void addArgs() {
         addBArgument(initialize);
-        addIArgument((int) order,outputType.toInt());
+        addIArgument(order,outputType.toInt());
+    }
+
+    @Override
+    public void configureFromArguments() {
+        if(!iArguments.isEmpty()) {
+            this.outputType = DataType.fromInt(iArguments.size() > 1 ? iArguments.get(1).intValue(): iArguments.get(0).intValue());
+        }
     }
 
     @Override

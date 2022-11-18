@@ -30,32 +30,22 @@ namespace ops {
 CUSTOM_OP_IMPL(expand_dims, 1, 1, false, 0, -2) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
-
-  if (input->isScalar()) {
-    output->assign(input);
-    return sd::Status::OK;
-  }
-
   sd::LongType axis = block.numI() > 0 ? INT_ARG(0) : INPUT_VARIABLE(1)->e<int>(0);
 
   if (axis < 0) axis += input->rankOf() + 1;
 
-  REQUIRE_TRUE(axis >= 0 && axis <= input->rankOf() + 1, 0,
+  REQUIRE_TRUE(axis >= 0 && axis <= input->rankOf(), 0,
                "ExpandDims: axis should be in range of 0...%i in this case, but got %i instead", input->rankOf() + 1,
                axis);
 
-  std::vector<sd::LongType> shape(input->rankOf());
-
-  for (int e = 0; e < input->rankOf(); e++) shape[input->sizeAt(e)];
-
-  shape.insert(shape.begin() + axis, 1);
 
   if (input->ews() == 1 && output->ews() == 1 && input->ordering() == output->ordering()) {
     output->dataBuffer()->copyBufferFrom(*input->dataBuffer().get(),
                                          output->lengthOf() * DataTypeUtils::sizeOfElement(output->dataType()), 0,
                                          input->bufferOffset());
   } else {
-    auto tmp = input->reshape(input->ordering(), shape);
+    //the shape was already determined in the calculate shape info, just reshape to the same shape as the output
+    auto tmp = input->reshape(input->ordering(), output->getShapeAsVector(),false);
     output->assign(tmp);
   }
   return sd::Status::OK;
@@ -73,20 +63,16 @@ DECLARE_SHAPE_FN(expand_dims) {
     return SHAPELIST(newShape);
   }
 
-  // FIXME: temp workaround for TF
-  if (shape::isScalar(inShape)) {
-    auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShape), 'c', 2,
-                                                                       shape::shapeOf(inShape));
-    return SHAPELIST(newShape);
-  }
-
+  auto input = INPUT_VARIABLE(0);
   auto x_rank = shape::rank(inShape);
   char order = shape::order(inShape);
 
   sd::LongType axis = block.numI() > 0 ? INT_ARG(0) : INPUT_VARIABLE(1)->e<int>(0);
+  REQUIRE_TRUE(axis >= 0 && axis <= input->rankOf(), 0,
+               "ExpandDims: axis should be in range of 0...%i in this case, but got %i instead", input->rankOf() + 1,
+               axis);
 
   if (axis < 0) axis += x_rank + 1;
-
   std::vector<sd::LongType> shape;
   for (int e = 0; e < x_rank; e++) shape.emplace_back(shape::shapeOf(inShape)[e]);
 

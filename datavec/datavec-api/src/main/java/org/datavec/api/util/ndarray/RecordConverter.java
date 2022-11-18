@@ -195,13 +195,13 @@ public class RecordConverter {
                     throw new UnsupportedOperationException("NDArrayWritable must have leading dimension 1 for this " +
                             "method. Received array with shape: " + Arrays.toString(a.shape()));
                 }
-                if(toConcat == null){
+                if(toConcat == null) {
                     toConcat = new ArrayList<>();
                 }
                 toConcat.add(a);
             } else {
                 //Assume all others are single value
-                if(list == null){
+                if(list == null) {
                     list = new DoubleArrayList();
                 }
                 list.add(w.toDouble());
@@ -322,7 +322,7 @@ public class RecordConverter {
     private static boolean isClassificationDataSet(DataSet dataSet) {
         INDArray labels = dataSet.getLabels();
 
-        return labels.sum(0, 1).getInt(0) == dataSet.numExamples() && labels.shape()[1] > 1;
+        return labels.sum(0, -1).getInt(0) == dataSet.numExamples() && labels.shape()[1] > 1;
     }
 
     private static List<List<Writable>> getClassificationWritableMatrix(DataSet dataSet) {
@@ -342,10 +342,12 @@ public class RecordConverter {
         List<List<Writable>> writableMatrix = new ArrayList<>();
 
         for (int i = 0; i < dataSet.numExamples(); i++) {
-            List<Writable> writables = toRecord(dataSet.getFeatures().getRow(i));
-            INDArray labelRow = dataSet.getLabels().getRow(i);
+            List<Writable> writables = toRecord(dataSet.getFeatures().rank() > 1 ?
+                    dataSet.getFeatures().getRow(i) : dataSet.getFeatures());
+            INDArray labelRow = dataSet.getLabels().rank() > 1 ? dataSet.getLabels().getRow(i)
+                    : dataSet.getLabels();
 
-            for (int j = 0; j < labelRow.shape()[1]; j++) {
+            for (int j = 0; j < labelRow.size(-1); j++) {
                 writables.add(new DoubleWritable(labelRow.getDouble(j)));
             }
 

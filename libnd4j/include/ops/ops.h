@@ -795,7 +795,7 @@ class ReverseMod {
 
 /**
  * Whether 2 elements in an array
- * are epsilion equal
+ * are epsilon equal
  */
 template <typename X, typename Z>
 class Epsilon {
@@ -1979,7 +1979,7 @@ class MatchConditionBool {
         // isInfinite
         return sd::math::sd_isinf(d1) || sd::math::sd_isnan(d1);
       default:
-        sd_printf("Undefined match condition: [%i]\n", mode);
+        sd_debug("Undefined match condition: [%i]\n", mode);
     }
 
     return d1;
@@ -2404,11 +2404,12 @@ class ShannonEntropy {
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
   SD_OP_DEF static InterType op(X d1, Z *extraParams) {
-    auto p = d1 * d1;
-    return static_cast<Z>(p) * sd::math::sd_log<X, Z>(p);
+    return static_cast<InterType>(d1) * sd::math::sd_log2<X, InterType>(d1);
   }
 
-  SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) { return -reduction; }
+  SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) {
+    return static_cast<Z>(-reduction);
+  }
 };
 
 template <typename X, typename Z>

@@ -177,18 +177,22 @@ public class NDBase {
    * The result of this operation will be a batch of multiplied matrices. The<br>
    * result has the same length as both input batches and each output matrix is of shape (M, K).<br>
    *
+   * @param alphas Alphas for the gemm equation. (NUMERIC type)
+   * @param betas Betas for the gemm equation. (NUMERIC type)
    * @param inputsA First array of input matrices, all of shape (M, N) or (N, M) (NUMERIC type)
    * @param inputsB  Second array of input matrices, all of shape (N, K) or (K, N) (NUMERIC type)
    * @param transposeA Whether to transpose A arrays or not
    * @param transposeB Whether to transpose B arrays or not
    */
-  public INDArray[] batchMmul(INDArray[] inputsA, INDArray[] inputsB, boolean transposeA,
-      boolean transposeB) {
+  public INDArray[] batchMmul(INDArray alphas, INDArray betas, INDArray[] inputsA,
+      INDArray[] inputsB, boolean transposeA, boolean transposeB) {
+    NDValidation.validateNumerical("batchMmul", "alphas", alphas);
+    NDValidation.validateNumerical("batchMmul", "betas", betas);
     NDValidation.validateNumerical("batchMmul", "inputsA", inputsA);
     Preconditions.checkArgument(inputsA.length >= 1, "inputsA has incorrect size/length. Expected: inputsA.length >= 1, got %s", inputsA.length);
     NDValidation.validateNumerical("batchMmul", "inputsB", inputsB);
     Preconditions.checkArgument(inputsB.length >= 1, "inputsB has incorrect size/length. Expected: inputsB.length >= 1, got %s", inputsB.length);
-    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.reduce.custom.BatchMmul(inputsA, inputsB, transposeA, transposeB));
+    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.reduce.custom.BatchMmul(alphas, betas, inputsA, inputsB, transposeA, transposeB));
   }
 
   /**
@@ -200,15 +204,20 @@ public class NDBase {
    * The result of this operation will be a batch of multiplied matrices. The<br>
    * result has the same length as both input batches and each output matrix is of shape (M, K).<br>
    *
+   * @param alphas Alphas for the gemm equation. (NUMERIC type)
+   * @param betas Betas for the gemm equation. (NUMERIC type)
    * @param inputsA First array of input matrices, all of shape (M, N) or (N, M) (NUMERIC type)
    * @param inputsB  Second array of input matrices, all of shape (N, K) or (K, N) (NUMERIC type)
    */
-  public INDArray[] batchMmul(INDArray[] inputsA, INDArray... inputsB) {
+  public INDArray[] batchMmul(INDArray alphas, INDArray betas, INDArray[] inputsA,
+      INDArray... inputsB) {
+    NDValidation.validateNumerical("batchMmul", "alphas", alphas);
+    NDValidation.validateNumerical("batchMmul", "betas", betas);
     NDValidation.validateNumerical("batchMmul", "inputsA", inputsA);
     Preconditions.checkArgument(inputsA.length >= 1, "inputsA has incorrect size/length. Expected: inputsA.length >= 1, got %s", inputsA.length);
     NDValidation.validateNumerical("batchMmul", "inputsB", inputsB);
     Preconditions.checkArgument(inputsB.length >= 1, "inputsB has incorrect size/length. Expected: inputsB.length >= 1, got %s", inputsB.length);
-    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.reduce.custom.BatchMmul(inputsA, inputsB, false, false));
+    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.reduce.custom.BatchMmul(alphas, betas, inputsA, inputsB, false, false));
   }
 
   /**
@@ -1698,6 +1707,8 @@ public class NDBase {
 
   /**
    * Scatter max operation.<br>
+   * Maximizes values from the input tensor<br>
+   * along the indices specified.<br>
    *
    * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
    * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
@@ -1718,6 +1729,8 @@ public class NDBase {
 
   /**
    * Scatter min operation.<br>
+   *  Minimizes values from the input tensor<br>
+   * along the indices specified.<br>
    *
    * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
    * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
@@ -1738,6 +1751,8 @@ public class NDBase {
 
   /**
    * Scatter multiplication operation.<br>
+   *  Multiplies values from the input tensor<br>
+   * along the indices specified.<br>
    *
    * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
    * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
@@ -1757,7 +1772,78 @@ public class NDBase {
   }
 
   /**
+   * Scatter ND Add.<br>
+   * Multiple dimension version of scatter add<br>
+   * that allows addition along multi dimensional<br>
+   * indexes.<br>
+   *
+   * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
+   * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
+   * If indices is rank 2+, then for each position (i,...,k), out[indices[i], ..., indices[k], ...] = out[indices[i], ..., indices[k], ...]  + op(updates[i, ..., k, ...]) <br>
+   * Note that if multiple indices refer to the same location, the contributions from each is handled correctly. <br>
+   *
+   * @param ref Initial/source variable (NUMERIC type)
+   * @param indices Indices array (NUMERIC type)
+   * @param updates Updates to add to the initial/source array (NUMERIC type)
+   * @return output The updated variable (NUMERIC type)
+   */
+  public INDArray scatterNdAdd(INDArray ref, INDArray indices, INDArray updates) {
+    NDValidation.validateNumerical("scatterNdAdd", "ref", ref);
+    NDValidation.validateNumerical("scatterNdAdd", "indices", indices);
+    NDValidation.validateNumerical("scatterNdAdd", "updates", updates);
+    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.scatter.ScatterNdAdd(ref, indices, updates))[0];
+  }
+
+  /**
+   * Scatter ND Subtraction operation.<br>
+   *  Subtract dimension version of scatter add<br>
+   * that allows addition along multi dimensional<br>
+   * indexes.<br>
+   *
+   * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
+   * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
+   * If indices is rank 2+, then for each position (i,...,k), out[indices[i], ..., indices[k], ...] = out[indices[i], ..., indices[k], ...]  + op(updates[i, ..., k, ...]) <br>
+   * Note that if multiple indices refer to the same location, the contributions from each is handled correctly. <br>
+   *
+   * @param ref Initial/source variable (NUMERIC type)
+   * @param indices Indices array (NUMERIC type)
+   * @param updates Updates to add to the initial/source array (NUMERIC type)
+   * @return output The updated variable (NUMERIC type)
+   */
+  public INDArray scatterNdSub(INDArray ref, INDArray indices, INDArray updates) {
+    NDValidation.validateNumerical("scatterNdSub", "ref", ref);
+    NDValidation.validateNumerical("scatterNdSub", "indices", indices);
+    NDValidation.validateNumerical("scatterNdSub", "updates", updates);
+    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.scatter.ScatterNdSub(ref, indices, updates))[0];
+  }
+
+  /**
+   * Scatter ND update operation.<br>
+   *  Assign dimension version of scatter add<br>
+   * that allows addition along multi dimensional<br>
+   * indexes.<br>
+   *
+   * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
+   * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
+   * If indices is rank 2+, then for each position (i,...,k), out[indices[i], ..., indices[k], ...] = out[indices[i], ..., indices[k], ...]  + op(updates[i, ..., k, ...]) <br>
+   * Note that if multiple indices refer to the same location, the contributions from each is handled correctly. <br>
+   *
+   * @param ref Initial/source variable (NUMERIC type)
+   * @param indices Indices array (NUMERIC type)
+   * @param updates Updates to add to the initial/source array (NUMERIC type)
+   * @return output The updated variable (NUMERIC type)
+   */
+  public INDArray scatterNdUpdate(INDArray ref, INDArray indices, INDArray updates) {
+    NDValidation.validateNumerical("scatterNdUpdate", "ref", ref);
+    NDValidation.validateNumerical("scatterNdUpdate", "indices", indices);
+    NDValidation.validateNumerical("scatterNdUpdate", "updates", updates);
+    return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.scatter.ScatterNdUpdate(ref, indices, updates))[0];
+  }
+
+  /**
    * Scatter subtraction operation.<br>
+   *  Subtracts values from the input tensor<br>
+   * along the indices specified.<br>
    *
    * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
    * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
@@ -1778,6 +1864,8 @@ public class NDBase {
 
   /**
    * Scatter update operation.<br>
+   *  Assigns values from the input tensor<br>
+   * along the indices specified.<br>
    *
    * If indices is rank 0 (a scalar), then out[index, ...] = out[index, ...] + op(updates[...])<br>
    * If indices is rank 1 (a vector), then for each position i, out[indices[i], ...] = out[indices[i], ...] + op(updates[i, ...])<br>
@@ -1935,11 +2023,10 @@ public class NDBase {
   /**
    * Sets an inplace shape on the passed in input.<br>
    *
-   * @param input The input to set the shape of (NUMERIC type)
+   * @param input The input to set the shape of (NDARRAY type)
    * @param shape The shape to set the input to (NUMERIC type)
    */
   public INDArray[] setShape(INDArray input, INDArray shape) {
-    NDValidation.validateNumerical("setShape", "input", input);
     NDValidation.validateNumerical("setShape", "shape", shape);
     return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.shape.SetShape(input, shape));
   }
@@ -1947,22 +2034,20 @@ public class NDBase {
   /**
    * Returns the shape of the specified INDArray  as a 1D INDArray <br>
    *
-   * @param input Input variable (NUMERIC type)
+   * @param input Input variable (NDARRAY type)
    * @return output 1D output variable with contents equal to the shape of the input (NUMERIC type)
    */
   public INDArray shape(INDArray input) {
-    NDValidation.validateNumerical("shape", "input", input);
     return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.shape.Shape(input))[0];
   }
 
   /**
    * Returns the size (number of elements, i.e., prod(shape)) of the specified INDArray  as a 0D scalar variable<br>
    *
-   * @param in Input variable (NUMERIC type)
+   * @param in Input variable (NDARRAY type)
    * @return output 0D (scalar) output variable with value equal to the number of elements in the specified array (NUMERIC type)
    */
   public INDArray size(INDArray in) {
-    NDValidation.validateNumerical("size", "in", in);
     return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.shape.Size(in))[0];
   }
 
@@ -1970,12 +2055,11 @@ public class NDBase {
    * Returns a rank 0 (scalar) variable for the size of the specified dimension.<br>
    * For example, if X has shape [10,20,30] then sizeAt(X,1)=20. Similarly, sizeAt(X,-1)=30<br>
    *
-   * @param in Input variable (NUMERIC type)
+   * @param in Input variable (NDARRAY type)
    * @param dimension Dimension to get size of
    * @return output Scalar INDArray  for size at specified variable (NUMERIC type)
    */
   public INDArray sizeAt(INDArray in, int dimension) {
-    NDValidation.validateNumerical("sizeAt", "in", in);
     return Nd4j.exec(new org.nd4j.linalg.api.ops.impl.shape.SizeAt(in, dimension))[0];
   }
 

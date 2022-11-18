@@ -20,6 +20,8 @@
 
 package org.eclipse.deeplearning4j.nd4j.autodiff.samediff;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,6 +35,7 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
 
 import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -47,13 +50,29 @@ public class MemoryMgrTest extends BaseNd4jTestWithBackends {
         return 'c';
     }
 
+    @BeforeEach
+    public void before() {
+        ArrayCacheMemoryMgr.setCacheDefaults();
+    }
+
+    @AfterEach
+    public void after() {
+        ArrayCacheMemoryMgr.getLruCache().clear();
+        ArrayCacheMemoryMgr.getCurrentCacheSize().set(0);
+        ArrayCacheMemoryMgr.getMaxMemFrac().set(0.0);
+        ArrayCacheMemoryMgr.getMaxMemFrac().set(0.0);
+        ArrayCacheMemoryMgr.getCurrentCacheSize().set(0);
+        ArrayCacheMemoryMgr.getMaxMemFrac().set(0.0);
+        ArrayCacheMemoryMgr.getLruCacheValues().clear();
+    }
+
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testArrayReuseTooLarge(Nd4jBackend backend) throws Exception {
 
         ArrayCacheMemoryMgr mmgr = new ArrayCacheMemoryMgr();
-        mmgr.setMaxCacheBytes(1000);
-        assertEquals(1000, mmgr.getMaxCacheBytes());
+        mmgr.setMaxCacheBytes(new AtomicLong(1000));
+        assertEquals(1000, mmgr.getMaxCacheBytes().get());
 
         INDArray[] arrays = new INDArray[100];
         for( int i = 0; i < arrays.length; i++) {
@@ -64,7 +83,7 @@ public class MemoryMgrTest extends BaseNd4jTestWithBackends {
             mmgr.release(arrays[i]);
         }
 
-        assertEquals(1000, mmgr.getCurrentCacheSize());
+        assertEquals(1000, mmgr.getCurrentCacheSize().get());
         assertEquals(10, mmgr.getLruCache().size());
         assertEquals(10, mmgr.getLruCacheValues().size());
 
@@ -87,14 +106,14 @@ public class MemoryMgrTest extends BaseNd4jTestWithBackends {
         }
 
 
-        assertEquals(1000, mmgr.getCurrentCacheSize());
+        assertEquals(1000, mmgr.getCurrentCacheSize().get());
         assertEquals(10, mmgr.getLruCache().size());
         assertEquals(10, mmgr.getLruCacheValues().size());
 
         //now, allocate some values:
         for( int i = 1; i <= 10; i++) {
             INDArray a1 = mmgr.allocate(true, DataType.FLOAT, 25);
-            assertEquals(1000 - i * 100, mmgr.getCurrentCacheSize());
+            assertEquals(1000 - i * 100, mmgr.getCurrentCacheSize().get());
             assertEquals(10 - i, mmgr.getLruCache().size());
             assertEquals(10 - i, mmgr.getLruCacheValues().size());
         }
@@ -121,14 +140,14 @@ public class MemoryMgrTest extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testManyArrays(Nd4jBackend backend){
+    public void testManyArrays(Nd4jBackend backend) {
 
         ArrayCacheMemoryMgr mmgr = new ArrayCacheMemoryMgr();
         for( int i = 0; i < 1000; i++) {
             mmgr.release(Nd4j.scalar(0));
         }
 
-        assertEquals(4*1000, mmgr.getCurrentCacheSize());
+        assertEquals(4 * 1000, mmgr.getCurrentCacheSize().get());
         assertEquals(1000, mmgr.getLruCache().size());
         assertEquals(1000, mmgr.getLruCacheValues().size());
 
@@ -136,7 +155,7 @@ public class MemoryMgrTest extends BaseNd4jTestWithBackends {
             mmgr.release(Nd4j.scalar(0));
         }
 
-        assertEquals(4*2000, mmgr.getCurrentCacheSize());
+        assertEquals(4 * 2000, mmgr.getCurrentCacheSize().get());
         assertEquals(2000, mmgr.getLruCache().size());
         assertEquals(2000, mmgr.getLruCacheValues().size());
     }

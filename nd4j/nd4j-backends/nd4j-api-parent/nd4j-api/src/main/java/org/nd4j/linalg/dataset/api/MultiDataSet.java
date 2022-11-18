@@ -28,6 +28,14 @@ import java.util.List;
 public interface MultiDataSet extends Serializable {
 
     /**
+     * Marks every array in the dataset closeable or not.
+     * This mainly affects samediff graphs and does not need to be
+     * used by the user directly.
+     * @param closeable whether every array should be closeable or not.
+     */
+    void setCloseable(boolean closeable);
+
+    /**
      * Number of arrays of features/input data in the MultiDataSet
      */
     int numFeatureArrays();
@@ -211,4 +219,7 @@ public interface MultiDataSet extends Serializable {
      * practice unless the MultiDataSet is later split.
      */
     void shuffle();
+
+
+
 }

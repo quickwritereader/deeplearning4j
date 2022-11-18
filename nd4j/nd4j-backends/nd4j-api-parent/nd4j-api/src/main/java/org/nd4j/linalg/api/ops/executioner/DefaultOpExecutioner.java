@@ -67,6 +67,27 @@ public abstract class DefaultOpExecutioner implements OpExecutioner {
 
     public DefaultOpExecutioner() {}
 
+    public static void initOpContext(CustomOp op, boolean shapeOverride, OpContext context) {
+        // optionally skip shape validation on op execution
+        if (shapeOverride)
+            context.shapeFunctionOverride(true);
+
+        context.markInplace(op.isInplaceCall());
+
+        // transferring rng state
+        context.setRngStates(Nd4j.getRandom().rootState(), Nd4j.getRandom().nodeState());
+
+        //transferring input/output arrays
+        context.setInputArrays(op.inputArguments());
+        context.setOutputArrays(op.outputArguments());
+
+        // transferring static args
+        context.setBArguments(op.bArgs());
+        context.setIArguments(op.iArgs());
+        context.setTArguments(op.tArgs());
+        context.setDArguments(op.dArgs());
+    }
+
     protected void checkForCompression(Op op) {
         // check for INT datatype arrays
         interceptIntDataType(op);
@@ -1011,8 +1032,8 @@ public abstract class DefaultOpExecutioner implements OpExecutioner {
             op.setZ(z);
     }
 
-    public INDArray getZ(Op op, OpContext oc){
-        if( oc != null )
+    public INDArray getZ(Op op, OpContext oc) {
+        if( oc != null)
             return oc.getOutputArray(0);
         return op.z();
     }

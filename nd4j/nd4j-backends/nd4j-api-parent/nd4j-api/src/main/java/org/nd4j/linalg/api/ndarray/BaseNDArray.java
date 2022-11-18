@@ -21,6 +21,8 @@
 package org.nd4j.linalg.api.ndarray;
 
 
+import lombok.Getter;
+import lombok.Setter;
 import org.nd4j.linalg.api.ops.impl.controlflow.WhereNumpy;
 import org.nd4j.shade.guava.primitives.Ints;
 import org.nd4j.shade.guava.primitives.Longs;
@@ -103,6 +105,9 @@ public abstract class BaseNDArray implements INDArray, Iterable {
     //protected transient DataBuffer stride;
     protected transient boolean compressed = false;
 
+    @Getter
+    @Setter
+    protected transient boolean closeable = true;
     protected transient boolean released = false;
 
     // this field holds jvm copy of shapeInfo
@@ -2198,11 +2203,7 @@ public abstract class BaseNDArray implements INDArray, Iterable {
                 dims[i] = specifiedIdxDims.get(i);
             }
 
-            /**
-             * TODO: Resolve both indexing testSpecifiedIndexPut and
-             * the need to persist a difference reference.
-             * Note: https://github.com/eclipse/deeplearning4j/pull/9552
-             */
+
             NdIndexIterator iter = new NdIndexIterator(counts);
             while(iter.hasNext()) {
                 long[] iterationIdxs = iter.next();
@@ -4139,7 +4140,7 @@ public abstract class BaseNDArray implements INDArray, Iterable {
         //initialize upon use passing in the array where necessary when not initialized
         for(int i = 0; i < indexes.length; i++) {
             if(!indexes[i].initialized()) {
-                indexes[i].init(this,indexes[i].offset(),(int) i);
+                indexes[i].init(this,indexes[i].offset(), i);
             }
         }
 
@@ -4193,9 +4194,9 @@ public abstract class BaseNDArray implements INDArray, Iterable {
         int inIdx = 0;      //Axis number counter for input array
         for( int i = 0; i < indexes.length; i++) {
             if(startingOffset < length() &&  i > 0 && offset >= length() || inIdx >= rank()) {
-                if(startingOffset < length() &&  offset >= length())
-                    return Nd4j.empty();
-                else if(indexes.length > 1) {
+                if(startingOffset >= length() &&  offset >= length())
+                    return Nd4j.empty(dataType());
+                else if(indexes.length > 1 && outShape[0] > 0 && !(indexes[i] instanceof NewAxis)) {
                     //more indices to process but we've exhausted this list
                     //use the offset we have and process further indices
                     //recursively
@@ -4211,7 +4212,6 @@ public abstract class BaseNDArray implements INDArray, Iterable {
                     return out.get(subIndices);
                 }
             }
-
             if(indexes[i] instanceof PointIndex) {
                 //Point indexes don't appear in output
                 PointIndex pi = (PointIndex) indexes[i];
@@ -4371,7 +4371,8 @@ public abstract class BaseNDArray implements INDArray, Iterable {
     public INDArray getRow(long r) {
         if (isRowVector() && r > 0)
             throw new IllegalArgumentException("Illegal index for row: requested row " + r + " but this.size(0)=" + this.size(0));
-
+        if(rank() == 1 && r == 0)
+            return this;
         Preconditions.checkArgument(rank() == 2, "getRow() can be called on 2D arrays only");
         Preconditions.checkArgument(r < rows(), "Row index must be smaller than total number of rows");
 
@@ -5027,7 +5028,7 @@ public abstract class BaseNDArray implements INDArray, Iterable {
 
 
     @Override
-    public String toStringFull(){
+    public String toStringFull() {
         return toString(Long.MAX_VALUE, false, -1 * dataType().precision());
     }
 
@@ -5623,7 +5624,7 @@ public abstract class BaseNDArray implements INDArray, Iterable {
 
     @Override
     public boolean closeable() {
-        if (released || isAttached())
+        if (released || isAttached() || !closeable)
             return false;
 
         // empty arrays have no buffer at all
@@ -5639,7 +5640,7 @@ public abstract class BaseNDArray implements INDArray, Iterable {
     @Override
     public void close() {
         // empty arrays have no buffer at all
-        if (released || isEmpty())
+        if (released || isEmpty() || !closeable())
             return;
 
         Nd4j.getExecutioner().commit();

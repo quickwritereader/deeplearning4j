@@ -33,6 +33,7 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.samediff.TrainingConfig;
 import org.nd4j.autodiff.samediff.VariableType;
+import org.nd4j.common.resources.Resources;
 import org.nd4j.common.tests.tags.NativeTag;
 import org.nd4j.common.tests.tags.TagNames;
 import org.nd4j.graph.FlatConfiguration;
@@ -44,6 +45,11 @@ import org.nd4j.linalg.BaseNd4jTestWithBackends;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.impl.layers.convolution.config.Pooling3DConfig;
+import org.nd4j.linalg.api.ops.impl.layers.recurrent.config.LSTMActivations;
+import org.nd4j.linalg.api.ops.impl.layers.recurrent.config.LSTMDataFormat;
+import org.nd4j.linalg.api.ops.impl.layers.recurrent.config.LSTMDirectionMode;
+import org.nd4j.linalg.api.ops.impl.layers.recurrent.config.LSTMLayerConfig;
+import org.nd4j.linalg.api.ops.impl.layers.recurrent.weights.LSTMLayerWeights;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
@@ -90,6 +96,46 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
     }
 
 
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testEnum(Nd4jBackend backend) {
+        SameDiff sameDiff = SameDiff.load(Resources.asFile("onnx_graphs/output_cnn_mnist.fb"),true);
+        assertNotNull(sameDiff);
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+
+    public void testLateConfigureWithSameDiff(Nd4jBackend backend) {
+        int numLabelClasses = 6;
+        int numFeatrues = 100 * 6;
+        int numUnits = numLabelClasses * 1;
+        int timeSteps = 100;
+
+        SameDiff sameDiff = SameDiff.create();
+
+        SDVariable input = sameDiff.placeHolder("input", DataType.FLOAT, -1, timeSteps, numFeatrues);
+        SDVariable label = sameDiff.placeHolder("label", DataType.FLOAT, -1, 100, numLabelClasses);
+        // SDVariable label2 = sameDiff.reshape(label, -1, numLabelClasses);
+
+        LSTMLayerConfig lstmLayerConfig = LSTMLayerConfig.builder().lstmdataformat(LSTMDataFormat.NTS).directionMode(LSTMDirectionMode.FWD).gateAct(LSTMActivations.SIGMOID)
+                .cellAct(LSTMActivations.TANH).outAct(LSTMActivations.TANH).retFullSequence(true).retLastC(true).retLastH(true).build();
+
+        LSTMLayerWeights lstmLayerWeights = LSTMLayerWeights.builder().weights(sameDiff.var("weights", Nd4j.rand(DataType.FLOAT, numFeatrues, 4 * numUnits)))
+                .rWeights(sameDiff.var("rWeights", Nd4j.rand(DataType.FLOAT, numUnits, 4 * numUnits))).peepholeWeights(sameDiff.var("inputPeepholeWeights", Nd4j.rand(DataType.FLOAT, 3 * numUnits)))
+                .build();
+
+        SDVariable[] outputs = sameDiff.rnn.lstmLayer(new String[] { "out", "lstm2", "lstm3" }, input, lstmLayerWeights, lstmLayerConfig);
+        SDVariable out = outputs[0];
+        sameDiff.loss.softmaxCrossEntropy("loss", label, out, sameDiff.var(Nd4j.create(100)));
+        sameDiff.setLossVariables("loss");
+        sameDiff.save(new File("tmp-bert-input.fb"),true);
+
+        SameDiff sd2 = SameDiff.load(new File("tmp-bert-input.fb"),true);
+        assertNotNull(sd2);
+    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -300,18 +346,19 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
         //1. Training config is serialized/deserialized correctly
         //2. Updater state
 
-        for(IUpdater u : new IUpdater[]{
+        for(IUpdater u : new IUpdater[] {
                 new AdaDelta(), new AdaGrad(2e-3), new Adam(2e-3), new AdaMax(2e-3),
-                new AMSGrad(2e-3), new Nadam(2e-3), new Nesterovs(2e-3), new NoOp(),
+                new AMSGrad(2e-3), new Nadam(2e-3),
+                new Nesterovs(2e-3), new NoOp(),
                 new RmsProp(2e-3), new Sgd(2e-3)}) {
 
             log.info("Testing: {}", u.getClass().getName());
 
             SameDiff sd = SameDiff.create();
-            SDVariable in = sd.placeHolder("in", DataType.FLOAT, -1, 4);
-            SDVariable label = sd.placeHolder("label", DataType.FLOAT, -1, 3);
-            SDVariable w = sd.var("w", Nd4j.rand(DataType.FLOAT, 4, 3));
-            SDVariable b = sd.var("b", Nd4j.rand(DataType.FLOAT, 1, 3));
+            SDVariable in = sd.placeHolder("in", DataType.DOUBLE, -1, 4);
+            SDVariable label = sd.placeHolder("label", DataType.DOUBLE, -1, 3);
+            SDVariable w = sd.var("w", Nd4j.rand(DataType.DOUBLE, 4, 3));
+            SDVariable b = sd.var("b", Nd4j.rand(DataType.DOUBLE, 1, 3));
 
             SDVariable mmul = in.mmul(w).add(b);
             SDVariable softmax = sd.nn().softmax(mmul, 0);
@@ -324,8 +371,8 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
                     .dataSetLabelMapping("label")
                     .build());
 
-            INDArray inArr = Nd4j.rand(DataType.FLOAT, 3, 4);
-            INDArray labelArr = Nd4j.rand(DataType.FLOAT, 3, 3);
+            INDArray inArr = Nd4j.rand(DataType.DOUBLE, 3, 4);
+            INDArray labelArr = Nd4j.rand(DataType.DOUBLE, 3, 3);
 
             DataSet ds = new DataSet(inArr, labelArr);
 
@@ -348,7 +395,7 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
             Map<String, GradientUpdater> m1 = sd.getUpdaterMap();
             Map<String, GradientUpdater> m2 = sd2.getUpdaterMap();
             assertEquals(m1.keySet(), m2.keySet());
-            for(String s : m1.keySet()){
+            for(String s : m1.keySet()) {
                 GradientUpdater g1 = m1.get(s);
                 GradientUpdater g2 = m2.get(s);
                 assertEquals(g1.getState(), g2.getState());
@@ -362,7 +409,7 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
                 sd2.fit(ds);
             }
 
-            for(SDVariable v : sd.variables()){
+            for(SDVariable v : sd.variables()) {
                 if(v.isPlaceHolder() || v.getVariableType() == VariableType.ARRAY)
                     continue;
 
@@ -371,7 +418,7 @@ public class FlatBufferSerdeTest extends BaseNd4jTestWithBackends {
                 INDArray a1 = v.getArr();
                 INDArray a2 = v2.getArr();
 
-                assertEquals(a1, a2);
+                assertTrue(a1.equalsWithEps(a2,1e-3));
             }
         }
     }

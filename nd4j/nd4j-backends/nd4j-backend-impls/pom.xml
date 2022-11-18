@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <modules>
         <module>nd4j-presets-common</module>
-    </modules>
+      </modules>
 
     <parent>
         <groupId>org.nd4j</groupId>
@@ -106,7 +106,7 @@
                             Maximum heap size was set to 8g, as a minimum required value for tests run.
                             Depending on a build machine, default value is not always enough.
                         -->
-                        <argLine>-Xmx${test.heap.size} -Dorg.bytedeco.javacpp.maxphysicalbytes=${test.offheap.size} -Dorg.bytedeco.javacpp.maxbytes=${test.offheap.size}</argLine>
+                        <argLine>--add-exports java.base/jdk.internal.misc=ALL-UNNAMED --add-exports java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED  -Xmx${test.heap.size} -Dorg.bytedeco.javacpp.maxphysicalbytes=${test.offheap.size} -Dorg.bytedeco.javacpp.maxbytes=${test.offheap.size}</argLine>
                         <forkedProcessTimeoutInSeconds>240</forkedProcessTimeoutInSeconds>
                         <forkedProcessExitTimeoutInSeconds>240</forkedProcessExitTimeoutInSeconds>
                         <parallelTestsTimeoutInSeconds>240</parallelTestsTimeoutInSeconds>
@@ -135,15 +135,34 @@
     </build>
 
     <profiles>
+
         <profile>
             <id>aurora</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
+
             <modules>
-                <module>nd4j-aurora-presets</module>
-                <module>nd4j-aurora</module>
+                <module>nd4j-native</module>
+                <module>nd4j-native-preset</module>
+                <module>nd4j-cpu-backend-common</module>
             </modules>
+
+
+        </profile>
+
+        <profile>
+            <id>minimial-cpu</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>nd4j-minimizer</module>
+                <module>nd4j-minimizer-preset</module>
+                <module>nd4j-cpu-backend-common</module>
+            </modules>
+
+
         </profile>
 
         <profile>
@@ -155,6 +174,7 @@
                 <module>nd4j-native</module>
                 <module>nd4j-native-preset</module>
                 <module>nd4j-native-platform</module>
+                <module>nd4j-cpu-backend-common</module>
             </modules>
 
 
@@ -489,9 +509,7 @@
                 <dependency.classifier></dependency.classifier>
             </properties>
         </profile>
-        <profile>
-            <id>testresources</id>
-        </profile>
+
         <!-- Profiles to modify the transitive dependencies when picked up from other pom.xml files, for example:
              mvn -Djavacpp.platform.custom -Djavacpp.platform.host -Djavacpp.platform.linux-x86_64 -Djavacpp.platform.windows-x86_64 ... -->
         <profile>

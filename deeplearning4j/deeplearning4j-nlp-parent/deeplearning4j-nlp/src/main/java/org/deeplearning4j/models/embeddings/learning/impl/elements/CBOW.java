@@ -36,7 +36,9 @@ import org.deeplearning4j.models.sequencevectors.sequence.SequenceElement;
 import org.deeplearning4j.models.word2vec.wordstore.VocabCache;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.api.ops.CustomOp;
 import org.nd4j.linalg.api.ops.aggregates.Aggregate;
+import org.nd4j.linalg.api.ops.impl.nlp.CbowInference;
 import org.nd4j.linalg.api.ops.impl.nlp.CbowRound;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.util.DeviceLocalNDArray;
@@ -88,7 +90,7 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
 
     @Override
     public void configure(@NonNull VocabCache<T> vocabCache, @NonNull WeightLookupTable<T> lookupTable,
-                    @NonNull VectorsConfiguration configuration) {
+                          @NonNull VectorsConfiguration configuration) {
         this.vocabCache = vocabCache;
         this.lookupTable = lookupTable;
         this.configuration = configuration;
@@ -103,7 +105,7 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
                 logger.info("Initializing syn1Neg...");
                 ((InMemoryLookupTable<T>) lookupTable).setUseHS(configuration.isUseHierarchicSoftmax());
                 ((InMemoryLookupTable<T>) lookupTable).setNegative(configuration.getNegative());
-                ((InMemoryLookupTable<T>) lookupTable).resetWeights(false);
+                lookupTable.resetWeights(false);
             }
         }
 
@@ -111,9 +113,8 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
         this.syn0 = new DeviceLocalNDArray(((InMemoryLookupTable<T>) lookupTable).getSyn0());
         this.syn1 = new DeviceLocalNDArray(((InMemoryLookupTable<T>) lookupTable).getSyn1());
         this.syn1Neg = new DeviceLocalNDArray(((InMemoryLookupTable<T>) lookupTable).getSyn1Neg());
-        //this.expTable = new DeviceLocalNDArray(Nd4j.create(((InMemoryLookupTable<T>) lookupTable).getExpTable()));
         this.expTable = new DeviceLocalNDArray(Nd4j.create(((InMemoryLookupTable<T>) lookupTable).getExpTable(),
-                new long[]{((InMemoryLookupTable<T>) lookupTable).getExpTable().length}, syn0.get().dataType()));
+                new long[]{((InMemoryLookupTable<T>) lookupTable).getExpTable().length}, syn0.get() == null ? DataType.DOUBLE :  syn0.get().dataType()));
         this.table = new DeviceLocalNDArray(((InMemoryLookupTable<T>) lookupTable).getTable());
         this.variableWindows = configuration.getVariableWindows();
     }
@@ -141,6 +142,7 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
                                 BatchSequences<T> batchSequences) {
         Sequence<T> tempSequence = sequence;
 
+        List<BatchItem<T>> batch = new ArrayList<>();
         if (sampling > 0)
             tempSequence = applySubsampling(sequence, nextRandom);
 
@@ -153,7 +155,12 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
         for (int i = 0; i < tempSequence.getElements().size(); i++) {
             nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
             cbow(i, tempSequence.getElements(), (int) nextRandom.get() % currentWindow, nextRandom, learningRate,
-                 currentWindow, batchSequences);
+                    currentWindow, batch);
+        }
+
+
+        if(!batch.isEmpty()) {
+            iterateSample(batch);
         }
 
         return 0;
@@ -174,7 +181,7 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
         for (int i = 0; i < tempSequence.getElements().size(); i++) {
             nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
             cbow(i, tempSequence.getElements(), (int) nextRandom.get() % currentWindow, nextRandom, learningRate,
-                            currentWindow, null);
+                    currentWindow, null);
         }
 
         return 0;
@@ -184,6 +191,127 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
     public boolean isEarlyTerminationHit() {
         return false;
     }
+
+
+    public CustomOp iterateSampleOp(T currentWord, int[] windowWords, boolean[] wordStatuses, AtomicLong nextRandom, double alpha,
+                                    boolean isInference, int numLabels, boolean trainWords, INDArray inferenceVector) {
+        int[] idxSyn1 = null;
+        byte[] codes = null;
+
+
+        if (configuration.isUseHierarchicSoftmax()) {
+            idxSyn1 = new int[currentWord.getCodeLength()];
+            codes = new byte[currentWord.getCodeLength()];
+            for (int p = 0; p < currentWord.getCodeLength(); p++) {
+                if (currentWord.getPoints().get(p) < 0)
+                    continue;
+
+                codes[p] = currentWord.getCodes().get(p);
+                idxSyn1[p] = currentWord.getPoints().get(p);
+            }
+        } else {
+            idxSyn1 = new int[0];
+            codes = new byte[0];
+        }
+
+
+        if (negative > 0) {
+            if (syn1Neg == null) {
+                ((InMemoryLookupTable<T>) lookupTable).initNegative();
+                syn1Neg = new DeviceLocalNDArray(((InMemoryLookupTable<T>) lookupTable).getSyn1Neg());
+            }
+        }
+
+        if (batches.get() == null)
+            batches.set(new ArrayList<>());
+
+
+
+        boolean useHS = configuration.isUseHierarchicSoftmax();
+        boolean useNegative = configuration.getNegative() > 0;
+
+        int[] inputStatuses = new int[windowWords.length];
+        for (int i = 0; i < windowWords.length; ++i) {
+            if (i < wordStatuses.length)
+                inputStatuses[i] = wordStatuses[i] ? 1 : 0;
+            else
+                inputStatuses[i] = -1;
+        }
+
+
+
+        CbowInference cbowInference = null;
+        if (useHS && useNegative) {
+            cbowInference = CbowInference.builder()
+                    .ngStarter(currentWord.getIndex())
+                    .target(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .nsRounds((int) negative)
+                    .syn0(syn0.get())
+                    .syn1(syn1.get())
+                    .syn1Neg(syn1Neg.get())
+                    .expTable(expTable.get())
+                    .negTable(table.get() == null ? Nd4j.empty(syn0.get().dataType()) : table.get())
+                    .codes(codes)
+                    .indices(idxSyn1)
+                    .preciseMode(configuration.isPreciseMode())
+                    .alpha(alpha)
+                    .inferenceVector( inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
+
+        }
+        else if (useHS) {
+            cbowInference = CbowInference.builder()
+                    .target(currentWord.getIndex())
+                    .ngStarter(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .context(windowWords)
+                    .expTable(expTable.get())
+                    .lockedWords(inputStatuses)
+                    .syn0(syn0.get())
+                    .syn1(syn1.get())
+                    .syn1Neg(Nd4j.empty(syn0.get().dataType()))
+                    .negTable(table.get() == null ? Nd4j.empty(syn0.get().dataType()) : table.get())
+                    .codes(codes)
+                    .indices(new int[0])
+                    .numLabels(numLabels)
+                    .alpha(alpha)
+                    .preciseMode(configuration.isPreciseMode())
+                    .inferenceVector(inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
+
+        }
+        else if (useNegative) {
+            cbowInference = CbowInference.builder()
+                    .target(currentWord.getIndex())
+                    .ngStarter(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .context(windowWords)
+                    .expTable(expTable.get())
+                    .negTable(table.get())
+                    .lockedWords(inputStatuses)
+                    .syn0(syn0.get())
+                    .syn1(Nd4j.empty(syn0.get().dataType()))
+                    .syn1Neg(Nd4j.empty(syn0.get().dataType()))
+                    .codes(new byte[0])
+                    .indices(new int[0])
+                    .numLabels(numLabels)
+                    .alpha(alpha)
+                    .preciseMode(configuration.isPreciseMode())
+                    .inferenceVector(inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
+        }
+
+        nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
+        return cbowInference;
+
+
+
+    }
+
 
     public void iterateSample(T currentWord, int[] windowWords, boolean[] wordStatuses, AtomicLong nextRandom, double alpha,
                               boolean isInference, int numLabels, boolean trainWords, INDArray inferenceVector) {
@@ -214,12 +342,9 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
         }
 
         if (batches.get() == null)
-            batches.set(new ArrayList<Aggregate>());
+            batches.set(new ArrayList<>());
 
-        /*AggregateCBOW(syn0.get(), syn1.get(), syn1Neg.get(), expTable.get(), table.get(),
-                currentWord.getIndex(), windowWords, idxSyn1, codes, (int) negative, currentWord.getIndex(),
-                lookupTable.layerSize(), alpha, nextRandom.get(), vocabCache.numWords(), numLabels, trainWords,
-                inferenceVector);*/
+
 
         boolean useHS = configuration.isUseHierarchicSoftmax();
         boolean useNegative = configuration.getNegative() > 0;
@@ -231,48 +356,83 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
             else
                 inputStatuses[i] = -1;
         }
-        INDArray wordsStatuses = Nd4j.createFromArray(inputStatuses);
 
-        CbowRound cbow = null;
 
+
+        CbowInference cbowInference = null;
         if (useHS && useNegative) {
-            cbow = new CbowRound(Nd4j.scalar(currentWord.getIndex()), Nd4j.createFromArray(windowWords),
-                    wordsStatuses,
-                    Nd4j.scalar(currentWord.getIndex()),
-                    syn0.get(), syn1.get(), syn1Neg.get(),
-                    expTable.get(), table.get(), Nd4j.createFromArray(idxSyn1), Nd4j.createFromArray(codes),
-                    (int)negative, Nd4j.scalar(alpha), Nd4j.scalar(nextRandom.get()),
-                    inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()),
-                    Nd4j.empty(DataType.INT),
-                    trainWords,
-                    workers);
+            cbowInference = CbowInference.builder()
+                    .ngStarter(currentWord.getIndex())
+                    .target(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .nsRounds((int) negative)
+                    .syn0(syn0.get())
+                    .syn1(syn1.get())
+                    .syn1Neg(syn1Neg.get())
+                    .expTable(expTable.get())
+                    .negTable(table.get() == null ? Nd4j.empty(syn0.get().dataType()) : table.get())
+                    .codes(codes)
+                    .indices(idxSyn1)
+                    .preciseMode(configuration.isPreciseMode())
+                    .alpha(alpha)
+                    .inferenceVector( inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
+
         }
         else if (useHS) {
-            cbow = new CbowRound(currentWord.getIndex(), windowWords, wordsStatuses.toIntVector(),
-                    syn0.get(), syn1.get(),
-                    expTable.get(), idxSyn1, codes, alpha, nextRandom.get(),
-                    inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()), 0);
+            cbowInference = CbowInference.builder()
+                    .target(currentWord.getIndex())
+                    .ngStarter(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .context(windowWords)
+                    .expTable(expTable.get())
+                    .lockedWords(inputStatuses)
+                    .syn0(syn0.get())
+                    .syn1(syn1.get())
+                    .syn1Neg(Nd4j.empty(syn0.get().dataType()))
+                    .negTable(table.get() == null ? Nd4j.empty(syn0.get().dataType()) : table.get())
+                    .codes(codes)
+                    .indices(new int[0])
+                    .numLabels(numLabels)
+                    .alpha(alpha)
+                    .preciseMode(configuration.isPreciseMode())
+                    .inferenceVector(inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
+
         }
         else if (useNegative) {
-            cbow = new CbowRound(currentWord.getIndex(), windowWords, wordsStatuses.toIntVector(), currentWord.getIndex(),
-                    syn0.get(), syn1Neg.get(),
-                    expTable.get(), table.get(), (int)negative, alpha, nextRandom.get(),
-                    inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()), 0);
+            cbowInference = CbowInference.builder()
+                    .target(currentWord.getIndex())
+                    .ngStarter(currentWord.getIndex())
+                    .randomValue((int) nextRandom.get())
+                    .context(windowWords)
+                    .expTable(expTable.get())
+                    .negTable(table.get())
+                    .lockedWords(inputStatuses)
+                    .syn0(syn0.get())
+                    .syn1(Nd4j.empty(syn0.get().dataType()))
+                    .syn1Neg(Nd4j.empty(syn0.get().dataType()))
+                    .codes(new byte[0])
+                    .indices(new int[0])
+                    .numLabels(numLabels)
+                    .alpha(alpha)
+                    .preciseMode(configuration.isPreciseMode())
+                    .inferenceVector(inferenceVector != null ? inferenceVector : Nd4j.empty(syn0.get().dataType()))
+                    .numWorkers(workers)
+                    .build();
         }
 
         nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
-        Nd4j.getExecutioner().exec(cbow);
+        Nd4j.getExecutioner().exec(cbowInference);
 
-        /*if (!isInference) {
-            batches.get().add(cbow);
-            if (batches.get().size() > 4096) {
-                Nd4j.getExecutioner().exec(batches.get());
-                batches.get().clear();
-            }
-        } else
-            Nd4j.getExecutioner().exec(cbow);*/
+
 
     }
+
+
+
 
     public void iterateSample(List<BatchItem<T>> items) {
 
@@ -373,10 +533,6 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
                 }
             }
 
-            if (batches.get() == null)
-                batches.set(new ArrayList<Aggregate>());
-
-            //nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
         }
 
         INDArray currentWordIndexesArray = Nd4j.createFromArray(currentWordIndexes);
@@ -404,19 +560,11 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
 
         Nd4j.getExecutioner().exec(cbow);
 
-        /*if (!isInference) {
-            batches.get().add(cbow);
-            if (batches.get().size() > 4096) {
-                Nd4j.getExecutioner().exec(batches.get());
-                batches.get().clear();
-            }
-        } else
-            Nd4j.getExecutioner().exec(cbow);*/
 
     }
 
     public void cbow(int i, List<T> sentence, int b, AtomicLong nextRandom, double alpha, int currentWindow,
-                     BatchSequences<T> batchSequences) {
+                     List<BatchItem<T>> batch) {
         int batchSize = configuration.getBatchSize();
 
         int end = window * 2 + 1 - b;
@@ -448,13 +596,10 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
         if (batchSize <= 1)
             iterateSample(currentWord, windowWords, statuses, nextRandom, alpha, false, 0, true, null);
         else {
-            batchSequences.put(currentWord, windowWords, statuses, nextRandom.get(), alpha);
+            BatchItem<T> batchItem = new BatchItem<>(currentWord,windowWords,statuses,nextRandom.get(),alpha);
+            batch.add(batchItem);
         }
 
-        if (batches != null && batches.get() != null && batches.get().size() >= configuration.getBatchSize()) {
-            Nd4j.getExecutioner().exec(batches.get());
-            batches.get().clear();
-        }
     }
 
     public Sequence<T> applySubsampling(@NonNull Sequence<T> sequence, @NonNull AtomicLong nextRandom) {
@@ -471,7 +616,7 @@ public class CBOW<T extends SequenceElement> implements ElementsLearningAlgorith
             for (T element : sequence.getElements()) {
                 double numWords = vocabCache.totalWordOccurrences();
                 double ran = (Math.sqrt(element.getElementFrequency() / (sampling * numWords)) + 1)
-                                * (sampling * numWords) / element.getElementFrequency();
+                        * (sampling * numWords) / element.getElementFrequency();
 
                 nextRandom.set(Math.abs(nextRandom.get() * 25214903917L + 11));
 

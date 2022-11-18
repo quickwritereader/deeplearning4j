@@ -460,12 +460,14 @@ public class FlatBuffersMapper {
             //Set input SDVariables:
 
             //Set args:
-            //op.addTArgument();
-            ((CustomOp) op).addIArgument(extraInteger);
-            ((CustomOp) op).addTArgument(extraParams);
-            ((CustomOp) op).addBArgument(extraBools);
-            ((CustomOp) op).addDArgument(extraDTypes);
-            ((CustomOp) op).addSArgument(extraStrings);
+            if(op instanceof CustomOp) {
+                ((CustomOp) op).addIArgument(extraInteger);
+                ((CustomOp) op).addTArgument(extraParams);
+                ((CustomOp) op).addBArgument(extraBools);
+                ((CustomOp) op).addDArgument(extraDTypes);
+                ((CustomOp) op).addSArgument(extraStrings);
+            }
+
             //base loss gets saved as an int argument, ensure that the field is set
             if(op instanceof BaseLoss && extraInteger != null && extraInteger.length > 0) {
                 BaseLoss baseLoss = (BaseLoss) op;
@@ -476,8 +478,8 @@ public class FlatBuffersMapper {
             }
 
             op.setPropertiesForFunction(props);
-
-            ((CustomOp) op).configureFromArguments();
+            if(op instanceof CustomOp)
+                ((CustomOp) op).configureFromArguments();
             return op;
         } else {
             Class<?> c = LegacyOpMapper.getLegacyOpClassForId(opType, (int) opNum);
@@ -518,7 +520,7 @@ public class FlatBuffersMapper {
             }
             /*
             Op types that don't need any extra/special mapping:
-            TRANSFORM_BOOL - BooleanNot, IsFinite, IsInf, IsNaN, MatchConditionTransorm
+            TRANSFORM_BOOL - BooleanNot, IsFinite, IsInf, IsNaN, MatchConditionTransform
             TRANSFORM_ANY - IsMax, Assign
             TRANSFORM_FLOAT - Histogram, Sqrt
             TRANSFORM_STRICT - Cos, Log, Sigmoid, etc
@@ -801,7 +803,8 @@ public class FlatBuffersMapper {
             Object[] eArgs = node.getExtraArgs();
             extras = eArgs != null ? new double[eArgs.length] : new double[0];
             for (int e = 0; e < extras.length; e++) {
-                extras[e] = ((Number) eArgs[e]).doubleValue();
+                if(eArgs[e] instanceof Number)
+                    extras[e] = ((Number) eArgs[e]).doubleValue();
             }
         }
 
@@ -886,7 +889,7 @@ public class FlatBuffersMapper {
         for (SDVariable input : inputs) {
             String varName = input.name();
             int outIdx;
-            if (sameDiff.getVariables().get(varName).getOutputOfOp() != null) {
+            if (sameDiff.getVariables().get(varName).getOutputOfOp() != null && sameDiff.getOps().containsKey(sameDiff.getVariables().get(varName).getOutputOfOp())) {
                 DifferentialFunction df = sameDiff.getOps().get(sameDiff.getVariables().get(varName).getOutputOfOp()).getOp();
                 outIdx = sameDiff.getOps().get(df.getOwnName()).getOutputsOfOp().indexOf(varName);
             } else {
@@ -970,6 +973,9 @@ public class FlatBuffersMapper {
         int i = 0;
         for (String s : outVarNames) {
             SDVariable v = sameDiff.getVariable(s);
+            if(v == null) {
+                throw new IllegalStateException("Unknown output variable " + s);
+            }
             outTypes[i++] = FlatBuffersMapper.getDataTypeAsByte(v.dataType());
         }
         int outTypesOffset = FlatNode.createOutputTypesVector(bufferBuilder, outTypes);
@@ -979,7 +985,7 @@ public class FlatBuffersMapper {
 
         int opCds = 0;
         int[] opCdsArr = mapOrNull(sdo.getControlDeps(), bufferBuilder);
-        if(opCdsArr != null){
+        if(opCdsArr != null) {
             opCds = FlatNode.createControlDepsVector(bufferBuilder, opCdsArr);
         }
 
@@ -991,7 +997,7 @@ public class FlatBuffersMapper {
 
         int cdsFor = 0;
         int[] cdsForArr = mapOrNull(sdo.getControlDepFor(), bufferBuilder);
-        if(cdsForArr != null){
+        if(cdsForArr != null) {
             cdsFor = FlatNode.createControlDepForVector(bufferBuilder, cdsForArr);
         }
 

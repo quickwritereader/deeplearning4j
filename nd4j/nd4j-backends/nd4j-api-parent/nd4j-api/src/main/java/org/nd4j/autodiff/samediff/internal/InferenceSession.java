@@ -73,7 +73,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
     protected static final String KERAS_TRAIN_TEST = "keras_learning_phase";
     //freed array ids to track for allocation, sometimes SDValues contain dup arrays that get freed twice.
     //we track the ids to avoid double frees
-    protected  Set<Long> freedArrays = new LinkedHashSet<>();
+    protected  static Set<Long> freedArrays = new LinkedHashSet<>();
 
     @Getter
     @Setter
@@ -318,7 +318,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
         List<String> outVarNames = o.getOutputsOfOp();
         for (int i = 0; i < out.numResults(); i++) {
             if (out.hasSingle() && out.resultAt(i) == null   || out.hasValues()
-                    && out.valueWithKeyAtIndex(i, false) == null && o.getOp() instanceof Switch)
+                    && out.valueWithKeyAtIndex(i, false) == null
+                    && o.getOp() instanceof Switch)
                 continue;   //Switch case: we only ever get one of 2 outputs, other is null (branch not executed)
             String name = outVarNames.get(i);
             Variable v = sameDiff.getVariables().get(name);
@@ -380,7 +381,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                         log.trace("Found array id {} (output of {}) not required anywhere, deallocating", array.getTensorValue().getId(), o.getName());
                 }
 
-                if(array != null && array.getTensorValue() != null && !freedArrays.contains(array.getTensorValue().getId())) {
+                if(!outVarNames.contains(name) && array != null && array.getTensorValue() != null && !freedArrays.contains(array.getTensorValue().getId())) {
                     mmgr.release(array.getTensorValue());
                     freedArrays.add(array.getTensorValue().getId());
                 }
@@ -393,7 +394,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                         log.trace("Found array id {} (output of {}) not required anywhere, deallocating", array.getId(), o.getName());
                 }
 
-                if(array != null && !freedArrays.contains(array.getId())) {
+                if(!outVarNames.contains(name) && array != null && !freedArrays.contains(array.getId())) {
                     mmgr.release(array);
                     freedArrays.add(array.getId());
                 }
@@ -417,17 +418,26 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                     }
                 }
 
+                //don't free anything that's an output
+                boolean containsOutput = false;
+                for(String output : outVarNames) {
+                    if(op.getOutputsOfOp().contains(output)) {
+                        containsOutput = true;
+                    }
+                }
+
                 if(!(op.getOp() instanceof Switch))
                     switch(value.getSdValueType()) {
                         case TENSOR:
-                            if(!freedArrays.contains(value.getTensorValue().getId()) && sameDiff.isEnableCache()) {
+                            if(!freedArrays.contains(value.getTensorValue().getId()) &&
+                                    sameDiff.isEnableCache() && !containsOutput) {
                                 mmgr.release(value.getTensorValue());
                                 freedArrays.add(value.getTensorValue().getId());
                             }
                             break;
                         case LIST:
                             for(INDArray arr : value.getListValue())
-                                if(arr != null && !freedArrays.contains(arr.getId()) && sameDiff.isEnableCache()) {
+                                if(arr != null && !freedArrays.contains(arr.getId()) && sameDiff.isEnableCache() && !containsOutput) {
                                     mmgr.release(arr);
                                     freedArrays.add(arr.getId());
                                 }
@@ -708,6 +718,10 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
             }
 
             INDArray from = CreateView.createFrom(sdValue.getTensorValue(), indices);
+            from.setCloseable(false);
+            sdValue.getTensorValue().setCloseable(false);
+            for(INDArray arr : indices)
+                arr.setCloseable(false);
             return ExecutionResult.createFrom(op.outputVariablesNames()[0], from);
         } else if (op instanceof ExternalErrorsFunction) {
             ExternalErrorsFunction fn = (ExternalErrorsFunction) op;
@@ -836,15 +850,24 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
         if (op instanceof TensorArray) {
             //Create a TensorArray
             VarId vid = outputFrameIter.toVarId(op.outputVariable().name());
-            Preconditions.checkState(!nodeValueOutputs.containsKey(vid), "TensorArray already exists for %s when executing TensorArrayV3", vid);
-            SDVariable size = op.arg(0);
-            INDArray arr = size.getArr();
-            List<INDArray> createList = new ArrayList<>();
-            TensorArray tensorArray = (TensorArray) op;
-            long[] requiredShape = tensorArray.args().length > 1 ? tensorArray.requiredShape() : null;
-            for(int i = 0; i  < arr.getInt(0); i++) {
-                createList.add(null);
+            if(nodeValueOutputs.containsKey(vid)) {
+                // Note that TensorArray has 2 outputs - a 'dummy' SDVariable that represents it, and a second output (return a scalar 0.0)
+                return ExecutionResult.createValue(vid.getVariable(),nodeValueOutputs.get(vid));
             }
+            Preconditions.checkState(!nodeValueOutputs.containsKey(vid), "TensorArray already exists for %s when executing TensorArrayV3", vid);
+            List<INDArray> createList = new ArrayList<>();
+
+            if(op.args().length > 0) {
+                SDVariable size = op.arg(0);
+                INDArray arr = size.getArr();
+                TensorArray tensorArray = (TensorArray) op;
+                long[] requiredShape = tensorArray.args().length > 1 ? tensorArray.requiredShape() : null;
+                for(int i = 0; i  < arr.getInt(0); i++) {
+                    createList.add(null);
+                }
+
+            }
+
 
             SDValue listValue = SDValue.create(createList);
             putNodeValue(listValue, vid);
@@ -1184,8 +1207,10 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
             SDVariable inTensorArray = op.arg(0);   //Dummy variable representing the tensor array
             SDVariable index = op.arg(1);
             List<INDArray> l = getTensorArraysInSession(inTensorArray.name());
-            l.remove(index.getArr(true).getInt(0));
-            INDArray scalar = mmgr.allocate(false, DataType.FLOAT).assign(0.0);
+            if(l == null)
+                l = new ArrayList<>();
+            else if(l != null)
+                l.remove(index.getArr(true).getInt(0));
             VarId tArr = (opInputs == null ? null : lookup(inTensorArray.name(), opInputs, false));
             if (tArr == null && allIterInputs != null) {
                 tArr = lookup(inTensorArray.name(), allIterInputs, false);
@@ -1199,8 +1224,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
             }
 
             //setup an extra reference to the removed list
-            //putNodeValue(SDValue.create(l), tArr);
-            return ExecutionResult.createValue(tArr.getVariable(),Arrays.asList(scalar));
+            putNodeValue(SDValue.create(l), tArr);
+            return ExecutionResult.createValue(tArr.getVariable(),l);
         }
 
         else {
@@ -1316,6 +1341,16 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 i++;
             }
         }
+
+        if(df.needsConfigure()) {
+            SDVariable[] vars = df.args();
+            for(int i = 0; i < vars.length; i++) {
+                vars[i].setShape(args[i].shape());
+            }
+
+            df.configureWithSameDiff(sameDiff);
+        }
+
 
         //Set the op inputs and output arguments
         //Note that when we are in a loop (and non-first iteration), we want to allocate new arrays even if shapes are

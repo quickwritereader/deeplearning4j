@@ -80,6 +80,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
     protected transient SequenceLearningAlgorithm<T> sequenceLearningAlgorithm;
 
     @Getter
+    @Setter
     protected VectorsConfiguration configuration = new VectorsConfiguration();
 
     protected static final Logger log = LoggerFactory.getLogger(SequenceVectors.class);
@@ -136,13 +137,13 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
 
 
         val constructor = new VocabConstructor.Builder<T>().addSource(iterator, minWordFrequency)
-                        .setTargetVocabCache(vocab).fetchLabels(trainSequenceVectors).setStopWords(stopWords)
-                        .enableScavenger(enableScavenger).setEntriesLimit(vocabLimit)
-                        .allowParallelTokenization(configuration.isAllowParallelTokenization())
-                        .setUnk(useUnknown && unknownElement != null ? unknownElement : null).build();
+                .setTargetVocabCache(vocab).fetchLabels(trainSequenceVectors).setStopWords(stopWords)
+                .enableScavenger(enableScavenger).setEntriesLimit(vocabLimit)
+                .allowParallelTokenization(configuration.isAllowParallelTokenization())
+                .setUnk(useUnknown && unknownElement != null ? unknownElement : null).build();
 
         if (existingModel != null && lookupTable instanceof InMemoryLookupTable
-                        && existingModel.lookupTable() instanceof InMemoryLookupTable) {
+                && existingModel.lookupTable() instanceof InMemoryLookupTable) {
             log.info("Merging existing vocabulary into the current one...");
             /*
                 if we have existing model defined, we're forced to fetch labels only.
@@ -155,24 +156,13 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                 Now we have vocab transferred, and we should transfer syn0 values into lookup table
              */
             ((InMemoryLookupTable<VocabWord>) lookupTable)
-                            .consume((InMemoryLookupTable<VocabWord>) existingModel.lookupTable());
+                    .consume((InMemoryLookupTable<VocabWord>) existingModel.lookupTable());
         } else {
             log.info("Starting vocabulary building...");
             // if we don't have existing model defined, we just build vocabulary
 
 
             constructor.buildJointVocabulary(false, true);
-
-            /*
-            if (useUnknown && unknownElement != null && !vocab.containsWord(unknownElement.getLabel())) {
-                log.info("Adding UNK element...");
-                unknownElement.setSpecial(true);
-                unknownElement.markAsLabel(false);
-                unknownElement.setIndex(vocab.numWords());
-                vocab.addToken(unknownElement);
-            }
-            */
-
 
             // check for malformed inputs. if numWords/numSentences ratio is huge, then user is passing something weird
             if (vocab.numWords() / constructor.getNumberOfSequences() > 1000) {
@@ -193,13 +183,18 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             log.info("Building learning algorithms:");
             if (trainElementsVectors && elementsLearningAlgorithm != null && !trainSequenceVectors) {
                 log.info("          building ElementsLearningAlgorithm: [" + elementsLearningAlgorithm.getCodeName()
-                                + "]");
+                        + "]");
                 elementsLearningAlgorithm.configure(vocab, lookupTable, configuration);
                 elementsLearningAlgorithm.pretrain(iterator);
             }
+
+            if(sequenceLearningAlgorithm == null) {
+                sequenceLearningAlgorithm = new DBOW<>();
+            }
+
             if (trainSequenceVectors && sequenceLearningAlgorithm != null) {
                 log.info("          building SequenceLearningAlgorithm: [" + sequenceLearningAlgorithm.getCodeName()
-                                + "]");
+                        + "]");
                 sequenceLearningAlgorithm.configure(vocab, lookupTable, configuration);
                 sequenceLearningAlgorithm.pretrain(this.iterator);
 
@@ -207,7 +202,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                 if (trainElementsVectors) {
                     elementsLearningAlgorithm = sequenceLearningAlgorithm.getElementsLearningAlgorithm();
                     log.info("          building ElementsLearningAlgorithm: [" + elementsLearningAlgorithm.getCodeName()
-                                    + "]");
+                            + "]");
                 }
             }
             configured = true;
@@ -246,8 +241,6 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         if (props.getProperty("backend").equals("CUDA")) {
             if (Nd4j.getAffinityManager().getNumberOfDevices() > 1)
                 throw new IllegalStateException("Multi-GPU word2vec/doc2vec isn't available atm");
-            //if (!NativeOpsHolder.getInstance().getDeviceNativeOps().isP2PAvailable())
-            //throw new IllegalStateException("Running Word2Vec on multi-gpu system requires P2P support between GPUs, which looks to be unavailable on your system.");
         }
 
         Nd4j.getRandom().setSeed(configuration.getSeed());
@@ -255,7 +248,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         AtomicLong timeSpent = new AtomicLong(0);
         if (!trainElementsVectors && !trainSequenceVectors)
             throw new IllegalStateException(
-                            "You should define at least one training goal 'trainElementsRepresentation' or 'trainSequenceRepresentation'");
+                    "You should define at least one training goal 'trainElementsRepresentation' or 'trainSequenceRepresentation'");
         if (iterator == null)
             throw new IllegalStateException("You can't fit() data without SequenceIterator defined");
 
@@ -265,7 +258,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         }
 
         WordVectorSerializer.printOutProjectedMemoryUse(vocab.numWords(), configuration.getLayersSize(),
-                        configuration.isUseHierarchicSoftmax() && configuration.getNegative() > 0 ? 3 : 2);
+                configuration.isUseHierarchicSoftmax() && configuration.getNegative() > 0 ? 3 : 2);
 
         if (vocab == null || lookupTable == null || vocab.numWords() == 0)
             throw new IllegalStateException("You can't fit() model with empty Vocabulary or WeightLookupTable");
@@ -291,11 +284,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
 
                         if (realElement != null && !realElement.isInit()) {
                             val rng = Nd4j.getRandomFactory().getNewRandomInstance(
-                                            configuration.getSeed() * realElement.hashCode(),
-                                            configuration.getLayersSize() + 1);
+                                    configuration.getSeed() * realElement.hashCode(),
+                                    configuration.getLayersSize() + 1);
 
                             val randArray = Nd4j.rand(new int[] {1, configuration.getLayersSize()}, rng).subi(0.5)
-                                            .divi(configuration.getLayersSize());
+                                    .divi(configuration.getLayersSize());
 
                             lookupTable.getWeights().getRow(realElement.getIndex(), true).assign(randArray);
                             realElement.setInit(true);
@@ -308,10 +301,10 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
 
                         if (realElement != null && !realElement.isInit()) {
                             Random rng = Nd4j.getRandomFactory().getNewRandomInstance(
-                                            configuration.getSeed() * realElement.hashCode(),
-                                            configuration.getLayersSize() + 1);
+                                    configuration.getSeed() * realElement.hashCode(),
+                                    configuration.getLayersSize() + 1);
                             INDArray randArray = Nd4j.rand(new int[] {1, configuration.getLayersSize()}, rng).subi(0.5)
-                                            .divi(configuration.getLayersSize());
+                                    .divi(configuration.getLayersSize());
 
                             lookupTable.getWeights().getRow(realElement.getIndex(), true).assign(randArray);
                             realElement.setInit(true);
@@ -351,25 +344,25 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             }
 
             try {
-               thread.join();
+                thread.join();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
 
             // TODO: fix this to non-exclusive termination
             if (trainElementsVectors && elementsLearningAlgorithm != null
-                            && (!trainSequenceVectors || sequenceLearningAlgorithm == null)
-                            && elementsLearningAlgorithm.isEarlyTerminationHit()) {
+                    && (!trainSequenceVectors || sequenceLearningAlgorithm == null)
+                    && elementsLearningAlgorithm.isEarlyTerminationHit()) {
                 break;
             }
 
             if (trainSequenceVectors && sequenceLearningAlgorithm != null
-                            && (!trainElementsVectors || elementsLearningAlgorithm == null)
-                            && sequenceLearningAlgorithm.isEarlyTerminationHit()) {
+                    && (!trainElementsVectors || elementsLearningAlgorithm == null)
+                    && sequenceLearningAlgorithm.isEarlyTerminationHit()) {
                 break;
             }
             log.info("Epoch [" + currentEpoch + "] finished; Elements processed so far: [" + wordsCounter.get()
-                            + "];  Sequences processed: [" + linesCounter.get() + "]");
+                    + "];  Sequences processed: [" + linesCounter.get() + "]");
 
             if (eventListeners != null && !eventListeners.isEmpty()) {
                 for (VectorsListener listener : eventListeners) {
@@ -396,8 +389,8 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             // call for ElementsLearningAlgorithm
             nextRandom.set(nextRandom.get() * 25214903917L + 11);
             if (!elementsLearningAlgorithm.isEarlyTerminationHit()) {
-                    scoreElements.set(elementsLearningAlgorithm.learnSequence(sequence, nextRandom, alpha, batchSequences));
-                }
+                scoreElements.set(elementsLearningAlgorithm.learnSequence(sequence, nextRandom, alpha, batchSequences));
+            }
             else
                 scoreElements.set(elementsLearningAlgorithm.learnSequence(sequence, nextRandom, alpha));
         }
@@ -408,6 +401,63 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             if (!sequenceLearningAlgorithm.isEarlyTerminationHit())
                 scoreSequences.set(sequenceLearningAlgorithm.learnSequence(sequence, nextRandom, alpha, batchSequences));
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof SequenceVectors)) return false;
+        SequenceVectors<?> that = (SequenceVectors<?>) o;
+        return configured == that.configured && lockFactor == that.lockFactor && enableScavenger == that.enableScavenger && vocabLimit == that.vocabLimit && Objects.equals(elementsLearningAlgorithm, that.elementsLearningAlgorithm) && Objects.equals(sequenceLearningAlgorithm, that.sequenceLearningAlgorithm) && Objects.equals(getConfiguration(), that.getConfiguration()) && Objects.equals(existingModel, that.existingModel) && Objects.equals(intersectModel, that.intersectModel) && Objects.equals(unknownElement, that.unknownElement);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(elementsLearningAlgorithm, sequenceLearningAlgorithm, getConfiguration(), existingModel, intersectModel, unknownElement, configured, lockFactor, enableScavenger, vocabLimit);
+    }
+
+    @Override
+    public String toString() {
+        return "SequenceVectors{" +
+                "iterator=" + iterator +
+                ", elementsLearningAlgorithm=" + elementsLearningAlgorithm +
+                ", sequenceLearningAlgorithm=" + sequenceLearningAlgorithm +
+                ", configuration=" + configuration +
+                ", existingModel=" + existingModel +
+                ", intersectModel=" + intersectModel +
+                ", unknownElement=" + unknownElement +
+                ", scoreElements=" + scoreElements +
+                ", scoreSequences=" + scoreSequences +
+                ", configured=" + configured +
+                ", lockFactor=" + lockFactor +
+                ", enableScavenger=" + enableScavenger +
+                ", vocabLimit=" + vocabLimit +
+                ", batchSequences=" + batchSequences +
+                ", eventListeners=" + eventListeners +
+                ", minWordFrequency=" + minWordFrequency +
+                ", lookupTable=" + lookupTable +
+                ", vocab=" + vocab +
+                ", layerSize=" + layerSize +
+                ", modelUtils=" + modelUtils +
+                ", numIterations=" + numIterations +
+                ", numEpochs=" + numEpochs +
+                ", negative=" + negative +
+                ", sampling=" + sampling +
+                ", learningRate=" + learningRate +
+                ", minLearningRate=" + minLearningRate +
+                ", window=" + window +
+                ", batchSize=" + batchSize +
+                ", learningRateDecayWords=" + learningRateDecayWords +
+                ", resetModel=" + resetModel +
+                ", useAdeGrad=" + useAdeGrad +
+                ", workers=" + workers +
+                ", trainSequenceVectors=" + trainSequenceVectors +
+                ", trainElementsVectors=" + trainElementsVectors +
+                ", seed=" + seed +
+                ", useUnknown=" + useUnknown +
+                ", variableWindows=" + Arrays.toString(variableWindows) +
+                ", stopWords=" + stopWords +
+                '}';
     }
 
 
@@ -449,7 +499,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         protected Collection<String> stopWords = new ArrayList<>();
 
         protected VectorsConfiguration configuration = new VectorsConfiguration();
-
+        protected boolean configurationSpecified = false;
         protected transient T unknownElement;
         protected String UNK = configuration.getUNK();
         protected String STOP = configuration.getSTOP();
@@ -463,17 +513,17 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         protected boolean preciseMode = false;
 
         // defaults values for learning algorithms are set here
-        protected ElementsLearningAlgorithm<T> elementsLearningAlgorithm = new SkipGram<>();
-        protected SequenceLearningAlgorithm<T> sequenceLearningAlgorithm = new DBOW<>();
+        protected ElementsLearningAlgorithm<T> elementsLearningAlgorithm;
+        protected SequenceLearningAlgorithm<T> sequenceLearningAlgorithm;
 
         protected Set<VectorsListener<T>> vectorsListeners = new HashSet<>();
 
         public Builder() {
-
         }
 
         public Builder(@NonNull VectorsConfiguration configuration) {
             this.configuration = configuration;
+            configurationSpecified = true;
             this.iterations = configuration.getIterations();
             this.numEpochs = configuration.getEpochs();
             this.minLearningRate = configuration.getMinLearningRate();
@@ -508,12 +558,12 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             }
 
             if (configuration.getElementsLearningAlgorithm() != null
-                            && !configuration.getElementsLearningAlgorithm().isEmpty()) {
+                    && !configuration.getElementsLearningAlgorithm().isEmpty()) {
                 this.elementsLearningAlgorithm(configuration.getElementsLearningAlgorithm());
             }
 
             if (configuration.getSequenceLearningAlgorithm() != null
-                            && !configuration.getSequenceLearningAlgorithm().isEmpty()) {
+                    && !configuration.getSequenceLearningAlgorithm().isEmpty()) {
                 this.sequenceLearningAlgorithm(configuration.getSequenceLearningAlgorithm());
             }
 
@@ -536,6 +586,18 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             return this;
         }
 
+
+        /**
+         * This method defines the vector configuration to be used for model building
+         * @param vectorsConfiguration
+         * @return
+         */
+        public Builder<T> configuration(@NonNull VectorsConfiguration vectorsConfiguration) {
+            this.configuration = vectorsConfiguration;
+            configurationSpecified = true;
+            return this;
+        }
+
         /**
          * This method defines SequenceIterator to be used for model building
          * @param iterator
@@ -552,7 +614,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          * @param algoName fully qualified class name
          * @return
          */
-        public Builder<T> sequenceLearningAlgorithm(@NonNull String algoName) {
+        public Builder<T> sequenceLearningAlgorithm(String algoName) {
+            //allow easier to use setup of configuration by allowing null
+            //values
+            if(algoName == null)
+                return this;
             this.sequenceLearningAlgorithm = DL4JClassLoading.createNewInstance(algoName);
             return this;
         }
@@ -563,7 +629,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          * @param algorithm SequenceLearningAlgorithm implementation
          * @return
          */
-        public Builder<T> sequenceLearningAlgorithm(@NonNull SequenceLearningAlgorithm<T> algorithm) {
+        public Builder<T> sequenceLearningAlgorithm(SequenceLearningAlgorithm<T> algorithm) {
+            //allow easier to use setup of configuration by allowing null
+            //values
+            if(algorithm == null)
+                return this;
             this.sequenceLearningAlgorithm = algorithm;
             return this;
         }
@@ -574,7 +644,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          * @param algoName fully qualified class name
          * @return
          */
-        public Builder<T> elementsLearningAlgorithm(@NonNull String algoName) {
+        public Builder<T> elementsLearningAlgorithm(String algoName) {
+            //allow easier to use setup of configuration by allowing null
+            //values
+            if(algoName == null)
+                return this;
             this.elementsLearningAlgorithm = DL4JClassLoading.createNewInstance(algoName);
             this.configuration.setElementsLearningAlgorithm(elementsLearningAlgorithm.getClass().getCanonicalName());
 
@@ -587,7 +661,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          * @param algorithm ElementsLearningAlgorithm implementation
          * @return
          */
-        public Builder<T> elementsLearningAlgorithm(@NonNull ElementsLearningAlgorithm<T> algorithm) {
+        public Builder<T> elementsLearningAlgorithm(ElementsLearningAlgorithm<T> algorithm) {
+            //allow easier to use setup of configuration by allowing null
+            //values
+            if(elementsLearningAlgorithm == null)
+                return this;
             this.elementsLearningAlgorithm = algorithm;
             return this;
         }
@@ -604,7 +682,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         }
 
         /**
-         * This method defines how much iterations should be done over batched sequences.
+         * This method defines how many iterations should be done over batched sequences.
          *
          * @param iterations
          * @return
@@ -615,7 +693,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         }
 
         /**
-         * This method defines how much iterations should be done over whole training corpus during modelling
+         * This method defines how many iterations should be done over whole training corpus during modelling
          * @param numEpochs
          * @return
          */
@@ -753,9 +831,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          */
         public Builder<T> lookupTable(@NonNull WeightLookupTable<T> lookupTable) {
             this.lookupTable = lookupTable;
-
             this.layerSize(lookupTable.layerSize());
-
             return this;
         }
 
@@ -855,7 +931,6 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          */
         public Builder<T> modelUtils(@NonNull ModelUtils<T> modelUtils) {
             this.modelUtils = modelUtils;
-            this.configuration.setModelUtils(modelUtils.getClass().getCanonicalName());
             return this;
         }
 
@@ -866,7 +941,6 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          */
         public Builder<T> useUnknown(boolean reallyUse) {
             this.useUnknown = reallyUse;
-            this.configuration.setUseUnknown(reallyUse);
             return this;
         }
 
@@ -878,7 +952,6 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         public Builder<T> unknownElement(@NonNull T element) {
             this.unknownElement = element;
             this.UNK = element.getLabel();
-            this.configuration.setUNK(this.UNK);
             return this;
         }
 
@@ -908,13 +981,11 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
          */
         public Builder<T> usePreciseWeightInit(boolean reallyUse) {
             this.preciseWeightInit = reallyUse;
-            this.configuration.setPreciseWeightInit(reallyUse);
             return this;
         }
 
         public Builder<T> usePreciseMode(boolean reallyUse) {
             this.preciseMode = reallyUse;
-            this.configuration.setPreciseMode(reallyUse);
             return this;
         }
 
@@ -926,14 +997,14 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
 
                 if (vocabCache == null) {
                     vocabCache = new AbstractCache.Builder<T>().hugeModelExpected(hugeModelExpected)
-                                    .scavengerRetentionDelay(this.configuration.getScavengerRetentionDelay())
-                                    .scavengerThreshold(this.configuration.getScavengerActivationThreshold())
-                                    .minElementFrequency(minWordFrequency).build();
+                            .scavengerRetentionDelay(this.configuration.getScavengerRetentionDelay())
+                            .scavengerThreshold(this.configuration.getScavengerActivationThreshold())
+                            .minElementFrequency(minWordFrequency).build();
                 }
 
                 lookupTable = new InMemoryLookupTable.Builder<T>().useAdaGrad(this.useAdaGrad).cache(vocabCache)
-                                .negative(negative).useHierarchicSoftmax(useHierarchicSoftmax).vectorLength(layerSize)
-                                .lr(learningRate).seed(seed).build();
+                        .negative(negative).useHierarchicSoftmax(useHierarchicSoftmax).vectorLength(layerSize)
+                        .lr(learningRate).seed(seed).build();
             }
 
             String elementsLearningAlgorithm = this.configuration.getElementsLearningAlgorithm();
@@ -946,14 +1017,21 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                 this.sequenceLearningAlgorithm = DL4JClassLoading.createNewInstance(sequenceLearningAlgorithm);
             }
 
-            if (trainElementsVectors && this.elementsLearningAlgorithm == null) {
-                // create default implementation of ElementsLearningAlgorithm
-                this.elementsLearningAlgorithm = new SkipGram<>();
-            }
-
             if (trainSequenceVectors && this.sequenceLearningAlgorithm == null) {
                 this.sequenceLearningAlgorithm = new DBOW<>();
             }
+
+            if (trainElementsVectors && this.elementsLearningAlgorithm == null) {
+                // create default implementation of ElementsLearningAlgorithm
+                //derive default from sequence when specified
+                if (this.sequenceLearningAlgorithm != null) {
+                    this.elementsLearningAlgorithm = this.sequenceLearningAlgorithm.getElementsLearningAlgorithm();
+                } else {
+                    this.elementsLearningAlgorithm = new SkipGram<>();
+                }
+            }
+
+
 
             this.modelUtils.init(lookupTable);
         }
@@ -972,7 +1050,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
         }
 
         /**
-         * This method ebables/disables periodical vocab truncation during construction
+         * This method enables/disables periodical vocab truncation during construction
          *
          * Default value: disabled
          *
@@ -1029,7 +1107,6 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             vectors.variableWindows = this.variableWindows;
             vectors.vocabLimit = this.vocabLimit;
 
-
             vectors.trainElementsVectors = this.trainElementsVectors;
             vectors.trainSequenceVectors = this.trainSequenceVectors;
 
@@ -1040,26 +1117,29 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
             vectors.intersectModel = this.intersectVectors;
             vectors.enableScavenger = this.enableScavenger;
             vectors.lockFactor = this.lockFactor;
+            //only override values if a configuration wasn't specified
+            if(!configurationSpecified) {
+                this.configuration.setLearningRate(this.learningRate);
+                this.configuration.setLayersSize(layerSize);
+                this.configuration.setHugeModelExpected(hugeModelExpected);
+                this.configuration.setWindow(window);
+                this.configuration.setMinWordFrequency(minWordFrequency);
+                this.configuration.setIterations(iterations);
+                this.configuration.setSeed(seed);
+                this.configuration.setBatchSize(batchSize);
+                this.configuration.setLearningRateDecayWords(learningRateDecayWords);
+                this.configuration.setMinLearningRate(minLearningRate);
+                this.configuration.setSampling(this.sampling);
+                this.configuration.setUseAdaGrad(useAdaGrad);
+                this.configuration.setNegative(negative);
+                this.configuration.setEpochs(this.numEpochs);
+                this.configuration.setStopList(this.stopWords);
+                this.configuration.setVariableWindows(variableWindows);
+                this.configuration.setUseHierarchicSoftmax(this.useHierarchicSoftmax);
+                this.configuration.setPreciseWeightInit(this.preciseWeightInit);
+                this.configuration.setModelUtils(this.modelUtils.getClass().getCanonicalName());
 
-            this.configuration.setLearningRate(this.learningRate);
-            this.configuration.setLayersSize(layerSize);
-            this.configuration.setHugeModelExpected(hugeModelExpected);
-            this.configuration.setWindow(window);
-            this.configuration.setMinWordFrequency(minWordFrequency);
-            this.configuration.setIterations(iterations);
-            this.configuration.setSeed(seed);
-            this.configuration.setBatchSize(batchSize);
-            this.configuration.setLearningRateDecayWords(learningRateDecayWords);
-            this.configuration.setMinLearningRate(minLearningRate);
-            this.configuration.setSampling(this.sampling);
-            this.configuration.setUseAdaGrad(useAdaGrad);
-            this.configuration.setNegative(negative);
-            this.configuration.setEpochs(this.numEpochs);
-            this.configuration.setStopList(this.stopWords);
-            this.configuration.setVariableWindows(variableWindows);
-            this.configuration.setUseHierarchicSoftmax(this.useHierarchicSoftmax);
-            this.configuration.setPreciseWeightInit(this.preciseWeightInit);
-            this.configuration.setModelUtils(this.modelUtils.getClass().getCanonicalName());
+            }
 
             vectors.configuration = this.configuration;
 
@@ -1070,7 +1150,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
     /**
      * This class is used to fetch data from iterator in background thread, and convert it to List<VocabularyWord>
      *
-     * It becomes very usefull if text processing pipeline behind iterator is complex, and we're not loading data from simple text file with whitespaces as separator.
+     * It becomes very useful if text processing pipeline behind iterator is complex, and we're not loading data from simple text file with whitespaces as separator.
      * Since this method allows you to hide preprocessing latency in background.
      *
      * This mechanics will be change to PrefetchingSentenceIterator wrapper.
@@ -1132,7 +1212,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                                 continue;
                             T realElement = vocab.wordFor(element.getLabel());
 
-                            // please note: this serquence element CAN be absent in vocab, due to minFreq or stopWord or whatever else
+                            // please note: this sequence element CAN be absent in vocab, due to minFreq or stopWord or whatever else
                             if (realElement != null) {
                                 newSequence.addElement(realElement);
                             } else if (useUnknown && unknownElement != null) {
@@ -1155,6 +1235,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                     ThreadUtils.uncheckedSleep(50);
                 }
             }
+
             isRunning.set(false);
         }
 
@@ -1198,7 +1279,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                 Long constructors suck, so this should be reduced to something reasonable later
          */
         public VectorCalculationsThread(int threadId, int epoch, AtomicLong wordsCounter, long totalWordsCount,
-                        AtomicLong linesCounter, AsyncSequencer digitizer, AtomicLong timer, int totalEpochs) {
+                                        AtomicLong linesCounter, AsyncSequencer digitizer, AtomicLong timer, int totalEpochs) {
             this.threadId = threadId;
             this.totalEpochs = totalEpochs;
             this.epochNumber = epoch;
@@ -1220,9 +1301,8 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                     .cyclesBeforeInitialization(3)
                     .initialSize(25L * 1024L * 1024L)
                     .build();
-            val workspace_id = "sequence_vectors_training_" + java.util.UUID.randomUUID().toString();
+            val workspace_id = "sequence_vectors_training_" + UUID.randomUUID();
 
-            Nd4j.getAffinityManager().getDeviceForCurrentThread();
             while (digitizer.hasMoreLines()) {
                 try {
                     // get current sentence as list of VocabularyWords
@@ -1235,6 +1315,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                             }
                         }
                     }
+
                     double alpha = 0.025;
 
                     if (sequences.isEmpty()) {
@@ -1250,7 +1331,7 @@ public class SequenceVectors<T extends SequenceElement> extends WordVectorsImpl<
                             try (val ws = Nd4j.getWorkspaceManager().getAndActivateWorkspace(conf, workspace_id)) {
                                 Sequence<T> sequence = sequences.get(x);
 
-                                //log.info("LR before: {}; wordsCounter: {}; totalWordsCount: {}", learningRate.get(), this.wordsCounter.get(), this.totalWordsCount);
+                                log.debug("LR before: {}; wordsCounter: {}; totalWordsCount: {}", learningRate.get(), this.wordsCounter.get(), this.totalWordsCount);
                                 alpha = Math.max(minLearningRate,
                                         learningRate.get() * (1 - (1.0 * this.wordsCounter.get()
                                                 / ((double) this.totalWordsCount) / (numIterations

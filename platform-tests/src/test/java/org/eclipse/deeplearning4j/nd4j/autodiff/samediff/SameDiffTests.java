@@ -31,6 +31,10 @@ import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.collection.CollectionRecordReader;
+import org.datavec.api.writable.IntWritable;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 import org.junit.jupiter.api.*;
 
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,6 +83,7 @@ import org.nd4j.linalg.checkutil.NDArrayCreationUtil;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.MultiDataSet;
 import org.nd4j.linalg.dataset.adapter.SingletonMultiDataSetIterator;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
 import org.nd4j.linalg.indexing.NDArrayIndex;
@@ -87,6 +92,7 @@ import org.nd4j.linalg.ops.transforms.Transforms;
 import org.nd4j.common.primitives.Pair;
 import org.nd4j.nativeblas.NativeOpsHolder;
 import org.nd4j.shade.guava.collect.Maps;
+import org.nd4j.weightinit.impl.OneInitScheme;
 import org.nd4j.weightinit.impl.UniformInitScheme;
 
 @Slf4j
@@ -102,11 +108,32 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
     }
 
 
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testCtc(Nd4jBackend backend) {
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
+        SameDiff sd = SameDiff.create();
+        INDArray labelsND = Nd4j.createFromArray(new int[][] {{1917, 3468, 1024, 2744, 4092, 2613,  112,  922, 4785, 1675},
+                {119, 16, 202, 2352, 2945, 3468, 2744, 112, 0, 0}});
+        INDArray labels_len_ND =  Nd4j.createFromArray(new int[] {10, 8});
+        INDArray logits_len_ND =  Nd4j.createFromArray(new int[] {155, 155});
+        SDVariable labels = sd.constant(labelsND);
+        SDVariable logits = sd.random.normal(0, 1, DataType.FLOAT, new long[] {2, 155, 5530});
+        SDVariable labels_len = sd.constant(labels_len_ND);
+        SDVariable logits_len = sd.constant(logits_len_ND);
+        SDVariable ctc = sd.loss.ctcLoss("ctcLoss", labels, logits, labels_len, logits_len);
+        //
+        System.out.println(ctc.eval());
+    }
+
+
 
     @Override
     public long getTimeoutMilliseconds() {
         return 999999999L;
     }
+
 
     @BeforeEach
     public void before() {
@@ -137,6 +164,24 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
         inputMap.put("w", weights);
         inputMap.put("y", labels);
         return inputMap;
+    }
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testSameDiffShapeNonNumerical() {
+        SameDiff sd = SameDiff.create();
+        SDVariable var = sd.create(null, sd.constant(8), DataType.BOOL);
+        assertEquals(8,var.shape().eval().getLong(0)); // throws exception    }
+        sd.setShape(var,var.shape())[0].eval();
+    }
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testSameDiffCreate() {
+        SameDiff sd = SameDiff.create();
+        SDVariable var = sd.create(null, sd.constant(8), DataType.INT32);
+        assertEquals(DataType.INT, var.eval().dataType());
+        assertEquals(DataType.INT,var.dataType());
     }
 
     @ParameterizedTest
@@ -2197,11 +2242,9 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
         int jaxis = 1;
         SDVariable paramsShape = sd.var(arr);
         SDVariable innerShape = paramsShape.getView(
-                SDIndex.interval(sd.constant(jaxis),sd.constant(-1)),
-                SDIndex.interval(sd.constant(1),
-                        sd.constant(-1)));
+                SDIndex.interval(sd.constant(jaxis),sd.constant(-1)));
 
-        assertEquals(Nd4j.createFromArray(10),innerShape.eval());
+        assertEquals(Nd4j.createFromArray(10,10),innerShape.eval());
     }
 
     @ParameterizedTest
@@ -2795,6 +2838,7 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
 
         TrainingConfig c = TrainingConfig.builder()
                 .updater(new Adam(0.1))
+                .lossVariables(Collections.singletonList(loss.name()))
                 .weightDecay(0.01, true)
                 .dataSetFeatureMapping("in")
                 .skipBuilderValidation(true)
@@ -2841,6 +2885,7 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
         TrainingConfig c = TrainingConfig.builder()
                 .updater(new Adam(0.1))
                 .weightDecay(0.01, true)
+                .lossVariables(Collections.singletonList(loss.name()))
                 .dataSetFeatureMapping("in", "in2")
                 .skipBuilderValidation(true)
                 .build();
@@ -2882,6 +2927,7 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
 
         TrainingConfig c = TrainingConfig.builder()
                 .updater(new Adam(0.1))
+                .lossVariables(Collections.singletonList(loss.name()))
                 .weightDecay(0.01, true)
                 .dataSetFeatureMapping("in")
                 .skipBuilderValidation(true)
@@ -3272,6 +3318,7 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
 
         sd.setTrainingConfig(TrainingConfig.builder()
                 .updater(new Adam(1e-3))
+                .lossVariables(Collections.singletonList(v4.name()))
                 .dataSetFeatureMapping("x")
                 .markLabelsUnused()
                 .build());
@@ -3335,6 +3382,7 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
 
         sd.setTrainingConfig(TrainingConfig.builder()
                 .dataSetFeatureMapping("ph1", "ph2", "ph3", "ph4")
+                .lossVariables(Collections.singletonList(mean.name()))
                 .markLabelsUnused()
                 .updater(new Adam(1e-3)).build());
 
@@ -3967,8 +4015,9 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
     public void testTrainingConfigJson(Nd4jBackend backend) {
         for(IEvaluation e : new IEvaluation[]{new Evaluation(), new RegressionEvaluation(), new EvaluationBinary(), new ROC(),
                 new ROCMultiClass(), new ROCBinary(), new EvaluationCalibration()}) {
-            TrainingConfig config = new TrainingConfig.Builder()
+            TrainingConfig config =  TrainingConfig.builder()
                     .l2(1e-4)
+                    .lossVariables(Collections.singletonList("loss"))
                     .updater(new Adam(0.1))
                     .dataSetFeatureMapping("out").dataSetLabelMapping("label")
                     .trainEvaluation("out", 0, e)
@@ -4105,6 +4154,95 @@ public class SameDiffTests extends BaseNd4jTestWithBackends {
 
         assertArrayEquals(new long[]{bS, oC, oH, oW}, out.eval().shape());
     }
+
+
+
+
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testControlflowBackProp() {
+        //ifCond();
+        System.out.println("=".repeat(100));
+        //TODO: figure out why Variable type + enter body has no gradient.
+        //could be edge case we need to yet figure out or have something to do with
+        //function nesting + control flow. This should be examined closer.
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
+        whileLoop();
+    }
+
+    private static void ifCond() {
+        int batchSize = 4;
+        int modelDim = 8;
+
+        SameDiff sd = SameDiff.create();
+
+        SDVariable features = sd.placeHolder("features", DataType.FLOAT, batchSize, modelDim);
+        SDVariable labels = sd.placeHolder("labels", DataType.FLOAT, batchSize, modelDim);
+        SDVariable var = sd.var("variable", new OneInitScheme('c'), DataType.FLOAT, batchSize, modelDim);
+        SDVariable predictions = sd.ifCond("predictions", null,
+                _sd -> features.sum().gt(0),
+                _sd -> features.sub(var),
+                _sd -> features.add(var));
+        sd.loss.meanSquaredError("loss", labels, predictions, null);
+
+        TrainingConfig config = new TrainingConfig.Builder()
+                .updater(new Adam(0.1))
+                .dataSetFeatureMapping("features")
+                .dataSetLabelMapping("labels")
+                .build();
+        sd.setTrainingConfig(config);
+
+        RecordReader reader = new CollectionRecordReader(
+                Collections.nCopies(batchSize, Collections.nCopies(2 * modelDim, new IntWritable(1))));
+        DataSetIterator iterator = new RecordReaderDataSetIterator(
+                reader, batchSize, modelDim, 2 * modelDim - 1, true);
+
+        System.out.println(sd.output(iterator, "predictions").get("predictions")); // forward pass works
+
+        sd.fit(iterator, 1); // backward pass throws exception
+    }
+
+    private static void whileLoop() {
+        int batchSize = 4;
+        int modelDim = 8;
+
+        Nd4j.getExecutioner().enableDebugMode(true);
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        SameDiff sd = SameDiff.create();
+
+        SDVariable features = sd.placeHolder("features", DataType.FLOAT, batchSize, modelDim);
+        SDVariable labels = sd.placeHolder("labels", DataType.FLOAT, batchSize, modelDim);
+        SDVariable var = sd.var("variable", new OneInitScheme('c'), DataType.FLOAT, batchSize, modelDim);
+        SDVariable predictions = sd.whileLoop(
+                new String[]{"predictions","variable2"}, null,
+                new SDVariable[]{features,var},
+                (_sd, inputs) -> inputs[0].sum().gt(0),
+                (_sd, inputs) -> new SDVariable[]{inputs[0].sub(inputs[1]),inputs[1]})[0];
+        SDVariable loss2 = sd.loss.meanSquaredError("loss", labels, predictions, null);
+
+        System.out.println(sd.summary(true));
+
+        TrainingConfig config = new TrainingConfig.Builder()
+                .updater(new Adam(0.1))
+                .dataSetFeatureMapping("features")
+                .dataSetLabelMapping("labels")
+                .lossVariables(Collections.singletonList("loss"))
+                .build();
+        sd.setTrainingConfig(config);
+
+        RecordReader reader = new CollectionRecordReader(
+                Collections.nCopies(batchSize, Collections.nCopies(2 * modelDim, new IntWritable(1))));
+        DataSetIterator iterator = new RecordReaderDataSetIterator(
+                reader, batchSize, modelDim, 2 * modelDim - 1, true);
+
+        System.out.println(sd.output(iterator, "predictions").get("predictions")); // forward pass works
+
+        sd.fit(iterator, 1); // backward pass throws exception
+    }
+
+
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")

@@ -20,6 +20,7 @@
 package org.nd4j.samediff.frameworkimport.onnx.ir
 
 import onnx.Onnx
+import org.nd4j.ir.TensorNamespace
 import org.nd4j.samediff.frameworkimport.ir.IRAttribute
 import org.nd4j.samediff.frameworkimport.ir.IRDataType
 import org.nd4j.samediff.frameworkimport.ir.IRGraph
@@ -28,6 +29,7 @@ import org.nd4j.samediff.frameworkimport.registry.OpMappingRegistry
 import org.nd4j.samediff.frameworkimport.rule.attribute.AttributeValueType
 import org.nd4j.shade.protobuf.GeneratedMessageV3
 import org.nd4j.shade.protobuf.ProtocolMessageEnum
+import java.lang.UnsupportedOperationException
 
 class OnnxIRAttr(inputAttributeDef: Onnx.AttributeProto, inputAttributeValue: Onnx.AttributeProto):
     IRAttribute<Onnx.AttributeProto, Onnx.AttributeProto, Onnx.TensorProto, Onnx.TensorProto.DataType> {
@@ -61,7 +63,15 @@ class OnnxIRAttr(inputAttributeDef: Onnx.AttributeProto, inputAttributeValue: On
     }
 
     override fun listBoolValue(): List<Boolean> {
-        TODO("Implement")
+        throw UnsupportedOperationException("Unable to map list of booleans on onnx")
+    }
+
+    override fun shapeValue(): List<Long> {
+        throw UnsupportedOperationException("Unable to map shape attributes on onnx nodes")
+    }
+
+    override fun listDataTypes(): List<TensorNamespace.DataType> {
+        throw UnsupportedOperationException("Unable to map data type on onnx nodes")
     }
 
     override fun attributeValueType(): AttributeValueType {
@@ -75,6 +85,7 @@ class OnnxIRAttr(inputAttributeDef: Onnx.AttributeProto, inputAttributeValue: On
             Onnx.AttributeProto.AttributeType.TENSOR -> return AttributeValueType.TENSOR
             Onnx.AttributeProto.AttributeType.TENSORS -> return AttributeValueType.LIST_TENSOR
             Onnx.AttributeProto.AttributeType.GRAPH -> return AttributeValueType.GRAPH
+            else -> return AttributeValueType.INVALID
         }
 
         return AttributeValueType.INVALID
@@ -114,8 +125,13 @@ class OnnxIRAttr(inputAttributeDef: Onnx.AttributeProto, inputAttributeValue: On
     }
 
     override fun graphValue(registry: OpMappingRegistry<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum, GeneratedMessageV3, GeneratedMessageV3>): IRGraph<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum> {
-      return OnnxIRGraph(attributeValue.g,registry as OpMappingRegistry<Onnx.GraphProto, Onnx.NodeProto, Onnx.NodeProto, Onnx.TensorProto, Onnx.TensorProto.DataType, Onnx.AttributeProto, Onnx.AttributeProto>)
-        as IRGraph<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum>
+        return OnnxIRGraph(attributeValue.g,registry as OpMappingRegistry<Onnx.GraphProto, Onnx.NodeProto, Onnx.NodeProto, Onnx.TensorProto, Onnx.TensorProto.DataType, Onnx.AttributeProto, Onnx.AttributeProto>)
+                as IRGraph<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum>
+    }
+
+    override fun listGraphValue(registry: OpMappingRegistry<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum, GeneratedMessageV3, GeneratedMessageV3>): List<IRGraph<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum>> {
+      return attributeValue.graphsList.map { input ->OnnxIRGraph(input,registry as OpMappingRegistry<Onnx.GraphProto, Onnx.NodeProto, Onnx.NodeProto, Onnx.TensorProto, Onnx.TensorProto.DataType, Onnx.AttributeProto, Onnx.AttributeProto>)
+              as IRGraph<GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, GeneratedMessageV3, ProtocolMessageEnum> }
     }
 
 }

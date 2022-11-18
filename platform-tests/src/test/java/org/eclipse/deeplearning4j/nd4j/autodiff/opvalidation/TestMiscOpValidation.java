@@ -22,11 +22,15 @@ package org.eclipse.deeplearning4j.nd4j.autodiff.opvalidation;
 
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import lombok.var;
+import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.collection.CollectionRecordReader;
+import org.datavec.api.writable.IntWritable;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.internal.matchers.Same;
 import org.nd4j.autodiff.samediff.SDIndex;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
@@ -36,6 +40,7 @@ import org.nd4j.autodiff.validation.OpValidation;
 import org.nd4j.autodiff.validation.TestCase;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.common.tests.tags.TagNames;
+import org.nd4j.enums.PartitionMode;
 import org.nd4j.linalg.api.blas.params.MMulTranspose;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -69,6 +74,7 @@ import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.FloorDivOp;
 import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.FloorModOp;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
 import org.nd4j.linalg.indexing.NDArrayIndex;
@@ -107,7 +113,10 @@ public class TestMiscOpValidation extends BaseOpValidation {
             in2Shape[dim_sz1] = 1;
 
             for (int i = 0; i < 8; i++) {
-
+                //floormod case is questionable, hard to tell if gradient checkable: skipping for now
+                if(i == 7) {
+                    continue;
+                }
                 SameDiff sd = SameDiff.create();
 
                 SDVariable in3 = sd.var("in3", Nd4j.rand(new int[]{3, 4, 5}));
@@ -572,57 +581,6 @@ public class TestMiscOpValidation extends BaseOpValidation {
     }
 
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void gatherTest(Nd4jBackend backend) {
-        /**
-         * TODO: add tests for new indexing engine based on SDVariable
-         * TODO: add tests for pure point based indices derived from an SDVariable
-         */
-        SameDiff sd = SameDiff.create();
-        long sequenceLength = 256;
-        int hiddenSize = 768;
-        var sequenceLengthSd = sd.constant(sequenceLength);
-        var hiddenSizeSd = sd.constant(hiddenSize);
-        var classesAmount = 10;
-        var tokenEmbeddingsMatrix = sd.var("tokenEmbeddingsMatrix", new XavierInitScheme('c', 30522, hiddenSize), FLOAT, 30522, hiddenSize);
-        var classificationWeights =
-                sd.var("classificationWeights", new XavierInitScheme('c', hiddenSize, classesAmount), FLOAT, hiddenSize, classesAmount);
-        var inputTokenVocabIndices = sd.placeHolder("inputTokenVocabIndices", INT32, -1, sequenceLength);
-        var batchTokenEmbeddings = sd.gather("batchTokenEmbeddings", tokenEmbeddingsMatrix, inputTokenVocabIndices, 0);
-        var batchSize = batchTokenEmbeddings.shape().get(SDIndex.point(0)).castTo("batchSize", INT32);
-        var flatBatchSizeSd = batchSize.mul(sequenceLengthSd);
-        var hiddenLayerInputShape = sd.stack("hiddenLayerInputShape", 0, flatBatchSizeSd, hiddenSizeSd);
-        var layerInput = batchTokenEmbeddings.reshape(hiddenLayerInputShape);
-        var labels = sd.placeHolder("labels", INT32, sequenceLength);
-        var logits = sd.nn().linear(layerInput, classificationWeights, sd.zero("bias", classesAmount).convertToVariable().castTo(FLOAT));
-        sd.loss().softmaxCrossEntropy(sd.oneHot(labels, classesAmount), logits, null);
-
-        TrainingConfig trainingConfig = TrainingConfig.builder()
-                .dataSetFeatureMapping("inputTokenVocabIndices")
-                .dataSetLabelMapping("labels")
-                .updater(new Adam())
-                .build();
-        sd.setTrainingConfig(trainingConfig);
-
-
-        TestCase tc = new TestCase(sd)
-                .testName("gather_grad")
-                .gradientCheck(true)
-                .gradCheckPrint(true)
-                .testFlatBufferSerialization(TestCase.TestSerialization.BOTH)
-                .placeholderValue("inputTokenVocabIndices",Nd4j.zeros(1,sequenceLength))
-                .placeholderValue("labels",Nd4j.ones(sequenceLength));
-
-        String err = OpValidation.validate(tc);
-        assertNull(err);
-     /*   DataSet d = new DataSet();
-        d.setFeatures(Nd4j.zeros(1, sequenceLength));
-        d.setLabels(Nd4j.ones(sequenceLength));
-
-
-        sd.fit(d);*/
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -782,13 +740,95 @@ public class TestMiscOpValidation extends BaseOpValidation {
         SDVariable B1 = sd.var("B1", B);
         SDVariable B2 = sd.var("B2", B);
 
-        SDVariable[] batchMul = sd.batchMmul(new SDVariable[] {A1, A2}, new SDVariable[] {B1, B2});
+        SDVariable[] batchMul = sd.batchMmul(sd.zero(null,M,N),sd.one(null,N,K),
+                new SDVariable[] {A1, A2}, new SDVariable[] {B1, B2});
         Map<String,INDArray> m = sd.output(Collections.emptyMap(),Arrays.stream(batchMul).map(input -> input.name()).collect(Collectors.toList()));
 
         INDArray resultingMatrix = m.get(batchMul[0].name());
-        //System.out.print(resultingMatrix);
+        assertArrayEquals(new long[]{5,4},resultingMatrix.shape());
     }
 
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+
+    public void testBatchMMul(Nd4jBackend backend) {
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
+        INDArray a = Nd4j.ones(2, 6);
+        INDArray b = Nd4j.ones(6, 4);
+        // 1. batchMmul in Nd4j causes an error in LibND4J
+        INDArray assertion = a.mmul(b);
+        INDArray[] res1 = Nd4j.base.batchMmul(a,b,new INDArray[]{a,a},  new INDArray[]{b,b}); // throws exception
+        assertEquals(assertion,res1[0]);
+        assertEquals(2,res1.length);
+
+        // 2. batchMmul in SameDiff produces a wrong result and sometimes even crashes (harder to reproduce; crash log linked below)
+        SameDiff sd = SameDiff.create();
+        SDVariable[] res2 = sd.batchMmul(sd.constant(a),
+                sd.constant(b),
+                new SDVariable[]{sd.constant(a),sd.constant(a)},new SDVariable[]{sd.constant(b),sd.constant(b)});
+        assertEquals(assertion,res2[0].eval()); // wrong result (or crash)
+
+
+// 3. batchMmul in SameDiff on SDVariables of type ARRAY causes a NullPointerException
+        sd = SameDiff.create();
+        SDVariable[] res3 = sd.batchMmul(sd.constant(a).add(0),sd.constant(b).add(0),
+                new SDVariable[]{sd.constant(a).add(0),sd.constant(a).add(0)}, new SDVariable[]{sd.constant(b).add(0),sd.constant(b).add(0)}); // throws exception
+        assertEquals(assertion,res3[0].eval());
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testTensorMMulBp(Nd4jBackend backend) {
+        int batchSize = 4;
+        int seqLength = 8;
+
+        SameDiff sd = SameDiff.create();
+
+        SDVariable features = sd.placeHolder("features", DataType.DOUBLE, batchSize, seqLength);
+        SDVariable labels = sd.placeHolder("labels", DataType.DOUBLE, batchSize, batchSize);
+        SDVariable var = sd.var("variable", seqLength, batchSize);
+        SDVariable predictions = sd.tensorMmul("predictions", features, var, new int[]{1}, 0);
+        sd.loss.meanSquaredError("loss", labels, predictions, null);
+
+        TrainingConfig config = new TrainingConfig.Builder()
+                .updater(new Adam(0.1))
+                .dataSetFeatureMapping("features")
+                .dataSetLabelMapping("labels")
+                .build();
+        sd.setTrainingConfig(config);
+
+        RecordReader reader = new CollectionRecordReader(
+                Collections.nCopies(batchSize, Collections.nCopies(seqLength + batchSize, new IntWritable(1))));
+        DataSetIterator iterator = new RecordReaderDataSetIterator(
+                reader, batchSize, seqLength, seqLength + batchSize - 1, true);
+
+        System.out.println(sd.output(iterator, "predictions").get("predictions")); // forward pass works
+
+        sd.fit(iterator, 1); // backward pass throws exception
+    }
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testEmbedding() {
+        SameDiff sd = SameDiff.create();
+        SDVariable input = sd.placeHolder("input", DataType.INT32, -1, 2);
+        SDVariable input2 = sd.placeHolder("input2", INT32,2,2);
+        SDVariable lookUpDict = sd.var("lookUpDict",new XavierInitScheme('c', 4, 8), DataType.FLOAT, 4, 8);
+        SDVariable embeddingResult = sd.math.embeddingLookup("embeddingResult", lookUpDict, new SDVariable[]{input}, PartitionMode.MOD);
+        //
+        Map<String,INDArray> map = new HashMap<>();
+        INDArray inputArr = Nd4j.createFromArray(0, 3);
+        INDArray inputArr2 = Nd4j.createFromArray(2,3);
+        System.out.println(inputArr.shapeInfoToString());
+        map.put("input", inputArr);
+        map.put("input2",inputArr2);
+        //forward
+        Map<String,INDArray> result = sd.output(map, "embeddingResult");
+        System.out.println(result);
+    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")

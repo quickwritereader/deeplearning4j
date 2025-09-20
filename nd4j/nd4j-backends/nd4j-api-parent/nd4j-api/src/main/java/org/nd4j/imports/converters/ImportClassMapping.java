@@ -20,15 +20,21 @@
 
 package org.nd4j.imports.converters;
 
+import dorkbox.annotation.AnnotationDefaults;
+import dorkbox.annotation.AnnotationDetector;
 import lombok.extern.slf4j.Slf4j;
 import org.nd4j.autodiff.functions.DifferentialFunction;
+import org.nd4j.common.config.ND4JClassLoading;
+import org.nd4j.common.config.ND4JSystemProperties;
 import org.nd4j.imports.NoOpNameFoundException;
+import org.nd4j.linalg.api.ops.UserDefinedOp;
 import org.nd4j.linalg.api.ops.impl.shape.SetShape;
+import org.nd4j.linalg.api.ops.random.impl.CustomDropOut;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.util.*;
 
 @Slf4j
 public class ImportClassMapping {
@@ -37,7 +43,7 @@ public class ImportClassMapping {
     private static final Map<String, DifferentialFunction> TF_OP_NAME_MAP = new HashMap<>();
     private static final Map<String, DifferentialFunction> ONNX_OP_NAME_MAP = new HashMap<>();
 
-    private static final List<Class<?>> fnClasses = Arrays.<Class<?>>asList(
+    private static final List<Class<?>> fnClasses = new ArrayList<>(Arrays.<Class<?>>asList(
             org.nd4j.linalg.api.ops.DynamicCustomOp.class,
             org.nd4j.linalg.api.ops.NoOp.class,
             org.nd4j.linalg.api.ops.impl.updaters.SgdUpdater.class,
@@ -70,10 +76,6 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.impl.broadcast.BroadcastRSubOp.class,
             org.nd4j.linalg.api.ops.impl.broadcast.BroadcastSubOp.class,
             org.nd4j.linalg.api.ops.impl.broadcast.BroadcastTo.class,
-            org.nd4j.linalg.api.ops.compression.EncodeBitmap.class,
-            org.nd4j.linalg.api.ops.compression.DecodeBitmap.class,
-            org.nd4j.linalg.api.ops.compression.EncodeThreshold.class,
-            org.nd4j.linalg.api.ops.compression.DecodeThreshold.class,
             org.nd4j.linalg.api.ops.impl.shape.Create.class,
             org.nd4j.linalg.api.ops.impl.broadcast.bool.BroadcastEqualTo.class,
             org.nd4j.linalg.api.ops.impl.broadcast.bool.BroadcastGreaterThan.class,
@@ -393,6 +395,8 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.impl.transforms.custom.Dilation2D.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.DotProductAttention.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.DotProductAttentionBp.class,
+            org.nd4j.linalg.api.ops.impl.transforms.custom.DotProductAttentionV2.class,
+            org.nd4j.linalg.api.ops.impl.transforms.custom.DotProductAttentionV2Bp.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.DynamicPartition.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.DynamicStitch.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.EqualTo.class,
@@ -609,11 +613,11 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.random.custom.RandomPoisson.class,
             org.nd4j.linalg.api.ops.random.custom.RandomShuffle.class,
             org.nd4j.linalg.api.ops.random.impl.AlphaDropOut.class,
+            CustomDropOut.class,
             org.nd4j.linalg.api.ops.random.impl.BernoulliDistribution.class,
             org.nd4j.linalg.api.ops.random.impl.BinomialDistribution.class,
             org.nd4j.linalg.api.ops.random.impl.BinomialDistributionEx.class,
             org.nd4j.linalg.api.ops.random.impl.Choice.class,
-            org.nd4j.linalg.api.ops.random.impl.DropOut.class,
             org.nd4j.linalg.api.ops.random.impl.DropOutInverted.class,
             org.nd4j.linalg.api.ops.random.impl.GaussianDistribution.class,
             org.nd4j.linalg.api.ops.random.impl.Linspace.class,
@@ -661,9 +665,26 @@ public class ImportClassMapping {
             org.nd4j.linalg.api.ops.custom.Lstsq.class,
             org.nd4j.linalg.api.ops.impl.transforms.custom.Qr.class,
             org.nd4j.linalg.api.ops.custom.Logdet.class
-    );
+    ));
 
     static {
+
+        try {
+            // Get a list of all classes annotated with @UserDefinedOp,
+            if(System.getProperties().containsKey(ND4JSystemProperties.UDF_NAME_SPACES)) {
+                String[] packageNames = System.getProperty(ND4JSystemProperties.UDF_NAME_SPACES).split(",");
+                List<Class<?>> classModules = AnnotationDetector.scanClassPath(ND4JClassLoading.getNd4jClassloader(),packageNames)
+                        .forAnnotations(UserDefinedOp.class)  // one or more annotations
+                        .on(ElementType.TYPE) // optional, default ElementType.TYPE. One ore more element types
+                        .collect(AnnotationDefaults.getType);
+                classModules.forEach(udf -> fnClasses.add(udf));
+            }
+
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Unable to start the client", e);
+        }
+
+
         for(Class<?> c : fnClasses) {
             try{
                 DifferentialFunction df = (DifferentialFunction) c.newInstance();
@@ -675,7 +696,7 @@ public class ImportClassMapping {
                 try{
                     String[] tfNames = df.tensorflowNames();
                     for(String s : tfNames){
-                        if(TF_OP_NAME_MAP.containsKey(s)){
+                        if(TF_OP_NAME_MAP.containsKey(s)) {
                             log.warn("Duplicate TF op mapping found for op {}: {} vs {}", s, TF_OP_NAME_MAP.get(s).getClass().getName(), df.getClass().getName());
                         }
                         TF_OP_NAME_MAP.put(s, df);
@@ -688,12 +709,12 @@ public class ImportClassMapping {
                 try{
                     String[] tfNames = df.onnxNames();
                     for(String s : tfNames){
-                        if(ONNX_OP_NAME_MAP.containsKey(s)){
+                        if(ONNX_OP_NAME_MAP.containsKey(s)) {
                             log.warn("Duplicate ONNX op mapping found for op {}: {} vs {}", s, ONNX_OP_NAME_MAP.get(s).getClass().getName(), df.getClass().getName());
                         }
                         ONNX_OP_NAME_MAP.put(s, df);
                     }
-                } catch (NoOpNameFoundException e){
+                } catch (NoOpNameFoundException e) {
                     //Ignore
                 }
 

@@ -30,7 +30,7 @@
 using namespace sd;
 using namespace sd::graph;
 
-class MmapTests : public testing::Test {
+class MmapTests : public NDArrayTests {
  public:
 };
 
@@ -39,7 +39,7 @@ TEST_F(MmapTests, Test_Basic_Mmap_1) {
   if (!Environment::getInstance().isCPU()) return;
 
   // just 10GB
-  sd::LongType size = 100000L;
+  LongType size = 100000L;
 
   std::ofstream ofs("file", std::ios::binary | std::ios::out);
   ofs.seekp(size + 1024L);

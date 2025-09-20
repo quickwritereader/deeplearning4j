@@ -109,7 +109,6 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
         TrainingConfig conf = new TrainingConfig.Builder()
                 .l2(1e-4)
                 .updater(updater)
-                .lossVariables(Collections.singletonList("loss"))
                 .dataSetFeatureMapping("input")
                 .dataSetLabelMapping("label")
                 .trainEvaluation(predictions, 0, e)
@@ -204,9 +203,9 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
             assertEquals(0, tl.iterationDoneCount);
             assertEquals(Collections.singletonMap(Operation.TRAINING, i), tl.operationStartCount);
             assertEquals(Collections.singletonMap(Operation.TRAINING, i), tl.operationEndCount);
-            assertEquals(7*i, tl.preOpExecutionCount);    //mmul, add, softmax, loss grad, softmax backward, add backward, mmul backward
-            assertEquals(7*i, tl.opExecutionCount);
-            assertEquals(11*i, tl.activationAvailableCount); //mmul, add, softmax, loss grad (weight, in, label), softmax bp, add backward (z, b), mmul (in, w)
+            assertEquals(7 * i, tl.preOpExecutionCount);    //mmul, add, softmax, loss grad, softmax backward, add backward, mmul backward
+            assertEquals(7 * i, tl.opExecutionCount);
+            assertEquals(11 * i, tl.activationAvailableCount); //mmul, add, softmax, loss grad (weight, in, label), softmax bp, add backward (z, b), mmul (in, w)
             assertEquals(0, tl.preUpdateCount);
         }
 
@@ -214,7 +213,7 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
         //Check listener NOT called during gradient calculation - when listener is still set to INFERENCE mode
         tl = new TestListener(Operation.INFERENCE);
         sd.setListeners(tl);
-        for( int i=1; i<=3; i++ ) {
+        for( int i = 1; i <= 3; i++) {
             sd.calculateGradients(phMap, "in", "w", "b");
             assertEquals(0, tl.epochStartCount);
             assertEquals(0, tl.epochEndCount);
@@ -248,10 +247,10 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
             assertEquals(i, tl.iterationDoneCount);
             assertEquals(Collections.singletonMap(Operation.TRAINING, i), tl.operationStartCount);
             assertEquals(Collections.singletonMap(Operation.TRAINING, i), tl.operationEndCount);
-            assertEquals(7*i, tl.preOpExecutionCount);    //mmul, add, softmax, loss grad, softmax backward, add backward, mmul backward
-            assertEquals(7*i, tl.opExecutionCount);
-            assertEquals(11*i, tl.activationAvailableCount); //mmul, add, softmax, loss grad (weight, in, label), softmax bp, add backward (z, b), mmul (in, w)
-            assertEquals(2*i, tl.preUpdateCount);   //w, b
+            assertEquals(8 * i, tl.preOpExecutionCount);    //mmul, add, softmax, loss grad, softmax backward, add backward, mmul backward
+            assertEquals(8 * i, tl.opExecutionCount);
+            assertEquals(12 * i, tl.activationAvailableCount); //mmul, add, softmax, loss grad (weight, in, label), softmax bp, add backward (z, b), mmul (in, w)
+            assertEquals(2 * i, tl.preUpdateCount);   //w, b
         }
 
 
@@ -259,7 +258,7 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
         tl = new TestListener(Operation.EVALUATION);
         sd.setListeners(tl);
 
-        for( int i=1; i<=3; i++ ) {
+        for( int i=1; i <= 3; i++ ) {
             sd.evaluate(dsi, "softmax", new Evaluation());
             assertEquals(0, tl.epochStartCount);
             assertEquals(0, tl.epochEndCount);
@@ -268,9 +267,9 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
             assertEquals(0, tl.iterationDoneCount);
             assertEquals(Collections.singletonMap(Operation.EVALUATION, i), tl.operationStartCount);
             assertEquals(Collections.singletonMap(Operation.EVALUATION, i), tl.operationEndCount);
-            assertEquals(3*i, tl.preOpExecutionCount);    //mmul, add, softmax
-            assertEquals(3*i, tl.opExecutionCount);
-            assertEquals(3*i, tl.activationAvailableCount); //mmul, add, softmax
+            assertEquals(3 * i, tl.preOpExecutionCount);    //mmul, add, softmax
+            assertEquals(3 * i, tl.opExecutionCount);
+            assertEquals(3 * i, tl.activationAvailableCount); //mmul, add, softmax
             assertEquals(0, tl.preUpdateCount);   //w, b
         }
     }
@@ -286,7 +285,7 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
         SDVariable z = sd.nn().linear("z", in, w, b);
         SDVariable out = sd.nn().softmax("out", z, 1);
         SDVariable loss = sd.loss().softmaxCrossEntropy("loss", label, out, null);
-
+        loss.markAsLoss();
         //Create and set the training configuration
         double learningRate = 1e-3;
         TrainingConfig config = new TrainingConfig.Builder()
@@ -294,7 +293,6 @@ public class ListenerTest extends BaseNd4jTestWithBackends {
                 .updater(new Adam(learningRate))        //Adam optimizer with specified learning rate
                 .dataSetFeatureMapping("input")         //DataSet features array should be associated with variable "input"
                 .dataSetLabelMapping("label")
-                .lossVariables(Collections.singletonList("loss"))//DataSet label array should be associated with variable "label
                 .addEvaluations(false,"out",0,new Evaluation())
                 .build();
         sd.setTrainingConfig(config);

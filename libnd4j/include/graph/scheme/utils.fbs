@@ -16,7 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
 
-namespace sd.graph;
+namespace graph;
 
 table LongPair {
     first:long; // first
@@ -67,6 +67,7 @@ enum OpType:byte {
     VARIABLE = 40,
     BOOLEAN = 60, // booleanOps, for conditionals
     LOGIC = 119, //
+    UDF = 120,
 }
 
 enum InputType:byte {

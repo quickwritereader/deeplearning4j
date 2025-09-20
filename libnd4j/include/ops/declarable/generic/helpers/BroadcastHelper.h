@@ -33,65 +33,59 @@ namespace sd {
 namespace ops {
 class BroadcastHelper {
  public:
-  static SD_INLINE NDArray* broadcastApply(sd::BroadcastOpsTuple op, NDArray* x, NDArray* y, NDArray* z,
+  static SD_INLINE NDArray* broadcastApply(BroadcastOpsTuple op, NDArray* x, NDArray* y, NDArray* z,
                                            ExtraArguments* extraArgs = nullptr) {
     if (x->isEmpty() || y->isEmpty()) {
-      if (!z->isEmpty())
-        throw std::runtime_error(
-            "BroadcastHelper::broadcastApply: when some of input arrays (or both) is empty, output array must be empty "
-            "as well !");
       return z;
     }
 
-    std::unique_ptr<NDArray> ptr;
-    if (!Environment::getInstance().isExperimentalBuild()) {
-      if (y->dataType() != x->dataType()) {
-        y = new NDArray(y->cast(x->dataType()));
-        std::unique_ptr<NDArray> ptr2(y);
-        ptr.swap(ptr2);
-      }
-    }
-
-    if (!x->isScalar() && !y->isScalar() && x->isSameShape(y)) {
-      x->applyPairwiseTransform(op.p, *y, *z);
-    } else if (!x->isScalar() && y->isScalar()) {
-      x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
-    } else if (x->isScalar() && !y->isScalar()) {
+    if (x->lengthOf() > 1 && y->lengthOf() > 1 && x->isSameShape(y)) {
+      NDArray &yRef = *y;
+      NDArray &zRef = *z;
+      x->applyPairwiseTransform(op.p, y, z, extraArgs);
+    } else if (x->lengthOf() > 1 && y->lengthOf() <= 1) {
+      NDArray &yRef = *y;
+      NDArray &zRef = *z;
+      x->applyScalarArr(op.s, y, z);
+    } else if (x->lengthOf() <= 1 && y->lengthOf() > 1) {
+      NDArray &xRef = *x;
+      NDArray &yRef = *y;
+      NDArray &zRef = *z;
       if (z->isSameShape(y)) {
         if (op.s == scalar::Add || op.s == scalar::Multiply) {
-          y->applyScalarArr(op.s, *x, *z);
+          y->applyScalarArr(op.s, x, z);
         } else if (op.s == scalar::SquaredSubtract) {
-          y->applyScalarArr(scalar::SquaredReverseSubtract, *x, *z);
+          y->applyScalarArr(scalar::SquaredReverseSubtract, x, z);
         } else if (op.s == scalar::Subtract) {
-          y->applyScalarArr(scalar::ReverseSubtract, *x, *z);
+          y->applyScalarArr(scalar::ReverseSubtract, x, z);
         } else if (op.s == scalar::Divide) {
-          y->applyScalarArr(scalar::ReverseDivide, *x, *z);
+          y->applyScalarArr(scalar::ReverseDivide, x, z);
         } else if (op.s == scalar::Pow) {
-          y->applyScalarArr(scalar::ReversePow, *x, *z);
+          y->applyScalarArr(scalar::ReversePow, x, z);
         } else if (op.s == scalar::ReverseSubtract) {
-          y->applyScalarArr(scalar::Subtract, *x, *z);
+          y->applyScalarArr(scalar::Subtract, x, z);
         } else if (op.s == scalar::ReverseDivide) {
-          y->applyScalarArr(scalar::Divide, *x, *z);
+          y->applyScalarArr(scalar::Divide, x, z);
         } else if (op.s == scalar::MaxPairwise || op.s == scalar::MinPairwise || op.s == scalar::AMaxPairwise ||
                    op.s == scalar::AMinPairwise) {
-          y->applyScalarArr(op.s, *x, *z);
+          y->applyScalarArr(op.s, x, z);
         } else if (op.s == scalar::CopyPws) {
-          z->assign(y);
+          z->assign(&yRef);
         } else {
-          z->assign(x);
-          z->applyPairwiseTransform(op.p, *y, extraArgs);
+          z->assign(&xRef);
+          z->applyPairwiseTransform(op.p, y, extraArgs);
         }
         return z;
       } else {
         auto v = y->getShapeAsVector();
         auto tZ = NDArrayFactory::valueOf(v, y, y->ordering());
-        tZ->applyPairwiseTransform(op.p, *y, extraArgs);
+        tZ->applyPairwiseTransform(op.p, y, extraArgs);
         return tZ;
       }
-    } else if (x->isScalar() && y->isScalar()) {  // x->isScalar() && y->isScalar()
-      x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
+    } else if (x->lengthOf() <= 1 && y->lengthOf() <= 1) {
+      x->applyScalarArr(op.s, y, z);
     } else if (ShapeUtils::areShapesBroadcastable(*x, *y)) {
-      x->applyTrueBroadcast(op, *y, *z, true, extraArgs);
+      x->applyTrueBroadcast(op, y, z, true, extraArgs);
       return z;
     } else {
       auto sx = ShapeUtils::shapeAsString(x);
@@ -104,44 +98,46 @@ class BroadcastHelper {
     return z;
   }
 
-  static SD_INLINE NDArray* broadcastApply(sd::BroadcastBoolOpsTuple op, NDArray* x, NDArray* y, NDArray* z,
+  static SD_INLINE NDArray* broadcastApply(BroadcastBoolOpsTuple op, NDArray* x, NDArray* y, NDArray* z,
                                            ExtraArguments* extraArgs = nullptr) {
     if (x->isEmpty() || y->isEmpty()) {
-      if (!z->isEmpty())
-        throw std::runtime_error(
-            "BroadcastHelper::broadcastApply: when some of input arrays (or both) is empty, output array must be empty "
-            "as well !");
+      if (!z->isEmpty()) {
+        std::string errorMessage;
+        errorMessage += "BroadcastHelper::broadcastApply: when some of input arrays (or both) is empty, output array must be empty as well !";
+        errorMessage += "X is empty: ";
+        errorMessage += std::to_string(x->isEmpty());
+        errorMessage += "Y is empty: ";
+        errorMessage += std::to_string(y->isEmpty());
+        THROW_EXCEPTION(
+            errorMessage.c_str());
+      }
       return z;
     }
 
     if (!x->isScalar() && !y->isScalar() && x->isSameShape(y)) {
-      x->applyPairwiseTransform(op.p, *y, *z);
+      x->applyPairwiseTransform(op.p, y, z);
     } else if (ShapeUtils::areShapesBroadcastable(*x, *y)) {
-      x->applyTrueBroadcast(op, *y, *z, true, extraArgs);
+      x->applyTrueBroadcast(op, y, z, true, extraArgs);
       return z;
     } else if (!x->isScalar() && y->isScalar()) {
-      x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
+      x->applyScalarArr(op.s, y, z);
     } else if (x->isScalar() && !y->isScalar()) {
       if (z->isSameShape(y)) {
-        // z->assign(x);
-        x->applyPairwiseTransform(op.p, *y, *z, extraArgs);
+        x->applyPairwiseTransform(op.p, y, z, extraArgs);
         return z;
       } else {
         auto v = y->getShapeAsVector();
         auto tZ = NDArrayFactory::valueOf(v, y, y->ordering());
-        // tZ->applyPairwiseTransform(op.p, *y, extraArgs);
         return tZ;
       }
     } else if (x->isScalar() && y->isScalar()) {  // x->isScalar() && y->isScalar()
-      x->applyScalarArr(op.s, const_cast<const NDArray&>(*y), *z);
+      x->applyScalarArr(op.s, y, z);
     } else if (ShapeUtils::areShapesBroadcastable(*x, *y)) {
-      x->applyTrueBroadcast(op, *y, *z, true, extraArgs);
+      x->applyTrueBroadcast(op, y, z, true, extraArgs);
       return z;
     } else {
       auto sx = ShapeUtils::shapeAsString(x);
       auto sy = ShapeUtils::shapeAsString(y);
-      sd_printf("Broadcast: shapes should be equal, or broadcastable. But got %s vs %s instead\n", sx.c_str(),
-                sy.c_str());
       return nullptr;
     }
 

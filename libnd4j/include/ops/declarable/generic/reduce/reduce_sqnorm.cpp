@@ -48,7 +48,7 @@ CUSTOM_OP_IMPL(reduce_sqnorm, -1, 1, false, 0, 0) {
     keepDims = (bool)T_ARG(0);
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_SQNORM OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -58,7 +58,7 @@ CUSTOM_OP_IMPL(reduce_sqnorm, -1, 1, false, 0, 0) {
         "REDUCE_SQNORM OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
         input->rankOf(), input->rankOf(), item);
 
-  input->reduceAlongDimension(reduce::SquaredNorm, *gradI, dimensions, keepDims);
+  input->reduceAlongDimension(reduce::SquaredNorm, gradI, &dimensions, keepDims);
 
   return sd::Status::OK;
 }
@@ -78,7 +78,7 @@ DECLARE_SHAPE_FN(reduce_sqnorm) {
     keepDims = (bool)T_ARG(0);
 
   REQUIRE_TRUE(
-      dimensions.size() <= inputShape->at(0)[0], 0,
+      dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
       "REDUCE_SQNORM OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -88,7 +88,7 @@ DECLARE_SHAPE_FN(reduce_sqnorm) {
         "REDUCE_SQNORM OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
         inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-  auto outShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), dimensions, inputShape->at(0),
+  auto outShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), &dimensions, inputShape->at(0),
                                                       keepDims, false, block.getWorkspace());
 
   return SHAPELIST(outShapeInfo);
@@ -105,7 +105,8 @@ CUSTOM_OP_IMPL(reduce_sqnorm_bp, -1, 1, false, 0, 0) {
   auto gradI = OUTPUT_VARIABLE(0);
 
   if (gradO->lengthOf() == 1) {
-    gradI->assign(2 * (*input) * gradO->e(0));
+    NDArray assign = 2 * (*input) * gradO->e(0);
+    gradI->assign(&assign);
   } else {
     bool keepDims = false;
     auto dimensions = *block.getIArguments();
@@ -121,7 +122,7 @@ CUSTOM_OP_IMPL(reduce_sqnorm_bp, -1, 1, false, 0, 0) {
       keepDims = (bool)T_ARG(0);
 
     REQUIRE_TRUE(
-        dimensions.size() <= input->rankOf(), 0,
+        dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
         "REDUCE_SQNORM_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
         dimensions.size());
 
@@ -135,13 +136,19 @@ CUSTOM_OP_IMPL(reduce_sqnorm_bp, -1, 1, false, 0, 0) {
 
     if (!keepDims) {
       auto gradOShapeKeepDims =
-          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), dimensions, *input, true, false, block.getWorkspace());
-      gradI->assign(2. * (*input) *
-                    gradO->reshape(gradO->ordering(),
-                                   ShapeUtils::pullShapeFromShapeInfo(
-                                       gradOShapeKeepDims)));  // for example could be something like [a,b] -> [1,a,1,b]
-    } else
-      gradI->assign(2. * (*input) * *gradO);
+          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), &dimensions, *input, true, false, block.getWorkspace());
+      std::vector<sd::LongType> shape =  ShapeUtils::pullShapeFromShapeInfo(
+          gradOShapeKeepDims);
+      // First case
+      NDArray gradITemp1 = 2. * (*input) *
+                           gradO->reshape(gradO->ordering(),
+                                          shape);  // for example could be something like [a,b] -> [1,a,1,b]
+      gradI->assign(&gradITemp1);
+    } else {
+      // Second case
+      NDArray gradITemp2 = 2. * (*input) * *gradO;
+      gradI->assign(&gradITemp2);
+    }
   }
   return sd::Status::OK;
 }
@@ -155,7 +162,7 @@ DECLARE_SHAPE_FN(reduce_sqnorm_bp) {
     }
 
     REQUIRE_TRUE(
-        dimensions.size() <= inputShape->at(0)[0], 0,
+        dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
         "REDUCE_SQNORM_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
         dimensions.size());
 
@@ -166,10 +173,7 @@ DECLARE_SHAPE_FN(reduce_sqnorm_bp) {
           inputShape->at(0)[0], inputShape->at(0)[0], item);
   }
 
-  sd::LongType* gradIshapeInfo(nullptr);
-  COPY_SHAPE(inputShape->at(0), gradIshapeInfo);
-
-  return SHAPELIST(CONSTANT(gradIshapeInfo));
+  return SHAPELIST(CONSTANT(inputShape->at(0)));
 }
 
 DECLARE_TYPES(reduce_sqnorm_bp) {

@@ -45,6 +45,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class IndexingTests extends BaseNd4jTestWithBackends {
 
 
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testIntervalSlices(Nd4jBackend backend) {
+        INDArray x = Nd4j.linspace(1,125,125  ).reshape(5,5,5);
+        INDArray interval = x.get(NDArrayIndex.interval(0,1,false));
+        System.out.println(interval.shapeInfoToString());
+    }
 
 
     @ParameterizedTest
@@ -104,7 +111,7 @@ public class IndexingTests extends BaseNd4jTestWithBackends {
         INDArray vals = Nd4j.valueArrayOf(new long[] {2,2,2,2},5, DataType.DOUBLE);
         assertEquals(vals,x);
     }
-    
+
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testGetScalar(Nd4jBackend backend) {

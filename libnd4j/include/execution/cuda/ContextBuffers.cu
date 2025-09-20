@@ -30,7 +30,6 @@
 
 namespace sd {
 ContextBuffers::ContextBuffers() {
-  // sd_printf("Creating ContextBuffers for device [%i]\n", AffinityManager::currentDeviceId());
   _deviceId = AffinityManager::currentDeviceId();
 }
 
@@ -82,7 +81,6 @@ ContextBuffers& ContextBuffers::operator=(ContextBuffers&& other) {
 
 void ContextBuffers::release() {
   if (_allocated) {
-    // sd_printf("Releasing ContextBuffers on device [%i]\n", _deviceId);
 
     if (_allocationPointer != nullptr) cudaFree(_allocationPointer);
 
@@ -127,7 +125,6 @@ ContextBuffers::ContextBuffers(void* rPointer, void* sPointer, void* aPointer, b
 
 void ContextBuffers::initialize() {
   _deviceId = AffinityManager::currentNativeDeviceId();
-  // sd_printf("Initializing buffers on deviceId [%i]\n", _deviceId);
 
   auto res = cudaMalloc(reinterpret_cast<void**>(&_reductionPointer), 1024 * 1024 * 8);
   if (res != 0) throw cuda_exception::build("_reductionPointer allocation failed", res);
@@ -141,7 +138,7 @@ void ContextBuffers::initialize() {
   _execStream = new cudaStream_t();
   _specialStream = new cudaStream_t();
   if (nullptr == _execStream || nullptr == _specialStream)
-    throw std::runtime_error("Failed to allocate memory for new CUDA stream");
+    THROW_EXCEPTION("Failed to allocate memory for new CUDA stream");
 
   res = cudaStreamCreate(reinterpret_cast<cudaStream_t*>(_execStream));
   if (res != 0) throw cuda_exception::build("Failed to create default CUDA stream with launch context", res);
@@ -183,10 +180,8 @@ int ContextBuffers::deviceId() { return _deviceId; }
 
 void* ContextBuffers::execStream() {
   if (!_initialized) {
-    // sd_printf("execStream not initialized\n", "");
     initialize();
   } else {
-    // sd_printf("execStream is initialized\n", "");
   }
 
   return _execStream;
@@ -194,10 +189,8 @@ void* ContextBuffers::execStream() {
 
 void* ContextBuffers::specialStream() {
   if (!_initialized) {
-    // sd_printf("specialStream not initialized\n", "");
     initialize();
   } else {
-    // sd_printf("specialStream is initialized\n", "");
   }
 
   return _specialStream;
@@ -205,5 +198,5 @@ void* ContextBuffers::specialStream() {
 
 bool ContextBuffers::isInitialized() { return _initialized; }
 
-sd::ErrorReference* ContextBuffers::errorReference() { return &_errorReference; }
+ErrorReference* ContextBuffers::errorReference() { return &_errorReference; }
 }  // namespace sd

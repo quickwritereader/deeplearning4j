@@ -41,7 +41,7 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
 
   auto output = OUTPUT_VARIABLE(0);
 
-  const sd::Unsigned blockSize = INT_ARG(0);
+  const LongType blockSize = INT_ARG(0);
   REQUIRE_TRUE(blockSize >= 2, 0, "SpaceToBatch: integer parameter block_size must be >= 2, but got %i instead",
                blockSize);
 
@@ -54,10 +54,10 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
     REQUIRE_TRUE(false, 0, "SpaceToBatch: operation expects padding shape to be {2, 2}, but got %s instead",
                  ShapeUtils::shapeAsString(padding).c_str());
 
-  const sd::Unsigned padBottom = padding->e<sd::Unsigned>(0, 0);
-  const sd::Unsigned padTop = padding->e<sd::Unsigned>(0, 1);
-  const sd::Unsigned padLeft = padding->e<sd::Unsigned>(1, 0);
-  const sd::Unsigned padRight = padding->e<sd::Unsigned>(1, 1);
+  const LongType padBottom = padding->e<LongType>(0, 0);
+  const LongType padTop = padding->e<LongType>(0, 1);
+  const LongType padLeft = padding->e<LongType>(1, 0);
+  const LongType padRight = padding->e<LongType>(1, 1);
 
   REQUIRE_TRUE(
       (input->sizeAt(1) + padBottom + padTop) % blockSize == 0 &&
@@ -66,16 +66,17 @@ CUSTOM_OP_IMPL(space_to_batch, 2, 1, false, 0, 1) {
 
   if (shape::strideDescendingCAscendingF(input->shapeInfo()))
     helpers::spaceToBatch(block.launchContext(), *input, *output, padBottom, padTop, padLeft, padRight, blockSize);
-  else
-    helpers::spaceToBatch(block.launchContext(), input->dup(), *output, padBottom, padTop, padLeft, padRight,
+  else {
+    NDArray inputDup = input->dup(input->ordering());
+    helpers::spaceToBatch(block.launchContext(), inputDup, *output, padBottom, padTop, padLeft, padRight,
                           blockSize);
-
-  return sd::Status::OK;
+  }
+  return Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 DECLARE_TYPES(space_to_batch) {
-  getOpDescriptor()->setAllowedInputTypes(0, sd::DataType::ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
+  getOpDescriptor()->setAllowedInputTypes(0, ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +84,7 @@ DECLARE_SHAPE_FN(space_to_batch) {
   auto inputShapeInfo = inputShape->at(0);
   auto paddingShapeInfo = inputShape->at(1);
 
-  const sd::Unsigned blockSize = INT_ARG(0);
+  const LongType blockSize = INT_ARG(0);
   REQUIRE_TRUE(blockSize >= 2, 0, "SpaceToBatch: integer parameter block_size must be >= 2, but got %i instead",
                blockSize);
 
@@ -94,10 +95,10 @@ DECLARE_SHAPE_FN(space_to_batch) {
     REQUIRE_TRUE(false, 0, "SpaceToBatch: operation expects padding shape to be {2, 2}, but got %s instead",
                  ShapeUtils::shapeAsString(paddingShapeInfo).c_str());
 
-  const sd::Unsigned padBottom = INPUT_VARIABLE(1)->e<sd::LongType>(0, 0);
-  const sd::Unsigned padTop = INPUT_VARIABLE(1)->e<sd::LongType>(0, 1);
-  const sd::Unsigned padLeft = INPUT_VARIABLE(1)->e<sd::LongType>(1, 0);
-  const sd::Unsigned padRight = INPUT_VARIABLE(1)->e<sd::LongType>(1, 1);
+  const LongType padBottom = INPUT_VARIABLE(1)->e<LongType>(0, 0);
+  const LongType padTop = INPUT_VARIABLE(1)->e<LongType>(0, 1);
+  const LongType padLeft = INPUT_VARIABLE(1)->e<LongType>(1, 0);
+  const LongType padRight = INPUT_VARIABLE(1)->e<LongType>(1, 1);
 
   REQUIRE_TRUE(
       (inputShapeInfo[2] + padBottom + padTop) % blockSize == 0 &&

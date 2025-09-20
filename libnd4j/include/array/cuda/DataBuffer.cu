@@ -26,8 +26,10 @@
 #include <execution/AffinityManager.h>
 #include <memory/MemoryCounter.h>
 #include <system/op_boilerplate.h>
+#include <system/type_boilerplate.h>
 
 #include "../DataBuffer.h"
+#include "helpers/DebugHelper.h"
 
 namespace sd {
 void DataBuffer::expand(const uint64_t size) {
@@ -65,42 +67,286 @@ void DataBuffer::expand(const uint64_t size) {
   }
 }
 
-void DataBuffer::showBufferLimited() {
-#if defined(DEBUG_VEDA_LOGS)
-  float* x = (float*)_primaryBuffer;
-  size_t size = getLenInBytes();
-  size = size > 80 ? 80 : 0;
-  sd_debug("cpu: %p\n", (void*)x);
-  for (int i = 0; i < size / sizeof(float); i++) sd_debug("%f, ", x[i]);
-  sd_debug("%s", "\n");
-#endif
+DataBuffer DataBuffer::dup() {
+  DataBuffer result;
+  result._dataType = _dataType;
+  result._lenInBytes = _lenInBytes;
+  result._primaryBuffer = _primaryBuffer;
+  result._specialBuffer = _specialBuffer;
+  result._isOwnerPrimary = _isOwnerPrimary;
+  result._isOwnerSpecial = _isOwnerSpecial;
+  result.allocateBuffers(true);
+  result.copyCounters(*this);
+  result.copyBufferFrom(*this);
+  return result;
 }
 
+template <typename T>
+void* DataBuffer::primaryAtOffset(const LongType offset) {
+  T *type = reinterpret_cast<T*>(_primaryBuffer);
+  return reinterpret_cast<void *>(type + offset);
+}
+template <typename T>
+void* DataBuffer::specialAtOffset(const LongType offset) {
+  if(_specialBuffer == nullptr)
+    return nullptr;
+  T *type = reinterpret_cast<T*>(_specialBuffer);
+  return reinterpret_cast<void *>(type + offset);
+}
+
+#define PRIMARYOFFSET(T) template SD_LIB_EXPORT void* DataBuffer::primaryAtOffset<GET_SECOND(T)>(sd::LongType offset);
+ITERATE_LIST((SD_COMMON_TYPES),PRIMARYOFFSET)
+
+#define SPECIALOFFSET(T) template SD_LIB_EXPORT void* DataBuffer::specialAtOffset<GET_SECOND(T)>(sd::LongType offset);
+ITERATE_LIST((SD_COMMON_TYPES),SPECIALOFFSET)
+
+
+template <typename T>
+void _printHostBuffer(DataBuffer* buffer, long offset) {
+  sd::LongType len = buffer->getNumElements();
+  auto buff = buffer->template primaryAsT<T>();
+
+
+  sd::LongType limit = len;
+  if (limit == -1 || limit >= buffer->getNumElements()) {
+    limit = buffer->getNumElements();
+  }
+
+  const char* msg = nullptr;
+  if (msg != nullptr) {
+    printf("%s: ", msg);
+  } else {
+    printf("[");
+  }
+
+  sd::DataType dataType = buffer->getDataType();
+  auto baseOffset = offset;
+  if (dataType == sd::DataType::DOUBLE || dataType == sd::DataType::FLOAT32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (e > offset) printf(", ");
+      if (dataType == sd::DataType::DOUBLE) {
+        printf("%.15f", buff[e]);
+      } else {
+        printf("%.15f", static_cast<float>(buff[e]));
+      }
+    }
+  } else if (dataType == sd::DataType::INT64 || dataType == sd::DataType::UINT64 ||
+             dataType == sd::DataType::INT32 || dataType == sd::DataType::UINT32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (dataType == sd::DataType::INT64 || dataType == sd::DataType::UINT64) {
+        printf("%lld", static_cast<long long>(buff[e]));
+      } else {
+        printf("%d", static_cast<int>(buff[e]));
+      }
+
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  } else if (dataType == sd::DataType::BOOL) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (static_cast<bool>(buff[e])) {
+        printf("true");
+      } else {
+        printf("false");
+      }
+
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  } else if (dataType == sd::DataType::UTF8 || dataType == sd::DataType::UTF16 ||
+             dataType == sd::DataType::UTF32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      printf("\"%s\"", reinterpret_cast<const char*>(&buff[e]));
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  }
+
+  printf("]\n");
+  fflush(stdout);
+}
+
+void DataBuffer::printHostDevice(long offset) {
+  THROW_EXCEPTION("");
+}
+
+void DataBuffer::printSpecialAllocationTraces() {
+  //no op on purpose
+}
+
+void DataBuffer::showBufferLimited() {
+
+}
+
+template <typename T>
+SD_KERNEL void printDeviceBufferKernel(void* buffer, sd::LongType offset, sd::LongType length) {
+  T* typedBuffer = reinterpret_cast<T*>(buffer);
+
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    printf("[ ");
+    for (sd::LongType i = offset; i < offset + length; i++) {
+      // Cast to double for consistent formatting
+      printf("%g ", (double)typedBuffer[i]);
+    }
+    printf("]");
+  }
+}
+
+BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT  SD_KERNEL void printDeviceBufferKernel,(void* buffer, sd::LongType offset, sd::LongType length),SD_COMMON_TYPES);
+
+
+// Wrapper function to launch the kernel
+template <typename T>
+void launchPrintDeviceBufferKernel(void* buffer, sd::LongType offset, sd::LongType length) {
+  printDeviceBufferKernel<T><<<1, 1, 32*1024, *LaunchContext::defaultContext()->getCudaStream()>>>(
+      buffer, offset, length);
+  cudaStreamSynchronize(*LaunchContext::defaultContext()->getCudaStream());
+  sd::DebugHelper::checkErrorCode(LaunchContext::defaultContext()->getCudaStream(),
+                                  "printBufferDebug kernel failed");
+}
+BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void launchPrintDeviceBufferKernel,(void* buffer, sd::LongType offset, sd::LongType length),SD_COMMON_TYPES);
+
+
+template <typename T>
+void DataBuffer::printHostBufferContent(void* buffer, sd::LongType offset, sd::LongType length) {
+  T* typedBuffer = reinterpret_cast<T*>(buffer);
+
+  sd_printf("[ ", 0);
+  for (sd::LongType i = offset; i < offset + length; i++) {
+    // For numeric types, cast to double for consistent formatting
+    if (std::is_arithmetic<T>::value) {
+      sd_printf("%g ", (double)typedBuffer[i]);
+    } else {
+      // For non-numeric types, print as hex
+      sd_printf("0x%x ", *reinterpret_cast<int*>(&typedBuffer[i]));
+    }
+  }
+  sd_printf("]", 0);
+}
+BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void DataBuffer::printHostBufferContent,(void* buffer, sd::LongType offset, sd::LongType length),SD_COMMON_TYPES);
+
+
+// DataBuffer implementation for .cu file
+void DataBuffer::printBufferDebug(const char* msg, sd::LongType offset, sd::LongType limit) {
+  if (msg) sd_printf("%s:\n", msg);
+
+  // Print metadata
+  sd_printf("DataBuffer: DataType=%s, Length=%lld elements, DeviceId=%d\n",
+            DataTypeUtils::asString(_dataType).c_str(), (long long)getNumElements(), deviceId());
+
+  // Print host buffer content
+  if (_primaryBuffer != nullptr) {
+    sd_printf("Host buffer (@%p): ", _primaryBuffer);
+
+    sd::LongType len = getNumElements();
+    sd::LongType printLen = limit < 0 ? len : std::min(len - offset, limit);
+
+    // Print based on datatype
+    BUILD_SINGLE_SELECTOR(_dataType, printHostBufferContent,
+                          (_primaryBuffer, offset, printLen), SD_COMMON_TYPES);
+
+    if (offset + printLen < len) sd_printf("... ", 0);
+    sd_printf("\n", 0);
+  } else {
+    sd_printf("Host buffer: nullptr\n", 0);
+  }
+
+  // Print device buffer using kernel
+  if (_specialBuffer != nullptr) {
+    sd_printf("Device buffer (@%p): ", _specialBuffer);
+
+    sd::LongType len = getNumElements();
+    sd::LongType printLen = limit < 0 ? len : std::min(len - offset, limit);
+
+    // Launch kernel through wrapper function
+    BUILD_SINGLE_SELECTOR(_dataType, launchPrintDeviceBufferKernel,
+                          (_specialBuffer, offset, printLen), SD_COMMON_TYPES);
+
+    sd_printf("\n", 0);
+  } else {
+    sd_printf("Device buffer: nullptr\n", 0);
+  }
+
+  // Print sync state counters
+  sd_printf("Sync state: _counter=%lld, _writePrimary=%lld, _writeSpecial=%lld, _readPrimary=%lld, _readSpecial=%lld\n",
+            (long long)_counter.load(), (long long)_writePrimary.load(), (long long)_writeSpecial.load(),
+            (long long)_readPrimary.load(), (long long)_readSpecial.load());
+  sd_printf("isPrimaryActual=%d, isSpecialActual=%d\n", isPrimaryActual(), isSpecialActual());
+}
+
+
+
 void DataBuffer::showCounters(const char* msg1, const char* msg2) {
-#if defined(HAVE_VEDA) && defined(DEBUG_VEDA_LOGS)
   sd_debug("%s %s || primary %p special %p :: wP: %d wS: %d rP: %d rS: %d\n", msg1, msg2, _primaryBuffer,
            _specialBuffer, (int)_writePrimary.load(), (int)_writeSpecial.load(), (int)_readPrimary.load(),
            (int)_readSpecial.load());
-#endif
 }
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::allocateSpecial() {
-  if (_specialBuffer == nullptr && getLenInBytes() > 0) {
-    auto deviceId = sd::AffinityManager::currentDeviceId();
+  if (_specialBuffer != nullptr) {
+    return;
+  }
 
-    if (_workspace == nullptr)
-      if (!sd::memory::MemoryCounter::getInstance().validate(getLenInBytes()))
-        throw sd::allocation_exception::build("Requested amount exceeds device limits",
-                                              sd::memory::MemoryCounter::getInstance().deviceLimit(deviceId),
-                                              getLenInBytes());
+  if (_lenInBytes == 0) {
+    std::string errorMessage;
+    errorMessage += "DataBuffer::allocateSpecial: ";
+    errorMessage += "Special buffer is already allocated";
+    errorMessage += " or length is 0";
+    errorMessage += "Length is: ";
+    errorMessage += std::to_string(getLenInBytes());
+    errorMessage += "Special buffer is nullptr : ";
+    errorMessage += std::to_string(_specialBuffer == nullptr);
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
+#if defined(SD_GCC_FUNCTRACE)
+  if(Environment::getInstance().isFuncTracePrintAllocate()) {
+    allocationStackTraceSpecial = new StackTrace();
+    allocationStackTraceSpecial->load_here();
+  }
+
+#endif
+
+  if (_specialBuffer == nullptr) {
+    auto deviceId = AffinityManager::currentDeviceId();
+
+    if (_workspace == nullptr) {
+      if (!memory::MemoryCounter::getInstance().validate(getLenInBytes())) {
+        std::string errorMessage;
+        errorMessage += "DataBuffer::allocateSpecial: ";
+        errorMessage += "Requested amount exceeds device limits";
+        errorMessage += "DeviceId: ";
+        errorMessage += std::to_string(deviceId);
+        errorMessage += "Device limit: ";
+        errorMessage += std::to_string(memory::MemoryCounter::getInstance().deviceLimit(deviceId));
+        errorMessage += "Requested amount: ";
+        errorMessage += std::to_string(getLenInBytes());
+        errorMessage += "Special buffer is nullptr : ";
+        errorMessage += std::to_string(_specialBuffer == nullptr);
+        THROW_EXCEPTION(errorMessage.c_str());
+      }
+    }
 
     ALLOCATE_SPECIAL(_specialBuffer, _workspace, getLenInBytes(), int8_t);
     _isOwnerSpecial = true;
 
     if (_workspace == nullptr) {
-      sd::memory::MemoryCounter::getInstance().countIn(deviceId, getLenInBytes());
-      sd::memory::MemoryCounter::getInstance().countIn(sd::memory::MemoryType::DEVICE, getLenInBytes());
+      memory::MemoryCounter::getInstance().countIn(deviceId, getLenInBytes());
+      memory::MemoryCounter::getInstance().countIn(memory::MemoryType::DEVICE, getLenInBytes());
+
     }
+  } else if(getLenInBytes() == 0) {
+    std::string errorMessage;
+    errorMessage += "DataBuffer::allocateSpecial: ";
+    errorMessage += "Special buffer is already allocated";
+    errorMessage += " or length is 0";
+    errorMessage += "Length is: ";
+    errorMessage += std::to_string(getLenInBytes());
+    errorMessage += "Special buffer is nullptr : ";
+    errorMessage += std::to_string(_specialBuffer == nullptr);
+    THROW_EXCEPTION(errorMessage.c_str());
   }
 }
 
@@ -113,10 +359,25 @@ void DataBuffer::syncToPrimary(const LaunchContext* context, const bool forceSyn
   allocatePrimary();
 
   auto res = cudaStreamSynchronize(*context->getCudaStream());
-  if (res != 0) throw cuda_exception::build("DataBuffer::syncToPrimary failed to to some previous kernel failre", res);
+  if (res != 0)  {
+    std::string errorMessage;
+    errorMessage += "DataBuffer::syncToPrimary: cudaStreamSynchronize failed: ";
+    errorMessage += std::to_string(getLenInBytes());
+    errorMessage += cudaGetErrorString(res);
+    errorMessage += "Special buffer is nullptr : ";
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
 
   res = cudaMemcpy(_primaryBuffer, _specialBuffer, getLenInBytes(), cudaMemcpyDeviceToHost);
-  if (res != 0) throw cuda_exception::build("DataBuffer::syncToPrimary cudaMemcpy failed", res);
+  if (res != 0) {
+        std::string errorMessage;
+        errorMessage += "DataBuffer::syncToPrimary: cudaMemcpy failed: ";
+        errorMessage += std::to_string(getLenInBytes());
+        errorMessage += cudaGetErrorString(res);
+        errorMessage += "Special buffer is nullptr : ";
+        errorMessage += std::to_string(_specialBuffer == nullptr);
+        THROW_EXCEPTION(errorMessage.c_str());
+  }
 
   readPrimary();
 }
@@ -133,7 +394,14 @@ void DataBuffer::syncToSpecial(const bool forceSync) {
   allocateSpecial();
 
   auto res = cudaMemcpy(_specialBuffer, _primaryBuffer, getLenInBytes(), cudaMemcpyHostToDevice);
-  if (res != 0) throw cuda_exception::build("DataBuffer::syncToSpecial cudaMemcpy failed", res);
+  if (res != 0) {
+    std::string errorMessage;
+    errorMessage += "Failed to copy dataBuffer::syncToSpecial: ";
+    errorMessage += std::to_string(getLenInBytes());
+    errorMessage += cudaGetErrorString(res);
+    THROW_EXCEPTION(errorMessage.c_str());
+
+  }
 
   readSpecial();
 }
@@ -176,10 +444,16 @@ void DataBuffer::copyCounters(const DataBuffer& other) {
 void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const sd::LongType offsetThis,
                                 const sd::LongType offsetOther) {  // copies only to special buffer
 
-  if (other._primaryBuffer == nullptr && other._specialBuffer == nullptr) return;
+  if (other._primaryBuffer == nullptr && other._specialBuffer == nullptr) {
+    return;
+  }
 
-  if (sizeToCopyinBytes == 0) sizeToCopyinBytes = other.getLenInBytes();
-  if (sizeToCopyinBytes == 0) return;
+  if (sizeToCopyinBytes == 0) {
+    sizeToCopyinBytes = other.getLenInBytes();
+  }
+  if (sizeToCopyinBytes == 0) {
+    return;
+  }
 
   if (other.isPrimaryActual()) {
     auto res = cudaMemcpy(
@@ -230,7 +504,6 @@ void DataBuffer::setSpecial(void* special, const bool isOwnerSpecial) {
 
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::allocateBuffers(const bool allocBoth) {  // always allocate special buffer only (cuda case)
-
   allocateSpecial();
 
   if (allocBoth) allocatePrimary();
@@ -238,6 +511,8 @@ void DataBuffer::allocateBuffers(const bool allocBoth) {  // always allocate spe
 
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::setToZeroBuffers(const bool both) {
+  if(getLenInBytes() < 1 || special() == nullptr)
+    return;
   cudaMemsetAsync(special(), 0, getLenInBytes(), *LaunchContext::defaultContext()->getCudaStream());
   auto res = cudaStreamSynchronize(*LaunchContext::defaultContext()->getCudaStream());
   if (res != 0) throw cuda_exception::build("DataBuffer::setToZeroBuffers: streamSync failed!", res);
@@ -250,17 +525,22 @@ void DataBuffer::setToZeroBuffers(const bool both) {
   }
 }
 
+
+
 /////////////////////////
-void DataBuffer::memcpy(const DataBuffer& dst, const DataBuffer& src) {
-  if (src._lenInBytes > dst._lenInBytes)
-    throw std::runtime_error("DataBuffer::memcpy: Source data buffer is larger than destination");
+
+
+template <typename T>
+void memcpyWithT(DataBuffer* dst, DataBuffer* src, sd::LongType startingOffset, sd::LongType dstOffset) {
+  if (src->getLenInBytes() > dst->getLenInBytes())
+    THROW_EXCEPTION("DataBuffer::memcpy: Source data buffer is larger than destination");
 
   int res = 0;
-  if (src.isSpecialActual()) {
-    res = cudaMemcpyAsync(dst._specialBuffer, src._specialBuffer, src.getLenInBytes(), cudaMemcpyDeviceToDevice,
+  if (src->isSpecialActual()) {
+    res = cudaMemcpyAsync(dst->specialAtOffset<T>(dstOffset), src->specialAtOffset<T>(startingOffset), src->getLenInBytes(), cudaMemcpyDeviceToDevice,
                           *LaunchContext::defaultContext()->getCudaStream());
-  } else if (src.isPrimaryActual()) {
-    res = cudaMemcpyAsync(dst._specialBuffer, src._primaryBuffer, src.getLenInBytes(), cudaMemcpyHostToDevice,
+  } else if (src->isPrimaryActual()) {
+    res = cudaMemcpyAsync(dst->specialAtOffset<T>(dstOffset), src->specialAtOffset<T>(startingOffset), src->getLenInBytes(), cudaMemcpyHostToDevice,
                           *LaunchContext::defaultContext()->getCudaStream());
   }
 
@@ -269,7 +549,13 @@ void DataBuffer::memcpy(const DataBuffer& dst, const DataBuffer& src) {
   res = cudaStreamSynchronize(*LaunchContext::defaultContext()->getCudaStream());
   if (res != 0) throw cuda_exception::build("DataBuffer::memcpy: streamSync failed!", res);
 
-  dst.writeSpecial();
+  dst->writeSpecial();
+}
+
+void DataBuffer::memcpy(DataBuffer* dst, DataBuffer* src,
+                        sd::LongType startingOffset, sd::LongType dstOffset) {
+  BUILD_SINGLE_TEMPLATE(memcpyWithT,(dst, src, startingOffset, dstOffset),
+                        SD_COMMON_TYPES);
 }
 
 ////////////////////////////////////////////////////////////////////////

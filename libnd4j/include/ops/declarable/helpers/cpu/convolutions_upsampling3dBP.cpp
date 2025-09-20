@@ -27,7 +27,7 @@ namespace ops {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void upsampling3dBP_(const NDArray& gradO, NDArray& gradI, const bool isNCDHW) {
+static void upsampling3dBP_(NDArray& gradO, NDArray& gradI, const bool isNCDHW) {
   // input  has shape [bS, iC, iD, iH, iW] (NCDHW) or [bS, iD, iH, iW, iC] (NDHWC)
   // output has shape [bS, iC, factorD*iD, factorH*iH, factorW*iW ] (NCDHW) or [bS, factorD*iD, factorH*iH, factorW*iW,
   // iC] (NDHWC)
@@ -35,18 +35,18 @@ static void upsampling3dBP_(const NDArray& gradO, NDArray& gradI, const bool isN
   const T* x = gradO.bufferAsT<T>();
   T* z = gradI.bufferAsT<T>();
 
-  const sd::Unsigned dimID = isNCDHW ? 2 : 1;
-  const sd::Unsigned dimIC = isNCDHW ? 1 : 4;
+  const sd::LongType dimID = isNCDHW ? 2 : 1;
+  const sd::LongType dimIC = isNCDHW ? 1 : 4;
 
-  const sd::Unsigned bS = gradI.sizeAt(0);
-  const sd::Unsigned iC = gradI.sizeAt(dimIC);
-  const sd::Unsigned iD = gradI.sizeAt(dimID);
-  const sd::Unsigned iH = gradI.sizeAt(dimID + 1);
-  const sd::Unsigned iW = gradI.sizeAt(dimID + 2);
+  const sd::LongType bS = gradI.sizeAt(0);
+  const sd::LongType iC = gradI.sizeAt(dimIC);
+  const sd::LongType iD = gradI.sizeAt(dimID);
+  const sd::LongType iH = gradI.sizeAt(dimID + 1);
+  const sd::LongType iW = gradI.sizeAt(dimID + 2);
 
-  const sd::Unsigned factorD = gradO.sizeAt(dimID) / iD;
-  const sd::Unsigned factorH = gradO.sizeAt(dimID + 1) / iH;
-  const sd::Unsigned factorW = gradO.sizeAt(dimID + 2) / iW;
+  const sd::LongType factorD = gradO.sizeAt(dimID) / iD;
+  const sd::LongType factorH = gradO.sizeAt(dimID + 1) / iH;
+  const sd::LongType factorW = gradO.sizeAt(dimID + 2) / iW;
 
   const sd::LongType xStride0 = gradO.stridesOf()[0];
   const sd::LongType xStride1 = gradO.stridesOf()[dimIC];
@@ -62,18 +62,18 @@ static void upsampling3dBP_(const NDArray& gradO, NDArray& gradI, const bool isN
 
   // loop through output array
   auto func = PRAGMA_THREADS_FOR_3D {
-    for (sd::Unsigned b = start_x; b < stop_x; b += inc_x) {
-      for (sd::Unsigned c = start_y; c < stop_y; c += inc_y) {
-        for (sd::Unsigned d = start_z; d < stop_z; d += inc_z) {
-          for (sd::Unsigned h = 0; h < iH; ++h) {
-            for (sd::Unsigned w = 0; w < iW; ++w) {
+    for (sd::LongType b = start_x; b < stop_x; b += inc_x) {
+      for (sd::LongType c = start_y; c < stop_y; c += inc_y) {
+        for (sd::LongType d = start_z; d < stop_z; d += inc_z) {
+          for (sd::LongType h = 0; h < iH; ++h) {
+            for (sd::LongType w = 0; w < iW; ++w) {
               const auto zOffset = b * zStride0 + c * zStride1 + d * zStride2 + h * zStride3 + w * zStride4;
 
               z[zOffset] = 0;
 
-              for (sd::Unsigned xd = d * factorD; xd < d * factorD + factorD; ++xd)
-                for (sd::Unsigned xh = h * factorH; xh < h * factorH + factorH; ++xh)
-                  for (sd::Unsigned xw = w * factorW; xw < w * factorW + factorW; ++xw)
+              for (sd::LongType xd = d * factorD; xd < d * factorD + factorD; ++xd)
+                for (sd::LongType xh = h * factorH; xh < h * factorH + factorH; ++xh)
+                  for (sd::LongType xw = w * factorW; xw < w * factorW + factorW; ++xw)
                     z[zOffset] += x[b * xStride0 + c * xStride1 + xd * xStride2 + xh * xStride3 + xw * xStride4];
             }
           }
@@ -85,7 +85,7 @@ static void upsampling3dBP_(const NDArray& gradO, NDArray& gradI, const bool isN
   samediff::Threads::parallel_for(func, 0, bS, 1, 0, iC, 1, 0, iD, 1);
 }
 
-void ConvolutionUtils::upsampling3dBP(sd::graph::Context& block, const NDArray& gradO, NDArray& gradI,
+void ConvolutionUtils::upsampling3dBP(sd::graph::Context& block, NDArray& gradO, NDArray& gradI,
                                       const bool isNCHW) {
   BUILD_SINGLE_SELECTOR(gradO.dataType(), upsampling3dBP_, (gradO, gradI, isNCHW), SD_FLOAT_TYPES);
 }

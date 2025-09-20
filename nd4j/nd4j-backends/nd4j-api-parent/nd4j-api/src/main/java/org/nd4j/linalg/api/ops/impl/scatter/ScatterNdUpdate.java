@@ -24,7 +24,6 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.imports.NoOpNameFoundException;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
@@ -33,11 +32,13 @@ import org.tensorflow.framework.GraphDef;
 import org.tensorflow.framework.NodeDef;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 
 public class ScatterNdUpdate extends DynamicCustomOp {
+    private boolean lock = false;
 
     public ScatterNdUpdate(SameDiff sameDiff, SDVariable ref, SDVariable indices, SDVariable updates) {
         super(null, sameDiff, new SDVariable[]{ref, indices, updates}, false);
@@ -71,16 +72,8 @@ public class ScatterNdUpdate extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        TFGraphMapper.initFunctionFromProperties(nodeDef.getOp(), this, attributesForNode, nodeDef, graph);
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
 
-        if (nodeDef.containsAttr("use_locking")) {
-            if (nodeDef.getAttrOrThrow("use_locking").getB() == true) {
-                bArguments.add(true);
-            } else {
-                bArguments.add(false);
-            }
-        } else
-            bArguments.add(false);
     }
 
     @Override
@@ -90,5 +83,20 @@ public class ScatterNdUpdate extends DynamicCustomOp {
                 inputDataTypes.get(0), inputDataTypes.get(2));
         return Collections.singletonList(inputDataTypes.get(0));
     }
+
+    @Override
+    public void configureFromArguments() {
+        super.configureFromArguments();
+        addBArgument(lock);
+    }
+
+    @Override
+    public Map<String, Object> propertiesForFunction() {
+        Map<String,Object> ret = new HashMap<>();
+        ret.put("lock", lock);
+        return ret;
+    }
+
+
 
 }

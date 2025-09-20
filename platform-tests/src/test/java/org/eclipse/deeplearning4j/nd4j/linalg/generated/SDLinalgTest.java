@@ -54,8 +54,10 @@ public class SDLinalgTest extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testCholesky(Nd4jBackend backend) {
+        Nd4j.getExecutioner().enableDebugMode(true);
+        Nd4j.getExecutioner().enableVerboseMode(true);
         INDArray input = Nd4j.createFromArray(
-                new float[]{
+                new double[]{
                         10.f,  14.f,
                         14.f,  20.f,
                         74.f,  86.f,
@@ -64,15 +66,15 @@ public class SDLinalgTest extends BaseNd4jTestWithBackends {
         ).reshape(2,2,2);
 
         INDArray expected = Nd4j.createFromArray(
-                new float[]{
-                        3.1622777f, 0.f,  4.427189f,  0.6324552f,
-                        8.602325f,  0.f,  9.997296f, 0.23252854f
+                new double[]{
+                        3.1622777,0.0,4.427189,0.6324555,8.602325,0.0,9.997297,0.23249528
                 }
         ).reshape(2,2,2);
 
         SDVariable sdinput = sameDiff.var(input);
         SDVariable out = sameDiff.linalg().cholesky(sdinput);
-        assertEquals(expected, out.eval());
+        INDArray eval =  out.eval();
+        assertEquals(expected.castTo(eval.dataType()), eval);
     }
 
     @ParameterizedTest
@@ -236,7 +238,7 @@ public class SDLinalgTest extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testDiagPart() {
-        INDArray x = Nd4j.linspace(DataType.DOUBLE, 1.0, 1.0, 4).reshape(2,2);
+        INDArray x = Nd4j.linspace( 1.0, 4.0, 4,DataType.DOUBLE).reshape(2,2);
         INDArray expected = Nd4j.createFromArray(new double[]{1,4});
 
         SDVariable sdx = sameDiff.var(x);
@@ -275,7 +277,7 @@ public class SDLinalgTest extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testSvd2(Nd4jBackend backend) {
-     //https://stackoverflow.com/questions/74157832/runtime-error-from-nd4j-when-executing-svd
+        //https://stackoverflow.com/questions/74157832/runtime-error-from-nd4j-when-executing-svd
         var a = Nd4j.create(new double[] {
                 0.0, 1.0, -2.0, 3.0,
                 5.0, -3.0, 1.0, -2.0,

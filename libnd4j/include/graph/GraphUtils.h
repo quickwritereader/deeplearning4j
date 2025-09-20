@@ -22,8 +22,8 @@
 
 #ifndef __H__GRAPH_UTILS__
 #define __H__GRAPH_UTILS__
-#include <ops/declarable/DeclarableOp.h>
-#include <ops/declarable/OpDescriptor.h>
+#include "../ops/declarable/DeclarableOp.h"
+#include "../ops/declarable/OpDescriptor.h"
 
 #include <vector>
 
@@ -32,7 +32,7 @@ namespace graph {
 
 class SD_LIB_EXPORT GraphUtils {
  public:
-  typedef std::vector<sd::ops::OpDescriptor> OpList;
+  typedef std::vector<ops::OpDescriptor> OpList;
 
  public:
   static bool filterOperations(OpList& ops);

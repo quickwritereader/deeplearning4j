@@ -33,9 +33,6 @@
 
 namespace sd {
 namespace ops {
-DECLARE_TYPES(confusion_matrix) {
-  getOpDescriptor()->setAllowedInputTypes({ALL_INTS, ALL_FLOATS})->setAllowedOutputTypes({ALL_FLOATS, ALL_INTS});
-}
 
 CUSTOM_OP_IMPL(confusion_matrix, 2, 1, false, 0, -2) {
   auto labels = INPUT_VARIABLE(0);
@@ -79,9 +76,16 @@ DECLARE_SHAPE_FN(confusion_matrix) {
   }
 
   std::array<sd::LongType, 2> shape = {{numClasses, numClasses}};
-  auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', 2, shape.data());
+  auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', 2, shape.data(),0);
   return SHAPELIST(newShape);
 }
+
+DECLARE_TYPES(confusion_matrix) {
+  getOpDescriptor()
+      ->setAllowedInputTypes({ALL_INDICES})
+      ->setAllowedOutputTypes({ALL_INDICES});
+}
+
 }  // namespace ops
 }  // namespace sd
 

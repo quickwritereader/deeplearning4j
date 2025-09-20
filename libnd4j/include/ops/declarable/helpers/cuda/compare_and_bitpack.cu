@@ -28,6 +28,9 @@
 #include <ops/declarable/helpers/imagesHelpers.h>
 #include <ops/declarable/helpers/transforms.h>
 #include <system/op_boilerplate.h>
+
+
+#include "execution/cuda/LaunchDims.h"
 namespace sd {
 namespace ops {
 namespace helpers {
@@ -91,31 +94,36 @@ SD_HOST_DEVICE uint8_t pack<bool>(const bool* buff, int stride, const bool& thre
 }
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void SD_KERNEL cmpBitpack(const void* vx, void* vz, int rank, int len, const sd::LongType* xStridesExtended,
-                                 const sd::LongType* outPutShapeInfo, T threshold) {
+static void SD_KERNEL cmpBitpack(const void* vx, void* vz, int rank, int len, const LongType* xStridesExtended,
+                                 const LongType* outPutShapeInfo, T threshold) {
   const T* x = reinterpret_cast<const T*>(vx);
   uint8_t* z = reinterpret_cast<uint8_t*>(vz);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   auto shapes = shape::shapeOf(outPutShapeInfo);
   auto zStrides = shape::stride(outPutShapeInfo);
-  sd::LongType coords[SD_MAX_RANK] = {};
-  sd::LongType* ptr_coords = (sd::LongType*)&coords;
+  LongType coords[SD_MAX_RANK] = {};
+  LongType* ptr_coords = (LongType*)&coords;
   // its extended as {rank+1} so xStridesExtended[rank] is valid
   auto inLastStride = xStridesExtended[rank];
 
   for (auto k = tid; k < len; k += gridDim.x * blockDim.x) {
-    sd::index2coords_C(k, rank, shapes, ptr_coords);
-    auto offset = sd::offset_from_coords(xStridesExtended, zStrides, ptr_coords, rank);
-    auto buffPart = &(x[offset.first]);
-    auto outBuffPart = &(z[offset.second]);
+    INDEX2COORDS(k, rank, shapes, ptr_coords);
+
+    LongType xOffset;
+    COORDS2INDEX(rank, xStridesExtended, ptr_coords, xOffset);
+
+    LongType zOffset;
+    COORDS2INDEX(rank, zStrides, ptr_coords, zOffset);
+
+    auto buffPart = &(x[xOffset]);
+    auto outBuffPart = &(z[zOffset]);
     *outBuffPart = pack<T>(buffPart, inLastStride, threshold);
   }
 }
-
 template <typename T>
-static void SD_KERNEL cmpBitpackEws(const void* vx, void* vz, int len, const sd::LongType xStride,
-                                    const sd::LongType yStride, T threshold) {
+static void SD_KERNEL cmpBitpackEws(const void* vx, void* vz, int len, const LongType xStride,
+                                    const LongType yStride, T threshold) {
   const T* x = reinterpret_cast<const T*>(vx);
   uint8_t* z = reinterpret_cast<uint8_t*>(vz);
 
@@ -137,30 +145,31 @@ static void SD_KERNEL cmpBitpackEws(const void* vx, void* vz, int len, const sd:
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_HOST void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDArray& input,
-                                           const NDArray& thresholdScalar, NDArray& output) {
+static SD_HOST void cmpBitpackCudaLauncher(graph::Context& block, NDArray& input,
+
+                                           NDArray& thresholdScalar, NDArray& output) {
   T threshold = thresholdScalar.e<T>(0);
 
   auto inStrides = input.stridesOf();
   auto rank = output.rankOf();
 
   // threadblock size
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
   // grid size
-  const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
   auto stream = block.launchContext()->getCudaStream();
-  // sd_printf("n %i g %i th %i \n", output.lengthOf(), blocksPerGrid, threadsPerBlock);
+  dim3 compareAndBitpackDims = getCompareAndBitpackDims(output.lengthOf());
   PointersManager manager(block.launchContext(), "compare_and_bitpack");
   NDArray::prepareSpecialUse({&output}, {&input});
-  if (input.ews() > 0 && output.ews() > 0 && input.ordering() == 'c' && output.ordering() == 'c') {
-    cmpBitpackEws<T><<<blocksPerGrid, threadsPerBlock>>>(input.specialBuffer(), output.specialBuffer(),
+  if (input.ordering() == 'c' && output.ordering() == 'c') {
+    cmpBitpackEws<T><<<compareAndBitpackDims.y, compareAndBitpackDims.x,compareAndBitpackDims.z>>>(input.specialBuffer(), output.specialBuffer(),
                                                          output.lengthOf(), inStrides[rank - 1],
                                                          output.stridesOf()[rank - 1], threshold);
+    sd::DebugHelper::checkGlobalErrorCode("cmpBitpackEws  failed");
+
   } else {
     // if output shape is {n1, n2, n3} then input shape is { n1. n2, n3 * 8}
     // therefore we can split input shape  {n1, n2, n3 , 8} and correct its stride
     // as we do not need last shape info. lets just extend and correct its stride
-    sd::LongType extendedStrides[SD_MAX_RANK];
+    LongType extendedStrides[SD_MAX_RANK];
     for (int i = 0; i < rank; i++) {
       extendedStrides[i] = inStrides[i];
     }
@@ -168,19 +177,21 @@ static SD_HOST void cmpBitpackCudaLauncher(sd::graph::Context& block, const NDAr
     extendedStrides[rank - 1] = 8 * inStrides[rank - 1];
     extendedStrides[rank] = inStrides[rank - 1];
 
-    auto strideSize = (rank + 1) * sizeof(sd::LongType);
-    sd::LongType* extendedStridesDevPtr =
-        reinterpret_cast<sd::LongType*>(manager.replicatePointer(extendedStrides, strideSize));
-    cmpBitpack<T><<<blocksPerGrid, threadsPerBlock>>>(input.specialBuffer(), output.specialBuffer(), rank,
+    auto strideSize = (rank + 1) * sizeof(LongType);
+    LongType* extendedStridesDevPtr =
+        reinterpret_cast<LongType*>(manager.replicatePointer(extendedStrides, strideSize));
+    cmpBitpack<T><<<compareAndBitpackDims.y, compareAndBitpackDims.x,compareAndBitpackDims.z>>>(input.specialBuffer(), output.specialBuffer(), rank,
                                                       output.lengthOf(), extendedStridesDevPtr,
                                                       output.specialShapeInfo(), threshold);
+    sd::DebugHelper::checkGlobalErrorCode("compareAndBitpackDims  failed");
+
   }
 
   NDArray::registerSpecialUse({&output}, {&input});
   manager.synchronize();
 }
 
-void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output) {
+void compareAndBitpack(graph::Context& block, NDArray& input, NDArray& threshold, NDArray& output) {
   BUILD_SINGLE_SELECTOR(input.dataType(), cmpBitpackCudaLauncher, (block, input, threshold, output), SD_COMMON_TYPES);
 }
 

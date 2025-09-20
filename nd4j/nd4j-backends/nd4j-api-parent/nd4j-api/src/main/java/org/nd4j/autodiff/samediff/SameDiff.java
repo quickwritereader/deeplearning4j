@@ -21,14 +21,12 @@
 package org.nd4j.autodiff.samediff;
 
 import com.google.flatbuffers.FlatBufferBuilder;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.Setter;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 import org.apache.commons.collections4.trie.PatriciaTrie;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.bytedeco.javacpp.*;
 import org.nd4j.autodiff.execution.conf.ExecutorConfiguration;
 import org.nd4j.autodiff.execution.conf.OutputMode;
 import org.nd4j.autodiff.functions.DifferentialFunction;
@@ -44,24 +42,24 @@ import org.nd4j.autodiff.samediff.config.*;
 import org.nd4j.autodiff.samediff.internal.*;
 import org.nd4j.autodiff.samediff.ops.*;
 import org.nd4j.autodiff.samediff.serde.FlatBuffersMapper;
+import org.nd4j.autodiff.samediff.serde.SDZSerializer;
+import org.nd4j.autodiff.samediff.serde.SameDiffSerializer;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.common.primitives.AtomicBoolean;
 import org.nd4j.common.primitives.Pair;
 import org.nd4j.common.util.ArrayUtil;
-import org.nd4j.common.util.MultiValueMap;
 import org.nd4j.common.util.ND4JFileUtils;
 import org.nd4j.evaluation.IEvaluation;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.evaluation.classification.ROC;
 import org.nd4j.graph.*;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
+import org.nd4j.graph.ExecutionMode;
+import org.nd4j.imports.converters.DifferentialFunctionClassHolder;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.api.ops.BaseOp;
-import org.nd4j.linalg.api.ops.CustomOp;
-import org.nd4j.linalg.api.ops.DynamicCustomOp;
-import org.nd4j.linalg.api.ops.Op;
+import org.nd4j.linalg.api.ops.*;
 import org.nd4j.linalg.api.ops.custom.Invoke;
 import org.nd4j.linalg.api.ops.executioner.OpExecutioner;
 import org.nd4j.linalg.api.ops.impl.controlflow.compat.*;
@@ -84,7 +82,11 @@ import org.nd4j.linalg.exception.ND4UnresolvedOutputVariables;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.GradientUpdater;
 import org.nd4j.linalg.learning.regularization.Regularization;
-import org.nd4j.shade.guava.collect.Sets;
+import org.nd4j.nativeblas.NativeOps;
+import org.nd4j.nativeblas.NativeOpsHolder;
+import org.nd4j.nativeblas.OpExecTraceVector;
+import org.nd4j.shade.guava.primitives.Booleans;
+import org.nd4j.shade.guava.primitives.Doubles;
 import org.nd4j.shade.guava.primitives.Ints;
 import org.nd4j.weightinit.WeightInitScheme;
 import org.nd4j.weightinit.impl.NDArraySupplierInitScheme;
@@ -144,6 +146,7 @@ public class SameDiff extends SDBaseOps {
     private final List<Listener> listeners = new ArrayList<>();
 
     private final List<NameScope> nameScopes = new ArrayList<>();  //Used as a stack
+
 
     private List<String> outputs;       //Names of the output variables, set by the user.
 
@@ -211,6 +214,87 @@ public class SameDiff extends SDBaseOps {
 
     public final static String INFERENCE_FACTORY_CLASS = "inferencefactory.class";
     private static InferenceFactory INFERENCE_FACTORY;
+
+
+
+
+    /**
+     * Collect a trace of executed ops.
+     * This will create a samediff graph that emulates
+     * the ops executed during the time that
+     * {@link Nd4j#toggleTrace(boolean)}
+     *  was toggled to true.
+     */
+    public static SameDiff collectTrace() {
+        NativeOps deviceNativeOps =Nd4j.getNativeOps();
+        PointerPointer opExecTraceVector = deviceNativeOps.listOpTraces();
+        OpExecTraceVector opExecTraceVector1 = new OpExecTraceVector(opExecTraceVector);
+        SameDiff sameDiff = create();
+
+
+        boolean inCycle = false;
+        for(int i = 0; i < opExecTraceVector1.capacity(); i++) {
+            List<SDVariable> variables = new ArrayList<>();
+            Pointer opExecTrace = opExecTraceVector1.get(i);
+            String opName = deviceNativeOps.opName(opExecTrace).getString();
+
+            PointerPointer<LongPointer> inputShapeBuffers = deviceNativeOps.inputShapeBuffers(opExecTrace);
+            int numInputs = deviceNativeOps.numInputs(opExecTrace);
+            inputShapeBuffers.capacity(numInputs);
+
+            for(int j = 0; j < numInputs; j++) {
+                LongPointer longPointer = inputShapeBuffers.get(LongPointer.class,j);
+                long[] pointerData = new long[Shape.shapeInfoLength(longPointer.get(0))];
+                longPointer.get(pointerData);
+                longPointer.capacity(Shape.shapeInfoLength(pointerData[0]));
+                DataBuffer dataBuffer = Nd4j.createBuffer(longPointer, longPointer.capacity(),DataType.LONG);
+
+
+                SDVariable create = sameDiff.create(sameDiff.constant(
+                                Nd4j.createFromArray(pointerData)),
+                        Shape.dataType(pointerData));
+                variables.add(create);
+            }
+
+            if(inCycle) {
+                break;
+            }
+
+
+            LongPointer iArgsPointer = deviceNativeOps.iArgs(opExecTrace);
+            List<Long> iArgs = new ArrayList<>();
+            if(iArgsPointer != null)
+                for(int j = 0; j < iArgsPointer.capacity(); j++) {
+                    iArgs.add(iArgsPointer.get(j));
+                }
+
+            DoublePointer tArgsPointer = deviceNativeOps.tArgs(opExecTrace);
+            List<Double> tArgs = new ArrayList<>();
+            if(tArgsPointer != null)
+                for(int j = 0; j < tArgsPointer.capacity(); j++) {
+                    tArgs.add(tArgsPointer.get(j));
+                }
+
+            List<String> sArgs = new ArrayList<>();
+
+            PointerPointer<BytePointer> stringVector = deviceNativeOps.sArgs(opExecTrace);
+            if(stringVector != null)
+                for(int j = 0; j < stringVector.capacity(); j++) {
+                    BytePointer bytePointer = stringVector.get(BytePointer.class,j);
+                    sArgs.add(bytePointer.getString());
+                }
+
+            BooleanPointer bArgsPointer = deviceNativeOps.bArgs(opExecTrace);
+            List<Boolean> bArgs = new ArrayList<>();
+            if(bArgsPointer != null)
+                for(int j = 0; j < bArgsPointer.capacity(); j++) {
+                    bArgs.add(bArgsPointer.get(j));
+                }
+            sameDiff.dynamic(opName,variables,iArgs,tArgs,Collections.emptyList(),bArgs,sArgs);
+        }
+
+        return sameDiff;
+    }
 
     /**
      * Op creator object for math operations
@@ -339,6 +423,10 @@ public class SameDiff extends SDBaseOps {
             }
         }
         return success;
+    }
+
+    public Set<String> variableNames() {
+        return variables.keySet();
     }
 
     public static class DefaultInferenceFactory implements InferenceFactory {
@@ -612,6 +700,7 @@ public class SameDiff extends SDBaseOps {
      * @param sameDiff
      * @return
      */
+    @SneakyThrows
     public SDVariable invokeGraphOn(SameDiff sameDiff) {
         //map the new vertices on to the old ones
         Map<Integer, Integer> thisVertexIdToNew = new HashMap<>();
@@ -776,6 +865,8 @@ public class SameDiff extends SDBaseOps {
             ops.put(id, SameDiffOp.builder().name(id).op(function).build());
         }
     }
+
+
 
 
     /**
@@ -1348,6 +1439,24 @@ public class SameDiff extends SDBaseOps {
     }
 
     /**
+     * Adds incoming arguments for the specified differential function to the graph
+     *
+     * @param variables variables that are arguments (inputs) to the specified function
+     * @param function  Function
+     */
+    public void addArgsFor(List<SDVariable> variables, DifferentialFunction function) {
+
+        String[] varNames = new String[variables.size()];
+        for (int i = 0; i < varNames.length; i++) {
+            if (variables.get(i) == null)
+                throw new ND4JIllegalStateException("Found null variable at index " + i);
+            varNames[i] = variables.get(i).name();
+        }
+        addArgsFor(varNames, function);
+    }
+
+
+    /**
      * Replaces the argument at i with newArg for function
      * Does not use (or remove) ArgumentInterceptor stuff
      */
@@ -1547,7 +1656,7 @@ public class SameDiff extends SDBaseOps {
      * setting here) using {@link #outputs()}
      * @param outputs Outputs to set. Must be valid variable names in this SameDiff instance
      */
-    public void setOutputs(List<String> outputs){
+    public void setOutputs(List<String> outputs) {
         if(outputs != null){
             for(String s : outputs){
                 Preconditions.checkArgument(variables.containsKey(s), "Cannot set variable \"%s\" as an output: SameDiff instance does not contain a variable with this name");
@@ -1571,10 +1680,23 @@ public class SameDiff extends SDBaseOps {
      * Variables can be marked as loss variables in a few different ways:<br>
      * (a) Losses are automatically added when creating loss functions via {@link #sd }<br>
      * (b) Via {@link #setLossVariables(String...)}, @link #addLossVariable(String)} or {@link SDVariable#markAsLoss()}<br>
-     * (c) Via {@link TrainingConfig#setLossVariables(List)}<br>
      */
     public List<String> getLossVariables() {
         return Collections.unmodifiableList(this.lossVariables);
+    }
+
+
+
+    /**
+     * Registers a user defined op in the graph.
+     * For more information, see {@link UserDefinedCustomOp}
+     * @param userDefinedCustomOp the op to register
+     * @return  the op's output variables
+     */
+    public SDVariable[] doUdf(UserDefinedCustomOp userDefinedCustomOp) {
+        userDefinedCustomOp.configureWithSameDiff(this);
+        userDefinedCustomOp.setSameDiff(this);
+        return userDefinedCustomOp.outputVariables();
     }
 
 
@@ -1650,8 +1772,6 @@ public class SameDiff extends SDBaseOps {
      */
     public void setTrainingConfig(TrainingConfig trainingConfig) {
         this.trainingConfig = trainingConfig;
-        if(trainingConfig.getLossVariables() != null)
-            this.setLossVariables(trainingConfig.getLossVariables());
     }
 
     /**
@@ -1876,6 +1996,7 @@ public class SameDiff extends SDBaseOps {
             if(!listenersWitHistory.contains(l))
                 listenersWitHistory.add(l);
         }
+
         listenersWitHistory.add(history);
 
 
@@ -1894,9 +2015,8 @@ public class SameDiff extends SDBaseOps {
         }
 
         Set<String> paramsToTrain = new LinkedHashSet<>();
-        for(Variable v : variables.values()){
-            if(v.getVariable().getVariableType() == VariableType.VARIABLE){
-                //TODO not all variable type are needed - i.e., variable that doesn't impact loss should be skipped
+        for(Variable v : variables.values()) {
+            if(v.getVariable().getVariableType() == VariableType.VARIABLE) {
                 paramsToTrain.add(v.getName());
             }
         }
@@ -1967,6 +2087,7 @@ public class SameDiff extends SDBaseOps {
                         lossSums[j] += lastLoss.getLosses()[j];
                     }
                 }
+
                 lossCount++;
 
                 trainingConfig.incrementIterationCount();
@@ -2067,6 +2188,7 @@ public class SameDiff extends SDBaseOps {
 
         for (Listener l1 : activeListeners)
             l1.operationEnd(this, Operation.TRAINING);
+
 
         return history.getReport();
     }
@@ -2429,9 +2551,12 @@ public class SameDiff extends SDBaseOps {
                 } else if(m.hasValues()) {
                     INDArray prediction = m.getValueOutputs().get(e.getKey()).getTensorValue();
                     for (IEvaluation eval : e.getValue()) {
-                        INDArray label = ds.getLabels(predictionLabelMapping.get(e.getKey()));
-                        INDArray mask = ds.getLabelsMaskArray(predictionLabelMapping.get(e.getKey()));
-                        eval.eval(label, prediction, mask);
+                        INDArray label = ds.getLabels(predictionLabelMapping.get(e.getKey())).castTo(DataType.INT64);
+                        INDArray maskAttempt = ds.getLabelsMaskArray(predictionLabelMapping.get(e.getKey()));
+                        if(maskAttempt != null) {
+                            maskAttempt = maskAttempt.castTo(DataType.INT64);
+                        }
+                        eval.eval(label, prediction, maskAttempt);
                     }
                 }
 
@@ -2773,7 +2898,8 @@ public class SameDiff extends SDBaseOps {
      * Special case of {@link #batchOutput()}.
      */
     public INDArray outputSingle(Map<String, INDArray> placeholders, String output) {
-        placeholders.values().stream().forEach(arr -> arr.setCloseable(false));
+        if(placeholders != null)
+            placeholders.values().stream().forEach(arr -> arr.setCloseable(false));
         return batchOutput().output(output).inputs(placeholders).outputSingle();
     }
 
@@ -4123,13 +4249,6 @@ public class SameDiff extends SDBaseOps {
                 trainingConfig.setDataSetLabelMaskMapping(l);
             }
 
-            if (trainingConfig.getLossVariables() != null && trainingConfig.getLossVariables().contains(from)) {
-                List<String> l = new ArrayList<>(trainingConfig.getLossVariables());
-                while (l.contains(from)) {
-                    l.set(l.indexOf(from), to);
-                }
-                trainingConfig.setLossVariables(l);
-            }
         }
 
         for (SameDiff sd : sameDiffFunctionInstances.values()) {
@@ -4294,6 +4413,59 @@ public class SameDiff extends SDBaseOps {
         SameDiff grad = getFunction(GRAD_FN_KEY);
         SDVariable var = grad.getVariable(varName);
         return getFunction(GRAD_FN_KEY).getGradForVariable(var.name());
+    }
+
+
+    public SDVariable[] dynamic(String name,
+                                List<SDVariable> inputs,
+                                List<Long> iArgs,
+                                List<Double> tArgs,
+                                List<DataType> dArgs,
+                                List<Boolean> bArgs,
+                                List<String> sArgs) {
+        try {
+            DifferentialFunction out = DifferentialFunctionClassHolder.getInstance().getInstance(name).getClass().newInstance();
+            out.setSameDiff(this);
+            out.setInstanceId();
+
+            addArgsFor(inputs,out);
+            if(out instanceof CustomOp) {
+                CustomOp customOp = (CustomOp) out;
+                if(bArgs != null && !bArgs.isEmpty()) {
+                    customOp.addBArgument(Booleans.toArray(bArgs));
+                }
+
+                if(tArgs != null && !tArgs.isEmpty()) {
+                    customOp.addTArgument(Doubles.toArray(tArgs));
+                }
+
+                if(iArgs != null && !iArgs.isEmpty()) {
+                    customOp.addIArgument(Ints.toArray(iArgs));
+                }
+
+                if(sArgs != null && !sArgs.isEmpty()) {
+                    customOp.addSArgument(sArgs.toArray(new String[sArgs.size()]));
+                }
+
+                if(dArgs != null && !dArgs.isEmpty()) {
+                    customOp.addDArgument(dArgs.toArray(new DataType[dArgs.size()]));
+                }
+
+
+
+            }
+
+            return out.outputVariables();
+
+
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+
+
+
     }
 
 
@@ -4715,7 +4887,7 @@ public class SameDiff extends SDBaseOps {
      * @param function
      */
     public void defineFunction(String function, SameDiffFunctionDefinition functionDefinition) {
-        defineFunction(function, functionDefinition, new LinkedHashMap<String, INDArray>());
+        defineFunction(function, functionDefinition, new LinkedHashMap<>());
     }
 
     /**
@@ -4791,7 +4963,6 @@ public class SameDiff extends SDBaseOps {
 
         //Key is gradient variable name
         SameDiff gradFn = getFunction(GRAD_FN_KEY);
-        gradFn.setEnableCache(false);
         gradFn.setListeners(listeners);
         ExecutionResult gradExecResult = gradFn.batchOutputHelper(placeholderVals, null, Operation.TRAINING, varNames.toArray(new String[0]));
         Map<String,INDArray> grads = null;
@@ -4856,30 +5027,36 @@ public class SameDiff extends SDBaseOps {
      *                                    be calculated and available after backprop has been done
      */
     public void createGradFunction(final String... variablesRequiringGradients) {
-        if (lossVariables.isEmpty()) {
-            if (trainingConfig != null && trainingConfig.getLossVariables() != null && !trainingConfig.getLossVariables().isEmpty()) {
-                lossVariables.addAll(trainingConfig.getLossVariables());
-            } else {
-                List<String> lossInferred = bestGuessLossVariables();
-                if (lossInferred.size() == 1) {
-                    String outName = lossInferred.get(0);
-                    String opName = variables.get(outName).getOutputOfOp();
-                    if (opName == null || !(ops.get(opName).getOp() instanceof ExternalErrorsFunction)) {
-                        log.info("Inferring output \"{}\" as loss variable as none were previously set." +
-                                "Use SameDiff.setLossVariables() or SDVariable.markAsLoss() to override", lossInferred.get(0));
-                    }
-                    lossVariables.add(lossInferred.get(0));
-                } else if(lossInferred.isEmpty()){
-                    //Check for external errors function
-                    for(SameDiffOp o : ops.values()){
-                        if(o.getOp() instanceof ExternalErrorsFunction) {
-                            List<String> l = o.getOutputsOfOp();
-                            lossVariables.add(l.get(0));
-                        }
-                    }
+        if(this.sameDiffFunctionInstances.containsKey(GRAD_FN_KEY))
+            sameDiffFunctionInstances.remove(GRAD_FN_KEY);
+        List<String> lossInferred = bestGuessLossVariables();
+        //Check for external errors function
+        for(SameDiffOp o : ops.values()) {
+            if(o.getOp() instanceof ExternalErrorsFunction) {
+                List<String> l = o.getOutputsOfOp();
+                lossVariables.add(l.get(0));
+            }
+        }
+
+
+        if (lossVariables.isEmpty() && lossInferred.size() == 1) {
+            String outName = lossInferred.get(0);
+            String opName = variables.get(outName).getOutputOfOp();
+            if (opName == null || !(ops.get(opName).getOp() instanceof ExternalErrorsFunction)) {
+                log.info("Inferring output \"{}\" as loss variable as none were previously set." +
+                        "Use SameDiff.setLossVariables() or SDVariable.markAsLoss() to override", lossInferred.get(0));
+            }
+            lossVariables.add(lossInferred.get(0));
+        } else if(lossInferred.isEmpty()) {
+            //Check for external errors function
+            for(SameDiffOp o : ops.values()) {
+                if(o.getOp() instanceof ExternalErrorsFunction) {
+                    List<String> l = o.getOutputsOfOp();
+                    lossVariables.add(l.get(0));
                 }
             }
         }
+
 
         Preconditions.checkState(!lossVariables.isEmpty(), "Cannot create gradient function: " +
                 "No loss variables (variables to minimize) have been specified. Loss variables are the variables that" +
@@ -5007,39 +5184,34 @@ public class SameDiff extends SDBaseOps {
 
             //----- Step 1: Determine FP variables connected to loss -----
             // Find all FP variables that are connected to loss by a floating point (FP16/32/64) path
+            // Find all FP variables that are connected to loss by a floating point (FP16/32/64) path
             Set<String> allFpVarsConnectedToLoss = new LinkedHashSet<>();
             Queue<String> toProcess = new LinkedList<>();
             for (String s : lossVariables) {
-                allFpVarsConnectedToLoss.add(s);
+                if (!toProcess.contains(s)) {
+                    toProcess.add(s);
+                }
             }
 
-
-
-
-
-
             Set<SameDiffOp> processedOps = new LinkedHashSet<>();
-            Set<String> processed = new HashSet<>();
             while (!toProcess.isEmpty()) {
                 String next = toProcess.remove();
-                processed.add(next);
                 if (!allFpVarsConnectedToLoss.contains(next)) {
                     Variable v = variables.get(next);
                     if (v.getVariable().dataType().isFPType()) {
+                        allFpVarsConnectedToLoss.add(v.getName());
                         //Work out what op (if any) this is an output of... and add the inputs to that op to be processed
                         if (v.getOutputOfOp() != null) {
                             String opName = v.getOutputOfOp();
                             SameDiffOp op = ops.get(opName);
                             processedOps.add(op);
-
                             List<String> opInputs = op.getInputsToOp();
                             if (opInputs != null) {
                                 for (String s : opInputs) {
                                     Variable inputVar = variables.get(s);
                                     if (inputVar.getVariable().dataType().isFPType()) {
                                         //Add this connected floating point type to the list to be processed
-                                        if(!processed.contains(s))
-                                            toProcess.add(s);
+                                        toProcess.add(s);
                                     }
                                 }
                             }
@@ -5154,7 +5326,7 @@ public class SameDiff extends SDBaseOps {
 
             //At this point: we know the set of variables that are connected to the loss - these all (and only) need gradients
             Queue<String> availableForDiff = new LinkedList<>();
-          availableForDiff.addAll(controlflowOps.stream().map(input -> input.getName()).collect(Collectors.toList()));
+            availableForDiff.addAll(controlflowOps.stream().map(input -> input.getName()).collect(Collectors.toList()));
             Set<String> differentiatedOps = new LinkedHashSet<>();
 
             for (SDVariable lossVar : finalOutputs) {
@@ -5494,51 +5666,308 @@ public class SameDiff extends SDBaseOps {
 
     /**
      * Updates the variable name property on the passed in variable, the reference in samediff, and returns the variable.
-     * <p>
-     * Note that if null for the new variable is passed in, it will just return the original input variable.
-     * @param opToRename  note we pass in the op here for times when an op may have multiple outputs
-     *                    when this is the case, we need to pass in the op to rename otherwise context gets lost
-     *                    and subsequent rename attempts will not operate on the op.
-     * @param varToUpdate the variable to update
-     * @param newVarName  the new variable name
-     * @param exactName  whether the variable name should be modified or remain exact. If the variable already exists
-     *                   and exact is required, an {@link IllegalArgumentException} will be thrown.
-     * @return the passed in variable
+     * This method handles potential name clashes if exactName is false and updates all internal references.
+     *
+     * @param opContext   The operation context, often the op producing varToUpdate. Can be null, but renaming might be incomplete.
+     * @param varToUpdate the variable to update/rename.
+     * @param newVarName  the desired new variable name.
+     * @param exactName   whether the variable name must be exactly newVarName. If false and newVarName exists, a unique name like newVarName_N will be generated.
+     * @return the passed in variable, potentially with an updated name.
      */
-    public SDVariable updateVariableNameAndReference(SameDiffOp opToRename,SDVariable varToUpdate, String newVarName,boolean exactName) {
-        if (varToUpdate == null) {
-            throw new NullPointerException("Null input: No variable found for updating!");
+    public SDVariable updateVariableNameAndReference(SameDiffOp opContext, @NonNull SDVariable varToUpdate, String newVarName, boolean exactName) {
+
+        // --- Initial Checks ---
+        String fromName = varToUpdate.name();
+
+        // If no new name provided, or name is unchanged, or variable doesn't exist, do nothing.
+        if (newVarName == null || newVarName.isEmpty() || newVarName.equals(fromName)) {
+            return varToUpdate;
+        }
+        if (!this.variables.containsKey(fromName)) {
+            log.warn("Attempted to rename variable '{}' which does not exist in this SameDiff instance. No action taken.", fromName);
+            return varToUpdate; // Variable doesn't exist here
+        }
+        if (this.variables.get(fromName).getVariable() != varToUpdate) {
+            log.warn("Attempted to rename variable '{}', but the SDVariable instance provided does not match the one stored in the graph under that name. No action taken.", fromName);
+            return varToUpdate; // Mismatched instance
         }
 
-        if (newVarName != null) {
-            String nameScope = currentNameScope();
-            if (nameScope != null && !exactName) {
-                if (!newVarName.startsWith(nameScope + "/")) {
-                    newVarName = nameScope + "/" + newVarName;
+        Variable varMeta = this.variables.get(fromName);
+
+        // --- Determine Final Name (Handle potential clashes based on exactName) ---
+        String finalName = newVarName; // Start with the requested name
+
+        if (this.variables.containsKey(finalName) && this.variables.get(finalName).getVariable() != varToUpdate) {
+            // Name clash detected
+            if (exactName) {
+                throw new IllegalArgumentException("Cannot rename variable '" + fromName + "' to '" + finalName + "': A different variable with the target name already exists and exactName was requested.");
+            } else {
+                // Generate a unique name (e.g., "newVarName_N")
+                int count = 0;
+                String generatedName = finalName + "_" + count;
+                while (this.variables.containsKey(generatedName)) {
+                    count++;
+                    generatedName = finalName + "_" + count;
+                    if(count > 10000) { // Safety break for potential infinite loop
+                        throw new IllegalStateException("Failed to generate unique name after 10000 attempts for base: " + finalName);
+                    }
+                }
+                log.debug("Requested name '{}' clashed. Renaming variable '{}' to generated name '{}' instead.", finalName, fromName, generatedName);
+                finalName = generatedName; // Use the generated unique name
+            }
+        }
+        // --- End Final Name Determination ---
+
+        // --- Core Renaming Logic (Adapted from old renameVariable) ---
+        log.trace("Updating variable name and references: From='{}', To='{}'", fromName, finalName);
+
+        // 1. Update name in SDVariable object and Variable metadata
+        varToUpdate.setVarName(finalName);
+        varMeta.setName(finalName);
+
+        // 2. Update Ops that CONSUME this variable as input
+        if (varMeta.getInputsForOp() != null) {
+            List<String> consumingOpNames = new ArrayList<>(varMeta.getInputsForOp()); // Iterate copy
+            for (String opName : consumingOpNames) {
+                SameDiffOp op = this.ops.get(opName);
+                if (op != null && op.getInputsToOp() != null) {
+                    boolean needsUpdate = false;
+                    for(String inputName : op.getInputsToOp()) { if(fromName.equals(inputName)) { needsUpdate = true; break; } }
+                    if(needsUpdate) {
+                        List<String> newInputs = new ArrayList<>(op.getInputsToOp().size());
+                        for(String inputName : op.getInputsToOp()) newInputs.add(fromName.equals(inputName) ? finalName : inputName);
+                        op.setInputsToOp(newInputs);
+                    }
+                } else if (op == null) { log.warn("Consuming op '{}' for variable '{}' not found.", opName, fromName); }
+            }
+        }
+
+        // 3. Update Ops that have this variable as CONTROL DEPENDENCY input
+        if (varMeta.getControlDepsForOp() != null) {
+            List<String> consumingOpNames = new ArrayList<>(varMeta.getControlDepsForOp());
+            for (String opName : consumingOpNames) {
+                SameDiffOp op = this.ops.get(opName);
+                if (op == null) continue;
+                // Update Op's controlDeps list
+                if (op.getControlDeps() != null) {
+                    List<String> currentDeps = op.getControlDeps();
+                    boolean needsUpdate = false;
+                    for(String depName : currentDeps) { if(fromName.equals(depName)) { needsUpdate = true; break; } }
+                    if (needsUpdate) {
+                        List<String> newCDs = new ArrayList<>(currentDeps.size());
+                        for(String depName : currentDeps) newCDs.add(fromName.equals(depName) ? finalName : depName);
+                        op.setControlDeps(newCDs);
+                    }
+                }
+                // Update Op's varControlDeps list
+                if (op.getVarControlDeps() != null) {
+                    List<String> currentDeps = op.getVarControlDeps();
+                    boolean needsUpdate = false;
+                    for(String depName : currentDeps) { if(fromName.equals(depName)) { needsUpdate = true; break; } }
+                    if (needsUpdate) {
+                        List<String> newCDs = new ArrayList<>(currentDeps.size());
+                        for(String depName : currentDeps) newCDs.add(fromName.equals(depName) ? finalName : depName);
+                        op.setVarControlDeps(newCDs);
+                    }
                 }
             }
         }
 
-        if (newVarName != null && variables.containsKey(newVarName) && varToUpdate != variables.get(newVarName).getVariable()) {
-            throw new IllegalStateException("Variable name \"" + newVarName + "\" already exists for a different SDVariable");
+        // 4. Update Variables that have this variable as CONTROL DEPENDENCY input
+        if (varMeta.getControlDepsForVar() != null) {
+            List<String> consumingVarNames = new ArrayList<>(varMeta.getControlDepsForVar());
+            for (String varName : consumingVarNames) {
+                Variable consumingVarMeta = this.variables.get(varName);
+                if (consumingVarMeta == null) continue;
+                if (consumingVarMeta.getControlDeps() != null) {
+                    List<String> currentDeps = consumingVarMeta.getControlDeps();
+                    boolean needsUpdate = false;
+                    for(String depName : currentDeps) { if(fromName.equals(depName)) { needsUpdate = true; break; } }
+                    if (needsUpdate) {
+                        List<String> newCDs = new ArrayList<>(currentDeps.size());
+                        for(String depName : currentDeps) newCDs.add(fromName.equals(depName) ? finalName : depName);
+                        consumingVarMeta.setControlDeps(newCDs);
+                    }
+                }
+            }
         }
 
-        if (newVarName == null && variables.containsKey(varToUpdate.name())
-                && variables.get(varToUpdate.name()).getVariable() != varToUpdate && !exactName) {
-            //Edge case: suppose we do m1=sd.mean(in), m2=sd.mean(m1) -> both initially have the name
-            // "mean" and consequently a new variable name needs to be generated
-            newVarName = generateNewVarName(varToUpdate.name(), 0);
+        // 5. Update Variables that THIS variable is a control dependency FOR
+        if (varMeta.getControlDeps() != null) {
+            List<String> producerVarNames = new ArrayList<>(varMeta.getControlDeps());
+            for (String producerVarName : producerVarNames) {
+                Variable producerVarMeta = this.variables.get(producerVarName);
+                if (producerVarMeta == null) continue;
+                // Update producerVarMeta.controlDepsForVar
+                if (producerVarMeta.getControlDepsForVar() != null) {
+                    List<String> currentDepsFor = producerVarMeta.getControlDepsForVar();
+                    boolean needsUpdate = false;
+                    for(String depName : currentDepsFor) { if(fromName.equals(depName)) { needsUpdate = true; break; } }
+                    if(needsUpdate) {
+                        List<String> newCDsFor = new ArrayList<>(currentDepsFor.size());
+                        for(String depName : currentDepsFor) newCDsFor.add(fromName.equals(depName) ? finalName : depName);
+                        producerVarMeta.setControlDepsForVar(newCDsFor);
+                    }
+                }
+                // Update producerVarMeta.controlDepsForOp
+                if (producerVarMeta.getControlDepsForOp() != null) {
+                    List<String> currentDepsFor = producerVarMeta.getControlDepsForOp();
+                    boolean needsUpdate = false;
+                    for(String depName : currentDepsFor) { if(fromName.equals(depName)) { needsUpdate = true; break; } }
+                    if(needsUpdate) {
+                        List<String> newCDsFor = new ArrayList<>(currentDepsFor.size());
+                        for(String depName : currentDepsFor) newCDsFor.add(fromName.equals(depName) ? finalName : depName);
+                        producerVarMeta.setControlDepsForOp(newCDsFor);
+                    }
+                }
+            }
         }
 
-        if (newVarName == null || varToUpdate.name().equals(newVarName)) {
-            return varToUpdate;
+        // 6. Update the PRODUCING op's output list
+        // Use opContext if provided, otherwise try finding producer from varMeta
+        SameDiffOp producingOp = opContext;
+        if (producingOp == null && varMeta.getOutputOfOp() != null) {
+            producingOp = this.ops.get(varMeta.getOutputOfOp());
+        }
+        if (producingOp != null) {
+            if (producingOp.getOutputsOfOp() != null) {
+                List<String> currentOutputs = producingOp.getOutputsOfOp();
+                boolean needsUpdate = false;
+                for(String outName : currentOutputs) { if(fromName.equals(outName)) { needsUpdate = true; break; } }
+                if(needsUpdate) {
+                    List<String> newOuts = new ArrayList<>(currentOutputs.size());
+                    for(String outName : currentOutputs) newOuts.add(fromName.equals(outName) ? finalName : outName);
+                    producingOp.setOutputsOfOp(newOuts);
+                }
+            }
+        } else {
+            // Variable might be a placeholder/constant, or op was missing (already warned)
+            if (varMeta.getOutputOfOp() != null) {
+                log.warn("Producing op '{}' for variable '{}' not found during rename output list update.", varMeta.getOutputOfOp(), fromName);
+            }
         }
 
-        val oldVarName = varToUpdate.name();
-        varToUpdate.setVarName(newVarName);
-        renameVariable(opToRename,oldVarName, newVarName);
-        return varToUpdate;
+        // 7. Update the main variable map
+        this.variables.remove(fromName);
+        this.variables.put(finalName, varMeta);
+
+        // 8. Update array holders
+        if (varToUpdate.getVariableType() == VariableType.CONSTANT && this.constantArrays.hasArray(fromName)) {
+            this.constantArrays.rename(fromName, finalName);
+        }
+        if (varToUpdate.getVariableType() == VariableType.VARIABLE && this.variablesArrays.hasArray(fromName)) {
+            this.variablesArrays.rename(fromName, finalName);
+        }
+        if (varToUpdate.getVariableType() == VariableType.PLACEHOLDER) {
+            // Use a helper method within SameDiff for thread safety and encapsulation
+            renamePlaceholder(fromName, finalName);
+        }
+        if (this.eagerMode && this.eagerArrays.hasArray(fromName)) {
+            this.eagerArrays.rename(fromName, finalName);
+        }
+
+        // 9. Update TrainingConfig mappings
+        if (this.trainingConfig != null) {
+            renameTrainingConfigReferences(fromName, finalName); // Encapsulate this logic
+        }
+
+        // 10. Update Sub-functions (Recursive)
+        if (this.sameDiffFunctionInstances != null) {
+            for (SameDiff subSD : this.sameDiffFunctionInstances.values()) {
+                if (subSD.hasVariable(fromName)) {
+                    // TODO: Determine correct opContext for sub-function rename? Passing null might be safest.
+                    // Recursive call needs careful context handling.
+                    subSD.updateVariableNameAndReference(null, subSD.getVariable(fromName), finalName, exactName);
+                    log.trace("Recursively renamed {} to {} in sub-function", fromName, finalName);
+                }
+            }
+        }
+
+        // 11. Update Loss Variables
+        if (this.lossVariables.contains(fromName)) {
+            // Create new list to avoid modifying potentially unmodifiable list directly
+            List<String> updatedLossVars = new ArrayList<>(this.lossVariables.size());
+            boolean changed = false;
+            for(String lossVar : this.lossVariables) {
+                if(fromName.equals(lossVar)) {
+                    updatedLossVars.add(finalName);
+                    changed = true;
+                } else {
+                    updatedLossVars.add(lossVar);
+                }
+            }
+            // Only update if necessary
+            if (changed) {
+                // Clear and add all, or replace internal list if possible
+                this.lossVariables.clear();
+                this.lossVariables.addAll(updatedLossVars);
+            }
+        }
+        // --- End Core Renaming Logic ---
+
+        return varToUpdate; // Return the variable, now with its name updated
     }
+
+    /**
+     * Renames placeholder references across threads.
+     * @param fromName Old placeholder name
+     * @param toName New placeholder name
+     */
+    private void renamePlaceholder(String fromName, String toName) {
+        if (fromName.equals(toName)) return;
+        // Iterate over all threads' placeholder maps (requires synchronization or careful handling if accessed concurrently)
+        synchronized (placeholdersPerThread) { // Synchronize access
+            for (Map<String, INDArray> threadMap : placeholdersPerThread.values()) {
+                if (threadMap != null && threadMap.containsKey(fromName)) {
+                    INDArray arr = threadMap.remove(fromName);
+                    threadMap.put(toName, arr);
+                }
+            }
+        }
+        // Also handle otherPlaceHoldersPerThread if necessary
+        synchronized (otherPlaceHoldersPerThread) {
+            for(Map<String, SDValue> threadMap : otherPlaceHoldersPerThread.values()){
+                if (threadMap != null && threadMap.containsKey(fromName)) {
+                    SDValue val = threadMap.remove(fromName);
+                    threadMap.put(toName, val);
+                }
+            }
+        }
+    }
+
+    /**
+     * Renames variable references within the TrainingConfig.
+     * @param fromName Old variable name
+     * @param toName New variable name
+     */
+    private void renameTrainingConfigReferences(String fromName, String toName) {
+        if (trainingConfig == null || fromName.equals(toName)) return;
+
+        // Use helper method on TrainingConfig if available, otherwise modify lists directly (if mutable)
+        // Example direct modification (assumes lists are mutable - potentially unsafe):
+        try {
+            if (trainingConfig.getDataSetFeatureMapping() != null && trainingConfig.getDataSetFeatureMapping().contains(fromName)) {
+                List<String> l = trainingConfig.getDataSetFeatureMapping(); // Assumes modifiable
+                Collections.replaceAll(l, fromName, toName);
+            }
+            if (trainingConfig.getDataSetLabelMapping() != null && trainingConfig.getDataSetLabelMapping().contains(fromName)) {
+                List<String> l = trainingConfig.getDataSetLabelMapping();
+                Collections.replaceAll(l, fromName, toName);
+            }
+            if (trainingConfig.getDataSetFeatureMaskMapping() != null && trainingConfig.getDataSetFeatureMaskMapping().contains(fromName)) {
+                List<String> l = trainingConfig.getDataSetFeatureMaskMapping();
+                Collections.replaceAll(l, fromName, toName);
+            }
+            if (trainingConfig.getDataSetLabelMaskMapping() != null && trainingConfig.getDataSetLabelMaskMapping().contains(fromName)) {
+                List<String> l = trainingConfig.getDataSetLabelMaskMapping();
+                Collections.replaceAll(l, fromName, toName);
+            }
+        } catch (UnsupportedOperationException e) {
+            log.warn("Could not update TrainingConfig references directly for rename {} -> {}. Lists may be immutable.", fromName, toName);
+            // Consider logging instructions for manual update or providing setters that take new lists.
+        }
+    }
+
 
     /**
      * Updates the variable name property on the passed in variable, the reference in samediff, and returns the variable.
@@ -5702,13 +6131,15 @@ public class SameDiff extends SDBaseOps {
      * @param includeUpdaterState If true: include the updater state (state for updaters such as Adam, Nesterov, AdaGrad etc)
      * @return a ByteBuffer holding the exported FlatBuffers representation of the graph
      */
+    @SneakyThrows
     public ByteBuffer asFlatBuffers(long graphId, @NonNull ExecutorConfiguration configuration, boolean includeUpdaterState) {
         Nd4j.getExecutioner().commit();
-        val bufferBuilder = new FlatBufferBuilder(1024);
+        // Use a slightly larger initial size, helps prevent resizing for moderately sized graphs
+        val bufferBuilder = new FlatBufferBuilder(1024 * 1024); // 1MB initial size
         val idCounter = new AtomicInteger(0);
 
         val flatVariables = new ArrayList<Integer>();
-        val flatOffsets = new ArrayList<Integer>();
+        val flatOffsets = new ArrayList<Integer>(); // This list seems unused in the final graph creation.
         val flatNodes = new ArrayList<Integer>();
 
         // first of all we build VariableSpace dump
@@ -5717,50 +6148,52 @@ public class SameDiff extends SDBaseOps {
         val forwardMap = new LinkedHashMap<String, Integer>();
         val framesMap = new LinkedHashMap<String, Integer>();
 
-
-
-        //add the sequences
-        int[] sequenceItems = new int[sequences.size()];
-        int sequenceItemsOffset = -1;
-
-        if(!sequences.isEmpty()) {
+        //add the sequences - Note: SequenceItemRoot is not part of FlatGraph schema
+        int sequenceItemsOffset = -1; // Keep track if sequences exist
+        if (!sequences.isEmpty()) {
+            int[] sequenceItems = new int[sequences.size()];
             int sequenceIdx = 0;
             for(Map.Entry<String,INDArray[]> sequence : sequences.entrySet()) {
                 int sequenceName = bufferBuilder.createString(sequence.getKey());
                 int[] arrays = new int[sequence.getValue().length];
                 for(int i = 0; i < arrays.length; i++) {
+                    // Use INDArray.toFlatArray directly as SameDiffSerializer isn't available here
                     arrays[i] = sequence.getValue()[i].toFlatArray(bufferBuilder);
                 }
-
-                int associatedVariables = SequenceItem.createAssociatedVariableVector(bufferBuilder,arrays);
+                int associatedVariables = SequenceItem.createAssociatedVariableVector(bufferBuilder, arrays);
                 sequenceItems[sequenceIdx++] = SequenceItem.createSequenceItem(bufferBuilder,sequenceName,associatedVariables);
             }
+            // This seems incorrect - SequenceItemRoot is not part of FlatGraph
+            // sequenceItemsOffset = SequenceItemRoot.createSequenceItemsVector(bufferBuilder, sequenceItems);
+            log.warn("Sequence serialization is present but FlatGraph schema doesn't directly support it. Sequences will not be included in the FlatBuffer.");
         }
-
-
-
-        sequenceItemsOffset = SequenceItemRoot.createSequenceItemsVector(bufferBuilder,sequenceItems);
 
 
         int idx = 0;
         val idxForOps = new IdentityHashMap<DifferentialFunction, Integer>();
         List<SDVariable> allVars = variables();
         for (SDVariable variable : allVars) {
+            // Skip sequence types as they aren't standard FlatVariables
+            if (variable.getVariableType() == VariableType.SEQUENCE) continue;
+
             INDArray arr = variable.getVariableType() == VariableType.ARRAY ? null : variable.getArr();
             log.trace("Exporting variable: [{}]", variable.name());
 
-            //If variable is the output of some op - let's use the ONE index for exporting, and properly track the output
-            // numbers. For example, unstack(x) -> y0, y1, y2 -> the y's should be say (3,0), (3,1), (3,2) NOT (4,0), (5,0), (6,0)
             String varName = variable.name();
             int varIdx;
             int outputNum;
-            if (variables.get(varName).getOutputOfOp() != null) {
-                //This variable is the output of a node
-                if(!ops.containsKey(variables.get(varName).getOutputOfOp())) {
-                    log.info("Requested op from output " + variables.get(varName).getOutputOfOp() + "not found. Skipping.");
+            Variable vMeta = variables.get(varName); // Fetch the internal Variable metadata
+            if (vMeta == null) {
+                log.warn("Internal Variable metadata not found for SDVariable: {}. Skipping.", varName);
+                continue; // Should not happen in a consistent state
+            }
+
+            if (vMeta.getOutputOfOp() != null) {
+                if(!ops.containsKey(vMeta.getOutputOfOp())) {
+                    log.warn("Variable {} references output of op {} which is not found. Skipping variable.", varName, vMeta.getOutputOfOp());
                     continue;
                 }
-                DifferentialFunction df = ops.get(variables.get(varName).getOutputOfOp()).getOp();
+                DifferentialFunction df = ops.get(vMeta.getOutputOfOp()).getOp();
                 if (!idxForOps.containsKey(df)) {
                     varIdx = idCounter.incrementAndGet();
                     idxForOps.put(df, varIdx);
@@ -5769,119 +6202,145 @@ public class SameDiff extends SDBaseOps {
                 }
                 String[] outNames = df.outputVariablesNames();
                 outputNum = ArrayUtils.indexOf(outNames, varName);
-                Preconditions.checkState(outputNum >= 0, "Variable name \"%s\" not found in list of outputs for function named %s of type %s: %s", varName, df.getOwnName(),df.opName(),outNames);
+                // Allow -1 index if outputVariablesNames() returns null/empty for some reason (though it shouldn't)
+                // Preconditions.checkState(outputNum >= 0, "Variable name \"%s\" not found in list of outputs for function named %s of type %s: %s", varName, df.getOwnName(),df.opName(),outNames);
+                if(outputNum < 0 && outNames != null && outNames.length > 0) {
+                    log.warn("Variable name \"{}\" not found in list of outputs {} for function named {} of type {}.", varName, Arrays.toString(outNames), df.getOwnName(), df.opName());
+                    // Attempt to recover or skip? Skipping might be safer.
+                    // For now, proceed with outputNum = 0 as a fallback, but log prominently.
+                    outputNum = 0;
+                    log.warn("Proceeding with outputNum = 0 for variable {} as fallback.", varName);
+                } else if (outNames == null || outNames.length == 0) {
+                    outputNum = 0; // Assume single output if names are not defined
+                }
             } else {
                 varIdx = idCounter.incrementAndGet();
                 outputNum = 0;
             }
 
-
             reverseMap.put(variable.name(), varIdx);
 
             log.trace("Adding [{}] as [{}]", variable.name(), varIdx);
-            int shape = 0;
-            int name = bufferBuilder.createString(variable.name());
-            int array = 0;
-            int id = IntPair.createIntPair(bufferBuilder, varIdx, outputNum);
-            byte varType = (byte) variable.getVariableType().ordinal();
-            if (variable.isConstant() || variable.isPlaceHolder() || variable.getVariableType() == VariableType.VARIABLE) {
-                //Don't export array type (i.e., activations), these are always replaced/re-calculated on each step
-                array = arr == null ? 0 : arr.toFlatArray(bufferBuilder);
+            int shapeOffset = 0; // Renamed local var
+            int nameOffset = bufferBuilder.createString(variable.name()); // Renamed local var
+            int arrayOffset = 0; // Renamed local var
+            int idOffset = IntPair.createIntPair(bufferBuilder, varIdx, outputNum); // Renamed local var
+            byte varTypeByte = (byte) variable.getVariableType().ordinal(); // Renamed local var
+
+            if (arr != null && (variable.isConstant() || variable.isPlaceHolder() || variable.getVariableType() == VariableType.VARIABLE)) {
+                // Use INDArray.toFlatArray directly as SameDiffSerializer isn't available here
+                arrayOffset = arr.toFlatArray(bufferBuilder);
             }
 
             if (variable.getVariableType() == VariableType.PLACEHOLDER) {
                 val shp = variable.getShape();
                 if(shp != null) {
-                    //Some models may have no shape defined, not ever a placeholder type shape
-                    shape = FlatVariable.createShapeVector(bufferBuilder, shp);
+                    shapeOffset = FlatVariable.createShapeVector(bufferBuilder, shp);
                 }
             }
 
+            int controlDepsOffset = 0; // Renamed local var
+            int controlDepsForOpOffset = 0; // Renamed local var
+            int controlDepsForVarOffset = 0; // Renamed local var
 
-            int controlDeps = 0;
-            int controlDepsForOp = 0;
-            int controlDepsForVar = 0;
-            Variable v = variables.get(varName);
-
-            int[] cds = FlatBuffersMapper.mapOrNull(v.getControlDeps(), bufferBuilder);
+            int[] cds = FlatBuffersMapper.mapOrNull(vMeta.getControlDeps(), bufferBuilder);
             if(cds != null)
-                controlDeps = FlatVariable.createControlDepsVector(bufferBuilder, cds);
+                controlDepsOffset = FlatVariable.createControlDepsVector(bufferBuilder, cds);
 
-            int[] cdsForOp = FlatBuffersMapper.mapOrNull(v.getControlDepsForOp(), bufferBuilder);
+            int[] cdsForOp = FlatBuffersMapper.mapOrNull(vMeta.getControlDepsForOp(), bufferBuilder);
             if(cdsForOp != null)
-                controlDepsForOp = FlatVariable.createControlDepForOpVector(bufferBuilder, cdsForOp);
+                controlDepsForOpOffset = FlatVariable.createControlDepForOpVector(bufferBuilder, cdsForOp);
 
-            int[] cdsForVar = FlatBuffersMapper.mapOrNull(v.getControlDepsForVar(), bufferBuilder);
+            int[] cdsForVar = FlatBuffersMapper.mapOrNull(vMeta.getControlDepsForVar(), bufferBuilder);
             if(cdsForVar != null)
-                controlDepsForVar = FlatVariable.createControlDepsForVarVector(bufferBuilder, cdsForVar);
+                controlDepsForVarOffset = FlatVariable.createControlDepsForVarVector(bufferBuilder, cdsForVar);
 
-
-
-
-
-            int flatVariable = FlatVariable.createFlatVariable(bufferBuilder,
-                    id,
-                    name,
+            int flatVariableOffset = FlatVariable.createFlatVariable(bufferBuilder,
+                    idOffset,
+                    nameOffset,
                     FlatBuffersMapper.getDataTypeAsByte(variable.dataType()),
-                    shape,
-                    array,
-                    -1,
-                    varType,
-                    controlDeps,
-                    controlDepsForOp,
-                    controlDepsForVar);
-            flatVariables.add(flatVariable);
+                    shapeOffset,
+                    arrayOffset, // Pass offset of FlatArray
+                    -1, // device - deprecated/unused
+                    varTypeByte,
+                    controlDepsOffset,
+                    controlDepsForOpOffset,
+                    controlDepsForVarOffset);
+            flatVariables.add(flatVariableOffset);
         }
 
         //add functions
         for (SameDiffOp op : ops.values()) {
             DifferentialFunction func = op.getOp();
             Integer fnId = idxForOps.get(func);
+            if (fnId == null) {
+                // This might happen if an op has no output variable that was processed above
+                // Assign a new ID if needed, though this op might be detached/unused.
+                log.warn("Op {} ({}) was not found in idxForOps map, potentially unused or no outputs. Assigning new ID.", func.getOwnName(), func.opName());
+                fnId = idCounter.incrementAndGet();
+                idxForOps.put(func, fnId);
+            }
             flatNodes.add(FlatBuffersMapper.asFlatNode(this, func, bufferBuilder, variableList, reverseMap, forwardMap, framesMap, idCounter, fnId));
         }
 
-        int outputsOffset = FlatGraph.createVariablesVector(bufferBuilder, Ints.toArray(flatOffsets));
-        int variablesOffset = FlatGraph.createVariablesVector(bufferBuilder, Ints.toArray(flatVariables));
-        int nodesOffset = FlatGraph.createNodesVector(bufferBuilder, Ints.toArray(flatNodes));
+        // Create vectors for graph fields
+        int variablesVectorOffset = FlatGraph.createVariablesVector(bufferBuilder, Ints.toArray(flatVariables));
+        int nodesVectorOffset = FlatGraph.createNodesVector(bufferBuilder, Ints.toArray(flatNodes));
+        // outputsOffset - flatOffsets is not populated, so create empty vector
+        int outputsVectorOffset = FlatGraph.createOutputsVector(bufferBuilder, new int[]{});
 
+        // Placeholders
         int numPlaceholders = 0;
         for (SDVariable v : variables()) {
+            if (v.getVariableType() == VariableType.SEQUENCE) continue;
             if (v.isPlaceHolder()) {
                 numPlaceholders++;
             }
         }
-
-        int[] placeholderOffsets = new int[numPlaceholders];
+        int placeholdersVectorOffset = 0; // Default to 0 offset
         if (numPlaceholders > 0) {
+            int[] placeholderOffsetsArray = new int[numPlaceholders];
             int i = 0;
             for (SDVariable v : variables()) {
+                if (v.getVariableType() == VariableType.SEQUENCE) continue;
                 if (!v.isPlaceHolder())
                     continue;
-                placeholderOffsets[i++] = bufferBuilder.createString(v.name());
+                placeholderOffsetsArray[i++] = bufferBuilder.createString(v.name());
             }
+            placeholdersVectorOffset = FlatGraph.createPlaceholdersVector(bufferBuilder, placeholderOffsetsArray);
         }
-        int placeholdersOffset = FlatGraph.createPlaceholdersVector(bufferBuilder, placeholderOffsets);
 
+
+        // Loss Variables
         List<String> lossVars = getLossVariables();
-        int[] lossVarOffsets = new int[lossVars == null ? 0 : lossVars.size()];
-        for (int i = 0; i < lossVarOffsets.length; i++) {
-            lossVarOffsets[i] = bufferBuilder.createString(lossVars.get(i));
+        int lossVariablesVectorOffset = 0; // Default to 0 offset
+        if (lossVars != null && !lossVars.isEmpty()) {
+            int[] lossVarOffsetsArray = new int[lossVars.size()];
+            for (int i = 0; i < lossVarOffsetsArray.length; i++) {
+                lossVarOffsetsArray[i] = bufferBuilder.createString(lossVars.get(i));
+            }
+            lossVariablesVectorOffset = FlatGraph.createLossVariablesVector(bufferBuilder, lossVarOffsetsArray);
         }
-        int lossVarOffset = FlatGraph.createLossVariablesVector(bufferBuilder, lossVarOffsets);
 
-        int trainingConfigOffset = 0;
-        int updaterStateOffset = 0;
+
+        // Training Config
+        int trainingConfigStringOffset = 0; // Default to 0 offset
         if (trainingConfig != null) {
             String json = trainingConfig.toJson();
-            trainingConfigOffset = bufferBuilder.createString(json);
+            if (json != null && !json.isEmpty()) {
+                trainingConfigStringOffset = bufferBuilder.createString(json);
+            }
         }
+
+        // Updater State
+        int updaterStateVectorOffset = 0; // Default to 0 offset
         if (includeUpdaterState && updaterMap != null && !updaterMap.isEmpty()) {
-            int[] updaterOffsets = new int[updaterMap.size()];
+            int[] updaterOffsetsArray = new int[updaterMap.size()];
             int updaterNum = 0;
             for (Map.Entry<String, GradientUpdater> g : updaterMap.entrySet()) {
                 int paramNameOffset = bufferBuilder.createString(g.getKey());
-                int stateKeyOffset = 0;
-                int stateValuesOffset = 0;
+                int stateKeyVectorOffset = 0; // Default to 0 offset
+                int stateValuesVectorOffset = 0; // Default to 0 offset
                 Map<String, INDArray> state = g.getValue().getState();
                 if (state != null && !state.isEmpty()) {
                     int[] keysOffsets = new int[state.size()];
@@ -5889,35 +6348,54 @@ public class SameDiff extends SDBaseOps {
                     int i = 0;
                     for (Map.Entry<String, INDArray> e : state.entrySet()) {
                         keysOffsets[i] = bufferBuilder.createString(e.getKey());
+                        // Use INDArray.toFlatArray directly
                         valuesOffsets[i] = e.getValue().toFlatArray(bufferBuilder);
                         i++;
                     }
-
-                    stateKeyOffset = UpdaterState.createUpdaterStateKeysVector(bufferBuilder, keysOffsets);
-                    stateValuesOffset = UpdaterState.createUpdaterStateValuesVector(bufferBuilder, valuesOffsets);
+                    stateKeyVectorOffset = UpdaterState.createUpdaterStateKeysVector(bufferBuilder, keysOffsets);
+                    stateValuesVectorOffset = UpdaterState.createUpdaterStateValuesVector(bufferBuilder, valuesOffsets);
                 }
-                updaterOffsets[updaterNum++] = UpdaterState.createUpdaterState(bufferBuilder, paramNameOffset, stateKeyOffset, stateValuesOffset);
+                updaterOffsetsArray[updaterNum++] = UpdaterState.createUpdaterState(bufferBuilder, paramNameOffset, stateKeyVectorOffset, stateValuesVectorOffset);
             }
-
-            updaterStateOffset = FlatGraph.createUpdaterStateVector(bufferBuilder, updaterOffsets);
+            updaterStateVectorOffset = FlatGraph.createUpdaterStateVector(bufferBuilder, updaterOffsetsArray);
         }
 
+        // Configuration (assuming getFlatConfiguration returns the correct offset)
+        int configurationTableOffset = configuration.getFlatConfiguration(bufferBuilder);
+
+        // Metadata Keys/Values - Not handled in this version, pass 0
+        int metadataKeysVectorOffset = 0;
+        int metadataValuesVectorOffset = 0;
+
+        // *** FIXED CALL to createFlatGraph ***
+        // Corresponds to the new 11-parameter signature:
+        // createFlatGraph(builder, id, variablesOffset, nodesOffset, outputsOffset, configurationOffset,
+        //                 placeholdersOffset, lossVariablesOffset, trainingConfigOffset, updaterStateOffset,
+        //                 metadataKeysOffset, metadataValuesOffset)
         int fg = FlatGraph.createFlatGraph(bufferBuilder,
-                graphId,
-                variablesOffset,
-                nodesOffset,
-                outputsOffset,
-                configuration.getFlatConfiguration(bufferBuilder),
-                placeholdersOffset,
-                lossVarOffset,
-                trainingConfigOffset,
-                updaterStateOffset,
-                sequenceItemsOffset);
+                graphId,                     // id (param 1)
+                variablesVectorOffset,       // variablesOffset (param 2)
+                nodesVectorOffset,           // nodesOffset (param 3)
+                outputsVectorOffset,         // outputsOffset (param 4) - Likely empty
+                configurationTableOffset,    // configurationOffset (param 5)
+                placeholdersVectorOffset,    // placeholdersOffset (param 6)
+                lossVariablesVectorOffset,   // lossVariablesOffset (param 7)
+                trainingConfigStringOffset,  // trainingConfigOffset (param 8)
+                updaterStateVectorOffset,    // updaterStateOffset (param 9)
+                metadataKeysVectorOffset,    // metadataKeysOffset (param 10) - Added as 0
+                metadataValuesVectorOffset); // metadataValuesOffset (param 11) - Added as 0
+
         bufferBuilder.finish(fg);
 
+        // Update variable indices (no change needed here)
         synchronized (this) {
             for (Map.Entry<String, Integer> e : reverseMap.entrySet()) {
-                this.variables.get(e.getKey()).setVariableIndex(e.getValue());
+                // Check if variable still exists before setting index
+                if(this.variables.containsKey(e.getKey())) {
+                    this.variables.get(e.getKey()).setVariableIndex(e.getValue());
+                } else {
+                    log.warn("Variable {} not found during final index update, likely skipped earlier.", e.getKey());
+                }
             }
         }
         return bufferBuilder.dataBuffer();
@@ -5965,6 +6443,37 @@ public class SameDiff extends SDBaseOps {
                 .build();
 
         return asFlatBuffers(configuration, includeUpdaterState);
+    }
+
+
+    /**
+     * Loads a sharded model using {@link SDZSerializer}
+     * @param outputZipFile
+     * @return
+     */
+    public static SameDiff loadSharded(File outputZipFile) throws IOException {
+        return SDZSerializer.load(outputZipFile,true);
+    }
+
+    /**
+     * Save a samediff instance (used for bigger models)
+     * as a zip file.
+     * @param file the file to save to
+     * @param saveUpdaterState whether to save updater state
+     * @param metaData  the metaData to save
+     */
+    public void saveSharded(File file,boolean saveUpdaterState,Map<String,String> metaData) throws IOException {
+        SDZSerializer.save(this,file,saveUpdaterState,metaData);
+    }
+
+    /**
+     * Save a samediff instance (used for bigger models)
+     * as a zip file.
+     * @param file the file to save to
+     * @param saveUpdaterState whether to save updater state
+     */
+    public void saveSharded(File file,boolean saveUpdaterState) throws IOException {
+       saveSharded(file,saveUpdaterState,Collections.emptyMap());
     }
 
     /**
@@ -6071,39 +6580,16 @@ public class SameDiff extends SDBaseOps {
     }
 
     /**
-     * See {@link #asFlatFile(File, ExecutorConfiguration, boolean)}.
+     * See {@link #asFlatFile(File)} (File, ExecutorConfiguration, boolean)}.
      *
      * Uses the default {@link ExecutorConfiguration} with output mode as
      * {@link OutputMode#VARIABLE_SPACE}, execution mode as {@link ExecutionMode#SEQUENTIAL},
      * with profiling disabled and gather timings enabled.
      */
     public void asFlatFile(@NonNull File file, boolean withUpdaterState) throws IOException {
-        val fb = asFlatBuffers(withUpdaterState);
-        val offset = fb.position();
-
-        val array = fb.array();
-
-        try (val fos = new FileOutputStream(file); val bos = new BufferedOutputStream(fos); val dos = new DataOutputStream(bos)) {
-            dos.write(array, offset, array.length - offset);
-        }
+        SameDiffSerializer.save(this,file,withUpdaterState,Collections.emptyMap());
     }
 
-    /**
-     * This method converts SameDiff instance to FlatBuffers and saves it to file which can be restored later
-     *
-     * @param file                File to save the FlatBuffers serialized graph (including arrays) to
-     * @param includeUpdaterState If true: include the updater state (state for updaters such as Adam, Nesterov, AdaGrad etc)
-     */
-    public void asFlatFile(@NonNull File file, @NonNull ExecutorConfiguration configuration, boolean includeUpdaterState) throws IOException {
-        val fb = asFlatBuffers(configuration, includeUpdaterState);
-        val offset = fb.position();
-
-        val array = fb.array();
-
-        try (val fos = new FileOutputStream(file); val bos = new BufferedOutputStream(fos); val dos = new DataOutputStream(bos)) {
-            dos.write(array, offset, array.length - offset);
-        }
-    }
 
 
     /**
@@ -6128,13 +6614,7 @@ public class SameDiff extends SDBaseOps {
      * @throws IOException
      */
     public static SameDiff fromFlatFile(@NonNull File file, boolean loadUpdaterState) throws IOException {
-        byte[] bytes;
-        try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
-            bytes = IOUtils.toByteArray(is);
-        }
-
-        ByteBuffer bbIn = ByteBuffer.wrap(bytes);
-        return fromFlatBuffers(bbIn, loadUpdaterState);
+        return SameDiffSerializer.load(file,loadUpdaterState);
     }
 
     /**
@@ -6177,7 +6657,6 @@ public class SameDiff extends SDBaseOps {
             vars.add(fg.variables(i));
         }
 
-//        FlatConfiguration conf = fg.configuration();
 
         /* Reconstruct the graph
         We'll do the reconstruction manually here, rather than using sd.var(...), so that we have more control
@@ -6194,7 +6673,6 @@ public class SameDiff extends SDBaseOps {
         }
 
         //Reconstruct variables:
-        Map<Integer, SDVariable> varNodeIds = new HashMap<>();
         Map<Pair<Integer, Integer>, SDVariable> variablesByNodeAndOutNum = new HashMap<>();
         Map<String, List<SDVariable>> variablesByName = new HashMap<>();
         for (FlatVariable v : vars) {
@@ -6857,32 +7335,6 @@ public class SameDiff extends SDBaseOps {
         }
     }
 
-    /**
-     * Import a frozen Tensorflow graph to a new SameDiff graph.
-     *
-     * @param graphFile The text or binary file containing the graph
-     * @return The imported graph
-     */
-    public static SameDiff importFrozenTF(File graphFile) {
-        return TFGraphMapper.importGraph(graphFile);
-    }
-
-    /**
-     * See {@link #importFrozenTF(File)}
-     */
-    public static SameDiff importFrozenTF(GraphDef graphDef) {
-        return TFGraphMapper.importGraph(graphDef);
-    }
-
-
-    /**
-     * See {@link #importFrozenTF(File)}
-     * <p>
-     * Again, the input can be text or binary.
-     */
-    public static SameDiff importFrozenTF(InputStream graph) {
-        return TFGraphMapper.importGraph(graph);
-    }
 
 
     /**

@@ -30,50 +30,63 @@ namespace sd {
 class SD_LIB_EXPORT MmulHelper {
  private:
   // multiptication N-dimensions tensor on other N-dimensions one
-  static sd::NDArray* mmulNxN(const sd::NDArray* A, const sd::NDArray* B, sd::NDArray* C, const double alpha = 1.0,
+  static NDArray* mmulNxN(NDArray* A, NDArray* B, NDArray* C, const double alpha = 1.0,
                               const double beta = 0.0, const char outOrder = 'f');
 
   // dot product of vectors (X * Y) = Z[0]
-  static sd::NDArray* dot(const sd::NDArray* X, const sd::NDArray* Y, sd::NDArray* Z, const double alpha = 1.0,
+  static NDArray* dot(NDArray* X, NDArray* Y, NDArray* Z, const double alpha = 1.0,
                           const double beta = 0.0);
 
   // multiptication Matrix to Matrix
-  static sd::NDArray* mmulMxM(const sd::NDArray* A, const sd::NDArray* B, sd::NDArray* C, double alpha = 1.0,
+  static NDArray* mmulMxM( NDArray* A,  NDArray* B, NDArray* C, double alpha = 1.0,
                               double beta = 0.0, const char outOrder = 'f');
 
   // multiptication Matrix to vector
-  static sd::NDArray* mmulMxV(const sd::NDArray* A, const sd::NDArray* B, sd::NDArray* C, double alpha = 1.0,
+  static NDArray* mmulMxV( NDArray* A, NDArray* B, NDArray* C, double alpha = 1.0,
                               double beta = 0.0, const char outOrder = 'f');
 
  public:
-  static sd::NDArray* mmul(const sd::NDArray* A, const sd::NDArray* B, sd::NDArray* C = nullptr,
+  static NDArray* mmul(NDArray* A, NDArray* B, NDArray* C = nullptr,
                            const double alpha = 1.0, const double beta = 0.0, const char outOrder = 'f');
 
-  static sd::NDArray* tensorDot(const sd::NDArray* A, const sd::NDArray* B, const std::initializer_list<int>& axesA,
-                                const std::initializer_list<int>& axesB = {});
+  static NDArray* tensorDot(NDArray* A, NDArray* B,
+                                const std::initializer_list<LongType>& axesA,
+                                const std::initializer_list<LongType>& axesB = {});
 
-  static sd::NDArray* tensorDot(const sd::NDArray* A, const sd::NDArray* B, const std::vector<int>& axesA,
-                                const std::vector<int>& axesB);
+  static NDArray* tensorDot(NDArray* A, NDArray* B, const std::vector<LongType>& axesA,
+                                const std::vector<LongType>& axesB);
 
-  static void tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::NDArray* c, const std::vector<int>& axes_a,
-                        const std::vector<int>& axes_b, const std::vector<int>& permutForC = {});
+  static void tensorDot(NDArray* a, NDArray* b, NDArray* c, std::vector<LongType>& axes_a,
+                        std::vector<LongType>& axes_b, std::vector<LongType>& permutForC);
 
+  static void computeNewShapesAndAxes(
+      NDArray& as_, const std::vector<LongType>& axes_a,
+      NDArray& bs, const std::vector<LongType>& axes_b,
+      std::vector<LongType>& newshape_a, std::vector<LongType>& newaxes_a,
+      std::vector<LongType>& newshape_b, std::vector<LongType>& newaxes_b
+      );
 #ifndef __JAVACPP_HACK__
   /**
    *  modif - (can be empty) vector containing a subsequence of permutation/reshaping arrays (in any order), user must
    * take care of correctness of such arrays by himself
    */
-  static void tensorDot(const sd::NDArray* a, const sd::NDArray* b, sd::NDArray* c,
-                        const std::vector<std::vector<sd::LongType>>& modifA,
-                        const std::vector<std::vector<sd::LongType>>& modifB,
-                        const std::vector<std::vector<sd::LongType>>& modifC);
-  static sd::NDArray* tensorDot(const sd::NDArray* a, const sd::NDArray* b,
-                                const std::vector<std::vector<sd::LongType>>& modifA,
-                                const std::vector<std::vector<sd::LongType>>& modifB);
+  static void tensorDot(NDArray* a, NDArray* b, NDArray* c,
+                        std::vector<std::vector<LongType>>& modifA,
+                        std::vector<std::vector<LongType>>& modifB,
+                        std::vector<std::vector<LongType>>& modifC);
+  static NDArray* tensorDot(NDArray* a, NDArray* b,
+                                std::vector<std::vector<LongType>>& modifA,
+                                std::vector<std::vector<LongType>>& modifB);
+
+  static void tensorDot2(NDArray* a, NDArray* b, NDArray* c, const std::vector<LongType>& axes_a,
+                         const std::vector<LongType>& axes_b, std::vector<LongType>& permutAt,
+                         std::vector<LongType>& permuteBt, std::vector<LongType>& permuteCt, NDArray* realFinalResult = nullptr);
 #endif
 
-  static void matmul(const sd::NDArray* x, const sd::NDArray* y, sd::NDArray* z, const bool transX, const bool transY,
-                     double alpha = 1.0, double beta = 0.0);
+  static void matmul(NDArray* x, NDArray* y, NDArray* z, const bool transX, const bool transY, double alpha,
+                     double beta, NDArray* realFinalResult = nullptr);
+
+  static bool resolveTranspose(sd::NDArray& a, sd::NDArray& b, bool& transA, bool& transB);
 };
 }  // namespace sd
 

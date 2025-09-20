@@ -37,7 +37,7 @@ CUSTOM_OP_IMPL(tile, 1, 1, false, 0, -2) {
   const int inRank = input->rankOf();
   std::vector<sd::LongType> reps;
 
-  if (block.getIArguments()->size() == inRank) {
+  if (block.getIArguments()->size() == static_cast<size_t>(inRank)) {
     reps = ArrayUtils::toLongVector(*(block.getIArguments()));
   } else if (block.width() > 1) {
     auto reps_vector = INPUT_VARIABLE(1);
@@ -72,7 +72,7 @@ DECLARE_SHAPE_FN(tile) {
   const int inRank = inShape[0];
   std::vector<sd::LongType> reps;
 
-  if (block.getIArguments()->size() == inRank) {
+  if (block.getIArguments()->size() == static_cast<size_t>(inRank)) {
     reps = ArrayUtils::toLongVector(*(block.getIArguments()));
   } else if (block.width() > 1) {
     auto reps_vector = INPUT_VARIABLE(1);
@@ -90,7 +90,7 @@ DECLARE_SHAPE_FN(tile) {
   REQUIRE_TRUE(repProd > 0, 0, "TILE op: reps can't contain 0s");
 
   std::vector<sd::LongType> shape(inRank);
-  for (int e = 0; e < shape::rank(inShape); e++) shape[e] = shape::sizeAt(inShape, e) * reps[e];
+  for (sd::LongType e = 0; e < shape::rank(inShape); e++) shape[e] = shape::sizeAt(inShape, e) * reps[e];
 
   auto newShape =
       ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShape), shape::order(inShape), shape);
@@ -107,7 +107,7 @@ CUSTOM_OP_IMPL(tile_bp, 2, 1, false, 0, -2) {
 
   std::vector<sd::LongType> reps;
 
-  if (block.getIArguments()->size() == inRank) {
+  if (block.getIArguments()->size() == static_cast<size_t>(inRank)) {
     reps = ArrayUtils::toLongVector(*(block.getIArguments()));
   } else if (block.width() > 2) {
     auto reps_vector = INPUT_VARIABLE(1);
@@ -152,7 +152,7 @@ DECLARE_SHAPE_FN(tile_bp) {
 
   std::vector<sd::LongType> reps;
 
-  if (block.getIArguments()->size() == inRank) {
+  if (block.getIArguments()->size() == static_cast<size_t>(inRank)) {
     reps = ArrayUtils::toLongVector(*(block.getIArguments()));
   } else if (block.width() > 2) {
     auto reps_vector = INPUT_VARIABLE(1);
@@ -172,14 +172,11 @@ DECLARE_SHAPE_FN(tile_bp) {
                "got %i and %i correspondingly !",
                inRank, gradOShape[0]);
 
-  for (int i = 0; i < inRank; ++i)
+  for (sd::LongType i = 0; i < inRank; ++i)
     REQUIRE_TRUE(shape::sizeAt(gradOShape, i) == shape::sizeAt(inShape, i) * reps[i], 0,
                  "TILE_BP op: shapes of input array and output's gradients array (next epsilon) are inconsistent !");
 
-  sd::LongType *gradIShape;
-  COPY_SHAPE(inShape, gradIShape);
-
-  return SHAPELIST(CONSTANT(gradIShape));
+  return SHAPELIST(CONSTANT(inShape));
 }
 
 }  // namespace ops

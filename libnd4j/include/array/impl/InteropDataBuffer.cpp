@@ -25,49 +25,111 @@
 #include <helpers/logger.h>
 
 namespace sd {
-InteropDataBuffer::InteropDataBuffer(InteropDataBuffer& dataBuffer, uint64_t length, uint64_t offset) {
-  _dataBuffer = dataBuffer.getDataBuffer();
+InteropDataBuffer::InteropDataBuffer(InteropDataBuffer* dataBuffer, uint64_t length) {
+ if(dataBuffer == nullptr) {
+        THROW_EXCEPTION("InteropDataBuffer::InteropDataBuffer(InteropDataBuffer& dataBuffer, uint64_t length, uint64_t offset) - dataBuffer is nullptr");
+ }
+  if(dataBuffer->_dataBuffer->getDataType() == DataType::UNKNOWN)
+    THROW_EXCEPTION("InteropDataBuffer::InteropDataBuffer(InteropDataBuffer& dataBuffer, uint64_t length, uint64_t offset) - dataBuffer has unknown data type");
+  _dataBuffer = dataBuffer->dataBuffer();
+  _dataType = dataBuffer->_dataType;
 
-  // offset is always absolute to the original buffer
-  _offset = offset;
+}
 
-  if (_offset + length > _dataBuffer->getLenInBytes()) {
-    this->expand(length);
-    sd_debug("Expanding data buffer length by %d\n", length);
+InteropDataBuffer::InteropDataBuffer(DataBuffer * databuffer) {
+  _dataBuffer = databuffer;
+  _dataType = databuffer->getDataType();
+  if(_dataType == DataType::UNKNOWN) {
+    THROW_EXCEPTION(
+        "InteropDataBuffer::InteropDataBuffer(size_t lenInBytes, DataType dtype, bool allocateBoth) - data type is unknown");
   }
 }
 
-InteropDataBuffer::InteropDataBuffer(std::shared_ptr<DataBuffer> databuffer) { _dataBuffer = databuffer; }
+InteropDataBuffer::InteropDataBuffer(size_t lenInBytes, DataType dtype, bool allocateBoth) {
+  if(dtype == DataType::UNKNOWN) {
+    THROW_EXCEPTION(
+        "InteropDataBuffer::InteropDataBuffer(size_t lenInBytes, DataType dtype, bool allocateBoth) - data type is unknown");
+  }
 
-InteropDataBuffer::InteropDataBuffer(size_t elements, sd::DataType dtype, bool allocateBoth) {
-  if (elements == 0) {
-    _dataBuffer = std::make_shared<DataBuffer>();
-    _dataBuffer->setDataType(dtype);
+  if (lenInBytes == 0) {
+    _dataBuffer = nullptr;
+    this->_dataType = dtype;
+
   } else {
-    _dataBuffer = std::make_shared<DataBuffer>(elements, dtype, nullptr, allocateBoth);
+    //note this should be size in bytes hence why we multiply the number of elements by the size of the data type
+    _dataBuffer = new DataBuffer(lenInBytes, dtype, nullptr, allocateBoth);
+    this->_dataType = dtype;
   }
 }
 
-std::shared_ptr<DataBuffer> InteropDataBuffer::getDataBuffer() const { return _dataBuffer; }
 
-std::shared_ptr<DataBuffer> InteropDataBuffer::dataBuffer() { return _dataBuffer; }
+void InteropDataBuffer::printDbAllocationTrace() {
+  if(_dataBuffer == nullptr)
+    return;
+  _dataBuffer->printAllocationTrace();
+}
 
-void* InteropDataBuffer::primary() const { return reinterpret_cast<int8_t*>(_dataBuffer->primary()) + _offset; }
+void InteropDataBuffer::markOwner(bool owner) {
+  this->owner = owner;
+  this->_dataBuffer->_isOwnerPrimary = owner;
+  this->_dataBuffer->_isOwnerSpecial = owner;
+}
 
-void* InteropDataBuffer::special() const { return reinterpret_cast<int8_t*>(_dataBuffer->special()) + _offset; }
+DataBuffer * InteropDataBuffer::getDataBuffer() const {
+  //this can effect size of calculations among others
+  if(_dataType == DataType::UNKNOWN) {
+    THROW_EXCEPTION("All interop buffers must have a known data type.");
+  }
+ if(_dataBuffer != nullptr && _dataBuffer->_dataType == DataType::UNKNOWN) {
+    _dataBuffer->_dataType = _dataType;
 
-void InteropDataBuffer::setPrimary(void* ptr, size_t length) { _dataBuffer->setPrimaryBuffer(ptr, length); }
+ }
+  return _dataBuffer;
+}
 
-void InteropDataBuffer::setSpecial(void* ptr, size_t length) { _dataBuffer->setSpecialBuffer(ptr, length); }
+DataBuffer * InteropDataBuffer::dataBuffer() {
+  if(_dataBuffer == nullptr || _dataBuffer == nullptr) {
+    return nullptr;
+  }
+  return _dataBuffer;
+}
 
-uint64_t InteropDataBuffer::offset() const { return _offset; }
 
-void InteropDataBuffer::setOffset(uint64_t offset) { _offset = offset; }
+
+void* InteropDataBuffer::primary() const {
+  if(_dataBuffer->primary() == nullptr) {
+    return nullptr;
+  }
+  return reinterpret_cast<int8_t*>(_dataBuffer->primary());
+}
+
+void* InteropDataBuffer::special() const {
+  if(_dataBuffer == nullptr)
+    return nullptr;
+  if(_dataBuffer->special() == nullptr) {
+    return nullptr;
+  }
+  return reinterpret_cast<int8_t*>(_dataBuffer->special());
+}
+
+void InteropDataBuffer::setPrimary(void* ptr, size_t length) {
+  if(_dataBuffer == nullptr)
+    THROW_EXCEPTION("InteropDataBuffer::setPrimary() - _dataBuffer is nullptr");
+  _dataBuffer->setPrimaryBuffer(ptr, length);
+}
+
+void InteropDataBuffer::setSpecial(void* ptr, size_t length) {
+  if(_dataBuffer == nullptr)
+    THROW_EXCEPTION("InteropDataBuffer::setSpecial() - _dataBuffer is nullptr");
+  _dataBuffer->setSpecialBuffer(ptr, length);
+}
+
+
 
 int InteropDataBuffer::deviceId() const { return _dataBuffer->deviceId(); }
 
-int InteropDataBuffer::useCount() const{
-  return _dataBuffer.use_count();
+int InteropDataBuffer::useCount() const {
+  return 1;
 }
 
 void InteropDataBuffer::registerSpecialUse(const std::vector<const InteropDataBuffer*>& writeList,
@@ -82,7 +144,7 @@ void InteropDataBuffer::registerSpecialUse(const std::vector<const InteropDataBu
 void InteropDataBuffer::prepareSpecialUse(const std::vector<const InteropDataBuffer*>& writeList,
                                           const std::vector<const InteropDataBuffer*>& readList,
                                           bool synchronizeWritables) {
-  auto currentDeviceId = sd::AffinityManager::currentDeviceId();
+  auto currentDeviceId = AffinityManager::currentDeviceId();
   for (const auto& v : readList) {
     if (v == nullptr) continue;
 
@@ -111,20 +173,6 @@ void InteropDataBuffer::preparePrimaryUse(const std::vector<const InteropDataBuf
                                           const std::vector<const InteropDataBuffer*>& readList,
                                           bool synchronizeWritables) {
 
-#if defined(HAVE_VEDA)
-
-  for (const auto& a : readList) {
-    if (a != nullptr) a->getDataBuffer()->syncToPrimary(LaunchContext::defaultContext());
-  }
-
-  for (const auto& a : writeList) {
-    if (a != nullptr) {
-      a->getDataBuffer()->allocatePrimary();
-      if (synchronizeWritables) a->getDataBuffer()->syncToPrimary(LaunchContext::defaultContext());
-      a->getDataBuffer()->writePrimary();
-    }
-  }
-#endif
 }
 
 void InteropDataBuffer::expand(size_t newlength) {

@@ -88,6 +88,8 @@ template <typename T = float>
 struct IKernelFunc {
   virtual T operator()(T x) const = 0;
   virtual T radius() const = 0;
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~IKernelFunc() = default;
 };
 #endif
 
@@ -122,7 +124,7 @@ struct KeysCubicKernelFunc
   }
 
   SD_HOST_DEVICE T operator()(T s) const {
-    auto abs_s = math::sd_abs(s);
+    auto abs_s = math::sd_abs<T,T>(s);
     if (abs_s >= T(2)) {
       return T(0.0);
     } else if (abs_s >= T(1)) {
@@ -135,6 +137,8 @@ struct KeysCubicKernelFunc
   SD_HOST_DEVICE T radius() const { return T(2); }
 
   T _coef = KEYS_CUBIC_COEF;
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~KeysCubicKernelFunc() = default;
 };
 
 struct LanczosKernelFunc
@@ -146,7 +150,7 @@ struct LanczosKernelFunc
   explicit LanczosKernelFunc(float const radius) : _radius(radius) {}
   SD_HOST_DEVICE float operator()(float x) const {
     float const kPI = 3.141592653589793f;
-    x = math::sd_abs(x);
+    x = math::sd_abs<float,float>(x);
     if (x > _radius) return 0.f;
     // Need to special case the limit case of sin(x) / x when x is zero.
     if (x <= 1.e-3f) {
@@ -156,6 +160,8 @@ struct LanczosKernelFunc
   }
   SD_HOST_DEVICE float radius() const { return _radius; }
   const float _radius;
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~LanczosKernelFunc() = default;
 };
 
 struct GaussianKernelFunc
@@ -171,13 +177,15 @@ struct GaussianKernelFunc
   // This implies a radius of 1.5,
   explicit GaussianKernelFunc(float radius = 1.5f) : _radius(radius), _sigma(radius / kRadiusMultiplier) {}
   SD_HOST_DEVICE float operator()(float x) const {
-    x = math::sd_abs(x);
+    x = math::sd_abs<float,float>(x);
     if (x >= _radius) return 0.0f;
     return std::exp(-x * x / (2.0 * _sigma * _sigma));
   }
   SD_HOST_DEVICE float radius() const { return _radius; }
   const float _radius;
   const float _sigma;  // Gaussian standard deviation
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~GaussianKernelFunc() = default;
 };
 
 struct BoxKernelFunc
@@ -186,10 +194,13 @@ struct BoxKernelFunc
 #endif
 {
   SD_HOST_DEVICE float operator()(float x) const {
-    x = math::sd_abs(x);
+    x = math::sd_abs<float,float>(x);
     return x < 0.5f ? 1.f : x == 0.5f ? 0.5f : 0.f;
   }
   SD_HOST_DEVICE float radius() const { return 1.f; }
+
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~BoxKernelFunc() = default;
 };
 
 struct TriangleKernelFunc
@@ -199,10 +210,13 @@ struct TriangleKernelFunc
 {
   // https://en.wikipedia.org/wiki/Triangle_function
   SD_HOST_DEVICE float operator()(float x) const {
-    x = math::sd_abs(x);
+    x = math::sd_abs<float,float>(x);
     return x < 1.f ? 1.f - x : 0.f;
   }
   SD_HOST_DEVICE float radius() const { return 1.f; }
+
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~TriangleKernelFunc() = default;
 };
 
 struct MitchellCubicKernelFunc
@@ -215,7 +229,7 @@ struct MitchellCubicKernelFunc
   // graphics.  Computer Graphics (Proceedings of ACM SIGGRAPH 1988),
   // 22(4):221–228, 1988.
   SD_HOST_DEVICE float operator()(float x) const {
-    x = math::sd_abs(x);
+    x = math::sd_abs<float,float>(x);
     if (x >= 2.f) {
       return 0.f;
     } else if (x >= 1.f) {
@@ -230,7 +244,8 @@ struct MitchellCubicKernelFunc
 // A pre-computed span of pixels along a single dimension.
 // The output pixel will be the weighted sum of pixels starting from start.
 struct Spans {
-  // The maximum span size of any output pixel.
+  Spans() {
+  } // The maximum span size of any output pixel.
   int _spanSize;
   // int32 tensor with shape {outputSize}.
   NDArray _starts;
@@ -239,6 +254,9 @@ struct Spans {
   // The output pixel at x is computed as:
   //   dot_product(input[starts[x]:starts[x]+span_size], weights[x]).
   NDArray _weights;
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~Spans() = default;
+
 };
 
 template <typename I, typename F>
@@ -262,7 +280,7 @@ struct ImageResizerStateCommon {
   // heightScale and widthScale, and calculates the output size.
   // If any of these operations fails, it sets an error status in
   // the context, which the caller must check.
-  sd::Status validateAndCalculateOutputSize(NDArray const* input, int const width, int const height) {
+  Status validateAndCalculateOutputSize(NDArray * input, int const width, int const height) {
     //
     batchSize = input->sizeAt(0);  //.dim_size(0);
     outHeight = static_cast<I>(height);
@@ -280,18 +298,18 @@ struct ImageResizerStateCommon {
     // Guard against overflows
     if (ceilf((outHeight - 1) * heightScale) > static_cast<float>(DataTypeUtils::max<int>())) {
       sd_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
-      return Logger::logStatusMsg(sd::Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize height");
+      return Logger::logStatusMsg(Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize height");
     }
     if (ceilf((outWidth - 1) * heightScale) > static_cast<float>(DataTypeUtils::max<int>())) {
       sd_printf("resize_bicubic: Upper overflow occurs for resize height (%f)\n", ceilf((outHeight - 1) * heightScale));
-      return Logger::logStatusMsg(sd::Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize width");
+      return Logger::logStatusMsg(Status::BAD_INPUT, "resize_bicubic: Upper overflow occurs for resize width");
     }
 
-    return sd::Status::OK;
+    return Status::OK;
   }
 
   // Calculates all the required variables, and allocates the output.
-  sd::Status validateAndCreateOutput(NDArray const* input, int const width, int const height) {
+  Status validateAndCreateOutput(NDArray * input, int const width, int const height) {
     return validateAndCalculateOutputSize(input, width, height);
   }
 
@@ -317,14 +335,17 @@ struct ImageResizerStateCommon {
   bool _halfPixelCenters;
 };
 
-using ImageResizerState = ImageResizerStateCommon<sd::LongType, float>;
+using ImageResizerState = ImageResizerStateCommon<LongType, float>;
 
 struct BilinearInterpolationData {
-  sd::LongType bottomIndex;  // Lower source index used in the interpolation
-  sd::LongType topIndex;     // Upper source index used in the interpolation
+  LongType bottomIndex;  // Lower source index used in the interpolation
+  LongType topIndex;     // Upper source index used in the interpolation
   // 1-D linear iterpolation scale (see:
   // https://en.wikipedia.org/wiki/Bilinear_interpolation)
   double interpolarValue;
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~BilinearInterpolationData() = default;
+
 };
 
 SD_INLINE SD_HOST_DEVICE float legacy_scaler(const int x, const float scale) { return static_cast<float>(x) * scale; }
@@ -337,6 +358,9 @@ struct LegacyScaler {
   SD_INLINE SD_HOST_DEVICE float operator()(const int x, const float scale) const {
     return static_cast<float>(x) * scale;
   }
+
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~LegacyScaler() = default;
 };
 
 // Half pixel scaler scales assuming that the pixel centers are at 0.5, i.e. the
@@ -348,6 +372,9 @@ struct HalfPixelScaler {
     // sampling code etc assumes pixels are in the old coordinate system.
     return (static_cast<float>(x) + 0.5f) * scale - 0.5f;
   }
+
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~HalfPixelScaler() = default;
 };
 
 // Half pixel scaler scales assuming that the pixel centers are at 0.5, i.e. the
@@ -359,25 +386,30 @@ struct HalfPixelScalerNN {
     // sampling code etc assumes pixels are in the old coordinate system.
     return (static_cast<float>(x) + 0.5f) * scale;
   }
+
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~HalfPixelScalerNN() = default;
 };
 
-constexpr sd::LongType kTableSize = (1 << 10);
+constexpr LongType kTableSize = (1 << 10);
 
 struct WeightsAndIndices {
   float _weight0;
   float _weight1;
   float _weight2;
   float _weight3;
-  sd::LongType _index0;
-  sd::LongType _index1;
-  sd::LongType _index2;
-  sd::LongType _index3;
+  LongType _index0;
+  LongType _index1;
+  LongType _index2;
+  LongType _index3;
 
   int _advance;  // advance value.
+  // see: https://stackoverflow.com/questions/41552966/getting-new-delete-type-mismatch-from-asan
+  virtual ~WeightsAndIndices() = default;
 };
 
-SD_INLINE SD_HOST_DEVICE sd::LongType bound(sd::LongType val, sd::LongType limit) {
-  return math::sd_min(limit - 1ll, math::sd_max(sd::LongType{0}, val));
+SD_INLINE SD_HOST_DEVICE LongType bound(LongType val, LongType limit) {
+  return math::sd_min(limit - 1ll, math::sd_max(LongType{0}, val));
 }
 
 template <typename T>
@@ -422,14 +454,14 @@ static SD_INLINE SD_HOST_DEVICE float computeYInterpolation(int which, int chann
 }
 
 template <typename Scaler>
-SD_INLINE SD_HOST_DEVICE void getWeightsAndIndices(const float* coeffs_table, const float scale,
-                                                   const sd::LongType out_loc, const sd::LongType limit,
+SD_INLINE SD_HOST_DEVICE void getWeightsAndIndices(const float* coeffs_table, const float scale, const LongType out_loc,
+                                                   const LongType limit,
                                                    WeightsAndIndices* out, bool exclude_outside) {
   const Scaler scaler;
   const float in_loc_f = scaler(out_loc, scale);
-  const sd::LongType in_loc = math::sd_floor<float, sd::LongType>(in_loc_f);
+  const LongType in_loc = math::sd_floor<float, LongType>(in_loc_f);
   const float delta = in_loc_f - in_loc;
-  const sd::LongType offset = math::sd_round<float, sd::LongType>(delta * kTableSize);
+  const LongType offset = math::sd_round<float, LongType>(delta * kTableSize);
 
   if (exclude_outside) {
     // The legacy code placed more weight on the edge pixels, since bounding
@@ -448,7 +480,7 @@ SD_INLINE SD_HOST_DEVICE void getWeightsAndIndices(const float* coeffs_table, co
     out->_weight3 = (out->_index3 == in_loc + 2 ? coeffs_table[(kTableSize - offset) * 2 + 1] : 0.0f);
 
     const float weight_sum = out->_weight0 + out->_weight1 + out->_weight2 + out->_weight3;
-    if (math::sd_abs(weight_sum) >= 1000.0f * DataTypeUtils::min<float>()) {
+    if (math::sd_abs<float,float>(weight_sum) >= 1000.0f * DataTypeUtils::min<float>()) {
       const float one_over_weight_sum = 1.0f / weight_sum;
       out->_weight0 *= one_over_weight_sum;
       out->_weight1 *= one_over_weight_sum;
@@ -475,12 +507,11 @@ class CachedInterpolationCalculator {
   // the current point to the next point. The copying should always be done by
   // copying the last <retval> values from the old point to the first <retval>
   // values of the new point.
-  SD_INLINE SD_HOST_DEVICE int Advance(const sd::LongType x0, const sd::LongType x1, const sd::LongType x2,
-                                       const sd::LongType x3) {
+  SD_INLINE SD_HOST_DEVICE int Advance(const LongType x0, const LongType x1, const LongType x2, const LongType x3) {
     // We use 2 hands and walk through, copying from one to another where
     // we already have values.
     // Invariant, new_indicies_hand <= cached_values_hand
-    const sd::LongType new_x_indices[4] = {x0, x1, x2, x3};
+    const LongType new_x_indices[4] = {x0, x1, x2, x3};
     int cachedValuesHand = 0;
     int newIndiciesHand = 0;
 
@@ -508,7 +539,7 @@ class CachedInterpolationCalculator {
   }
 
  private:
-  sd::LongType _indexes[4];
+  LongType _indexes[4];
 };
 
 template <typename F, typename I>
@@ -520,7 +551,7 @@ struct CachedInterpolationT {
   bool needsBounding;
 };
 
-using CachedInterpolation = CachedInterpolationT<float, sd::LongType>;
+using CachedInterpolation = CachedInterpolationT<float, LongType>;
 // ResizeArea
 template <typename T>
 struct ScaleCache {
@@ -539,7 +570,7 @@ SD_HOST_DEVICE void computePatchSumOf3Channels(T scale, const ImageResizerState&
                                                I ptrsLen, const CachedInterpolationT<T, I>& xCache, T* outputPtr) {
   bool const needsXBounding = xCache.needsBounding;
 
-  auto boundIfNeeded = [needsXBounding](sd::LongType x, sd::LongType y) -> sd::LongType {
+  auto boundIfNeeded = [needsXBounding](LongType x, LongType y) -> LongType {
     return (needsXBounding ? bound(x, y) : (x));
   };
 
@@ -589,19 +620,19 @@ SD_HOST_DEVICE void computePatchSum(T scale, const ImageResizerState& st, const 
                                     const CachedInterpolationT<T, I>& xCache, T* outputPtr) {
   bool const needsXBounding = xCache.needsBounding;
 
-  auto boundIfNeeded = [needsXBounding](sd::LongType x, sd::LongType y) -> sd::LongType {
+  auto boundIfNeeded = [needsXBounding](LongType x, LongType y) -> LongType {
     return (needsXBounding ? bound(x, y) : (x));
   };
 
   const auto numChannels = st.channels;
-  for (sd::LongType c = 0; c < numChannels; ++c) {
+  for (LongType c = 0; c < numChannels; ++c) {
     T sum = T(0);
     for (int i = 0; i < ptrsLen; ++i) {
       F const* ptr = yScaleCache[i].yPtr;
       T scaleX = xCache.startScale;
       T sumY = static_cast<T>(ptr[st.wStride * boundIfNeeded(xCache.start, st.inWidth) + c * st.cStride]) * scaleX;
       if (xCache.start + 1 != xCache.end) {
-        for (sd::LongType x = xCache.start + 1; x < xCache.end - 1; ++x) {
+        for (LongType x = xCache.start + 1; x < xCache.end - 1; ++x) {
           sumY += static_cast<T>(ptr[st.wStride * boundIfNeeded(x, st.inWidth) + c * st.cStride]);
         }
         scaleX = xCache.endMinusOneScale;
@@ -615,10 +646,9 @@ SD_HOST_DEVICE void computePatchSum(T scale, const ImageResizerState& st, const 
 
 template <typename X, typename Z>
 SD_HOST_DEVICE void gatherRows(int const spanSize, int const* starts, Z const* weights, X const* imagePtr,
-                               sd::LongType const inputHeight, sd::LongType const inputWidth,
-                               sd::LongType const outputHeight, sd::LongType const outputWidth,
-                               sd::LongType const channels, Z* outputPtr, bool inputEws1, sd::LongType inRowStride,
-                               sd::LongType wStride, sd::LongType cStride) {
+                               LongType const inputHeight, LongType const inputWidth, LongType const outputHeight,
+                               LongType const outputWidth, LongType const channels, Z* outputPtr, bool inputEws1,
+                               LongType inRowStride, LongType wStride, LongType cStride) {
   auto inRowSize = inputWidth * channels;
   auto outRowSize = outputWidth * channels;
 
@@ -646,8 +676,8 @@ SD_HOST_DEVICE void gatherRows(int const spanSize, int const* starts, Z const* w
     }
 
   } else {
-    auto addScaledVector = [](const X* inVector, int inputWidth, int channels, const sd::LongType wStride,
-                              const sd::LongType cStride, Z weight, Z* outVector) {
+    auto addScaledVector = [](const X* inVector, int inputWidth, int channels, const LongType wStride,
+                              const LongType cStride, Z weight, Z* outVector) {
       const X* inVec = inVector;
       for (int i = 0; i < inputWidth; i++) {
         for (int c = 0; c < channels; c++) {
@@ -677,9 +707,8 @@ SD_HOST_DEVICE void gatherRows(int const spanSize, int const* starts, Z const* w
 
 template <typename Z>
 SD_HOST_DEVICE void gatherColumns(int const spanSize, int const* starts, Z const* weights, Z const* imagesPtr,
-                                  sd::LongType const inputHeight, sd::LongType const inputWidth,
-                                  sd::LongType const outputHeight, sd::LongType const outputWidth,
-                                  sd::LongType channels, Z* outputPtr) {
+                                  LongType const inputHeight, LongType const inputWidth, LongType const outputHeight,
+                                  LongType const outputWidth, LongType channels, Z* outputPtr) {
   auto inRowSize = inputWidth * channels;
   auto outRowSize = outputWidth * channels;
 
@@ -705,30 +734,30 @@ SD_HOST_DEVICE void gatherColumns(int const spanSize, int const* starts, Z const
   }
 }
 
-SD_LIB_HIDDEN sd::Status resizeBilinearFunctor(sd::LaunchContext* context, NDArray const* image, int const width,
-                                               int const height, bool const alignCorners, bool const halfPixelCenter,
-                                               NDArray* output);
-SD_LIB_HIDDEN sd::Status resizeNeighborFunctor(sd::LaunchContext* context, NDArray const* images, int const width,
-                                               int const height, CoordinateTransformationMode coorMode,
-                                               NearestMode nearestMode, bool alignCorner, NDArray* output);
-SD_LIB_HIDDEN sd::Status resizeBicubicFunctor(sd::LaunchContext* context, NDArray const* image, int const width,
-                                              int const height, bool preserveAspectRatio, bool antialias,
-                                              NDArray* output);
-SD_LIB_HIDDEN sd::Status resizeBicubicFunctorA(sd::LaunchContext* context, NDArray const* image, int const width,
-                                               int const height, bool const alignCorners,
-                                               CoordinateTransformationMode coorMode, bool exclude_outside,
-                                               double coefficient, NDArray* output);
-SD_LIB_HIDDEN sd::Status resizeAreaFunctor(sd::LaunchContext* context, NDArray const* image, int const width,
-                                           int const height, bool const alignCorners, NDArray* output);
+SD_LIB_HIDDEN Status resizeBilinearFunctor(LaunchContext* context, NDArray * image, int const width,
+                                           int const height, bool const alignCorners, bool const halfPixelCenter,
+                                           NDArray* output);
+SD_LIB_HIDDEN Status resizeNeighborFunctor(LaunchContext* context, NDArray * images, int const width,
+                                           int const height, CoordinateTransformationMode coorMode,
+                                           NearestMode nearestMode, bool alignCorner, NDArray* output);
+SD_LIB_HIDDEN Status resizeBicubicFunctor(LaunchContext* context, NDArray * image, int const width,
+                                          int const height, bool preserveAspectRatio, bool antialias,
+                                          NDArray* output);
+SD_LIB_HIDDEN Status resizeBicubicFunctorA(LaunchContext* context, NDArray * image, int const width,
+                                           int const height, bool const alignCorners,
+                                           CoordinateTransformationMode coorMode, bool exclude_outside,
+                                           double coefficient, NDArray* output);
+SD_LIB_HIDDEN Status resizeAreaFunctor(LaunchContext* context, NDArray * image, int const width,
+                                       int const height, bool const alignCorners, NDArray* output);
 
-SD_LIB_HIDDEN sd::Status resizeFunctor(sd::LaunchContext* context, NDArray const* image, int const width,
-                                       int const height, ImageResizeMethods method,
-                                       CoordinateTransformationMode coorMode, bool exclude_outside,
-                                       NearestMode nearestMode, double coefficient, bool antialias, NDArray* output);
+SD_LIB_HIDDEN Status resizeFunctor(LaunchContext* context, NDArray * image, int const width,
+                                   int const height, ImageResizeMethods method,
+                                   CoordinateTransformationMode coorMode, bool exclude_outside,
+                                   NearestMode nearestMode, double coefficient, bool antialias, NDArray* output);
 
-SD_LIB_HIDDEN sd::Status resizeImagesFunctor(sd::LaunchContext* context, NDArray const* image, int const width,
-                                             int const height, ImageResizeMethods method, bool alignCorners,
-                                             NDArray* output);
+SD_LIB_HIDDEN Status resizeImagesFunctor(LaunchContext* context, NDArray * image, int const width,
+                                         int const height, ImageResizeMethods method, bool alignCorners,
+                                         NDArray* output);
 }  // namespace helpers
 }  // namespace ops
 }  // namespace sd

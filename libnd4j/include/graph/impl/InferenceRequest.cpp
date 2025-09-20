@@ -23,7 +23,7 @@
 
 namespace sd {
 namespace graph {
-InferenceRequest::InferenceRequest(sd::LongType graphId, ExecutorConfiguration *configuration) {
+InferenceRequest::InferenceRequest(LongType graphId, ExecutorConfiguration *configuration) {
   this->_id = graphId;
   this->_configuration = configuration;
 }
@@ -58,9 +58,9 @@ void InferenceRequest::insertVariable(Variable *variable) {
 
 void InferenceRequest::appendVariable(Variable *variable) { _variables.emplace_back(variable); }
 
-flatbuffers::Offset<FlatInferenceRequest> InferenceRequest::asFlatInferenceRequest(
+flatbuffers::Offset<::graph::FlatInferenceRequest> InferenceRequest::asFlatInferenceRequest(
     flatbuffers::FlatBufferBuilder &builder) {
-  std::vector<flatbuffers::Offset<FlatVariable>> vec;
+  std::vector<flatbuffers::Offset<::graph::FlatVariable>> vec;
   for (Variable *v : _variables) {
     vec.emplace_back(v->asFlatVariable(builder));
   }

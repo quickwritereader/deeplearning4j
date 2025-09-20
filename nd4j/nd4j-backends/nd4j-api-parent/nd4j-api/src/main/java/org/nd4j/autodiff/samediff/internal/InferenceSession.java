@@ -37,6 +37,7 @@ import org.nd4j.common.base.Preconditions;
 import org.nd4j.common.primitives.Pair;
 import org.nd4j.common.util.ArrayUtil;
 import org.nd4j.imports.VariableUtils;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -87,7 +88,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
     private AbstractDependencyTracker<SDValue, Dep> arrayUseTracker = new HashDependencyTracker<>();
 
 
-    private Map<String,OpContext> opContexts = new HashMap<>();
+    @Getter
+    private Map<String,OpContext> opContexts = new LinkedHashMap<>();
 
     public InferenceSession(@NonNull SameDiff sameDiff) {
         super(sameDiff);
@@ -275,7 +277,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                     SDValue value = out.valueWithKeyAtIndex(i, false);
                     //append either the list of associated array ids or the singular one similar to the singular array case
                     String append = value != null && value.getSdValueType() == SDValueType.LIST ? StringUtil.concatEntries(value.getListValue().stream()
-                            .map(input -> input.getId()).collect(Collectors.toList()),",",",") : value != null ? String.valueOf(value.getTensorValue().getId()) : null;
+                            .map(input -> input == null ? "" : input.getId()).collect(Collectors.toList()),",",",") : value != null ? String.valueOf(value.getTensorValue().getId()) : null;
                     sb.append("(").append(i).append(" - ").append(opOutNames.get(i)).append(" = ").append(
                             value == null ? null : append).append(")");
 
@@ -792,8 +794,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
 
             return Invoke.doInvoke(invoke,inputs,valueInputs);
         } else if (op instanceof Assert) {
-            Assert a = (Assert)op;
-            boolean condition = opContext.getInputArray(0).getDouble(0) != 0.0;
+            Assert a = (Assert) op;
+            boolean condition =  !opContext.getInputArray(0).isEmpty() && opContext.getInputArray(0).getDouble(0) != 0.0;
             if(!condition) {
                 //Assertion failed
                 String s = "Assertion failed for operation \"" + op.getOwnName() + "\" during execution";
@@ -911,7 +913,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 long[] inputShapeArr = tensorArray1.requiredShape();
                 for(int j = 0; j < list.size(); j++) {
                     if(list.get(j) != null)
-                        if(!Arrays.equals(inputShapeArr,list.get(j).shape())) {
+                        if(!Arrays.equals(inputShapeArr,list.get(j).shape()) && inputShapeArr.length > 0) {
                             throw new IllegalArgumentException("Element " + j  + " of list " + v.getVariable() + " did not have correct shape of " + Arrays.toString(inputShapeArr) + " was shape " + Arrays.toString(list.get(j).shape()));
                         }
 
@@ -965,8 +967,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
             tArr = new VarId(tArrOp.outputVariable().name(),OUTER_FRAME,0,null);
             if(tArrOp.args().length > 1) {
                 long[] shape = tArrOp.arg(1).getArr().toLongVector();
-                if(!Arrays.equals(arr.shape(),shape)) {
-                    throw new IllegalArgumentException("Unable to write array of shape " + Arrays.toString(arr.shape()) + " must be " + shape + " for op " + op.getOwnName() + " and tensor array " + tArrOp.getOwnName());
+                if(!Arrays.equals(arr.shape(),shape) && shape.length > 0) {
+                    throw new IllegalArgumentException("Unable to write array of shape " + Arrays.toString(arr.shape()) + " must be " + Arrays.toString(shape) + " for op " + op.getOwnName() + " and tensor array " + tArrOp.getOwnName());
                 }
             }
 
@@ -1017,8 +1019,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
 
             Concat c = new Concat(0, l.stream().filter(input -> input != null).collect(Collectors.toList())
                     .toArray(new INDArray[0]));
-            List<LongShapeDescriptor> shape = c.calculateOutputShape();
-            INDArray out = mmgr.allocate(false, shape.get(0));
+            List<DataBuffer> shape = c.calculateOutputShape();
+            INDArray out = mmgr.allocateFromDescriptor(false, shape.get(0));
             c.setOutputArgument(0, out);
             Nd4j.exec(c);
             return ExecutionResult.createFrom(tArr.getVariable(),out);
@@ -1062,8 +1064,8 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
 
                 Stack s = new Stack(newList.stream().filter(input -> input != null).collect(Collectors.toList())
                         .toArray(new INDArray[0]), null, 0);
-                List<LongShapeDescriptor> shape = s.calculateOutputShape();
-                INDArray out = mmgr.allocate(false, shape.get(0));
+                List<DataBuffer> shape = s.calculateOutputShape();
+                INDArray out = mmgr.allocateFromDescriptor(false, shape.get(0));
                 s.setOutputArgument(0, out);
                 Nd4j.exec(s);
                 return ExecutionResult.createFrom(tArr.getVariable(),out);
@@ -1123,7 +1125,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 INDArray get = mmgr.dup(getView);
                 if(ta.args().length > 1) {
                     long[] shape = ta.arg(1).getArr().toLongVector();
-                    if(!Arrays.equals(get.shape(),shape)) {
+                    if(!Arrays.equals(get.shape(),shape) && shape.length > 0) {
                         throw new IllegalArgumentException("Unable to write array of shape " + Arrays.toString(get.shape()) + " must be " + shape + " for op " + op.getOwnName() + " and tensor array " + ta.getOwnName());
                     }
                 }
@@ -1359,7 +1361,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
         boolean isLoop = !frameIter.getFrame().equals(OUTER_FRAME) && frameIter.getIteration() > 0;
 
         OpContext oc = opContexts.get(opName);
-        if(oc == null){
+        if(oc == null) {
             oc = Nd4j.getExecutioner().buildContext();
             opContexts.put(opName, oc);
         }
@@ -1384,26 +1386,27 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 oc.setOutputArray(0, oc.getInputArray(0));
 
             } else {
-                List<LongShapeDescriptor> outShape = customOp.calculateOutputShape(oc);
+                List<DataBuffer> outShape = customOp.calculateOutputShape(oc);
                 Preconditions.checkState(outShape != null && outShape.size() > 0, "Failed to calculate output shapes for op %s (%s) - no shapes were returned by calculateOutputShape()", customOp.opName(), customOp.getOwnName());
                 String[] outNames = df.outputVariablesNames();
                 Preconditions.checkState(outNames.length == outShape.size(), "Error in operation shape calculation for op \"%s\": Got %s op output shapes for an operation" +
                         " with %s outputs (number of shapes and outputs must be equal)", df.opName(), outShape.size(), outNames.length);
                 for (int i = 0; i < outShape.size(); i++) {
-                    LongShapeDescriptor reqShape = outShape.get(i);
-
+                    DataBuffer reqShape = outShape.get(i);
+                    long[] asJava = reqShape.asLong();;
                     //Issue: many ops have multiple valid output datatypes, and output shape calc can't at present know which: https://github.com/eclipse/deeplearning4j/issues/6872
                     //As a workaround, we'll use the output variable datatype instead.
                     DataType dt = sameDiff.getVariable(outNames[i]).dataType();
                     DataType currDT = reqShape.dataType();
                     if (dt != currDT) {
-                        reqShape = reqShape.asDataType(dt);
+                        Shape.setExtras(asJava,Shape.extras(asJava));
                     }
 
                     //Always allocate new output array, rely on memory manager for efficient memory management and array reuse etc
                     boolean isOutput = allReqVariables.contains(outNames[i]);
-                    INDArray out = mmgr.allocate(isOutput, reqShape);
-                    if(reqShape.isEmpty() && !out.isEmpty()) {
+                    reqShape = Nd4j.createBuffer(asJava);
+                    INDArray out = mmgr.allocateFromDescriptor(false, reqShape);
+                    if(Shape.isEmpty(asJava) && !out.isEmpty()) {
                         throw new IllegalStateException("Output shape was empty, but created array was not.");
                     }
 
@@ -1425,7 +1428,7 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 INDArray arr = getArray(axisArgVar, opInputs, allIterInputs);
                 Preconditions.checkState(arr != null, "Could not get axis argument for op %s: %s", df.getOwnName(), df.getClass());
                 if (!arr.isEmpty()) {
-                    int[] axis = arr.toIntVector();
+                    long[] axis = arr.toLongVector();
                     int rank = args[0].rank();
                     axis = Shape.normalizeAxis(rank, axis);
                     df.setDimensions(axis);
@@ -1462,10 +1465,10 @@ public class InferenceSession extends AbstractSession<INDArray, Pair<SameDiffOp,
                 INDArray z = mmgr.allocate(false, oc.getInputArray(0).dataType(), oc.getInputArray(0).shape());
                 oc.setOutputArray(0, z);
             } else {
-                List<LongShapeDescriptor> outputShape = ((BaseOp) op).calculateOutputShape(oc);
+                List<DataBuffer> outputShape = ((BaseOp) op).calculateOutputShape(oc);
                 Preconditions.checkState(outputShape != null && outputShape.size() == 1, "Could not calculate output shape for op: %s", op.getClass());
-                LongShapeDescriptor lsd = outputShape.get(0);
-                INDArray z = mmgr.allocate(isOutput, lsd);
+                DataBuffer lsd = outputShape.get(0);
+                INDArray z = mmgr.allocateFromDescriptor(isOutput, lsd);
                 oc.setOutputArray(0, z);
             }
         }

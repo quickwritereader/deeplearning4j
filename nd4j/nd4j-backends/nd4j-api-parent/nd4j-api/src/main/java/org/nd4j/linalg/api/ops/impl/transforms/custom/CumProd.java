@@ -28,7 +28,6 @@ import org.nd4j.common.base.Preconditions;
 import org.nd4j.imports.descriptors.properties.AttributeAdapter;
 import org.nd4j.imports.descriptors.properties.PropertyMapping;
 import org.nd4j.imports.descriptors.properties.adapters.BooleanAdapter;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
@@ -42,16 +41,16 @@ import java.util.*;
 public class CumProd extends DynamicCustomOp {
     protected boolean exclusive = false;
     protected boolean reverse = false;
-    protected int[] jaxis = new int[0];
+    protected long[] jaxis = new long[0];
 
     public CumProd() {
     }
 
-    public CumProd(SameDiff sameDiff, SDVariable x, int... axis) {
+    public CumProd(SameDiff sameDiff, SDVariable x, long... axis) {
         this(sameDiff, x, false, false, axis);
     }
 
-    public CumProd(SameDiff sameDiff, SDVariable x, boolean exclusive, boolean reverse, int... axis) {
+    public CumProd(SameDiff sameDiff, SDVariable x, boolean exclusive, boolean reverse, long... axis) {
         super(null, sameDiff, new SDVariable[]{x, });
         this.sameDiff = sameDiff;
         this.exclusive = exclusive;
@@ -63,8 +62,8 @@ public class CumProd extends DynamicCustomOp {
         addArgs();
     }
 
-    public CumProd(INDArray in, INDArray result, boolean exclusive, boolean reverse, int... axis) {
-        super(null, new INDArray[]{in}, result != null ? new INDArray[]{result} : null, null, (List<Integer>)null);
+    public CumProd(INDArray in, INDArray result, boolean exclusive, boolean reverse, long... axis) {
+        super(null, new INDArray[]{in}, result != null ? new INDArray[]{result} : null, null, (List<Long>)null);
         this.exclusive = exclusive;
         this.reverse = reverse;
         this.jaxis = axis;
@@ -74,7 +73,7 @@ public class CumProd extends DynamicCustomOp {
         addArgs();
     }
 
-    public CumProd(INDArray in,  boolean exclusive, boolean reverse, int... axis) {
+    public CumProd(INDArray in,  boolean exclusive, boolean reverse, long... axis) {
         this(in, null, exclusive, reverse, axis);
     }
 
@@ -129,8 +128,8 @@ public class CumProd extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        TFGraphMapper.initFunctionFromProperties(nodeDef.getOp(), this, attributesForNode, nodeDef, graph);
-        addArgs();
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
+
     }
 
     protected void addArgs() {

@@ -46,7 +46,7 @@ sd::Status GraphState::registerScope(int scopeId) {
   auto scope = new Scope(scopeId);
   _scopes[scopeId] = scope;
 
-  auto scopeWrapper = new Node(OpType_LOGIC, 10, scopeId);
+  auto scopeWrapper = new Node(::graph::OpType_LOGIC, 10, scopeId);
   _graph->addNode(scopeWrapper);
 
   return sd::Status::OK;
@@ -68,9 +68,7 @@ sd::Status GraphState::attachOpToScope(int scopeId, int nodeId, ops::DeclarableO
   auto scope = _scopes[scopeId];
 
   // creating new Node
-  //        auto node = new Node(OpType_CUSTOM, 0, nodeId);
   auto node = new Node(op, nodeId);
-  //        node->setCustomOp(op);
   node->setScopeInfo(scopeId);
 
   // mapping inputs here
@@ -86,7 +84,6 @@ sd::Status GraphState::attachOpToScope(int scopeId, int nodeId, ops::DeclarableO
       _variableSpace.putVariable(p.first(), p.second(), var);
     }
 
-    // sd_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
     node->pickInput(p.first(), p.second());
   }
 
@@ -114,7 +111,7 @@ sd::Status GraphState::defineReturn(int scopeId, int nodeId, ArgumentsList args)
   auto scope = _scopes[scopeId];
 
   // creating new Node for RETURN
-  auto node = new Node(OpType_LOGIC, 40, nodeId);
+  auto node = new Node(::graph::OpType_LOGIC, 40, nodeId);
   node->setScopeInfo(scopeId);
 
   // mapping inputs here
@@ -130,7 +127,6 @@ sd::Status GraphState::defineReturn(int scopeId, int nodeId, ArgumentsList args)
       _variableSpace.putVariable(p.first(), p.second(), var);
     }
 
-    // sd_printf("Node_%i: adding input [%i:%i]\n", node->id(), p.first(), p.second());
     node->pickInput(p.first(), p.second());
     node->pickOutput(0, e);
   }

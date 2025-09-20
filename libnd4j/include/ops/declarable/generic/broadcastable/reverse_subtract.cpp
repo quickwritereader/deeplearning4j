@@ -37,20 +37,20 @@ BROADCASTABLE_OP_IMPL(reversesubtract, 0, 0) {
 
   auto tZ = BroadcastHelper::broadcastApply(BROADCAST(ReverseSubtract), x, y, z);
   if (tZ == nullptr)
-    return sd::Status::KERNEL_FAILURE;
+    return Status::KERNEL_FAILURE;
   else if (tZ != z) {
     OVERWRITE_RESULT(tZ);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(RSub, reversesubtract);
 
 DECLARE_TYPES(reversesubtract) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 CUSTOM_OP_IMPL(reversesubtract_bp, 3, 2, false, 0, 0) {
@@ -63,34 +63,34 @@ CUSTOM_OP_IMPL(reversesubtract_bp, 3, 2, false, 0, 0) {
 
   if (x->isSameShape(y)) {
     // PWT case case
-    epsNext->applyTransform(transform::Neg, *gradX);
+    epsNext->applyTransform(transform::Neg, gradX);
     gradY->assign(epsNext);
   } else if (y->isScalar()) {
     // scalar case
     auto tmp = epsNext->reduceNumber(reduce::Sum);
-    gradY->assign(tmp);
-    epsNext->applyTransform(transform::Neg, *gradX);
+    gradY->assign(&tmp);
+    epsNext->applyTransform(transform::Neg, gradX);
   } else {
     // broadcastable
     auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = epsNext->reduceAlongDimension(reduce::Sum, axisX);
-      sum.applyTransform(transform::Neg, *gradX);
+      auto sum = epsNext->reduceAlongDimension(reduce::Sum, &axisX);
+      sum.applyTransform(transform::Neg, gradX);
     } else {
-      epsNext->applyTransform(transform::Neg, *gradX);
+      epsNext->applyTransform(transform::Neg, gradX);
     }
 
     if (axisY.size() > 0) {
-      auto sum = epsNext->reduceAlongDimension(reduce::Sum, axisY);
-      gradY->assign(sum);
+      auto sum = epsNext->reduceAlongDimension(reduce::Sum, &axisY);
+      gradY->assign(&sum);
     } else {
       gradY->assign(epsNext);
     }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(reversesubtract_bp) {
@@ -100,20 +100,13 @@ DECLARE_SHAPE_FN(reversesubtract_bp) {
 
   // eps always has shape of x
   // grad always has shape of y
-
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  auto shapeList = SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  auto shapeList = SHAPELIST(CONSTANT(x), CONSTANT(y));
 
   return shapeList;
 }
 
 DECLARE_TYPES(reversesubtract_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 }  // namespace ops
 }  // namespace sd

@@ -174,11 +174,11 @@ public interface Allocator {
 
     DataBuffer getConstantBuffer(int[] array);
 
+    DataBuffer getConstantBuffer(long[] array);
+
     DataBuffer getConstantBuffer(float[] array);
 
     DataBuffer getConstantBuffer(double[] array);
-
-    DataBuffer moveToConstant(DataBuffer dataBuffer);
 
     MemoryHandler getMemoryHandler();
 }

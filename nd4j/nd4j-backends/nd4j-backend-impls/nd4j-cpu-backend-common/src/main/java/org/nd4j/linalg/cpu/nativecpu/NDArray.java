@@ -59,10 +59,12 @@ public class NDArray extends BaseNDArray {
         super();
     }
 
+    public NDArray(LongShapeDescriptor descriptor) {
+        super(descriptor);
+    }
 
     public NDArray(DataBuffer buffer, LongBuffer shapeInfo, long[] javaShapeInfo) {
         this.jvmShapeInfo = new JvmShapeInfo(javaShapeInfo);
-        this.shapeInformation = shapeInfo;
         this.data = buffer;
     }
 
@@ -78,6 +80,10 @@ public class NDArray extends BaseNDArray {
         super(buffer, shape, stride, offset, ordering);
     }
 
+
+    public NDArray(DataBuffer buffer, long[] shape, long[] stride, long offset, long ews, char ordering,boolean isView) {
+        super(buffer, shape, stride, offset, ews, ordering,isView);
+    }
     public NDArray(DataBuffer buffer, long[] shape, long[] stride, long offset, long ews, char ordering) {
         super(buffer, shape, stride, offset, ews, ordering);
     }
@@ -156,7 +162,9 @@ public class NDArray extends BaseNDArray {
         super(shape, stride, offset, ordering);
     }
 
-
+    public NDArray(DataBuffer buffer, LongShapeDescriptor longShapeDescriptor) {
+        super(buffer, longShapeDescriptor);
+    }
 
     /**
      * Construct an ndarray of the specified shape, with optional initialization
@@ -458,6 +466,10 @@ public class NDArray extends BaseNDArray {
         super(dataType, shape, paddings, paddingOffsets, ordering, workspace);
     }
 
+    public NDArray(DataType dataType, long[] shape, long[] strides, MemoryWorkspace currentWorkspace) {
+        super(dataType, shape, strides, currentWorkspace);
+    }
+
     private Object writeReplace() throws java.io.ObjectStreamException {
         return new BaseNDArrayProxy(this);
     }
@@ -489,7 +501,7 @@ public class NDArray extends BaseNDArray {
 
     @Override
     public LongShapeDescriptor shapeDescriptor() {
-        return LongShapeDescriptor.fromShape(shape(), stride(), elementWiseStride(), ordering(), dataType(), isEmpty());
+        return LongShapeDescriptor.fromShape(shape(), stride(), -1, ordering(), dataType(), isEmpty());
     }
 
     protected int stringBuffer(FlatBufferBuilder builder, DataBuffer buffer) {

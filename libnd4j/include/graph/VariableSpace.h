@@ -41,22 +41,22 @@ namespace sd {
 namespace graph {
 class SD_LIB_EXPORT VariableSpace {
  protected:
-  sd::memory::Workspace* _workspace;
+  memory::Workspace* _workspace;
 
   // stash is NOT cloned
-  sd::graph::Stash _stash;
+  Stash _stash;
 
-  SD_MAP_IMPL<std::pair<int, int>, Variable*> _paired;
-  SD_MAP_IMPL<std::string, Variable*> _symbolic;
-  SD_MAP_IMPL<int, Variable*> _variables;
-  std::vector<Variable*> _external;
-  std::vector<Variable*> _internal;
+  SD_MAP_IMPL<std::pair<int, int>, sd::graph::Variable*> _paired;
+  SD_MAP_IMPL<std::string, sd::graph::Variable*> _symbolic;
+  SD_MAP_IMPL<int, sd::graph::Variable*> _variables;
+  std::vector<sd::graph::Variable*> _external;
+  std::vector<sd::graph::Variable*> _internal;
 
-  std::vector<sd::NDArrayList*> _lists;
+  std::vector<NDArrayList*> _lists;
 
   std::vector<sd::graph::Variable*> _placeholders;
 
-  void silentPutVariable(std::pair<int, int>& pair, Variable* variable);
+  void silentPutVariable(std::pair<int, int>& pair, sd::graph::Variable* variable);
 
   int _auto_counter = -1;
 
@@ -75,8 +75,8 @@ class SD_LIB_EXPORT VariableSpace {
   virtual VariableSpace& operator=(const VariableSpace& other);
 
   virtual int numberOfPlaceholders();
-  virtual std::vector<Variable*>* getPlaceholders();
-  virtual void setWorkspace(sd::memory::Workspace* workspace);
+  virtual std::vector<sd::graph::Variable*>* getPlaceholders();
+  virtual void setWorkspace(memory::Workspace* workspace);
 
   virtual LaunchContext* launchContext();
 
@@ -89,47 +89,47 @@ class SD_LIB_EXPORT VariableSpace {
   virtual bool hasVariable(std::pair<int, int>& pair);
   virtual bool hasVariable(std::string* symbol);
 
-  virtual sd::graph::Variable* getVariable(int id);
-  virtual sd::graph::Variable* getVariable(int id, int idx);
-  virtual sd::graph::Variable* getVariable(std::pair<int, int>& pair);
-  virtual sd::graph::Variable* getVariable(std::string* symbol);
+  virtual Variable* getVariable(int id);
+  virtual Variable* getVariable(int id, int idx);
+  virtual Variable* getVariable(std::pair<int, int>& pair);
+  virtual Variable* getVariable(std::string* symbol);
 
-  virtual std::vector<Variable*> getVariables();
+  virtual std::vector<sd::graph::Variable*> getVariables();
 
-  virtual Variable* putVariable(std::pair<int, int>& pair, NDArray* array);
+  virtual sd::graph::Variable* putVariable(std::pair<int, int>& pair, NDArray* array);
   virtual void putVariable(std::pair<int, int>& pair, Variable* variable);
-  virtual void putVariable(int id, Variable* variable);
+  virtual void putVariable(int id, sd::graph::Variable* variable);
   virtual void putVariable(int id, NDArray* array);
   virtual Variable* putVariable(int id, int idx, NDArray* array);
   virtual void putVariable(int id, int idx, NDArray& array);
-  virtual void putVariable(int id, int idx, Variable* array);
+  virtual void putVariable(int id, int idx, sd::graph::Variable* array);
 
   virtual void dropVariable(std::pair<int, int>& pair);
   virtual void dropVariable(int id, int idx);
 
-  virtual void trackList(sd::NDArrayList* list);
+  virtual void trackList(NDArrayList* list);
 
-  virtual void putOutputVariable(Variable* variable);
+  virtual void putOutputVariable(sd::graph::Variable* variable);
 
-  virtual void replaceVariable(Variable* variable);
+  virtual void replaceVariable(sd::graph::Variable* variable);
 
   // memory-related statistics
-  virtual sd::LongType externalMemory();
-  virtual sd::LongType internalMemory();
-  virtual sd::LongType totalMemory();
+  virtual LongType externalMemory();
+  virtual LongType internalMemory();
+  virtual LongType totalMemory();
 
   virtual int externalEntries();
   virtual int internalEntries();
   virtual int totalEntries();
 
-  virtual sd::graph::VariableSpace* clone();
+  virtual VariableSpace* clone();
 
-  std::vector<Variable*>* handles();
+  std::vector<sd::graph::Variable*>* handles();
 
-  sd::graph::VariableSpace* asT();
-  void injectVariable(std::pair<int, int>& pair, Variable* variable);
+  VariableSpace* asT();
+  void injectVariable(std::pair<int, int>& pair, sd::graph::Variable* variable);
 
-  virtual sd::graph::Stash* getStash();
+  virtual Stash* getStash();
 
   virtual std::vector<sd::graph::Variable*>* getExternalVariables();
 

@@ -34,7 +34,7 @@ CUSTOM_OP_IMPL(repeat, 1, 1, true, 0, -1) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
 
-  std::vector<int> repeats = *block.getIArguments();
+  std::vector<LongType> repeats = *block.getIArguments();
 
   const int axis = repeats.back() < 0 ? repeats.back() + input->rankOf() : repeats.back();
 
@@ -44,22 +44,22 @@ CUSTOM_OP_IMPL(repeat, 1, 1, true, 0, -1) {
                "CUSTOM REPEAT OP: wrong axis argument it should be less then input array rank %i, but got %i instead !",
                input->rankOf(), axis);
 
-  REQUIRE_TRUE(repeats.size() == 1 || repeats.size() == input->sizeAt(axis), 0,
+  REQUIRE_TRUE(repeats.size() == 1 || repeats.size() == static_cast<size_t>(input->sizeAt(axis)), 0,
                "CUSTOM REPEAT OP: wrong axis argument, size of repeats vector must be 1 or equal to dimension at given "
                "axis, but got repeats.size = %i and axis = %i !",
                repeats.size(), axis);
 
   input->repeat(axis, repeats, *output);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
-DECLARE_TYPES(repeat) { getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setSameMode(true); }
+DECLARE_TYPES(repeat) { getOpDescriptor()->setAllowedInputTypes(ANY)->setSameMode(true); }
 
 DECLARE_SHAPE_FN(repeat) {
   auto input = INPUT_VARIABLE(0);
 
-  std::vector<int> repeats = *block.getIArguments();
+  std::vector<LongType> repeats = *block.getIArguments();
 
   const int axis = repeats.back() < 0 ? repeats.back() + input->rankOf() : repeats.back();
 
@@ -67,8 +67,10 @@ DECLARE_SHAPE_FN(repeat) {
 
   auto outShape = ShapeUtils::evalRepeatShape(axis, repeats, *input);
 
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(
-      ShapeDescriptor(input->dataType(), input->ordering(), outShape)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().bufferForShapeInfo(input->dataType(),
+                                                                             input->ordering(),
+                                                                             outShape)->primary());
+  return ret;
 }
 }  // namespace ops
 }  // namespace sd

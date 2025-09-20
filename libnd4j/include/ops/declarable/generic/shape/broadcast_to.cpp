@@ -36,7 +36,7 @@ CUSTOM_OP_IMPL(broadcast_to, 2, 1, false, 0, 0) {
 
   const int inputRank = input->rankOf();
   const int shapeRank = shape->rankOf();
-  const sd::LongType shapeLen = shape->lengthOf();
+  const LongType shapeLen = shape->lengthOf();
 
   REQUIRE_TRUE(shapeRank <= 1, 0, "BROADCAST_TO op: rank of shape array should be <= 1, bot got %i instead !",
                shapeRank);
@@ -45,8 +45,8 @@ CUSTOM_OP_IMPL(broadcast_to, 2, 1, false, 0, 0) {
                "correspondingly !",
                inputRank, shapeLen);
 
-  std::vector<sd::LongType> shapeBuff = shape->getBufferAsVector<sd::LongType>();
-  std::vector<sd::LongType> outShape(shapeBuff.begin(), shapeBuff.end());
+  std::vector<LongType> shapeBuff = shape->getBufferAsVector<LongType>();
+  std::vector<LongType> outShape(shapeBuff.begin(), shapeBuff.end());
 
   for (int i = 1; i <= inputRank; ++i)
     REQUIRE_TRUE(input->sizeAt(inputRank - i) == outShape[shapeLen - i] || input->sizeAt(inputRank - i) == 1, 0,
@@ -55,19 +55,19 @@ CUSTOM_OP_IMPL(broadcast_to, 2, 1, false, 0, 0) {
 
   input->tile(*output);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
-DECLARE_TYPES(broadcast_to) { getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setSameMode(true); }
+DECLARE_TYPES(broadcast_to) { getOpDescriptor()->setAllowedInputTypes(ANY)->setSameMode(true); }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(broadcast_to) {
   auto inputShapeInfo = inputShape->at(0);
   auto shape = INPUT_VARIABLE(1);
 
-  const int inputRank = inputShapeInfo[0];
-  const int shapeRank = shape->rankOf();
-  const sd::LongType shapeLen = shape->lengthOf();
+  const LongType inputRank = inputShapeInfo[0];
+  const LongType shapeRank = shape->rankOf();
+  const LongType shapeLen = shape->lengthOf();
 
   REQUIRE_TRUE(shapeRank <= 1, 0, "BROADCAST_TO op: rank of input shape array should be <= 1, bit got %i instead !",
                shapeRank);
@@ -76,8 +76,20 @@ DECLARE_SHAPE_FN(broadcast_to) {
                "correspondingly !",
                inputRank, shapeLen);
 
-  std::vector<sd::LongType> shapeBuff = shape->getBufferAsVector<sd::LongType>();
-  std::vector<sd::LongType> outShape(shapeBuff.begin(), shapeBuff.end());
+  if(shape->isScalar()) {
+    std::vector<LongType> outShape;
+    outShape.reserve(1);
+    auto firstVal = shape->cast(INT64).e<LongType>(0);
+    outShape[0] = firstVal;
+    ShapeDescriptor shapeDescriptor(ArrayOptions::dataType(inputShapeInfo), shape::order(inputShapeInfo), {firstVal});
+
+    auto outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(&shapeDescriptor);
+    return SHAPELIST(outShapeInfo);
+
+  }
+
+  std::vector<LongType> shapeBuff = shape->getBufferAsVector<LongType>();
+  std::vector<LongType> outShape(shapeBuff.begin(), shapeBuff.end());
 
   for (int i = 1; i <= inputRank; ++i)
     REQUIRE_TRUE(inputShapeInfo[inputRank + 1 - i] == outShape[shapeLen - i] || inputShapeInfo[inputRank + 1 - i] == 1,

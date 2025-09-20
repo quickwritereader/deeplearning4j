@@ -27,6 +27,7 @@ import lombok.Setter;
 import org.deeplearning4j.nn.api.Layer;
 import org.deeplearning4j.nn.api.MaskState;
 import org.deeplearning4j.nn.api.TrainingConfig;
+import org.deeplearning4j.nn.api.Updater;
 import org.deeplearning4j.nn.api.layers.LayerConstraint;
 import org.deeplearning4j.nn.conf.CacheMode;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
@@ -38,6 +39,7 @@ import org.deeplearning4j.optimize.api.TrainingListener;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.common.primitives.Pair;
+import org.nd4j.linalg.api.shape.Shape;
 
 import java.util.*;
 
@@ -69,6 +71,11 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
         if (conf != null)
             cacheMode = conf.getCacheMode();
         this.dataType = dataType;
+    }
+
+    @Override
+    public Updater createUpdater() {
+        return Layer.super.createUpdater();
     }
 
     @Override
@@ -116,7 +123,7 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
 
     @Override
     public void setInput(INDArray input, LayerWorkspaceMgr workspaceMgr) {
-        this.input = workspaceMgr.leverageTo(ArrayType.INPUT, input);
+        this.input = workspaceMgr.leverageTo(ArrayType.INPUT,input);
         dropoutApplied = false;
     }
 
@@ -283,15 +290,15 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
         input = null;
         maskArray = null;
         maskState = null;
-        if(layerConf().getIDropout() != null){
+        if(layerConf().getIDropout() != null) {
             layerConf().getIDropout().clear();
         }
     }
 
     protected void applyDropOutIfNecessary(boolean training, LayerWorkspaceMgr workspaceMgr){
-        if(training && !dropoutApplied && layerConf().getIDropout() != null ){
+        if(training && !dropoutApplied && layerConf().getIDropout() != null) {
             INDArray result;
-            if(inputModificationAllowed){
+            if(inputModificationAllowed) {
                 result = input;
             } else {
                 result = workspaceMgr.createUninitialized(ArrayType.INPUT, input.dataType(), input.shape(), input.ordering());
@@ -313,6 +320,16 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
     @Override
     public Type type() {
         return Type.FEED_FORWARD;
+    }
+
+    @Override
+    public Pair<Gradient, INDArray> backpropGradient(INDArray epsilon, LayerWorkspaceMgr workspaceMgr) {
+        return null;
+    }
+
+    @Override
+    public INDArray activate(boolean training, LayerWorkspaceMgr workspaceMgr) {
+        return null;
     }
 
     /**
@@ -364,6 +381,11 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
         return maskArray;
     }
 
+    @Override
+    public void clearNoiseWeightParams() {
+
+    }
+
 
     @Override
     public Pair<INDArray, MaskState> feedForwardMaskArray(INDArray maskArray, MaskState currentMaskState, int minibatchSize) {
@@ -404,11 +426,11 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
         }
     }
 
-    public void assertInputSet(boolean backprop){
+    public void assertInputSet(boolean backprop) {
         if(input == null){
-            if(backprop){
+            if(backprop) {
                 throw new IllegalStateException("Cannot perform backprop in layer " + getClass().getSimpleName()
-                        + ": layer input field is not set");
+                        + ": layer input field is not set. In order to set this input, ensure we call feedForward(...) or activate(...) first. Ensure clearInput (the second boolean argument) is false. like feedForward(input,false)");
             } else {
                 throw new IllegalStateException("Cannot perform forward pass in layer " + getClass().getSimpleName()
                         + ": layer input field is not set");
@@ -421,11 +443,6 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
         inputModificationAllowed = allow;
     }
 
-    @Override
-    public LayerHelper getHelper() {
-        //Layers with helpers should override this method!
-        return null;
-    }
 
     @Override
     public boolean updaterDivideByMinibatch(String paramName) {
@@ -436,5 +453,25 @@ public abstract class AbstractLayer<LayerConfT extends org.deeplearning4j.nn.con
     @Override
     public void close(){
         //No-op for individual layers
+    }
+
+    @Override
+    public void setInput(int inputIndex, INDArray indArray) {
+
+    }
+
+    @Override
+    public void computeGradientAndScore() {
+
+    }
+
+    @Override
+    public void setLabels(int index, INDArray indArray) {
+        Layer.super.setLabels(index, indArray);
+    }
+
+    @Override
+    public INDArray[] output(INDArray[] input) {
+        return Layer.super.output(input);
     }
 }

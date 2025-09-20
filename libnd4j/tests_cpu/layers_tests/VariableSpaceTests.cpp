@@ -23,15 +23,15 @@
 #include <flatbuffers/flatbuffers.h>
 #include <graph/Graph.h>
 #include <graph/Node.h>
-#include <graph/generated/graph_generated.h>
-#include <graph/generated/node_generated.h>
+#include <graph/scheme/graph_generated.h>
+#include <graph/scheme/node_generated.h>
 
 #include "testlayers.h"
 
 using namespace sd;
 using namespace sd::graph;
 
-class VariableSpaceTest : public testing::Test {
+class VariableSpaceTest : public NDArrayTests {
  public:
   int *cShape = new int[8]{2, 2, 2, 2, 1, 0, 1, 99};
   int *fShape = new int[8]{2, 2, 2, 1, 2, 0, 1, 102};
@@ -73,8 +73,8 @@ TEST_F(VariableSpaceTest, SettersGettersTest2) {
   space1->putVariable(-1, varA);
   space1->putVariable(2, varB);
 
-  sd::LongType expExternal = (25 * 4) + (8 * 8);
-  sd::LongType expInternal = (9 * 4) + (8 * 8);
+  LongType expExternal = (25 * 4) + (8 * 8);
+  LongType expInternal = (9 * 4) + (8 * 8);
 
   ASSERT_EQ(expExternal, space1->externalMemory());
   ASSERT_EQ(expInternal, space1->internalMemory());
@@ -187,32 +187,4 @@ TEST_F(VariableSpaceTest, CloneTests_2) {
   ASSERT_TRUE(spaceA.hasVariable(pair));
 }
 
-TEST_F(VariableSpaceTest, Test_DType_Conversion_1) {
-  /*
-  VariableSpace spaceA;
 
-  auto arrayA = NDArrayFactory::create_<float>('c', {3, 3});
-  arrayA->assign(1.0);
-
-  auto variableA = new Variable(arrayA, "alpha");
-
-  std::string str("alpha");
-  std::pair<int, int> pair(2, 3);
-
-  spaceA.putVariable(pair, variableA);
-
-
-  auto sd = spaceA.template asT<double>();
-  auto sf = sd->template asT<float>();
-
-  ASSERT_TRUE(sf->hasVariable(pair));
-
-  auto xf = sf->getVariable(pair)->getNDArray();
-
-  ASSERT_TRUE(arrayA->isSameShape(xf));
-  ASSERT_TRUE(arrayA->equalsTo(xf));
-
-  delete sd;
-  delete sf;
-  */
-}

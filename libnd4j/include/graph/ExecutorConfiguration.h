@@ -29,21 +29,21 @@ namespace sd {
 namespace graph {
 class SD_LIB_EXPORT ExecutorConfiguration {
  public:
-  sd::graph::ProfilingMode _profilingMode;
-  sd::graph::ExecutionMode _executionMode;
-  sd::graph::OutputMode _outputMode;
+  ::graph::ProfilingMode _profilingMode;
+  ::graph::ExecutionMode _executionMode;
+  ::graph::OutputMode _outputMode;
   bool _timestats;
-  sd::LongType _footprintForward = 0L;
-  sd::LongType _footprintBackward = 0L;
-  Direction _direction = Direction_FORWARD_ONLY;
+  LongType _footprintForward = 0L;
+  LongType _footprintBackward = 0L;
+  ::graph::Direction _direction = ::graph::Direction_FORWARD_ONLY;
 
-  explicit ExecutorConfiguration(const sd::graph::FlatConfiguration *conf = nullptr);
+  explicit ExecutorConfiguration(const ::graph::FlatConfiguration *conf = nullptr);
   ~ExecutorConfiguration() = default;
 
   ExecutorConfiguration *clone();
 
 #ifndef __JAVACPP_HACK__
-  flatbuffers::Offset<FlatConfiguration> asFlatConfiguration(flatbuffers::FlatBufferBuilder &builder);
+  flatbuffers::Offset<::graph::FlatConfiguration> asFlatConfiguration(flatbuffers::FlatBufferBuilder &builder);
 #endif
 };
 }  // namespace graph

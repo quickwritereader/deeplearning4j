@@ -38,7 +38,7 @@ CUSTOM_OP_IMPL(resize_bicubic, 2, 1, false, 0, 0) {
   int width;
   int height;
   auto inRank = image->rankOf();
-  if (output->isEmpty()) return sd::Status::OK;
+  if (output->isEmpty()) return Status::OK;
 
   REQUIRE_TRUE(inRank == 3 || inRank == 4, 0, "resize_bicubic: Source tensor should have rank 4, but %i given.",
                inRank);
@@ -70,16 +70,23 @@ CUSTOM_OP_IMPL(resize_bicubic, 2, 1, false, 0, 0) {
   }
   REQUIRE_TRUE(!halfPixelAlign || (halfPixelAlign && !alignCorners), 0,
                "resize_bicubic: `half_pixel_centers' should be false or true only when `align_corners' is false");
+  std::vector<sd::LongType> imageShape1 = {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2),image->sizeAt(3)};
+  std::vector<sd::LongType> imageShape2 = {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)};
 
   auto source =
       inRank == 4
-          ? image->reshape(image->ordering(), {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2), image->sizeAt(3)})
-          : image->reshape(image->ordering(), {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)});
+          ? image->reshape(image->ordering(), imageShape1)
+          : image->reshape(image->ordering(), imageShape2);
+
+
+  std::vector<sd::LongType> outputShape1 = {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2),output->sizeAt(3)};
+  std::vector<sd::LongType> outputShape2 = {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)};
+
   auto target =
       inRank == 4
           ? output->reshape(output->ordering(),
-                            {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2), output->sizeAt(3)}, false)
-          : output->reshape(output->ordering(), {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)}, false);
+                            outputShape1, false)
+          : output->reshape(output->ordering(), outputShape2, false);
 
   // retain old behaviour
   helpers::CoordinateTransformationMode coorMode = halfPixelAlign ? helpers::CoordinateTransformationMode::HALF_PIXEL
@@ -87,7 +94,7 @@ CUSTOM_OP_IMPL(resize_bicubic, 2, 1, false, 0, 0) {
   bool exclude_outside = halfPixelAlign;
   double coef = halfPixelAlign ? helpers::KeysCubicKernelFunc<double>::KEYS_CUBIC_COEF
                                : helpers::KeysCubicKernelFunc<double>::ORDINARY_COEF;
-  return helpers::resizeBicubicFunctorA(block.launchContext(), &source, width, height, alignCorners, coorMode,
+  return resizeBicubicFunctorA(block.launchContext(), &source, width, height, alignCorners, coorMode,
                                         exclude_outside, coef, &target);
 }
 
@@ -95,7 +102,7 @@ DECLARE_SHAPE_FN(resize_bicubic) {
   auto shapeList = SHAPELIST();
   auto in = inputShape->at(0);
 
-  sd::LongType* outputShape;
+  LongType* outputShape;
   auto inRank = shape::rank(in);
   int width;
   int height;
@@ -122,7 +129,7 @@ DECLARE_SHAPE_FN(resize_bicubic) {
     outputShape[2] = height;
     outputShape[3] = in[3];
   }
-  ShapeUtils::updateStridesAndType(outputShape, DataType::FLOAT32, shape::order(in));
+  ShapeUtils::updateStridesAndType(outputShape, FLOAT32, shape::order(in));
 
   shapeList->push_back(CONSTANT(outputShape));
   return shapeList;
@@ -130,8 +137,8 @@ DECLARE_SHAPE_FN(resize_bicubic) {
 DECLARE_TYPES(resize_bicubic) {
   getOpDescriptor()
       ->setAllowedInputTypes(0, {ALL_FLOATS, ALL_INTS})
-      ->setAllowedInputTypes(1, DataType::INT32)
-      ->setAllowedOutputTypes({DataType::FLOAT32,DataType::DOUBLE});
+      ->setAllowedInputTypes(1, INT32)
+      ->setAllowedOutputTypes({FLOAT32, DOUBLE});
 }
 
 }  // namespace ops

@@ -1,22 +1,22 @@
 /*
- *  ******************************************************************************
- *  *
- *  *
- *  * This program and the accompanying materials are made available under the
- *  * terms of the Apache License, Version 2.0 which is available at
- *  * https://www.apache.org/licenses/LICENSE-2.0.
- *  *
- *  * See the NOTICE file distributed with this work for additional
- *  * information regarding copyright ownership.
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- *  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- *  * License for the specific language governing permissions and limitations
- *  * under the License.
- *  *
- *  * SPDX-License-Identifier: Apache-2.0
- *  *****************************************************************************
- */
+*  ******************************************************************************
+*  *
+*  *
+*  * This program and the accompanying materials are made available under the
+*  * terms of the Apache License, Version 2.0 which is available at
+*  * https://www.apache.org/licenses/LICENSE-2.0.
+*  *
+*  * See the NOTICE file distributed with this work for additional
+*  * information regarding copyright ownership.
+*  * Unless required by applicable law or agreed to in writing, software
+*  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+*  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+*  * License for the specific language governing permissions and limitations
+*  * under the License.
+*  *
+*  * SPDX-License-Identifier: Apache-2.0
+*  *****************************************************************************
+*/
 
 //
 // @author Paul Dubs
@@ -84,9 +84,11 @@ CUSTOM_OP_IMPL(dot_product_attention, 3, -1, false, 0, 2) {
   if (mask != nullptr) {
     NDArray reshapedMask;
     if (weights->rankOf() == 4) {
-      reshapedMask = mask->reshape(mask->ordering(), {mask->sizeAt(0), 1, mask->sizeAt(1), 1});
+      std::vector<sd::LongType> shape = {mask->sizeAt(0), 1, mask->sizeAt(1), 1};
+      reshapedMask = mask->reshape(mask->ordering(),shape);
     } else {
-      reshapedMask = mask->reshape(mask->ordering(), {mask->sizeAt(0), mask->sizeAt(1), 1});
+      std::vector<sd::LongType> shape = {mask->sizeAt(0), mask->sizeAt(1), 1};
+      reshapedMask = mask->reshape(mask->ordering(),shape);
     }
 
     // the mask is 0 for positions we want to skip, and 1 for positions we want to keep. By subtracting 1 from
@@ -95,11 +97,13 @@ CUSTOM_OP_IMPL(dot_product_attention, 3, -1, false, 0, 2) {
     // before going through the softmax, we effectively push all masked positions to zero after softmax.
     //
     // we are using 1e9 to mean effectively infinity
-    *weights += (reshapedMask - 1) * 1e9;
+    auto applyMask = reshapedMask  * 1e9;
+    *weights -= applyMask;
   }
 
+  int softmaxDim = -2;
   sd::ops::softmax softmax;
-  softmax.execute({weights}, std::vector<NDArray *>{weights}, {}, {-2}, {}, {}, true);
+  softmax.execute({weights}, std::vector<NDArray *>{weights}, {}, {softmaxDim}, {}, {}, true);
 
   mmul.execute({values, weights}, {output}, {}, {}, {});
 
@@ -183,31 +187,37 @@ CUSTOM_OP_IMPL(dot_product_attention_bp, 4, 3, false, 0, 1) {
   mmul.execute({keys, queries}, {&preSoftmax}, {}, {1}, {});
 
   if (normalization) preSoftmax /= factor;
-
-  if (mask != nullptr) {
-    NDArray reshapedMask;
+  NDArray reshapedMask;
+  if (mask != nullptr && !mask->isEmpty()) {
     if (preSoftmax.rankOf() == 4) {
-      reshapedMask = mask->reshape(mask->ordering(), {mask->sizeAt(0), 1, mask->sizeAt(1), 1});
+      std::vector<sd::LongType> shape = {mask->sizeAt(0), 1, mask->sizeAt(1), 1};
+      reshapedMask = mask->reshape(mask->ordering(), shape);
     } else {
-      reshapedMask = mask->reshape(mask->ordering(), {mask->sizeAt(0), mask->sizeAt(1), 1});
+      std::vector<sd::LongType> shape = {mask->sizeAt(0), mask->sizeAt(1), 1};
+      reshapedMask = mask->reshape(mask->ordering(), shape);
     }
-    preSoftmax += (reshapedMask - 1) * 1e9;
+
+    reshapedMask  *= 1e9;
+    preSoftmax -= reshapedMask;
   }
+
+  int softmaxDim = -2;
 
   NDArray weights('c', weightShape, values->dataType(), block.launchContext());
   sd::ops::softmax softmax;
-  softmax.execute({&preSoftmax}, {&weights}, {}, {-2}, {});
-
+  softmax.execute({&preSoftmax}, {&weights}, {}, {softmaxDim}, {});
   sd::ops::matmul_bp mmul_bp;
   NDArray dLdw(weights.shapeInfo(), block.workspace());
-  mmul_bp.execute({values, &weights, eps}, std::vector<NDArray *>{dLdv, &dLdw}, {}, {}, {});
+  mmul_bp.execute({values, &weights, eps}, {dLdv, &dLdw}, {}, {}, {});
 
   NDArray dLds(preSoftmax.shapeInfo(), block.workspace());
   sd::ops::softmax_bp softmax_bp;
-  softmax_bp.execute({&preSoftmax, &dLdw}, {&dLds}, {}, {-2}, {});
+  softmax_bp.execute({&preSoftmax, &dLdw,&weights}, {&dLds}, {}, {softmaxDim}, {});
 
   if (normalization) dLds /= factor;
-
+  if(mask != nullptr) {
+    dLds *= reshapedMask;
+  }
   mmul_bp.execute({keys, queries, &dLds}, std::vector<NDArray *>{dLdk, dLdq}, {}, {1}, {});
 
   return sd::Status::OK;
@@ -219,14 +229,7 @@ DECLARE_TYPES(dot_product_attention_bp) {
 }
 
 DECLARE_SHAPE_FN(dot_product_attention_bp) {
-  sd::LongType *dLdq_shape;
-  COPY_SHAPE(inputShape->at(0), dLdq_shape);
-  sd::LongType *dLdk_shape;
-  COPY_SHAPE(inputShape->at(1), dLdk_shape);
-  sd::LongType *dLdv_shape;
-  COPY_SHAPE(inputShape->at(2), dLdv_shape);
-
-  return SHAPELIST(CONSTANT(dLdq_shape), CONSTANT(dLdk_shape), CONSTANT(dLdv_shape));
+  return SHAPELIST(CONSTANT(inputShape->at(0)), CONSTANT(inputShape->at(1)), CONSTANT(inputShape->at(2)));
 }
 
 }  // namespace ops

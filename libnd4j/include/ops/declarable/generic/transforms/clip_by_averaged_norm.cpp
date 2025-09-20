@@ -37,7 +37,7 @@ CONFIGURABLE_OP_IMPL(clipbyavgnorm, -1, 1, true, -2, 0) {
     auto clipNorm = INPUT_VARIABLE(1);
     auto output = OUTPUT_VARIABLE(0);
     const bool isInplace = block.isInplace();
-    helpers::clipByNorm(block.launchContext(), *input, *output, *block.getIArguments(), *clipNorm, isInplace, true);
+    helpers::clipByNorm(block.launchContext(), input, output, *block.getIArguments(), clipNorm, isInplace, true);
   } else {
     auto input = INPUT_VARIABLE(0);
     auto output = OUTPUT_VARIABLE(0);
@@ -45,7 +45,7 @@ CONFIGURABLE_OP_IMPL(clipbyavgnorm, -1, 1, true, -2, 0) {
     const bool isInplace = block.isInplace();
     auto clipNorm = NDArrayFactory::create(T_ARG(0), block.launchContext());
 
-    helpers::clipByNorm(block.launchContext(), *input, *output, *block.getIArguments(), clipNorm, isInplace, true);
+    helpers::clipByNorm(block.launchContext(), input, output, *block.getIArguments(), &clipNorm, isInplace, true);
   }
 
   return sd::Status::OK;
@@ -63,10 +63,10 @@ CUSTOM_OP_IMPL(clipbyavgnorm_bp, -2, 1, false, -1, 0) {
   auto gradI = OUTPUT_VARIABLE(0);
   if (block.inputs()->size() > 2) {
     const auto clipNorm = INPUT_VARIABLE(2);
-    helpers::clipByNormBp(block.launchContext(), *input, *gradO, *gradI, *block.getIArguments(), *clipNorm, true);
+    helpers::clipByNormBp(block.launchContext(), input, gradO, gradI, *block.getIArguments(), clipNorm, true);
   } else {
-    const auto clipNorm = NDArrayFactory::create(gradI->dataType(), T_ARG(0), block.launchContext());
-    helpers::clipByNormBp(block.launchContext(), *input, *gradO, *gradI, *block.getIArguments(), clipNorm, true);
+    auto clipNorm = NDArrayFactory::create(gradI->dataType(), T_ARG(0), block.launchContext());
+    helpers::clipByNormBp(block.launchContext(), input, gradO, gradI, *block.getIArguments(), &clipNorm, true);
   }
 
   return sd::Status::OK;
@@ -74,10 +74,7 @@ CUSTOM_OP_IMPL(clipbyavgnorm_bp, -2, 1, false, -1, 0) {
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(clipbyavgnorm_bp) {
-  sd::LongType *newShape = nullptr;
-  COPY_SHAPE(inputShape->at(1), newShape);
-
-  return SHAPELIST(CONSTANT(newShape));
+  return SHAPELIST(CONSTANT(inputShape->at(1)));
 }
 
 DECLARE_TYPES(clipbyavgnorm_bp) {

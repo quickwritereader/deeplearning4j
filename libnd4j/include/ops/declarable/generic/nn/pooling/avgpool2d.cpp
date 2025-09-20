@@ -37,14 +37,14 @@ CUSTOM_OP_IMPL(avgpool2d, 1, 1, false, 0, 10) {
   // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same
   // mode;
 
-  const auto kH = INT_ARG(0);
-  const auto kW = INT_ARG(1);
-  const auto sH = INT_ARG(2);
-  const auto sW = INT_ARG(3);
-  auto pH = INT_ARG(4);
-  auto pW = INT_ARG(5);
-  const auto dH = INT_ARG(6);
-  const auto dW = INT_ARG(7);
+  const LongType kH = INT_ARG(0);
+  const LongType kW = INT_ARG(1);
+  const LongType sH = INT_ARG(2);
+  const LongType sW = INT_ARG(3);
+  LongType pH = INT_ARG(4);
+  LongType pW = INT_ARG(5);
+  const LongType dH = INT_ARG(6);
+  const LongType dW = INT_ARG(7);
   const auto isSameMode = static_cast<bool>(INT_ARG(8));
   const auto extraParam0 = INT_ARG(9);
   const int isNCHW = block.getIArguments()->size() > 10 ? !INT_ARG(10) : 1;  // INT_ARG(10): 0-NCHW, 1-NHWC
@@ -53,15 +53,16 @@ CUSTOM_OP_IMPL(avgpool2d, 1, 1, false, 0, 10) {
                input->rankOf());
   REQUIRE_TRUE(dH != 0 && dW != 0, 0, "AVGPOOL2D op: dilation must not be zero, but got instead {%i, %i}", dH, dW);
 
-  int oH = 0;
-  int oW = 0;
+  LongType oH = 0;
+  LongType oW = 0;
 
-  const int iH = static_cast<int>(isNCHW ? input->sizeAt(2) : input->sizeAt(1));
-  const int iW = static_cast<int>(isNCHW ? input->sizeAt(3) : input->sizeAt(2));
+  const LongType iH = static_cast<LongType>(isNCHW ? input->sizeAt(2) : input->sizeAt(1));
+  const LongType iW = static_cast<LongType>(isNCHW ? input->sizeAt(3) : input->sizeAt(2));
 
   if (!isNCHW) {
-    input = new NDArray(input->permute({0, 3, 1, 2}));    // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
-    output = new NDArray(output->permute({0, 3, 1, 2}));  // [bS, oH, oW, iC] -> [bS, iC, oH, oW]
+    std::vector<sd::LongType> perm = {0,3,1,2};
+    input = new NDArray(input->permute(perm, false, false));    // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
+    output = new NDArray(output->permute(perm, false, false));  // [bS, oH, oW, iC] -> [bS, iC, oH, oW]
   }
 
   ConvolutionUtils::calcOutSizePool2D(oH, oW, kH, kW, sH, sW, pH, pW, dH, dW, iH, iW, isSameMode);
@@ -70,15 +71,15 @@ CUSTOM_OP_IMPL(avgpool2d, 1, 1, false, 0, 10) {
 
   // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 -
   // poolingMode; 9 - divisor;
-  ConvolutionUtils::pooling2d(block, *input, *output, kH, kW, sH, sW, pH, pW, dH, dW, PoolingType::AVG_POOL,
+  ConvolutionUtils::pooling2d(block, *input, *output, kH, kW, sH, sW, pH, pW, dH, dW, AVG_POOL,
                               extraParam0);
 
   if (!isNCHW) {
-    delete input;
-    delete output;
+     delete input;
+      delete output;
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SYN(AvgPool2D, avgpool2d);
@@ -86,7 +87,7 @@ DECLARE_SYN(AvgPool, avgpool2d);
 DECLARE_SYN(avgpool, avgpool2d);
 
 DECLARE_TYPES(avgpool2d) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 DECLARE_SHAPE_FN(avgpool2d) {
@@ -95,34 +96,33 @@ DECLARE_SHAPE_FN(avgpool2d) {
 
   // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 - same
   // mode;
-  auto argI = *(block.getIArguments());
-  const int kH = INT_ARG(0);
-  const int kW = INT_ARG(1);
-  const int sH = INT_ARG(2);
-  const int sW = INT_ARG(3);
-  const int pH = INT_ARG(4);
-  const int pW = INT_ARG(5);
-  const int dH = INT_ARG(6);
-  const int dW = INT_ARG(7);
+  const LongType kH = INT_ARG(0);
+  const LongType kW = INT_ARG(1);
+  const LongType sH = INT_ARG(2);
+  const LongType sW = INT_ARG(3);
+  const LongType pH = INT_ARG(4);
+  const LongType pW = INT_ARG(5);
+  const LongType dH = INT_ARG(6);
+  const LongType dW = INT_ARG(7);
   const int isSameMode = INT_ARG(8);
 
   const int isNCHW = block.getIArguments()->size() > 10 ? !INT_ARG(10) : 1;  // INT_ARG(10): 0-NCHW, 1-NHWC
 
   REQUIRE_TRUE(dH != 0 && dW != 0, 0, "AVGPOOL2D op: dilation must not be zero, but got instead {%i, %i}", dH, dW);
 
-  const int bS = shapeOf[0];
-  const int iD = isNCHW ? shapeOf[1] : shapeOf[3];
-  const int iH = isNCHW ? shapeOf[2] : shapeOf[1];
-  const int iW = isNCHW ? shapeOf[3] : shapeOf[2];
+  const LongType bS = shapeOf[0];
+  const LongType iD = isNCHW ? shapeOf[1] : shapeOf[3];
+  const LongType iH = isNCHW ? shapeOf[2] : shapeOf[1];
+  const LongType iW = isNCHW ? shapeOf[3] : shapeOf[2];
 
   const char order = shape::order(inShape);  // output order must be equal to input order
 
   // calculate output Height/Width
-  int oH, oW;
+  LongType oH, oW;
   ConvolutionUtils::calcOutSizePool2D(oH, oW, kH, kW, sH, sW, pH, pW, dH, dW, iH, iW, isSameMode);
 
   // allocate memory for new shape
-  sd::LongType newShape[4];
+  LongType *newShape = new LongType[4];
   if (isNCHW) {
     newShape[0] = bS;
     newShape[1] = iD;
@@ -134,13 +134,16 @@ DECLARE_SHAPE_FN(avgpool2d) {
     newShape[2] = oW;
     newShape[3] = iD;
   }
-
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(
-      ShapeDescriptor(ArrayOptions::dataType(inShape), shape::order(inShape), newShape, 4)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().bufferForShapeInfo(ArrayOptions::dataType(inShape),
+                                                                             shape::order(inShape),
+                                                                             4,
+                                                                             newShape)->primary());
+  delete[] newShape;
+  return ret;
 }
 
 DECLARE_TYPES(avgpool2d_bp) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -149,14 +152,14 @@ CUSTOM_OP_IMPL(avgpool2d_bp, 2, 1, false, 0, 10) {
   auto gradO = INPUT_VARIABLE(1);    // [bS, oH, oW, oC] (NHWC) or [bS, oC, oH, oW] (NCHW), epsilon_next
   auto gradI = OUTPUT_NULLIFIED(0);  // [bS, iH, iW, iC] (NHWC) or [bS, iC, iH, iW] (NCHW), epsilon
 
-  int kH = INT_ARG(0);          // filter(kernel) height
-  int kW = INT_ARG(1);          // filter(kernel) width
-  int sH = INT_ARG(2);          // strides height
-  int sW = INT_ARG(3);          // strides width
-  int pH = INT_ARG(4);          // paddings height
-  int pW = INT_ARG(5);          // paddings width
-  int dH = INT_ARG(6);          // dilations height
-  int dW = INT_ARG(7);          // dilations width
+  LongType kH = INT_ARG(0);          // filter(kernel) height
+  LongType kW = INT_ARG(1);          // filter(kernel) width
+  LongType sH = INT_ARG(2);          // strides height
+  LongType sW = INT_ARG(3);          // strides width
+  LongType pH = INT_ARG(4);          // paddings height
+  LongType pW = INT_ARG(5);          // paddings width
+  LongType dH = INT_ARG(6);          // dilations height
+  LongType dW = INT_ARG(7);          // dilations width
   int isSameMode = INT_ARG(8);  // 0-VALID, 1-SAME
   int extraParam0 = INT_ARG(9);
   int isNCHW = block.getIArguments()->size() > 10 ? !INT_ARG(10) : 1;  // INT_ARG(10): 0-NCHW, 1-NHWC
@@ -165,15 +168,15 @@ CUSTOM_OP_IMPL(avgpool2d_bp, 2, 1, false, 0, 10) {
                input->rankOf());
   REQUIRE_TRUE(dH != 0 && dW != 0, 0, "AVGPOOL2D_BP op: dilation must not be zero, but got instead {%i, %i}", dH, dW);
 
-  int bS, iC, iH, iW, oC, oH,
+  LongType bS, iC, iH, iW, oC, oH,
       oW;  // batch size, input channels, input height/width, output channels, output height/width;
-  int indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;  // corresponding indexes
+  LongType indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, 0, *input, *gradO, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH,
                                              indWiC, indWoC, indWkH, indOoH);
 
-  std::vector<sd::LongType> expectedGradOShape =
+  std::vector<LongType> expectedGradOShape =
       ShapeUtils::composeShapeUsingDimsAndIdx({bS, iC, oH, oW, 0, indIOioC, indIiH, indIiH + 1});
-  std::vector<sd::LongType> expectedGradIShape =
+  std::vector<LongType> expectedGradIShape =
       ShapeUtils::composeShapeUsingDimsAndIdx({bS, iC, iH, iW, 0, indIOioC, indIiH, indIiH + 1});
   REQUIRE_TRUE(
       gradO->isSameShape(expectedGradOShape), 0,
@@ -185,25 +188,14 @@ CUSTOM_OP_IMPL(avgpool2d_bp, 2, 1, false, 0, 10) {
       ShapeUtils::shapeAsString(expectedGradIShape).c_str(), ShapeUtils::shapeAsString(gradI).c_str());
 
   if (!isNCHW) {
-    input = new NDArray(input->permute({0, 3, 1, 2}));  // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
-    gradI = new NDArray(gradI->permute({0, 3, 1, 2}));  // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
-    gradO = new NDArray(gradO->permute({0, 3, 1, 2}));  // [bS, oH, oW, iC] -> [bS, iC, oH, oW]
+    std::vector<sd::LongType> perm = {0,3,1,2};
+    input = new NDArray(input->permute(perm, false, false));  // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
+    gradI = new NDArray(gradI->permute(perm, false, false));  // [bS, iH, iW, iC] -> [bS, iC, iH, iW]
+    gradO = new NDArray(gradO->permute(perm, false, false));  // [bS, oH, oW, iC] -> [bS, iC, oH, oW]
   }
 
   if (isSameMode)  // SAME
     ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW);
-
-  // NDArray<T> columnsWrongShape(input->ordering(), {bS, iC, oH, oW, kH, kW}, input->getWorkspace());
-  // NDArray<T>* columns = columnsWrongShape.permute({0, 1, 4, 5, 2, 3});                                // [bS, iC, oH,
-  // oW, kH, kW] -> [bS, iC, kH, kW, oH, oW] NDArray<T>* gradOVector = gradO->reshape('c', {(int) gradO->lengthOf(),
-  // 1}); NDArray<T>* columns2d = columnsWrongShape.reshape('c', {bS*iC*oH*oW, kH*kW});
-
-  // columns2d->addiColumnVector(gradOVector);
-
-  // columns->template applyTransform<simdOps::Col2Im<T>>(gradI, std::vector<T>({(T)sH, (T)sW, (T)pH, (T)pW, (T)iH,
-  // (T)iW, (T)dH, (T)dW}).data());
-
-  // *gradI /= kH*kW;
 
   // 0,1 - kernel Height/Width; 2,3 - stride Height/Width; 4,5 - pad Height/Width; 6,7 - dilation Height/Width; 8 -
   // poolingMode; 9 - divisor;
@@ -215,7 +207,7 @@ CUSTOM_OP_IMPL(avgpool2d_bp, 2, 1, false, 0, 10) {
     delete gradO;
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(avgpool2d_bp) {
@@ -225,8 +217,8 @@ DECLARE_SHAPE_FN(avgpool2d_bp) {
                "AVGPOOL2D_BP op: output's gradient array (next epsilon) must be 4D, but got %i instead!",
                inputShape->at(1)[0]);
 
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(
-      ShapeDescriptor(inputShape->at(0), ArrayOptions::dataType(inputShape->at(1)))));
+  auto desc = new ShapeDescriptor(inputShape->at(0), ArrayOptions::dataType(inputShape->at(1)), false);
+  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(desc));
 }
 
 }  // namespace ops

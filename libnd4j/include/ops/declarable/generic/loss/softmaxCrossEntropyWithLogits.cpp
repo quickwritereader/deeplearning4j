@@ -46,20 +46,20 @@ CUSTOM_OP_IMPL(softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0) {
                "got %i and %i correspondingly !",
                classesDim, logits->rankOf());
 
-  std::vector<int> dimension = {classesDim};
+  std::vector<LongType> dimension = {classesDim};
 
-  auto maxAlongDim = logits->reduceAlongDimension(reduce::Max, {classesDim}, true);
+  auto maxAlongDim = logits->reduceAlongDimension(reduce::Max, &dimension, true);
   auto logExp = (*logits - maxAlongDim).transform(transform::Exp);
-  auto logSoftMax = (logExp / logExp.reduceAlongDimension(reduce::Sum, {classesDim}, true)).transform(transform::Log);
+  auto logSoftMax = (logExp / logExp.reduceAlongDimension(reduce::Sum, &dimension, true)).transform(transform::Log);
 
-  (-(*labels) * logSoftMax).reduceAlongDimension(reduce::Sum, *output, dimension);
+  (-(*labels) * logSoftMax).reduceAlongDimension(reduce::Sum, output, &dimension);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_TYPES(softmax_cross_entropy_loss_with_logits) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -68,7 +68,7 @@ DECLARE_SHAPE_FN(softmax_cross_entropy_loss_with_logits) {
   auto labelsShapeInfo = inputShape->at(1);
 
   const int classesDim = block.getIArguments()->size() > 0 ? INT_ARG(0) : -1;
-  std::vector<int> dimensions = {classesDim};
+  std::vector<LongType> dimensions = {classesDim};
 
   // labels and logits must have the same shapes
   REQUIRE_TRUE(shape::shapeEquals(logitsShapeInfo, labelsShapeInfo), 0,
@@ -77,7 +77,7 @@ DECLARE_SHAPE_FN(softmax_cross_entropy_loss_with_logits) {
                ShapeUtils::shapeAsString(labelsShapeInfo).c_str(), ShapeUtils::shapeAsString(logitsShapeInfo).c_str());
 
   auto outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
-  auto reducedShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(labelsShapeInfo), dimensions, labelsShapeInfo,
+  auto reducedShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(labelsShapeInfo), &dimensions, labelsShapeInfo,
                                                           outType, false, false, block.getWorkspace());
 
   return SHAPELIST(reducedShapeInfo);
@@ -105,30 +105,27 @@ CUSTOM_OP_IMPL(softmax_cross_entropy_loss_with_logits_grad, 2, 2, false, 0, 0) {
                classesDim, logits->rankOf());
 
 
-  std::vector<int> dimension = {classesDim};
+  std::vector<LongType> dimension = {classesDim};
 
-  NDArray softmax = (*logits - logits->reduceAlongDimension(reduce::Max, dimension, true)).transform(transform::Exp);
-  softmax /= softmax.reduceAlongDimension(reduce::Sum, dimension, true);
-
-
-    // dEdp = softmax * sum_i(labels_i) - labels
-    //note the eps is to account for exact 0s in the log calculation being nan
-    auto labelsPlusEps = *labels + 1e-6;
-    labelsPlusEps.printBuffer("Labels plus eps");
-    dLdp->assign(((softmax * labelsPlusEps.reduceAlongDimension(reduce::Sum, dimension, true) - labelsPlusEps)));
-    auto negSoftmax = softmax;
+  NDArray softmax = (*logits - logits->reduceAlongDimension(reduce::Max, &dimension, true)).transform(transform::Exp);
+  softmax /= softmax.reduceAlongDimension(reduce::Sum, &dimension, true);
 
 
-    // dEdl = -log(softmax)
-    softmax.applyTransform(transform::Log, *dLdl);
-    dLdl->applyTransform(transform::Neg,*dLdl);
-    return Status::OK;
+  // dEdp = softmax * sum_i(labels_i) - labels
+  //note the eps is to account for exact 0s in the log calculation being nan
+  auto labelsPlusEps = *labels + 1e-6;
+  NDArray assign = ((softmax * labelsPlusEps.reduceAlongDimension(reduce::Sum, &dimension, true) - labelsPlusEps));
+  dLdp->assign(&assign);
+  // dEdl = -log(softmax)
+  softmax.applyTransform(transform::Log, dLdl);
+  dLdl->applyTransform(transform::Neg,dLdl);
+  return Status::OK;
 
 }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_TYPES(softmax_cross_entropy_loss_with_logits_grad) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -144,11 +141,13 @@ DECLARE_SHAPE_FN(softmax_cross_entropy_loss_with_logits_grad) {
 
   DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
 
-  auto dLdpShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(
-      outType, shape::order(logitsShapeInfo), shape::shapeOf(logitsShapeInfo), shape::rank(logitsShapeInfo)));
-  auto dLdlShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(
-      outType, shape::order(labelsShapeInfo), shape::shapeOf(labelsShapeInfo), shape::rank(labelsShapeInfo)));
+  auto dLdpShapeInfo = ConstantShapeHelper::getInstance().bufferForShapeInfo(outType, shape::order(logitsShapeInfo),
+                                                                             shape::rank(logitsShapeInfo),
+                                                                             shape::shapeOf(logitsShapeInfo))->primary();
 
+  auto dLdlShapeInfo = ConstantShapeHelper::getInstance().bufferForShapeInfo(outType, shape::order(labelsShapeInfo),
+                                                                             shape::rank(labelsShapeInfo),
+                                                                             shape::shapeOf(labelsShapeInfo))->primary();
   return SHAPELIST(dLdpShapeInfo, dLdlShapeInfo);
 }
 

@@ -20,9 +20,30 @@
 
 package org.nd4j.linalg.api.memory;
 
+import org.nd4j.linalg.profiler.data.eventlogger.LogEvent;
+
 public interface Deallocator {
     /**
      * This method does actual deallocation
      */
     void deallocate();
+
+
+    /**
+     * Returns whether the deallocator
+     * is constant or not.
+     *
+     * @return
+     */
+    boolean isConstant();
+
+    /**
+     * Sets whether this deallocator is constant or not.
+     * This is needed for when something like a databuffer changes its state.
+     * @param constant
+     */
+    default void setConstant(boolean constant) {
+        //default is no op. Only databuffer deallocators really need to update
+        //their state as constant or not.
+    }
 }

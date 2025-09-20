@@ -42,7 +42,7 @@ CUSTOM_OP_IMPL(split_v, 2, -1, false, 0, -2) {
 
   if (axis < 0) axis += input->rankOf();
 
-  std::vector<int> dims = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
+  std::vector<sd::LongType> axisVec = {axis};
 
   int pos = 0;
   std::vector<sd::LongType> indices(2 * input->rankOf());
@@ -62,12 +62,11 @@ CUSTOM_OP_IMPL(split_v, 2, -1, false, 0, -2) {
 
     auto sub = (*input)(indices);
 
-    output->assign(sub);
+    output->assign(&sub);
 
     pos += c_size;
   }
 
-  // delete tads;
   return sd::Status::OK;
 }
 
@@ -108,7 +107,7 @@ DECLARE_SHAPE_FN(split_v) {
 
     std::vector<sd::LongType> shape(rank);
 
-    for (int d = 0; d < rank; d++) {
+    for (sd::LongType d = 0; d < rank; d++) {
       if (d != axis)
         shape[d] = shape::sizeAt(input, d);
       else

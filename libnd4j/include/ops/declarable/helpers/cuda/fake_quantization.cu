@@ -22,6 +22,10 @@
 #include <array/NDArrayFactory.h>
 #include <ops/declarable/helpers/fake_quantization.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
@@ -47,7 +51,7 @@ static SD_HOST_DEVICE void nudge(T min, T max, int quantMin, int quantMax, T* sc
     if (zeroPointFromMin > quantMaxF) {
       return static_cast<uint16_t>(quantMax);
     }
-    return sd::math::sd_round<T, uint16_t>(zeroPointFromMin);
+    return math::sd_round<T, uint16_t>(zeroPointFromMin);
   }();
   *nudgedMax = (quantMaxF - static_cast<T>(nudgedZeroPoint)) * (*scale);
   *nudgedMin = (quantMinF - static_cast<T>(nudgedZeroPoint)) * (*scale);
@@ -71,37 +75,73 @@ void fakeQuantWithMinMaxVars_(NDArray* input, NDArray* min, NDArray* max, int nu
     } else
       val = x;
     return (math::sd_floor<T, T>((val - nudgedMin) / scale + T(0.5)) * scale + nudgedMin);
-  };
+  });
 
-  input->applyLambda(wiseMinMaxAndSoOn, *output);
+  input->applyLambda(wiseMinMaxAndSoOn, output);
 }
 
 template <typename T>
-static SD_KERNEL void fakeQuantWithMinMaxKernel(const T* input, const sd::LongType* inputShape, T* min, T* max,
-                                                int lowIntBound, int upperIntBound, sd::LongType channels, T* output,
-                                                const sd::LongType* outputShape, sd::LongType length) {
-  __shared__ int block;
+static SD_KERNEL void fakeQuantWithMinMaxKernel(const T* input, const LongType* inputShape, T* min, T* max,
+                                                int lowIntBound, int upperIntBound, LongType channels, T* output,
+                                                const LongType* outputShape, LongType length) {
+  __shared__ LongType inputRank, outputRank;
+  __shared__ const LongType* inputShapePtr;
+  __shared__ const LongType* inputStridePtr;
+  __shared__ const LongType* outputShapePtr;
+  __shared__ const LongType* outputStridePtr;
+  __shared__ LongType blockSize;
+
   if (threadIdx.x == 0) {
-    block = length / channels;  // to loop with last dimension as block
+    inputRank = shape::rank(inputShape);
+    outputRank = shape::rank(outputShape);
+
+    inputShapePtr = shape::shapeOf(inputShape);
+    inputStridePtr = shape::stride(inputShape);
+
+    outputShapePtr = shape::shapeOf(outputShape);
+    outputStridePtr = shape::stride(outputShape);
+
+    blockSize = length / channels;  // Calculate block size based on the last dimension
   }
   __syncthreads();
 
+  LongType inputCoords[SD_MAX_RANK];
+  LongType outputCoords[SD_MAX_RANK];
+  LongType inputOffset;
+  LongType outputOffset;
+
+  // Loop over channels
   for (auto i = blockIdx.x; i < (int)channels; i += gridDim.x) {
     T scale, nudgedMin, nudgedMax;
+
+    // Nudge values for quantization
     nudge(min[i], max[i], lowIntBound, upperIntBound, &scale, &nudgedMin, &nudgedMax);
-    // loop over blocks to quantization between nudged min and max
-    for (auto b = threadIdx.x; b < block; b += blockDim.x) {
-      T val = input[shape::getIndexOffset(b * channels + i, inputShape)];
+
+    // Loop over blocks for quantization
+    for (auto b = threadIdx.x; b < blockSize; b += blockDim.x) {
+      // Compute input coordinates and offset
+      INDEX2COORDS(b * channels + i, inputRank, inputShapePtr, inputCoords);
+      COORDS2INDEX(inputRank, inputStridePtr, inputCoords, inputOffset);
+
+      T val = input[inputOffset];
+
+      // Clamp value within nudged min and max
       if (val < nudgedMin) {
         val = nudgedMin;
       } else if (val > nudgedMax) {
         val = nudgedMax;
       }
-      output[shape::getIndexOffset(b * channels + i, outputShape)] =
-          (math::sd_floor<T, T>((val - nudgedMin) / scale + T(0.5f)) * scale + nudgedMin);
-    };
+
+      // Compute output coordinates and offset
+      INDEX2COORDS(b * channels + i, outputRank, outputShapePtr, outputCoords);
+      COORDS2INDEX(outputRank, outputStridePtr, outputCoords, outputOffset);
+
+      // Quantize and assign the value to output
+      output[outputOffset] = math::sd_floor<T, T>((val - nudgedMin) / scale + T(0.5f)) * scale + nudgedMin;
+    }
   }
 }
+
 
 template <typename T>
 void fakeQuantWithMinMaxVarsPerChannel_(LaunchContext* context, NDArray* input, NDArray* min, NDArray* max, int numBits,
@@ -116,9 +156,12 @@ void fakeQuantWithMinMaxVarsPerChannel_(LaunchContext* context, NDArray* input, 
   T* outputBuf = output->dataBuffer()->specialAsT<T>();
   T* minBuf = min->dataBuffer()->specialAsT<T>();
   T* maxBuf = max->dataBuffer()->specialAsT<T>();
-  fakeQuantWithMinMaxKernel<<<128, 256, 256, *stream>>>(inputBuf, input->specialShapeInfo(), minBuf, maxBuf,
+  dim3 launchDims = getLaunchDims("fake_quantization");
+  fakeQuantWithMinMaxKernel<<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(inputBuf, input->specialShapeInfo(), minBuf, maxBuf,
                                                         lowIntBound, upperIntBound, channels, outputBuf,
                                                         output->specialShapeInfo(), length);
+  DebugHelper::checkErrorCode(context->getCudaStream(),"fakeQuantWithMinMaxKernel failed");
+
   NDArray::registerSpecialUse({output}, {min, max, input});
 }
 

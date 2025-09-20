@@ -21,35 +21,41 @@
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
 //
+#include <execution/cuda/LaunchDims.h>
 #include <helpers/PointersManager.h>
 #include <math/templatemath.h>
 #include <ops/declarable/helpers/convolutions.h>
+
+#include "helpers/DebugHelper.h"
+
 
 namespace sd {
 namespace ops {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vy,
-                                      const sd::LongType* yShapeInfo, void* vz, const sd::LongType* zShapeInfo,
+SD_KERNEL static void pooling3dBPCuda(const void* vx, const LongType* xShapeInfo, const void* vy,
+                                      const LongType* yShapeInfo, void* vz, const LongType* zShapeInfo,
                                       const int kD, const int kH, const int kW, const int sD, const int sH,
                                       const int sW, const int pD, const int pH, const int pW, const int dD,
                                       const int dH, const int dW, const int poolingMode, const int extraParam0) {
-  // x: input [bS, iC, iD, iH, iW]
-  // y: gradO [bS, iC, oD, oH, oW]
-  // z: gradI [bS, iC, iD, iH, iW] -> gradI is output in this function
-
   const T* x = reinterpret_cast<const T*>(vx);
   const T* y = reinterpret_cast<const T*>(vy);
   T* z = reinterpret_cast<T*>(vz);
 
-  sd::LongType coord2, coord3, coord4;
+  LongType coord2, coord3, coord4;
   __shared__ int rank, kDeff, kHeff, kWeff, iD, iH, iW, kProd;
-  __shared__ sd::LongType yLen, *sharedMem;
+  __shared__ LongType yLen, *sharedMem;
+  __shared__ LongType* xShape;
+  __shared__ LongType* yShape;
+  __shared__ LongType* zShape;
+  __shared__ LongType* xStride;
+  __shared__ LongType* yStride;
+  __shared__ LongType* zStride;
 
   if (threadIdx.x == 0) {
     extern __shared__ unsigned char shmem[];
-    sharedMem = reinterpret_cast<sd::LongType*>(shmem);
+    sharedMem = reinterpret_cast<LongType*>(shmem);
 
     yLen = shape::length(yShapeInfo);
     rank = 5;
@@ -63,6 +69,14 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
     iW = xShapeInfo[5];
 
     kProd = kD * kH * kW;
+
+    // Cache shape information
+    xShape = shape::shapeOf(xShapeInfo);
+    yShape = shape::shapeOf(yShapeInfo);
+    zShape = shape::shapeOf(zShapeInfo);
+    xStride = shape::stride(xShapeInfo);
+    yStride = shape::stride(yShapeInfo);
+    zStride = shape::stride(zShapeInfo);
   }
   __syncthreads();
 
@@ -72,9 +86,10 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
 
   auto coords = sharedMem + threadIdx.x * rank;
 
-  shape::index2coords(yInd, yShapeInfo, coords);
+  INDEX2COORDS(yInd, rank, yShape, coords);
 
-  const auto yOffset = shape::getOffset(yShapeInfo, coords);
+  LongType yOffset;
+  COORDS2INDEX(rank, yStride, coords, yOffset);
 
   int dstart = coords[2] * sD - pD;
   int hstart = coords[3] * sH - pH;
@@ -97,7 +112,9 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
       for (coords[2] = dstart; coords[2] < dend; coords[2] += dD) {
         for (coords[3] = hstart; coords[3] < hend; coords[3] += dH) {
           for (coords[4] = wstart; coords[4] < wend; coords[4] += dW) {
-            T val = x[shape::getOffset(xShapeInfo, coords)];
+            LongType xOffset;
+            COORDS2INDEX(rank, xStride, coords, xOffset);
+            T val = x[xOffset];
             if (val > max) {
               max = val;
               coord2 = coords[2];
@@ -110,7 +127,9 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
       coords[2] = coord2;
       coords[3] = coord3;
       coords[4] = coord4;
-      sd::math::atomics::sd_atomicAdd<T>(&z[shape::getOffset(zShapeInfo, coords)], y[yOffset]);
+      LongType zOffset;
+      COORDS2INDEX(rank, zStride, coords, zOffset);
+      math::atomics::sd_atomicAdd<T>(&z[zOffset], y[yOffset]);
     } break;
 
     /*** avg ***/
@@ -118,17 +137,19 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
       T val = y[yOffset];
 
       if (extraParam0 == 0)  // Exclude padding
-        val /= sd::math::sd_ceil<double, T>(static_cast<double>(dend - dstart) / static_cast<double>(dD)) *
-               sd::math::sd_ceil<double, T>(static_cast<double>(hend - hstart) / static_cast<double>(dH)) *
-               sd::math::sd_ceil<double, T>(static_cast<double>(wend - wstart) /
-                                            static_cast<double>(dW));  // Accounts for dilation
-      else if (extraParam0 == 1)                                       // Include padding
+        val /= math::sd_ceil<double, T>(static_cast<double>(dend - dstart) / static_cast<double>(dD)) *
+               math::sd_ceil<double, T>(static_cast<double>(hend - hstart) / static_cast<double>(dH)) *
+               math::sd_ceil<double, T>(static_cast<double>(wend - wstart) / static_cast<double>(dW));
+      else if (extraParam0 == 1)  // Include padding
         val /= kProd;
 
       for (coords[2] = dstart; coords[2] < dend; coords[2] += dD)
         for (coords[3] = hstart; coords[3] < hend; coords[3] += dH)
-          for (coords[4] = wstart; coords[4] < wend; coords[4] += dW)
-            sd::math::atomics::sd_atomicAdd<T>(&z[shape::getOffset(zShapeInfo, coords)], val);
+          for (coords[4] = wstart; coords[4] < wend; coords[4] += dW) {
+            LongType zOffset;
+            COORDS2INDEX(rank, zStride, coords, zOffset);
+            math::atomics::sd_atomicAdd<T>(&z[zOffset], val);
+          }
     } break;
 
     /*** pnorm ***/
@@ -138,60 +159,59 @@ SD_KERNEL static void pooling3dBPCuda(const void* vx, const sd::LongType* xShape
 
       for (coords[2] = dstart; coords[2] < dend; coords[2] += dD)
         for (coords[3] = hstart; coords[3] < hend; coords[3] += dH)
-          for (coords[4] = wstart; coords[4] < wend; coords[4] += dW)
-            sum += sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(x[shape::getOffset(xShapeInfo, coords)]), extraParam0);
-
-      val *= sd::math::sd_pow<T, T, T>(sum, ((T)1.f - extraParam0) / extraParam0);
-
-      for (coords[2] = dstart; coords[2] < dend; coords[2] += dD) {
-        for (coords[3] = hstart; coords[3] < hend; coords[3] += dH) {
           for (coords[4] = wstart; coords[4] < wend; coords[4] += dW) {
-            const auto xOffset = shape::getOffset(xShapeInfo, coords);
-            const auto zOffset = shape::getOffset(zShapeInfo, coords);
-            sd::math::atomics::sd_atomicAdd<T>(
-                &z[zOffset], val * sd::math::sd_pow<T, T, T>(sd::math::sd_abs<T>(x[xOffset]), extraParam0 - 1.f) *
-                                 sd::math::sd_sgn<T, T>(x[xOffset]));
+            LongType xOffset;
+            COORDS2INDEX(rank, xStride, coords, xOffset);
+            sum += math::sd_pow<T, T, T>(math::sd_abs<T,T>(x[xOffset]), extraParam0);
           }
-        }
-      }
+
+      val *= math::sd_pow<T, T, T>(sum, ((T)1.f - extraParam0) / extraParam0);
+
+      for (coords[2] = dstart; coords[2] < dend; coords[2] += dD)
+        for (coords[3] = hstart; coords[3] < hend; coords[3] += dH)
+          for (coords[4] = wstart; coords[4] < wend; coords[4] += dW) {
+            LongType xOffset, zOffset;
+            COORDS2INDEX(rank, xStride, coords, xOffset);
+            COORDS2INDEX(rank, zStride, coords, zOffset);
+            math::atomics::sd_atomicAdd<T>(
+                &z[zOffset], val * math::sd_pow<T, T, T>(math::sd_abs<T,T>(x[xOffset]), extraParam0 - 1.f) *
+                                 math::sd_sgn<T, T>(x[xOffset]));
+          }
     } break;
   }
 }
-
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void pooling3dBPCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                                    const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo,
-                                    const void* vy, const sd::LongType* yShapeInfo, void* vz,
-                                    const sd::LongType* zShapeInfo, const int kD, const int kH, const int kW,
+                                    const cudaStream_t* stream, const void* vx, const LongType* xShapeInfo,
+                                    const void* vy, const LongType* yShapeInfo, void* vz,
+                                    const LongType* zShapeInfo, const int kD, const int kH, const int kW,
                                     const int sD, const int sH, const int sW, const int pD, const int pH, const int pW,
                                     const int dD, const int dH, const int dW, const int poolingMode,
                                     const int extraParam0) {
   pooling3dBPCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz,
                                                                              zShapeInfo, kD, kH, kW, sD, sH, sW, pD, pH,
                                                                              pW, dD, dH, dW, poolingMode, extraParam0);
+  DebugHelper::checkErrorCode(const_cast<cudaStream_t*>(stream),"pooling3dBPCudaLauncher failed");
+
 }
 
 //////////////////////////////////////////////////////////////////////////
-void ConvolutionUtils::pooling3dBP(sd::graph::Context& block, const NDArray& input, const NDArray& gradO,
-                                   NDArray& gradI, const int kD, const int kH, const int kW, const int sD, const int sH,
-                                   const int sW, const int pD, const int pH, const int pW, const int dD, const int dH,
-                                   const int dW, const int poolingMode, const int extraParam0) {
+void ConvolutionUtils::pooling3dBP(graph::Context& block, NDArray& input, NDArray& gradO,
+                                   NDArray& gradI, const LongType kD, const LongType kH, const LongType kW, const LongType sD, const LongType sH,
+                                   const LongType sW, const LongType pD, const LongType pH, const LongType pW, const LongType dD, const LongType dH,
+                                   const LongType dW, const int poolingMode, const int extraParam0) {
   // initial zeroing of gradI
   gradI.nullify();
 
   PointersManager manager(block.launchContext(), "pooling3dBP");
-
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (gradO.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-  const int sharedMem = gradO.rankOf() * sizeof(sd::LongType) * threadsPerBlock + 128;
-
+  dim3 poolingDims = getPoolingDims(gradO.lengthOf(),gradO.rankOf());
   NDArray::prepareSpecialUse({&gradI}, {&input, &gradO});
   BUILD_SINGLE_SELECTOR(
       input.dataType(), pooling3dBPCudaLauncher,
-      (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), input.specialBuffer(),
-       input.specialShapeInfo(), gradO.specialBuffer(), gradO.specialShapeInfo(), gradI.specialBuffer(),
-       gradI.specialShapeInfo(), kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW, poolingMode, extraParam0),
+      (poolingDims.y, poolingDims.x, poolingDims.z, block.launchContext()->getCudaStream(), input.specialBuffer(),
+          input.specialShapeInfo(), gradO.specialBuffer(), gradO.specialShapeInfo(), gradI.specialBuffer(),
+          gradI.specialShapeInfo(), kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW, poolingMode, extraParam0),
       SD_FLOAT_TYPES);
   NDArray::registerSpecialUse({&gradI}, {&input, &gradO});
 

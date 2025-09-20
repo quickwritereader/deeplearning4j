@@ -50,9 +50,10 @@ namespace ops {
 
         if (shape::strideDescendingCAscendingF(input->shapeInfo()))
             helpers::_depthToSpace(block.launchContext(), *input, output, block_size, isNHWC);
-        else
-            helpers::_depthToSpace(block.launchContext(), input->dup(), output, block_size, isNHWC);
-
+        else {
+          NDArray dup = input->dup();
+          helpers::_depthToSpace(block.launchContext(), dup, output, block_size, isNHWC);
+        }
         STORE_RESULT(output);     
 
         return Status::OK;
@@ -72,10 +73,10 @@ namespace ops {
 
         bool isNHWC = INT_ARG(1) == 1;
 
-        int bS = shape::sizeAt(in, 0);
-        int iD = isNHWC ? shape::sizeAt(in, 3) : shape::sizeAt(in, 1);
-        int iH = isNHWC ? shape::sizeAt(in, 1) : shape::sizeAt(in, 2);
-        int iW = isNHWC ? shape::sizeAt(in, 2) : shape::sizeAt(in, 3);
+        int bS = shape::sizeAt(in, static_cast<sd::LongType>(0));
+        int iD = isNHWC ? shape::sizeAt(in, static_cast<sd::LongType>(3)) : shape::sizeAt(in, static_cast<sd::LongType>(1));
+        int iH = isNHWC ? shape::sizeAt(in, static_cast<sd::LongType>(1)) : shape::sizeAt(in, static_cast<sd::LongType>(2));
+        int iW = isNHWC ? shape::sizeAt(in, static_cast<sd::LongType>(2)) : shape::sizeAt(in, static_cast<sd::LongType>(3));
 
         int oD = iD / (block_size * block_size);
         int oH = iH * block_size;
@@ -88,7 +89,7 @@ namespace ops {
         else 
             shape = {{bS, oD, oH, oW }};
         
-        auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(in), 'c', 4, shape.data());
+        auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(in), 'c', 4, shape.data(),0);
         return SHAPELIST(newShape);
     }
 

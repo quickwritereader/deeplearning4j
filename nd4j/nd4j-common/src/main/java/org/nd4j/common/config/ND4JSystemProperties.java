@@ -172,7 +172,7 @@ public class ND4JSystemProperties {
      * during a samediff inference session. This may have bad side effects (especially involving views)
      * This allows enabling or disabling of that behavior.
      */
-    public final static String SAMEDIFF_MEMORY_CACHE_DISABLE = "org.nd4j.autodiff.samediff";
+    public final static String SAMEDIFF_MEMORY_CACHE_ENABLE = "org.nd4j.autodiff.samediff.cache.enable";
 
     /**
      * Used to trigger loading the import reflection cache. This allows the user to control the initial scan
@@ -224,6 +224,68 @@ public class ND4JSystemProperties {
      *  For more see: https://github.com/deeplearning4j/deeplearning4j/blob/2f08cc208b3bae1007bbbb001938d17c15926a09/nd4j/nd4j-backends/nd4j-api-parent/nd4j-api/src/main/java/org/nd4j/autodiff/samediff/internal/memory/ArrayCacheMemoryMgr.java#L156-L157
      */
     public final static String LARGE_ARRAY_MAX_MULTIPLE = "org.nd4j.cache.large_array_max_multiple";
+
+    /**
+     * For usage with the EventLogger. When the event logger is enabled, extra information will be tracked
+     * including allocations, deallocations and other difficult to track down events.
+     * Note that enabling this will add a certain amount of overhead.
+     */
+    public final static String EVENT_LOGGER_ENABLED = "org.nd4j.linalg.profiler.eventlogger.enabled";
+
+    /**
+     * For usage with the EventLogger. Tells the event logger to
+     * format its log output as a date instead of the default nanoseconds.
+     */
+    public final static String EVENT_LOGGER_FORMAT_AS_DATE = "org.nd4j.linalg.profiler.eventlogger.logdate";
+
+
+    /**
+     * Set the package names to be scanned when using udfs.
+     * The value should be a comma separated list.
+     */
+    public final static String UDF_NAME_SPACES = "org.nd4j.linalg.api.ops.udf.packages";
+
+
+    /**
+     * Set the  classes to be used in fully qualified format (org.nd4j.ClassName something for example..)
+     * Note this will be checked BEFORE UDF_NAME_SPACES. Pick only 1  to use.
+     * The value should be a comma separated list.
+     */
+    public final static String UDF_CLASSES = "org.nd4j.linalg.api.ops.udf.classes";
+
+    /**
+     * Sets the number of threads to be used with the deallocator service.
+     */
+
+    public final static String DEALLOCATOR_SERVICE_GC_THREADS = "org.nd4j.deallocator.threads";
+
+
+    /**
+     * Set the priority for the cpu backend.
+     */
+    public final static String BACKEND_PRIORITY_CPU = "org.nd4j.cpu.priority";
+
+    /**
+     * Set the priority for the cuda backend.
+     */
+    public final static String BACKEND_PRIORITY_GPU = "org.nd4j.gpu.priority";
+
+
+    /**
+     * Set the priority for the aurora backend.
+     */
+    public final static String BACKEND_PRIORITY_AURORA = "org.nd4j.aurora.priority";
+
+
+    /**
+     * Related to nd4j array events.
+     * When determining the point of invocation or point of origin:
+     * aka the points where the ndarray event was triggered
+     * or the originating call site that kicked off the event
+     * These properties represent patterns of regexes to exclude
+     * from scanning when detrermining where the ndarray event was triggered.
+     */
+    public final static String ND4J_EVENT_LOG_POINT_OF_ORIGIN_PATTERNS = "org.nd4j.linalg.profiler.pointoforigin.patterns";
 
     private ND4JSystemProperties() {
     }

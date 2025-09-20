@@ -33,7 +33,7 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////////
-static void concatMKLDNN(const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis) {
+static void concatMKLDNN(const std::vector<NDArray*>& inArrs, NDArray& output, const int axis) {
   // data type
   dnnl::memory::data_type type;
   if (output.dataType() == DataType::FLOAT32)
@@ -50,7 +50,7 @@ static void concatMKLDNN(const std::vector<const NDArray*>& inArrs, NDArray& out
   std::vector<dnnl::memory::desc> x_user_md(inArrs.size()), x_mkl_md(inArrs.size());
 
   // inputs
-  for (int i = 0; i < inArrs.size(); ++i) {
+  for (size_t i = 0; i < inArrs.size(); ++i) {
     dnnl::memory::dims dims = inArrs[i]->getShapeAsFlatVector();
     x_user_md[i] = x_mkl_md[i] = dnnl::memory::desc(dims, type, onednnUtils::getFormat(*inArrs[i]));
     onednnUtils::setBlockStrides(*inArrs[i], x_user_md[i]);
@@ -71,7 +71,7 @@ static void concatMKLDNN(const std::vector<const NDArray*>& inArrs, NDArray& out
   dnnl::stream stream(engine);
 
   // inputs
-  for (int i = 0; i < inArrs.size(); ++i)
+  for (size_t i = 0; i < inArrs.size(); ++i)
     onednnUtils::loadDataToMklStream(*inArrs[i], engine, stream, x_user_md[i], op_prim_desc.src_desc(i),
                                      args[DNNL_ARG_MULTIPLE_SRC + i]);
 
@@ -99,8 +99,8 @@ PLATFORM_IMPL(concat, ENGINE_CPU) {
 
   // first of all take into account possible presence of empty arrays
   // also if scalar is present -> copy its value to vector with length=1
-  std::vector<const NDArray*> nonEmptyArrs;
-  std::vector<int> arrsToDelete;
+  std::vector<NDArray*> nonEmptyArrs;
+  std::vector<sd::LongType> arrsToDelete;
   int index = 0;
   bool allOfSameType = true;
   auto rankOfFirstArr = block.width() > 0 ? INPUT_VARIABLE(0)->rankOf() : 0;
@@ -114,7 +114,8 @@ PLATFORM_IMPL(concat, ENGINE_CPU) {
       allOfSameType &= (typeOfFirstArr == input->dataType());
 
       if (input->rankOf() == 0) {
-        auto vec = new NDArray('c', {1}, input->dataType(), block.launchContext());
+        std::vector<sd::LongType> dim = {1};
+        auto vec = new NDArray('c', dim, input->dataType(), block.launchContext());
         vec->assign(input);
         nonEmptyArrs.push_back(vec);
         arrsToDelete.push_back(index);
@@ -165,8 +166,6 @@ PLATFORM_IMPL(concat, ENGINE_CPU) {
   else
     concatMKLDNN(nonEmptyArrs, *output, axis);
 
-  // delete dynamically allocated vectors with length=1
-  for (int index : arrsToDelete) delete nonEmptyArrs[index];
 
   return sd::Status::OK;
 }

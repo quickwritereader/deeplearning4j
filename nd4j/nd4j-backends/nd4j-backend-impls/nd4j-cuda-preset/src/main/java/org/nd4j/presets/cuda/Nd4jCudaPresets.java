@@ -75,7 +75,6 @@ import org.nd4j.presets.OpExclusionUtils;
                 "graph/FlowPath.h",
                 "graph/Intervals.h",
                 "graph/Stash.h",
-                "graph/GraphState.h",
                 "graph/VariableSpace.h",
                 "helpers/helper_generator.h",
                 "graph/profiling/GraphProfile.h",
@@ -86,6 +85,7 @@ import org.nd4j.presets.OpExclusionUtils;
                 "helpers/shape.h",
                 "array/ShapeList.h",
                 "system/op_boilerplate.h",
+                "system/CudaLimitType.h",
                 "ops/InputType.h",
                 "ops/declarable/OpDescriptor.h",
                 "ops/declarable/PlatformHelper.h",
@@ -152,7 +152,8 @@ public class Nd4jCudaPresets implements LoadEnabled, BuildEnabled,InfoMapper {
         String platform = properties.getProperty("platform");
         List<String> preloads = properties.get("platform.preload");
         List<String> resources = properties.get("platform.preloadresource");
-
+        boolean funcTrace = System.getProperty("libnd4j.calltrace","OFF").equalsIgnoreCase("ON");
+        System.out.println("Functrace on: " + funcTrace);
         // Only apply this at load time since we don't want to copy the CUDA libraries here
         if (!Loader.isLoadLibraries()) {
             return;
@@ -180,9 +181,17 @@ public class Nd4jCudaPresets implements LoadEnabled, BuildEnabled,InfoMapper {
 
     @Override
     public void map(InfoMap infoMap) {
+        //whether to include the SD_GCC_FUNCTRACE definition in the build. Not needed if we're not enabling the profiler.
+        boolean funcTrace = System.getProperty("libnd4j.calltrace","OFF").equalsIgnoreCase("ON");
+        System.out.println("Functrace on: " + funcTrace);
         infoMap.put(new Info("thread_local", "SD_LIB_EXPORT", "SD_INLINE", "CUBLASWINAPI",
-                "SD_HOST", "SD_DEVICE", "SD_KERNEL", "SD_HOST_DEVICE", "SD_ALL_OPS", "NOT_EXCLUDED").cppTypes().annotations())
+                        "SD_HOST", "SD_DEVICE", "SD_KERNEL", "SD_HOST_DEVICE", "SD_ALL_OPS", "NOT_EXCLUDED").cppTypes().annotations())
                 .put(new Info("NativeOps.h", "build_info.h").objectify())
+                .put(new Info("OpaqueNDArray").pointerTypes("org.nd4j.nativeblas.OpaqueNDArray"))
+                .put(new Info("OpaqueNDArrayArr").pointerTypes("org.nd4j.nativeblas.OpaqueNDArrayArr"))
+
+                .put(new Info("createOpaqueNDArray").javaNames("create"))
+
                 .put(new Info("OpaqueTadPack").pointerTypes("org.nd4j.nativeblas.OpaqueTadPack"))
                 .put(new Info("OpaqueResultWrapper").pointerTypes("org.nd4j.nativeblas.OpaqueResultWrapper"))
                 .put(new Info("OpaqueShapeList").pointerTypes("org.nd4j.nativeblas.OpaqueShapeList"))
@@ -195,41 +204,61 @@ public class Nd4jCudaPresets implements LoadEnabled, BuildEnabled,InfoMapper {
                 .put(new Info("OpaqueRandomGenerator").pointerTypes("org.nd4j.nativeblas.OpaqueRandomGenerator"))
                 .put(new Info("OpaqueLaunchContext").pointerTypes("org.nd4j.nativeblas.OpaqueLaunchContext"))
                 .put(new Info("OpaqueDataBuffer").pointerTypes("org.nd4j.nativeblas.OpaqueDataBuffer"))
+                .put (new Info("std::vector<std::string>","std::vector<std::string>*").cast().pointerTypes("PointerPointer"))
+
                 .put(new Info("const char").valueTypes("byte").pointerTypes("@Cast(\"char*\") String",
                         "@Cast(\"char*\") BytePointer"))
                 .put(new Info("char").valueTypes("char").pointerTypes("@Cast(\"char*\") BytePointer",
                         "@Cast(\"char*\") String"))
                 .put(new Info("sd::Pointer").cast().valueTypes("Pointer").pointerTypes("PointerPointer"))
+                .put(new Info("CudaLimitType","sd::CudaLimitType").cast().valueTypes("int").pointerTypes("IntPointer", "IntBuffer",
+                        "int[]"))
                 .put(new Info("sd::LongType").cast().valueTypes("long").pointerTypes("LongPointer", "LongBuffer",
                         "long[]"))
                 .put(new Info("sd::Status").cast().valueTypes("int").pointerTypes("IntPointer", "IntBuffer",
                         "int[]"))
                 .put(new Info("sd::Unsigned").cast()
-                .valueTypes("int").pointerTypes("IntPointer", "IntBuffer", "int[]"))
+                        .valueTypes("int").pointerTypes("IntPointer", "IntBuffer", "int[]"))
                 .put(new Info("float16").cast().valueTypes("short").pointerTypes("ShortPointer", "ShortBuffer",
                         "short[]"))
                 .put(new Info("bfloat16").cast().valueTypes("short").pointerTypes("ShortPointer", "ShortBuffer",
                         "short[]"));
 
-        infoMap.put(new Info("__CUDACC__", "MAX_UINT", "HAVE_MKLDNN", "__NEC__" ).define(false))
-                .put(new Info("__JAVACPP_HACK__", "SD_ALL_OPS","__CUDABLAS__","SD_CUDA").define(true))
-                .put(new Info("std::initializer_list", "cnpy::NpyArray", "sd::NDArray::applyLambda", "sd::NDArray::applyPairwiseLambda",
-                        "sd::graph::FlatResult", "sd::graph::FlatVariable", "sd::NDArray::subarray", "std::shared_ptr", "sd::PointerWrapper", "sd::PointerDeallocator").skip())
+
+        infoMap.put(funcTrace ? new Info("__CUDACC__", "MAX_UINT", "HAVE_MKLDNN", "__NEC__" ).define(false)
+                        :  new Info("__CUDACC__", "MAX_UINT", "HAVE_MKLDNN", "__NEC__","SD_GCC_FUNCTRACE" ).define(false))
+                .put(funcTrace ? new Info("__JAVACPP_HACK__", "SD_ALL_OPS","__CUDABLAS__","SD_CUDA","SD_GCC_FUNCTRACE").define(true) :
+                        new Info("__JAVACPP_HACK__", "SD_ALL_OPS","__CUDABLAS__","SD_CUDA").define(true))
+                .put(funcTrace ? new Info("std::initializer_list", "cnpy::NpyArray", "sd::NDArray::applyLambda", "sd::NDArray::applyPairwiseLambda",
+                        "sd::graph::FlatResult",
+                        "throwException",
+                        "sd::graph::FlatVariable", "sd::NDArray::subarray", "std::shared_ptr", "sd::PointerWrapper",
+                        "sd::PointerDeallocator").skip()
+                        : new Info("std::initializer_list", "cnpy::NpyArray", "sd::NDArray::applyLambda", "sd::NDArray::applyPairwiseLambda",
+                        "sd::graph::FlatResult",
+                        "closeInstrumentOut",
+                        "setInstrumentOut",
+                        "instrumentFile",
+                        "sd::graph::FlatVariable", "sd::NDArray::subarray", "std::shared_ptr", "sd::PointerWrapper",
+                        "sd::PointerDeallocator").skip())
                 .put(new Info("std::string").annotations("@StdString").valueTypes("BytePointer", "String")
                         .pointerTypes("@Cast({\"char*\", \"std::string*\"}) BytePointer"))
                 .put(new Info("std::pair<int,int>").pointerTypes("IntIntPair").define())
-                .put(new Info("std::vector<std::vector<int> >").pointerTypes("IntVectorVector").define())
                 .put(new Info("std::vector<std::vector<sd::LongType> >").pointerTypes("LongVectorVector").define())
                 .put(new Info("std::vector<sd::NDArray*>").pointerTypes("NDArrayVector").define())
                 .put(new Info("std::vector<const sd::NDArray*>").pointerTypes("ConstNDArrayVector").define())
                 .put(new Info("bool").cast().valueTypes("boolean").pointerTypes("BooleanPointer", "boolean[]"))
+                .put(new Info("Graph").pointerTypes("Pointer"))
                 .put(new Info("sd::graph::ResultWrapper").base("org.nd4j.nativeblas.ResultWrapperAbstraction").define())
-                .put(new Info("sd::IndicesList").purify());
+                .put(new Info("sd::IndicesList").purify())
+                .put(new Info("shape::cuMalloc").skip())
+                .put(new Info("ErrorResult").skip());
 
         OpExclusionUtils.processOps(logger, properties, infoMap);
         infoMap.put(new Info("sd::ops::OpRegistrator::updateMSVC").skip());
         //skip in case header definition not working
         infoMap.put(new Info("calculateOutputShapesNec").skip());
+
 
     }
 

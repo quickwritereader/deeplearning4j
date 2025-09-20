@@ -28,26 +28,26 @@ namespace helpers {
 
 template <typename T>
 static void maxPoolingFunctor_(sd::graph::Context& block, NDArray* input, NDArray* values,
-                               std::vector<int> const& params, NDArray* indices) {
-  int kY = params[0];
-  int kX = params[1];
+                               const std::vector<LongType>& params, NDArray* indices) {
+  LongType kY = params[0];
+  LongType kX = params[1];
 
-  int sY = params[2];
-  int sX = params[3];
+  LongType sY = params[2];
+  LongType sX = params[3];
 
-  int pY = params[4];
-  int pX = params[5];
+  sd::LongType  pY = params[4];
+  sd::LongType  pX = params[5];
 
-  int dY = params[6];
-  int dX = params[7];
+  LongType dY = params[6];
+  LongType dX = params[7];
 
-  int oY = 0;
-  int oX = 0;
+  LongType oY = 0;
+  LongType oX = 0;
 
-  const int bSize = input->sizeAt(0);
-  const int inD = input->sizeAt(1);
-  const int inY = input->sizeAt(2);
-  const int inX = input->sizeAt(3);
+  const LongType bSize = input->sizeAt(0);
+  const LongType inD = input->sizeAt(1);
+  const LongType inY = input->sizeAt(2);
+  const LongType inX = input->sizeAt(3);
 
   const bool isSameMode = params[8] != 0;
 
@@ -74,7 +74,7 @@ static void maxPoolingFunctor_(sd::graph::Context& block, NDArray* input, NDArra
 }
 
 void maxPoolingFunctor(sd::LaunchContext* context, sd::graph::Context& block, NDArray* input, NDArray* values,
-                       std::vector<int> const& params, NDArray* indices) {
+                       const std::vector<LongType>& params, NDArray* indices) {
   BUILD_SINGLE_SELECTOR(input->dataType(), maxPoolingFunctor_, (block, input, values, params, indices),
                         SD_COMMON_TYPES);
 }

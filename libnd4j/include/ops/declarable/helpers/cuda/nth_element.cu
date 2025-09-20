@@ -22,69 +22,103 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <legacy/NativeOps.h>
 #include <ops/declarable/helpers/nth_element.h>
+
+#include "array/NDArrayFactory.h"
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
 
 namespace sd {
 namespace ops {
 namespace helpers {
 
 template <typename T>
-static SD_KERNEL void fillUpElementKernel(void* outputBuffer, sd::LongType const* outputShapeInfo, void* inputBuffer,
-                                          sd::LongType const* inputShapeInfo, sd::LongType const* pTadShape,
-                                          sd::LongType const* pTadOffsets, sd::LongType n) {
-  __shared__ sd::LongType bufferLength;
+static SD_KERNEL void fillUpElementKernel(void* outputBuffer, const LongType* outputShapeInfo, void* inputBuffer,
+                                          const LongType* inputShapeInfo, const LongType* pTadShape,
+                                          const LongType* pTadOffsets, LongType n) {
+  __shared__ LongType bufferLength;
+  __shared__ int rankOutput, rankTad;
+  __shared__ const LongType *shapeOutput, *strideOutput, *shapeTad, *strideTad;
 
   auto z = reinterpret_cast<T*>(outputBuffer);
   auto x = reinterpret_cast<T*>(inputBuffer);
 
-  if (threadIdx.x == 0) bufferLength = shape::length(outputShapeInfo);
-
+  if (threadIdx.x == 0) {
+    bufferLength = shape::length(outputShapeInfo);
+    rankOutput = shape::rank(outputShapeInfo);
+    rankTad = shape::rank(pTadShape);
+    shapeOutput = shape::shapeOf(outputShapeInfo);
+    strideOutput = shape::stride(outputShapeInfo);
+    shapeTad = shape::shapeOf(pTadShape);
+    strideTad = shape::stride(pTadShape);
+  }
   __syncthreads();
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
-  for (int t = tid; t < bufferLength; t += step) {
-    auto tX = x + pTadOffsets[t];
-    z[shape::getIndexOffset(t, outputShapeInfo)] = tX[shape::getIndexOffset(n, pTadShape)];  // tX];
+
+  LongType zCoords[SD_MAX_RANK];
+  LongType xCoords[SD_MAX_RANK];
+
+  for (LongType t = tid; t < bufferLength; t += step) {
+    // Compute output coordinates and offset
+    INDEX2COORDS(t, rankOutput, shapeOutput, zCoords);
+    LongType zOffset;
+    COORDS2INDEX(rankOutput, strideOutput, zCoords, zOffset);
+
+    // Compute input coordinates and offset
+    INDEX2COORDS(n, rankTad, shapeTad, xCoords);
+    LongType xOffset;
+    COORDS2INDEX(rankTad, strideTad, xCoords, xOffset);
+
+    // Access and assign the value
+    z[zOffset] = x[pTadOffsets[t] + xOffset];
   }
 }
 
 template <typename T>
-void nthElementFunctor_(sd::LaunchContext* context, NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
+void nthElementFunctor_(LaunchContext* context, NDArray* input, LongType n, NDArray* output, bool reverse) {
   NDArray::prepareSpecialUse({output}, {input});
   NDArray sortedVals(*input);
-  sd::Pointer params[2];
+  Pointer params[2];
   params[0] = context;
   params[1] = context->getCudaStream();
   // Nth element in sorted sequence : basic algorithm sort and retrieve nth element in sorted
   if (input->isVector()) {
-    sort(params, nullptr, sortedVals.shapeInfo(), sortedVals.specialBuffer(), sortedVals.specialShapeInfo(), reverse);
+    sort(params, &sortedVals, reverse);
 
     cudaMemcpy(reinterpret_cast<T*>(output->specialBuffer()), reinterpret_cast<T*>(sortedVals.specialBuffer()) + n,
                sizeof(T), cudaMemcpyDeviceToDevice);
   } else {  // rank greater than 1
-    std::vector<int> lastDims(
-        {input->rankOf() - 1});  // = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
+    std::vector<LongType> lastDims(
+        {input->rankOf() - 1});
+    NDArray *dimData = NDArrayFactory::create_<LongType>('c',{2},lastDims, context);
+    auto packX = ConstantTadHelper::getInstance().tadForDimensions(sortedVals.shapeInfo(), &lastDims);
 
-    auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(sortedVals.shapeInfo(), lastDims);
-
-    auto pTadShape = packX.specialShapeInfo();
-    auto pTadShapeH = packX.primaryShapeInfo();
-    auto pTadOffsets = packX.specialOffsets();
-    sortTad(params, sortedVals.buffer(), sortedVals.shapeInfo(), sortedVals.specialBuffer(),
-            sortedVals.specialShapeInfo(), lastDims.data(), lastDims.size(), pTadShape, pTadOffsets, reverse);
+    auto pTadShape = packX->specialShapeInfo();
+    auto pTadShapeH = packX->primaryShapeInfo();
+    auto pTadOffsets = packX->specialOffsets();
+    sortTad(params, &sortedVals,
+            reinterpret_cast<sd::LongType *>(lastDims.data()),
+           lastDims.size(),
+            const_cast<sd::LongType *>(pTadShape),
+            const_cast<sd::LongType *>(pTadOffsets),
+            reverse);
     sortedVals.tickWriteDevice();
     sortedVals.syncToHost();
     auto stream = context->getCudaStream();
-    fillUpElementKernel<T><<<32, 64, 1024, *stream>>>(output->specialBuffer(), output->specialShapeInfo(),
+    dim3 launchDims = getLaunchDims("nth_element_fill");
+    fillUpElementKernel<T><<<launchDims.y, launchDims.x, launchDims.z, *stream>>>(output->specialBuffer(), output->specialShapeInfo(),
                                                       sortedVals.specialBuffer(), sortedVals.specialShapeInfo(),
                                                       pTadShape, pTadOffsets, n);
+    sd::DebugHelper::checkErrorCode(stream, "fillUpElementKernel failed");
+
   }
   NDArray::registerSpecialUse({output}, {input});
 }
-void nthElementFunctor(sd::LaunchContext* context, NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
+void nthElementFunctor(LaunchContext* context, NDArray* input, LongType n, NDArray* output, bool reverse) {
   BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (context, input, n, output, reverse), SD_COMMON_TYPES);
 }
 

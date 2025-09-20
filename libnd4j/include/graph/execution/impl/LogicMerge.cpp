@@ -23,7 +23,7 @@
 
 namespace sd {
 namespace graph {
-sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
+Status LogicMerge::processNode(Graph *graph, Node *node) {
   // at merge node only one of inputs exist if that's just switch and other node isn't LogicNextItration
   auto __variableSpace = graph->getVariableSpace();
   auto __flowPath = __variableSpace->flowPath();
@@ -39,7 +39,7 @@ sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
     auto secondNode = graph->nodeById(inputAddr1.first);
 
     // checking for NextIteration
-    if (secondNode->opType() == OpType_LOGIC && secondNode->opNum() == 80L) {
+    if (secondNode->opType() == ::graph::OpType_LOGIC && secondNode->opNum() == 80L) {
       isWhile = true;
 
       // notifying NextIteration node for rewind index
@@ -82,8 +82,8 @@ sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
       else
         lvar = new Variable(nullptr, node->getName()->c_str(), node->id(), 0);
 
-      //                    if (lvar->hasNDArray())
-      //                        delete lvar->getNDArray();
+      if (lvar->hasNDArray())
+        delete lvar->getNDArray();
 
       auto array = var->getNDArray();
       lvar->setNDArray(array);
@@ -91,7 +91,7 @@ sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
     }
   } else {
     // basically, first non-null variable is our target
-    for (int e = 0; e < node->input()->size(); e++) {
+    for (size_t e = 0; e < node->input()->size(); e++) {
       auto inputAddr = node->input()->at(e);
 
       if (__variableSpace->hasVariable(inputAddr)) {
@@ -101,22 +101,22 @@ sd::Status LogicMerge::processNode(Graph *graph, Node *node) {
         Variable *lvar = nullptr;
         if (__variableSpace->hasVariable(node->id(), 0))
           lvar = __variableSpace->getVariable(node->id(), 0);
-        else
+        else {
           lvar = new Variable(nullptr, node->getName()->c_str(), node->id(), 0);
-
+        }
         if (lvar->hasNDArray()) delete lvar->getNDArray();
 
         auto array = var->getNDArray();
         lvar->setNDArray(array);
         lvar->markReadOnly(true);
-        // lvar->markExternal(false);h
+        lvar->markExternal(false);
 
         break;
       }
     }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 }  // namespace graph
 }  // namespace sd

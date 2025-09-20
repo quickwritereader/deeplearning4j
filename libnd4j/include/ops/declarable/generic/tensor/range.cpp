@@ -32,7 +32,6 @@ namespace ops {
 
 CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
   auto output = OUTPUT_VARIABLE(0);
-
   const int numInArrs = block.width();
   const int numTArgs = block.getTArguments()->size();
   const int numIArgs = block.getIArguments()->size();
@@ -44,11 +43,10 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
   bool localD = false;
   // FIXME: this op should be fully moved to helpers
 
-  if (output->isEmpty()) return sd::Status::OK;
+  if (output->isEmpty()) return Status::OK;
 
   if (numInArrs > 0) {
     if (numInArrs == 1) {
-      // limit = (*INPUT_VARIABLE(0))(0.);
       if (output->isR()) {
         s = NDArrayFactory::create_(0.0f, block.launchContext());
         d = NDArrayFactory::create_(1.0f, block.launchContext());
@@ -60,7 +58,6 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
       localD = true;
     } else if (numInArrs == 2) {
       s = INPUT_VARIABLE(0);
-      // limit = (*INPUT_VARIABLE(1))(0.);
       if (output->isR()) {
         d = NDArrayFactory::create_(1.0f, block.launchContext());
       } else {
@@ -69,19 +66,15 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
       localD = true;
     } else {
       s = INPUT_VARIABLE(0);
-      // limit = (*INPUT_VARIABLE(1))(0.);
       d = INPUT_VARIABLE(2);
     }
   } else if (numIArgs > 0) {
     if (numIArgs == 1) {
-      //  limit = INT_ARG(0);
     } else if (numIArgs == 2) {
       s = NDArrayFactory::create_(INT_ARG(0), block.launchContext());
-      // limit = INT_ARG(1);
       d = NDArrayFactory::create_(1, block.launchContext());
     } else {
       s = NDArrayFactory::create_(INT_ARG(0), block.launchContext());
-      // limit = INT_ARG(1);
       d = NDArrayFactory::create_(INT_ARG(2), block.launchContext());
     }
 
@@ -89,17 +82,16 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
     localD = true;
   } else if (numTArgs > 0) {
     if (numTArgs == 1) {
-      // limit = T_ARG(0);
       s = NDArrayFactory::create_(0.0f, block.launchContext());
       d = NDArrayFactory::create_(1.0f, block.launchContext());
     } else if (numTArgs == 2) {
       s = NDArrayFactory::create_(T_ARG(0), block.launchContext());
-      // limit = T_ARG(1);
       d = NDArrayFactory::create_(1.0f, block.launchContext());
     } else {
-      s = NDArrayFactory::create_(T_ARG(0), block.launchContext());
-      // limit = T_ARG(1);
-      d = NDArrayFactory::create_(T_ARG(2), block.launchContext());
+      float start = static_cast<float>(T_ARG(0));
+      float delta = static_cast<float>(T_ARG(2));
+      s = NDArrayFactory::create_<float>(start, block.launchContext());
+      d = NDArrayFactory::create_<float>(delta, block.launchContext());
     }
 
     localS = true;
@@ -110,22 +102,23 @@ CUSTOM_OP_IMPL(range, -2, 1, false, -2, -2) {
         "CUSTOM RANGE OP: op should have inputs defined in any possible way: T_args, INT_args, or INPUT variables!");
   }
 
-  helpers::range(block.launchContext(), *s, *d, *output);
+  NDArray& start = *s;
+  NDArray& delta = *d;
+  NDArray& outputRef = *output;
+  helpers::range(block.launchContext(), start, delta, outputRef);
 
   if (localS) delete s;
 
   if (localD) delete d;
-
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(range) {
   const int numInArrs = block.width();
   const int numTArgs = block.getTArguments()->size();
   const int numIArgs = block.getIArguments()->size();
-
-  sd::LongType steps = 0;
-  sd::DataType dataType = block.numD() ? D_ARG(0) : sd::DataType::INHERIT;
+  LongType steps = 0;
+  DataType dataType = block.numD() ? D_ARG(0) : INPUT_VARIABLE(0)->dataType();
 
   if (numInArrs > 0) {
     auto isR = INPUT_VARIABLE(0)->isR();
@@ -148,47 +141,79 @@ DECLARE_SHAPE_FN(range) {
 
       if (limit == start) {
         // Return [0] to match TF
-        return SHAPELIST(ConstantShapeHelper::getInstance().vectorShapeInfo(0, dtype));
+        std::vector<LongType> shape = {};
+        return SHAPELIST(ConstantShapeHelper::getInstance().emptyShapeInfoWithShape(dtype, shape));
       }
 
       REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-      steps = static_cast<sd::LongType>((limit - start) / delta);
+      steps = static_cast<LongType>((limit - start) / delta);
 
       if (!block.numD()) dataType = INPUT_VARIABLE(0)->dataType();
 
-      if (math::sd_abs<double>(start + steps * delta) < math::sd_abs<double>(limit)) ++steps;
-    } else if (isZ) {
-      sd::LongType start(0), limit, delta(1);
-
-      if (numInArrs == 1)
-        limit = INPUT_VARIABLE(0)->e<sd::LongType>(0);
-      else if (numInArrs == 2) {
-        start = INPUT_VARIABLE(0)->e<sd::LongType>(0);
-        limit = INPUT_VARIABLE(1)->e<sd::LongType>(0);
-      } else {
-        start = INPUT_VARIABLE(0)->e<sd::LongType>(0);
-        limit = INPUT_VARIABLE(1)->e<sd::LongType>(0);
-        delta = INPUT_VARIABLE(2)->e<sd::LongType>(0);
+      if(steps <= 0) {
+        std::string errorMessage;
+        errorMessage += "CUSTOM RANGE OP: value of (limit-start)/delta should be positive !\n";
+        errorMessage += "But got: (";
+        errorMessage += std::to_string(limit);
+        errorMessage += " - ";
+        errorMessage += std::to_string(start);
+        errorMessage += ") / ";
+        errorMessage += std::to_string(delta);
+        errorMessage += " = ";
+        errorMessage += std::to_string(steps);
+        errorMessage += "\n";
+        THROW_EXCEPTION(errorMessage.c_str());
       }
 
-      // sd_printf("Start: [%lld]; Limit: [%lld]; Delta: [%lld];\n", start, limit, delta)
+      if (math::sd_abs<double,double>(start + steps * delta) < math::sd_abs<double,double>(limit)) ++steps;
+    } else if (isZ) {
+      LongType start(0), limit, delta(1);
+
+      if (numInArrs == 1)
+        limit = INPUT_VARIABLE(0)->cast(INT64).e<LongType>(0);
+      else if (numInArrs == 2) {
+        start = INPUT_VARIABLE(0)->cast(INT64).e<LongType>(0);
+        limit = INPUT_VARIABLE(1)->cast(INT64).e<LongType>(0);
+      } else {
+        start = INPUT_VARIABLE(0)->cast(INT64).e<LongType>(0);
+        limit = INPUT_VARIABLE(1)->cast(INT64).e<LongType>(0);
+        delta = INPUT_VARIABLE(2)->cast(INT64).e<LongType>(0);
+
+      }
 
       if (limit == start) {
         // Return [0] to match TF
-        return SHAPELIST(ConstantShapeHelper::getInstance().vectorShapeInfo(0, dtype));
+        std::vector<LongType> shape = {0};
+        return SHAPELIST(ConstantShapeHelper::getInstance().emptyShapeInfoWithShape(dtype, shape));
       }
 
       REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-      steps = static_cast<sd::LongType>((limit - start) / delta);
+      steps = static_cast<LongType>((limit - start) / delta);
 
       if (!block.numD()) dataType = INPUT_VARIABLE(0)->dataType();
 
-      if (math::sd_abs<double>(start + steps * delta) < math::sd_abs<double>(limit)) ++steps;
+      if (math::sd_abs<double,double>(start + steps * delta) < math::sd_abs<double,double>(limit)) ++steps;
+
+      if(steps <= 0) {
+        std::string errorMessage;
+        errorMessage += "CUSTOM RANGE OP: value of (limit-start)/delta should be positive !\n";
+        errorMessage += "But got: (";
+        errorMessage += std::to_string(limit);
+        errorMessage += " - ";
+        errorMessage += std::to_string(start);
+        errorMessage += ") / ";
+        errorMessage += std::to_string(delta);
+        errorMessage += " = ";
+        errorMessage += std::to_string(steps);
+        errorMessage += "\n";
+        THROW_EXCEPTION(errorMessage.c_str());
+      }
+
     }
   } else if (numIArgs > 0) {
-    sd::LongType start(0), limit, delta(1);
+    LongType start(0), limit, delta(1);
 
     if (numIArgs == 1)
       limit = INT_ARG(0);
@@ -203,21 +228,37 @@ DECLARE_SHAPE_FN(range) {
 
     if (limit == start) {
       // Return [0] to match TF
-      return SHAPELIST(ConstantShapeHelper::getInstance().vectorShapeInfo(0, sd::DataType::INT32));
+      return SHAPELIST(ConstantShapeHelper::getInstance().emptyShapeInfo(sd::DataType::INT32));
     }
 
     REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
     if (!block.numD()) {
       if (limit > DataTypeUtils::max<int>())
-        dataType = sd::DataType::INT64;
+        dataType = INT64;
       else
-        dataType = sd::DataType::INT32;
+        dataType = INT32;
     }
 
     steps = (limit - start) / delta;
 
-    if (math::sd_abs<sd::LongType>(start + steps * delta) < math::sd_abs<sd::LongType>(limit)) ++steps;
+    if (math::sd_abs<LongType,LongType>(start + steps * delta) < math::sd_abs<LongType,LongType>(limit)) ++steps;
+
+    if(steps <= 0) {
+      std::string errorMessage;
+      errorMessage += "CUSTOM RANGE OP: value of (limit-start)/delta should be positive !\n";
+      errorMessage += "But got: (";
+      errorMessage += std::to_string(limit);
+      errorMessage += " - ";
+      errorMessage += std::to_string(start);
+      errorMessage += ") / ";
+      errorMessage += std::to_string(delta);
+      errorMessage += " = ";
+      errorMessage += std::to_string(steps);
+      errorMessage += "\n";
+      THROW_EXCEPTION(errorMessage.c_str());
+    }
+
   } else if (numTArgs > 0) {
     double start(0), limit, delta(1);
 
@@ -234,35 +275,55 @@ DECLARE_SHAPE_FN(range) {
 
     if (limit == start) {
       // Return [0] to match TF
+      std::vector<LongType> shape = {0};
       return SHAPELIST(
-          ConstantShapeHelper::getInstance().vectorShapeInfo(0, Environment::getInstance().defaultFloatDataType()));
+          ConstantShapeHelper::getInstance().emptyShapeInfoWithShape(Environment::getInstance().defaultFloatDataType(),shape));
     }
 
     REQUIRE_TRUE(delta != 0, 0, "CUSTOM RANGE OP: delta should not be equal to zero !");
 
-    steps = static_cast<sd::LongType>((limit - start) / delta);
+    steps = static_cast<LongType>((limit - start) / delta);
 
     if (!block.numD()) {
       if (Environment::getInstance().precisionBoostAllowed())
-        dataType = sd::DataType::DOUBLE;
+        dataType = DOUBLE;
       else
         dataType = Environment::getInstance().defaultFloatDataType();
     }
 
-    if (math::sd_abs<double>(start + steps * delta) < math::sd_abs<double>(limit)) ++steps;
+    if(steps <= 0) {
+      std::string errorMessage;
+      errorMessage += "CUSTOM RANGE OP: value of (limit-start)/delta should be positive !\n";
+      errorMessage += "But got: (";
+      errorMessage += std::to_string(limit);
+      errorMessage += " - ";
+      errorMessage += std::to_string(start);
+      errorMessage += ") / ";
+      errorMessage += std::to_string(delta);
+      errorMessage += " = ";
+      errorMessage += std::to_string(steps);
+      errorMessage += "\n";
+      THROW_EXCEPTION(errorMessage.c_str());
+    }
+
+    if (math::sd_abs<double,double>(start + steps * delta) < math::sd_abs<double,double>(limit)) ++steps;
   } else {
     REQUIRE_TRUE(
         false, 0,
         "CUSTOM RANGE OP: op should have inputs defined in any possible way: T_args, INT_args, or INPUT variables!");
   }
 
+
   REQUIRE_TRUE(steps > 0, 0, "CUSTOM RANGE OP: value of (limit-start)/delta should be positive !");
+  if(steps == 0) {
+    return SHAPELIST(ConstantShapeHelper::getInstance().scalarShapeInfo(dataType));
+  }
 
   return SHAPELIST(ConstantShapeHelper::getInstance().vectorShapeInfo(steps, dataType));
 }
 
 DECLARE_TYPES(range) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS, ALL_INTS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS, ALL_INTS});
 }
 }  // namespace ops
 }  // namespace sd

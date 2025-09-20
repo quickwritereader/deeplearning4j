@@ -65,12 +65,6 @@ import org.nd4j.linalg.dataset.SplitTestAndTrain;
 import org.nd4j.linalg.dataset.api.MultiDataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.factory.Nd4j;
-import org.nd4j.linalg.heartbeat.Heartbeat;
-import org.nd4j.linalg.heartbeat.reports.Environment;
-import org.nd4j.linalg.heartbeat.reports.Event;
-import org.nd4j.linalg.heartbeat.reports.Task;
-import org.nd4j.linalg.heartbeat.utils.EnvironmentUtils;
-import org.nd4j.linalg.heartbeat.utils.TaskUtils;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.learning.config.Adam;
 import org.nd4j.linalg.learning.config.NoOp;
@@ -135,7 +129,7 @@ public class MultiLayerTest extends BaseDL4JTest {
     @DisplayName("Test Batch Norm")
     void testBatchNorm() {
         Nd4j.getRandom().setSeed(123);
-        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT).seed(123).list().layer(0, new DenseLayer.Builder().nIn(4).nOut(3).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(1, new DenseLayer.Builder().nIn(3).nOut(2).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(2, new BatchNormalization.Builder().nOut(2).build()).layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).weightInit(WeightInit.XAVIER).activation(Activation.SOFTMAX).nIn(2).nOut(3).build()).build();
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).seed(123).list().layer(0, new DenseLayer.Builder().nIn(4).nOut(3).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(1, new DenseLayer.Builder().nIn(3).nOut(2).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(2, new BatchNormalization.Builder().nOut(2).build()).layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).weightInit(WeightInit.XAVIER).activation(Activation.SOFTMAX).nIn(2).nOut(3).build()).build();
         MultiLayerNetwork network = new MultiLayerNetwork(conf);
         network.init();
         network.setListeners(new ScoreIterationListener(1));
@@ -154,7 +148,7 @@ public class MultiLayerTest extends BaseDL4JTest {
     @DisplayName("Test Back Prop")
     void testBackProp() {
         Nd4j.getRandom().setSeed(123);
-        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT).seed(123).list().layer(0, new DenseLayer.Builder().nIn(4).nOut(3).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(1, new DenseLayer.Builder().nIn(3).nOut(2).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).weightInit(WeightInit.XAVIER).activation(Activation.SOFTMAX).nIn(2).nOut(3).build()).build();
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).seed(123).list().layer(0, new DenseLayer.Builder().nIn(4).nOut(3).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(1, new DenseLayer.Builder().nIn(3).nOut(2).weightInit(WeightInit.XAVIER).activation(Activation.TANH).build()).layer(2, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).weightInit(WeightInit.XAVIER).activation(Activation.SOFTMAX).nIn(2).nOut(3).build()).build();
         MultiLayerNetwork network = new MultiLayerNetwork(conf);
         network.init();
         network.setListeners(new ScoreIterationListener(1));
@@ -217,7 +211,7 @@ public class MultiLayerTest extends BaseDL4JTest {
         Arrays.fill(trainingData[1], 0.5f);
         Arrays.fill(trainingData[2], 0.05f);
         log.info("Build model....");
-        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().seed(seed).optimizationAlgo(OptimizationAlgorithm.LINE_GRADIENT_DESCENT).list().layer(0, new DenseLayer.Builder().nIn(numRows * numColumns).nOut(1000).build()).layer(1, new DenseLayer.Builder().nIn(1000).nOut(500).build()).layer(2, new DenseLayer.Builder().nIn(500).nOut(250).build()).layer(3, new DenseLayer.Builder().nIn(250).nOut(100).build()).layer(4, // encoding stops
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().seed(seed).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).list().layer(0, new DenseLayer.Builder().nIn(numRows * numColumns).nOut(1000).build()).layer(1, new DenseLayer.Builder().nIn(1000).nOut(500).build()).layer(2, new DenseLayer.Builder().nIn(500).nOut(250).build()).layer(3, new DenseLayer.Builder().nIn(250).nOut(100).build()).layer(4, // encoding stops
         new DenseLayer.Builder().nIn(100).nOut(30).build()).layer(5, // decoding starts
         new DenseLayer.Builder().nIn(30).nOut(100).build()).layer(6, new DenseLayer.Builder().nIn(100).nOut(250).build()).layer(7, new DenseLayer.Builder().nIn(250).nOut(500).build()).layer(8, new DenseLayer.Builder().nIn(500).nOut(1000).build()).layer(9, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nIn(1000).nOut(numRows * numColumns).activation(Activation.SOFTMAX).build()).build();
         MultiLayerNetwork model = new MultiLayerNetwork(conf);
@@ -259,7 +253,7 @@ public class MultiLayerTest extends BaseDL4JTest {
     void testFeedForwardToLayer() {
         int nIn = 30;
         int nOut = 25;
-        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.CONJUGATE_GRADIENT).updater(new Sgd(1e-3)).list().layer(0, new DenseLayer.Builder().nIn(nIn).nOut(600).dist(new NormalDistribution(0, 1e-5)).build()).layer(1, new DenseLayer.Builder().nIn(600).nOut(250).dist(new NormalDistribution(0, 1e-5)).build()).layer(2, new DenseLayer.Builder().nIn(250).nOut(100).dist(new NormalDistribution(0, 1e-5)).build()).layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).nIn(100).nOut(25).activation(Activation.SOFTMAX).weightInit(new NormalDistribution(0, 1e-5)).build()).build();
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder().optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).updater(new Sgd(1e-3)).list().layer(0, new DenseLayer.Builder().nIn(nIn).nOut(600).dist(new NormalDistribution(0, 1e-5)).build()).layer(1, new DenseLayer.Builder().nIn(600).nOut(250).dist(new NormalDistribution(0, 1e-5)).build()).layer(2, new DenseLayer.Builder().nIn(250).nOut(100).dist(new NormalDistribution(0, 1e-5)).build()).layer(3, new OutputLayer.Builder(LossFunctions.LossFunction.MCXENT).nIn(100).nOut(25).activation(Activation.SOFTMAX).weightInit(new NormalDistribution(0, 1e-5)).build()).build();
         MultiLayerNetwork network = new MultiLayerNetwork(conf);
         network.init();
         INDArray input = Nd4j.rand(5, nIn);
@@ -431,17 +425,6 @@ public class MultiLayerTest extends BaseDL4JTest {
         assertTrue(prediction.get(0) != null);
     }
 
-    @Test
-    @Disabled
-    @DisplayName("Test Cid")
-    void testCid() throws Exception {
-        System.out.println(EnvironmentUtils.buildCId());
-        Environment environment = EnvironmentUtils.buildEnvironment();
-        environment.setSerialVersionID(EnvironmentUtils.buildCId());
-        Task task = TaskUtils.buildTask(Nd4j.create(new double[] { 1, 2, 3, 4, 5, 6 }, new long[] { 1, 6 }));
-        Heartbeat.getInstance().reportEvent(Event.STANDALONE, environment, task);
-        Thread.sleep(25000);
-    }
 
     @Test
     @DisplayName("Test Output")
@@ -634,15 +617,12 @@ public class MultiLayerTest extends BaseDL4JTest {
         int V_HEIGHT = 130;
         int V_NFRAMES = 150;
         MultiLayerConfiguration confForArchitecture = // l2 regularization on all layers
-        new NeuralNetConfiguration.Builder().seed(12345).l2(0.001).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).list().layer(0, // 3 channels: RGB
-        new ConvolutionLayer.Builder(10, 10).nIn(3).nOut(30).stride(4, 4).activation(Activation.RELU).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).build()).layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3, 3).stride(2, 2).build()).layer(2, new ConvolutionLayer.Builder(3, 3).nIn(30).nOut(10).stride(2, 2).activation(Activation.RELU).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).build()).layer(3, new DenseLayer.Builder().activation(Activation.RELU).nIn(490).nOut(50).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).layer(4, new GravesLSTM.Builder().activation(Activation.SOFTSIGN).nIn(50).nOut(50).weightInit(WeightInit.XAVIER).updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).layer(5, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT).activation(Activation.SOFTMAX).nIn(50).nOut(// 4 possible shapes: circle, square, arc, line
-        4).updater(Updater.ADAGRAD).weightInit(WeightInit.XAVIER).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).inputPreProcessor(0, new RnnToCnnPreProcessor(V_HEIGHT, V_WIDTH, 3)).inputPreProcessor(3, new CnnToFeedForwardPreProcessor(7, 7, 10)).inputPreProcessor(4, new FeedForwardToRnnPreProcessor()).backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(V_NFRAMES / 5).tBPTTBackwardLength(V_NFRAMES / 5).build();
+                new NeuralNetConfiguration.Builder().seed(12345).l2(0.001).optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).list().layer(0, // 3 channels: RGB
+                        new ConvolutionLayer.Builder(10, 10).nIn(3).nOut(30).stride(4, 4).activation(Activation.RELU).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).build()).layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3, 3).stride(2, 2).build()).layer(2, new ConvolutionLayer.Builder(3, 3).nIn(30).nOut(10).stride(2, 2).activation(Activation.RELU).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).build()).layer(3, new DenseLayer.Builder().activation(Activation.RELU).nIn(490).nOut(50).weightInit(WeightInit.RELU).updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).layer(4, new LSTM.Builder().activation(Activation.SOFTSIGN).nIn(50).nOut(50).weightInit(WeightInit.XAVIER).updater(Updater.ADAGRAD).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).layer(5, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT).activation(Activation.SOFTMAX).nIn(50).nOut(// 4 possible shapes: circle, square, arc, line
+                        4).updater(Updater.ADAGRAD).weightInit(WeightInit.XAVIER).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue).gradientNormalizationThreshold(10).build()).inputPreProcessor(0, new RnnToCnnPreProcessor(V_HEIGHT, V_WIDTH, 3)).inputPreProcessor(3, new CnnToFeedForwardPreProcessor(7, 7, 10)).inputPreProcessor(4, new FeedForwardToRnnPreProcessor()).backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(V_NFRAMES / 5).tBPTTBackwardLength(V_NFRAMES / 5).build();
         MultiLayerNetwork modelExpectedArch = new MultiLayerNetwork(confForArchitecture);
         modelExpectedArch.init();
         MultiLayerNetwork modelMow = new TransferLearning.Builder(modelExpectedArch).setFeatureExtractor(2).build();
-        // System.out.println(modelExpectedArch.summary());
-        // System.out.println(modelMow.summary());
-        // System.out.println(modelMow.summary(InputType.recurrent(V_HEIGHT*V_WIDTH*3)));
     }
 
     @Test
@@ -780,7 +760,8 @@ public class MultiLayerTest extends BaseDL4JTest {
             final int seqLen = 6;
             INDArray param = Nd4j.create(new double[] { 0.54, 0.31, 0.98, -0.30, -0.66, -0.19, -0.29, -0.62, 0.13, -0.32, 0.01, -0.03, 0.00, 0.00, 0.00 }).reshape(1, -1);
             graph.setParams(param);
-            INDArray input = Nd4j.rand(new int[] { minibatch, nIn, seqLen }, 12);
+            Nd4j.getRandom().setSeed(12);
+            INDArray input = Nd4j.rand(new long[] { minibatch, nIn, seqLen });
             INDArray expected = Nd4j.ones(minibatch, nOut, seqLen);
             graph.setInput(input);
             INDArray output = graph.feedForward(false, false).get(2);
@@ -862,7 +843,7 @@ public class MultiLayerTest extends BaseDL4JTest {
     @Test
     @DisplayName("Test Multi Layer Configuration Activation Types")
     void testMultiLayerConfigurationActivationTypes() {
-        NeuralNetConfiguration.ListBuilder builder = new NeuralNetConfiguration.Builder().list()
+        ListBuilder builder = new NeuralNetConfiguration.Builder().list()
                 .layer(new LSTM.Builder().nOut(6).build())
                 .layer(new LSTM.Builder().nOut(7).build())
                 .layer(new GlobalPoolingLayer())

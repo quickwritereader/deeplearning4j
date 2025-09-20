@@ -22,32 +22,31 @@
 #include <array/NDArrayFactory.h>
 #include <ops/declarable/LegacyScalarBoolOp.h>
 
+#include <ops/declarable/OpRegistrator.h>
+#include <legacy/NativeOpExecutioner.h>
+
 namespace sd {
 namespace ops {
-LegacyScalarBoolOp::LegacyScalarBoolOp() : LegacyOp::LegacyOp(1) {
+LegacyScalarBoolOp::LegacyScalarBoolOp() : LegacyOp(1) {
   // no-op
 }
 
-LegacyScalarBoolOp::LegacyScalarBoolOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyScalarBoolOp::LegacyScalarBoolOp(int opNum) : LegacyOp(1, opNum) {
   // no-op
 }
 
 LegacyOp *LegacyScalarBoolOp::clone() { return new LegacyScalarBoolOp(this->_opNum, *this->_scalar); }
 
-LegacyScalarBoolOp::LegacyScalarBoolOp(int opNum, NDArray &scalar) : LegacyOp::LegacyOp(1, opNum) {
-  _scalar = new NDArray(scalar.dup(scalar.ordering()));
+LegacyScalarBoolOp::LegacyScalarBoolOp(int opNum, NDArray &scalar) : LegacyOp(1, opNum) {
+  _scalar = new NDArray(scalar.dup(scalar.ordering(), false));
 }
 
-ShapeList *LegacyScalarBoolOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyScalarBoolOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
-
-  sd::LongType *newShape;
-  COPY_SHAPE(inShape, newShape);
-
-  return SHAPELIST(CONSTANT(newShape));
+  return SHAPELIST(CONSTANT(inShape));
 }
 
-sd::Status LegacyScalarBoolOp::validateAndExecute(Context &block) {
+Status LegacyScalarBoolOp::validateAndExecute(Context &block) {
   auto x = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
@@ -86,8 +85,9 @@ sd::Status LegacyScalarBoolOp::validateAndExecute(Context &block) {
   }
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 }  // namespace ops
 }  // namespace sd

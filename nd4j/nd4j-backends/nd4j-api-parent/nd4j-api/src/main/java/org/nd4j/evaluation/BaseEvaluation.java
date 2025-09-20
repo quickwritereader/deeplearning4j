@@ -199,7 +199,7 @@ public abstract class BaseEvaluation<T extends BaseEvaluation> implements IEvalu
                         return reshapeSameShapeTo2d(axis, labels, predictions, mask);
                     }
                 } else {
-                    if(labels.equalShapes(mask)){
+                    if(labels.equalShapes(mask)) {
                         //Per output masking case
                         return reshapeSameShapeTo2d(axis, labels, predictions, mask);
                     } else if(mask.rank() == 1){
@@ -231,21 +231,23 @@ public abstract class BaseEvaluation<T extends BaseEvaluation> implements IEvalu
     }
 
     private static Triple<INDArray,INDArray,INDArray> reshapeSameShapeTo2d(int axis, INDArray labels, INDArray predictions, INDArray mask){
-        int[] permuteDims = new int[labels.rank()];
-        int j=0;
-        for( int i=0; i<labels.rank(); i++ ){
-            if(i == axis){
+        long[] permuteDims = new long[labels.rank()];
+        int j = 0;
+        for( int i = 0; i < labels.rank(); i++) {
+            if(i == axis) {
                 continue;
             }
             permuteDims[j++] = i;
         }
         permuteDims[j] = axis;
         long size0 = 1;
-        for( int i=0; i<permuteDims.length-1; i++ ){
+        for( int i = 0; i < permuteDims.length - 1; i++) {
             size0 *= labels.size(permuteDims[i]);
         }
 
-        INDArray lOut = labels.permute(permuteDims).dup('c').reshape('c',size0, labels.size(axis));
+        INDArray labelsPerm = labels.permute(permuteDims);
+        INDArray dupped = labelsPerm.dup('c');
+        INDArray lOut = dupped.reshape('c',size0, labels.size(axis));
         INDArray pOut = predictions.permute(permuteDims).dup('c').reshape('c',size0, labels.size(axis));
         INDArray mOut = mask == null ? null : mask.permute(permuteDims).dup('c').reshape('c',size0, labels.size(axis));
 

@@ -29,6 +29,7 @@ import org.deeplearning4j.models.embeddings.learning.ElementsLearningAlgorithm;
 import org.deeplearning4j.models.embeddings.loader.VectorsConfiguration;
 import org.deeplearning4j.models.embeddings.reader.ModelUtils;
 import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
+import org.deeplearning4j.models.paragraphvectors.ParagraphVectors;
 import org.deeplearning4j.models.sequencevectors.SequenceVectors;
 import org.deeplearning4j.models.sequencevectors.interfaces.SequenceIterator;
 import org.deeplearning4j.models.sequencevectors.interfaces.VectorsListener;
@@ -68,6 +69,7 @@ public class Word2Vec extends SequenceVectors<VocabWord> {
 
         if (sentenceIter != null) {
             SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(sentenceIter)
+                    .vocabCache(vocab)
                     .tokenizerFactory(this.tokenizerFactory).build();
             this.iterator = new AbstractSequenceIterator.Builder<>(transformer).build();
         }
@@ -79,11 +81,11 @@ public class Word2Vec extends SequenceVectors<VocabWord> {
      * @param iterator SentenceIterator instance
      */
     public void setSentenceIterator(@NonNull SentenceIterator iterator) {
-        //if (tokenizerFactory == null) throw new IllegalStateException("Please call setTokenizerFactory() prior to setSentenceIter() call.");
 
         if (tokenizerFactory != null) {
             SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(iterator)
                     .tokenizerFactory(tokenizerFactory)
+                    .vocabCache(vocab)
                     .allowMultithreading(configuration == null || configuration.isAllowParallelTokenization())
                     .build();
             this.iterator = new AbstractSequenceIterator.Builder<>(transformer).build();
@@ -510,6 +512,23 @@ public class Word2Vec extends SequenceVectors<VocabWord> {
             return this;
         }
 
+
+        /**
+         * Sets number of threads running calculations.
+         * Note this is different from workers which affect
+         * the number of threads used to compute updates.
+         * This should be balanced with the number of workers.
+         * High number of threads will actually hinder performance.
+         *
+         * @param vectorCalcThreads the number of threads to compute updates
+         * @return
+         */
+        public Builder vectorCalcThreads(int vectorCalcThreads) {
+            super.vectorCalcThreads(vectorCalcThreads);
+            return this;
+        }
+
+
         /**
          * This method defines maximum number of concurrent threads available for training
          *
@@ -669,6 +688,7 @@ public class Word2Vec extends SequenceVectors<VocabWord> {
                     tokenizerFactory = new DefaultTokenizerFactory();
 
                 SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(sentenceIterator)
+                        .vocabCache(vocabCache)
                         .tokenizerFactory(tokenizerFactory).allowMultithreading(allowParallelTokenization)
                         .build();
                 this.iterator = new AbstractSequenceIterator.Builder<>(transformer).build();
@@ -680,6 +700,7 @@ public class Word2Vec extends SequenceVectors<VocabWord> {
 
                 SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(labelAwareIterator)
                         .tokenizerFactory(tokenizerFactory).allowMultithreading(allowParallelTokenization)
+                        .vocabCache(vocabCache)
                         .build();
                 this.iterator = new AbstractSequenceIterator.Builder<>(transformer).build();
             }

@@ -31,7 +31,7 @@ namespace ops {
 namespace helpers {
 
 template <typename T>
-static void rgbToGrs_(const NDArray& input, NDArray& output, const int dimC) {
+static void rgbToGrs_(NDArray& input, NDArray& output, const int dimC) {
   const T* x = input.bufferAsT<T>();
   T* z = output.bufferAsT<T>();
   const int rank = input.rankOf();
@@ -49,14 +49,20 @@ static void rgbToGrs_(const NDArray& input, NDArray& output, const int dimC) {
     return;
   }
 
+  sd::LongType *outputShape = shape::shapeOf(output.shapeInfo());
+  sd::LongType *outputStride = shape::stride(output.shapeOf());
+  sd::LongType *inputStride = shape::stride(input.shapeInfo());
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
+    sd::LongType coords[SD_MAX_RANK];
     for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, output.shapeInfo(), coords);
-      const auto zOffset = shape::getOffset(output.shapeInfo(), coords);
-      const auto xOffset0 = shape::getOffset(input.shapeInfo(), coords);
-      const auto xOffset1 = xOffset0 + input.strideAt(dimC);
-      const auto xOffset2 = xOffset1 + input.strideAt(dimC);
+      INDEX2COORDS(i, rank,outputShape, coords);
+      sd::LongType zOffset, xOffset0, xOffset1, xOffset2;
+      COORDS2INDEX(rank, outputStride, coords, zOffset);
+      COORDS2INDEX(rank, inputStride, coords, xOffset0);
+      coords[dimC]++;
+      COORDS2INDEX(rank,inputStride, coords, xOffset1);
+      coords[dimC]++;
+      COORDS2INDEX(rank, inputStride, coords, xOffset2);
       z[zOffset] = 0.2989f * x[xOffset0] + 0.5870f * x[xOffset1] + 0.1140f * x[xOffset2];
     }
   };
@@ -65,12 +71,12 @@ static void rgbToGrs_(const NDArray& input, NDArray& output, const int dimC) {
   return;
 }
 
-void transformRgbGrs(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformRgbGrs(sd::LaunchContext* context, NDArray& input, NDArray& output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input.dataType(), rgbToGrs_, (input, output, dimC), SD_NUMERIC_TYPES);
 }
 
 template <typename T>
-SD_INLINE static void tripleTransformer(const NDArray* input, NDArray* output, const int dimC, T (&tr)[3][3]) {
+SD_INLINE static void tripleTransformer(NDArray* input, NDArray* output, const int dimC, T (&tr)[3][3]) {
   const int rank = input->rankOf();
 
   const T* x = input->bufferAsT<T>();
@@ -98,14 +104,14 @@ SD_INLINE static void tripleTransformer(const NDArray* input, NDArray* output, c
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-    const sd::LongType numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX->numberOfTads();
     const sd::LongType xDimCstride = input->stridesOf()[dimC];
     const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        const T* xTad = x + packX.platformOffsets()[i];
-        T* zTad = z + packZ.platformOffsets()[i];
+        const T* xTad = x + packX->platformOffsets()[i];
+        T* zTad = z + packZ->platformOffsets()[i];
         // simple M*v //tr.T*v
         T x0, x1, x2;
         x0 = xTad[0];
@@ -122,7 +128,7 @@ SD_INLINE static void tripleTransformer(const NDArray* input, NDArray* output, c
 }
 
 template <typename T>
-SD_INLINE static void rgbYiq(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void rgbYiq(NDArray* input, NDArray* output, const int dimC) {
   T arr[3][3] = {{(T)0.299, (T)0.59590059, (T)0.2115},
                  {(T)0.587, (T)-0.27455667, (T)-0.52273617},
                  {(T)0.114, (T)-0.32134392, (T)0.31119955}};
@@ -130,7 +136,7 @@ SD_INLINE static void rgbYiq(const NDArray* input, NDArray* output, const int di
 }
 
 template <typename T>
-SD_INLINE static void yiqRgb(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void yiqRgb(NDArray* input, NDArray* output, const int dimC) {
   // TODO: this operation does not use the clamp operation, so there is a possibility being out of range.
   // Justify that it  will not be out of range for images data
   T arr[3][3] = {{(T)1, (T)1, (T)1},
@@ -140,7 +146,7 @@ SD_INLINE static void yiqRgb(const NDArray* input, NDArray* output, const int di
 }
 
 template <typename T>
-SD_INLINE static void hsvRgb(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void hsvRgb(NDArray* input, NDArray* output, const int dimC) {
   const int rank = input->rankOf();
 
   const T* x = input->bufferAsT<T>();
@@ -159,14 +165,14 @@ SD_INLINE static void hsvRgb(const NDArray* input, NDArray* output, const int di
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-    const sd::LongType numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX->numberOfTads();
     const sd::LongType xDimCstride = input->stridesOf()[dimC];
     const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i += increment) {
-        const T* xTad = x + packX.platformOffsets()[i];
-        T* zTad = z + packZ.platformOffsets()[i];
+        const T* xTad = x + packX->platformOffsets()[i];
+        T* zTad = z + packZ->platformOffsets()[i];
         sd::ops::helpers::hsvToRgb<T>(xTad[0], xTad[xDimCstride], xTad[2 * xDimCstride], zTad[0], zTad[zDimCstride],
                                       zTad[2 * zDimCstride]);
       }
@@ -177,7 +183,7 @@ SD_INLINE static void hsvRgb(const NDArray* input, NDArray* output, const int di
 }
 
 template <typename T>
-SD_INLINE static void rgbHsv(const NDArray* input, NDArray* output, const int dimC) {
+SD_INLINE static void rgbHsv(NDArray* input, NDArray* output, const int dimC) {
   const int rank = input->rankOf();
 
   const T* x = input->bufferAsT<T>();
@@ -196,14 +202,14 @@ SD_INLINE static void rgbHsv(const NDArray* input, NDArray* output, const int di
     auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimC);
     auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimC);
 
-    const sd::LongType numOfTads = packX.numberOfTads();
+    const sd::LongType numOfTads = packX->numberOfTads();
     const sd::LongType xDimCstride = input->stridesOf()[dimC];
     const sd::LongType zDimCstride = output->stridesOf()[dimC];
 
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i += increment) {
-        const T* xTad = x + packX.platformOffsets()[i];
-        T* zTad = z + packZ.platformOffsets()[i];
+        const T* xTad = x + packX->platformOffsets()[i];
+        T* zTad = z + packZ->platformOffsets()[i];
         sd::ops::helpers::rgbToHsv<T>(xTad[0], xTad[xDimCstride], xTad[2 * xDimCstride], zTad[0], zTad[zDimCstride],
                                       zTad[2 * zDimCstride]);
       }
@@ -214,7 +220,7 @@ SD_INLINE static void rgbHsv(const NDArray* input, NDArray* output, const int di
 }
 
 template <typename T>
-SD_INLINE static void rgbYuv_(const NDArray& input, NDArray& output, const int dimC) {
+SD_INLINE static void rgbYuv_(NDArray& input, NDArray& output, const int dimC) {
   const T* x = input.bufferAsT<T>();
   T* z = output.bufferAsT<T>();
   const int rank = input.rankOf();
@@ -235,14 +241,14 @@ SD_INLINE static void rgbYuv_(const NDArray& input, NDArray& output, const int d
   auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimC);
   auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), dimC);
 
-  const sd::LongType numOfTads = packX.numberOfTads();
+  const sd::LongType numOfTads = packX->numberOfTads();
   const sd::LongType xDimCstride = input.stridesOf()[dimC];
   const sd::LongType zDimCstride = output.stridesOf()[dimC];
 
   auto func = PRAGMA_THREADS_FOR {
     for (auto i = start; i < stop; i += increment) {
-      const T* xTad = x + packX.platformOffsets()[i];
-      T* zTad = z + packZ.platformOffsets()[i];
+      const T* xTad = x + packX->platformOffsets()[i];
+      T* zTad = z + packZ->platformOffsets()[i];
       sd::ops::helpers::rgbYuv<T>(xTad[0], xTad[xDimCstride], xTad[2 * xDimCstride], zTad[0], zTad[zDimCstride],
                                   zTad[2 * zDimCstride]);
     }
@@ -253,7 +259,7 @@ SD_INLINE static void rgbYuv_(const NDArray& input, NDArray& output, const int d
 }
 
 template <typename T>
-SD_INLINE static void yuvRgb_(const NDArray& input, NDArray& output, const int dimC) {
+SD_INLINE static void yuvRgb_(NDArray& input, NDArray& output, const int dimC) {
   const T* x = input.bufferAsT<T>();
   T* z = output.bufferAsT<T>();
   const int rank = input.rankOf();
@@ -274,14 +280,14 @@ SD_INLINE static void yuvRgb_(const NDArray& input, NDArray& output, const int d
   auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimC);
   auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(output.shapeInfo(), dimC);
 
-  const sd::LongType numOfTads = packX.numberOfTads();
+  const sd::LongType numOfTads = packX->numberOfTads();
   const sd::LongType xDimCstride = input.stridesOf()[dimC];
   const sd::LongType zDimCstride = output.stridesOf()[dimC];
 
   auto func = PRAGMA_THREADS_FOR {
     for (auto i = start; i < stop; i += increment) {
-      const T* xTad = x + packX.platformOffsets()[i];
-      T* zTad = z + packZ.platformOffsets()[i];
+      const T* xTad = x + packX->platformOffsets()[i];
+      T* zTad = z + packZ->platformOffsets()[i];
       sd::ops::helpers::yuvRgb<T>(xTad[0], xTad[xDimCstride], xTad[2 * xDimCstride], zTad[0], zTad[zDimCstride],
                                   zTad[2 * zDimCstride]);
     }
@@ -291,27 +297,27 @@ SD_INLINE static void yuvRgb_(const NDArray& input, NDArray& output, const int d
   return;
 }
 
-void transformRgbYuv(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformRgbYuv(sd::LaunchContext* context, NDArray& input, NDArray& output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input.dataType(), rgbYuv_, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-void transformYuvRgb(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimC) {
+void transformYuvRgb(sd::LaunchContext* context, NDArray& input, NDArray& output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input.dataType(), yuvRgb_, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-void transformHsvRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+void transformHsvRgb(sd::LaunchContext* context, NDArray* input, NDArray* output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input->dataType(), hsvRgb, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-void transformRgbHsv(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+void transformRgbHsv(sd::LaunchContext* context, NDArray* input, NDArray* output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input->dataType(), rgbHsv, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-void transformYiqRgb(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+void transformYiqRgb(sd::LaunchContext* context, NDArray* input, NDArray* output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input->dataType(), yiqRgb, (input, output, dimC), SD_FLOAT_TYPES);
 }
 
-void transformRgbYiq(sd::LaunchContext* context, const NDArray* input, NDArray* output, const int dimC) {
+void transformRgbYiq(sd::LaunchContext* context, NDArray* input, NDArray* output, const int dimC) {
   BUILD_SINGLE_SELECTOR(input->dataType(), rgbYiq, (input, output, dimC), SD_FLOAT_TYPES);
 }
 

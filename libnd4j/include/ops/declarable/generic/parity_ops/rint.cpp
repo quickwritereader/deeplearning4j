@@ -31,13 +31,13 @@ OP_IMPL(rint, 1, 1, true) {
   auto x = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
-  x->applyTransform(transform::Rint, *z);
+  x->applyTransform(transform::Rint, z);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 }  // namespace ops
 
-DECLARE_TYPES(rint) { getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS}); }
+DECLARE_TYPES(rint) { getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS}); }
 }  // namespace sd
 
 #endif

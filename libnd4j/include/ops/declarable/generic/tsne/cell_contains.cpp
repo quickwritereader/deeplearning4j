@@ -36,14 +36,15 @@ CUSTOM_OP_IMPL(cell_contains, 3, 1, false, 0, 1) {
 
   auto output = OUTPUT_VARIABLE(0);
   auto dimension = INT_ARG(0);
-  output->assign(helpers::cell_contains(corner, width, point, dimension));
-  return sd::Status::OK;
+  auto result = helpers::cell_contains(corner, width, point, dimension);
+  output->assign(result);
+  return Status::OK;
 }
 
 DECLARE_TYPES(cell_contains) {
   getOpDescriptor()
-      ->setAllowedInputTypes(sd::DataType::ANY)
-      ->setAllowedOutputTypes(sd::DataType::BOOL)
+      ->setAllowedInputTypes(ANY)
+      ->setAllowedOutputTypes(BOOL)
       ->setSameMode(false);
 }
 

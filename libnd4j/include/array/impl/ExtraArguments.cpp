@@ -34,14 +34,14 @@
 namespace sd {
 ExtraArguments::ExtraArguments(std::initializer_list<double> arguments) { _fpArgs = arguments; }
 
-ExtraArguments::ExtraArguments(std::initializer_list<sd::LongType> arguments) { _intArgs = arguments; }
+ExtraArguments::ExtraArguments(std::initializer_list<LongType> arguments) { _intArgs = arguments; }
 
 ExtraArguments::ExtraArguments(const std::vector<double> &arguments) { _fpArgs = arguments; }
 
-ExtraArguments::ExtraArguments(const std::vector<sd::LongType> &arguments) { _intArgs = arguments; }
+ExtraArguments::ExtraArguments(const std::vector<LongType> &arguments) { _intArgs = arguments; }
 
 ExtraArguments::ExtraArguments(const std::vector<int> &arguments) {
-  for (const auto &v : arguments) _intArgs.emplace_back(static_cast<sd::LongType>(v));
+  for (const auto &v : arguments) _intArgs.emplace_back(static_cast<LongType>(v));
 }
 
 ExtraArguments::ExtraArguments() {
@@ -53,13 +53,13 @@ ExtraArguments::~ExtraArguments() {
 #ifdef __CUDABLAS__
     cudaFree(p);
 #else  // CPU branch
-    delete[] reinterpret_cast<int8_t *>(p);
+    delete reinterpret_cast<int8_t *>(p);
 #endif
   }
 }
 
 template <typename T>
-void ExtraArguments::convertAndCopy(sd::Pointer pointer, sd::LongType offset) {
+void ExtraArguments::convertAndCopy(Pointer pointer, LongType offset) {
   auto length = this->length();
   auto target = reinterpret_cast<T *>(pointer);
 #ifdef __CUDABLAS__
@@ -67,17 +67,16 @@ void ExtraArguments::convertAndCopy(sd::Pointer pointer, sd::LongType offset) {
 #endif
 
   if (!_fpArgs.empty()) {
-    for (int e = offset; e < _fpArgs.size(); e++) {
+    for (size_t e = offset; e < _fpArgs.size(); e++) {
       target[e] = static_cast<T>(_fpArgs[e]);
     }
   } else if (_intArgs.empty()) {
-    for (int e = offset; e < _intArgs.size(); e++) {
+    for (size_t e = offset; e < _intArgs.size(); e++) {
       target[e] = static_cast<T>(_intArgs[e]);
     }
   }
 
 #ifdef __CUDABLAS__
-  // TODO: maybe make it asynchronous eventually?
   cudaMemcpy(pointer, target, length * DataTypeUtils::sizeOf(DataTypeUtils::fromT<T>()), cudaMemcpyHostToDevice);
   delete[] target;
 #endif
@@ -87,12 +86,12 @@ BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void ExtraArguments::convertAndCopy
 
 void *ExtraArguments::allocate(size_t length, size_t elementSize) {
 #ifdef __CUDABLAS__
-  sd::Pointer ptr;
+  Pointer ptr;
   auto res = cudaMalloc(reinterpret_cast<void **>(&ptr), length * elementSize);
-  if (res != 0) throw std::runtime_error("Can't allocate CUDA memory");
+  if (res != 0) THROW_EXCEPTION("Can't allocate CUDA memory");
 #else  // CPU branch
   auto ptr = new int8_t[length * elementSize];
-  if (!ptr) throw std::runtime_error("Can't allocate memory");
+  if (!ptr) THROW_EXCEPTION("Can't allocate memory");
 #endif
 
   return ptr;
@@ -108,13 +107,13 @@ size_t ExtraArguments::length() {
 }
 
 template <typename T>
-void *ExtraArguments::argumentsAsT(sd::LongType offset) {
+void *ExtraArguments::argumentsAsT(LongType offset) {
   return argumentsAsT(DataTypeUtils::fromT<T>(), offset);
 }
 BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void *ExtraArguments::argumentsAsT, (sd::LongType offset),
                       SD_COMMON_TYPES);
 
-void *ExtraArguments::argumentsAsT(sd::DataType dataType, sd::LongType offset) {
+void *ExtraArguments::argumentsAsT(DataType dataType, LongType offset) {
   if (_fpArgs.empty() && _intArgs.empty()) return nullptr;
 
   // we allocate pointer

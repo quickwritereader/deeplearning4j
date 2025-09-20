@@ -26,40 +26,43 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.nd4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <artifactId>nd4j-backend-impls</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+
     </parent>
 
-    <artifactId>nd4j-cuda-11.4</artifactId>
+    <artifactId>nd4j-cuda-12.3</artifactId>
 
     <name>nd4j-cuda</name>
 
     <properties>
-        <!-- CUDA version is linked with the artifact name so cannot move to parent pom.xml -->
-        <cuda.version>11.4</cuda.version>
-        <cudnn.version>8.2</cudnn.version>
-        <javacpp-presets.cuda.version>1.5.6</javacpp-presets.cuda.version>
-        <!-- Try to avoid setting this. This is mainly for being able to override for where we put binaries in javacpp jars for android. -->
+        <cuda.version>12.3</cuda.version>
+        <cudnn.version>8.9</cudnn.version>
+        <javacpp-presets.cuda.version>1.5.10</javacpp-presets.cuda.version>
         <javacpp.build.output.path>${project.build.directory}/classes/org/nd4j/linalg/jcublas/bindings/${javacpp.platform}${javacpp.platform.extension}</javacpp.build.output.path>
         <module.name>nd4j.cuda</module.name>
+        <javacpp.compiler.options>-Wl,--no-undefined</javacpp.compiler.options>
+        <libnd4j.functrace>OFF</libnd4j.functrace>
+
+        <libnd4j.outputPath>${project.build.directory}/../../../../../libnd4j/blasbuild/cuda</libnd4j.outputPath>
+
     </properties>
 
 
     <dependencies>
         <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-cuda-11.4-preset</artifactId>
+            <groupId>org.eclipse.deeplearning4j</groupId>
+            <artifactId>libnd4j</artifactId>
+            <version>${project.version}</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.deeplearning4j</groupId>
+            <artifactId>nd4j-cuda-12.3-preset</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>${dependency.groupId}</groupId>
-            <artifactId>${dependency.artifactId}</artifactId>
-            <version>${dependency.version}</version>
-            <type>${dependency.packaging}</type>
-            <classifier>${dependency.classifier}</classifier>
-        </dependency>
 
         <dependency>
             <groupId>org.bytedeco</groupId>
@@ -68,15 +71,14 @@
         <dependency>
             <groupId>org.bytedeco</groupId>
             <artifactId>javacpp</artifactId>
-            <classifier>${dependency.platform}</classifier>
-        </dependency>
+            <classifier>${dependency.platform}</classifier> </dependency>
 
         <dependency>
-            <groupId>org.nd4j</groupId>
+            <groupId>org.eclipse.deeplearning4j</groupId>
             <artifactId>nd4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.nd4j</groupId>
+            <groupId>org.eclipse.deeplearning4j</groupId>
             <artifactId>nd4j-native-api</artifactId>
         </dependency>
     </dependencies>
@@ -86,161 +88,6 @@
             <plugin>
                 <groupId>org.moditect</groupId>
                 <artifactId>moditect-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <trimStackTrace>false</trimStackTrace>
-                    <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
-                    <forkCount>${cpu.core.count}</forkCount>
-                    <reuseForks>false</reuseForks>
-                    <environmentVariables>
-                        <LD_LIBRARY_PATH>
-                            ${env.LD_LIBRARY_PATH}:${user.dir}:${libnd4jhome}/blasbuild/cuda/blas/
-                        </LD_LIBRARY_PATH>
-                    </environmentVariables>
-                    <testSourceDirectory>src/test/java</testSourceDirectory>
-                    <includes>
-                        <include>*.java</include>
-                    </includes>
-                    <systemPropertyVariables>
-                        <org.nd4j.linalg.defaultbackend>org.nd4j.linalg.jcublas.JCublasBackend
-                        </org.nd4j.linalg.defaultbackend>
-                        <org.nd4j.linalg.tests.backendstorun>
-                            org.nd4j.linalg.jcublas.JCublasBackend
-                        </org.nd4j.linalg.tests.backendstorun>
-                    </systemPropertyVariables>
-                    <!--
-                        Maximum heap size was set to 6g, as a minimum required value for tests run.
-                        Depending on a build machine, default value is not always enough.
-                    -->
-                    <argLine>-Ddtype=float -Dfile.encoding=UTF-8 -Xmx${test.heap.size} -Dorg.bytedeco.javacpp.maxphysicalbytes=${test.offheap.size} -Dorg.bytedeco.javacpp.maxbytes=${test.offheap.size}
-                    </argLine>
-
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.bytedeco</groupId>
-                <artifactId>javacpp</artifactId>
-                <version>${javacpp.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.nd4j</groupId>
-                        <artifactId>nd4j-cuda-11.4-preset</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.nd4j</groupId>
-                        <artifactId>nd4j-native-api</artifactId>
-                        <version>${project.version}</version>
-                    </dependency>
-
-                    <dependency>
-                        <groupId>org.bytedeco</groupId>
-                        <artifactId>cuda</artifactId>
-                        <version>${cuda.version}-${cudnn.version}-${javacpp-presets.cuda.version}
-                        </version>
-                        <classifier>${dependency.platform}</classifier>
-                    </dependency>
-                </dependencies>
-                <configuration>
-                    <properties>${javacpp.platform}</properties>
-                    <propertyKeysAndValues>
-                        <property>
-                            <name>platform.root</name>
-                            <value>${javacpp.platform.root}</value>
-                        </property>
-                        <property>
-                            <name>platform.compiler</name>
-                            <value>${javacpp.platform.compiler}</value>
-                        </property>
-                        <property>
-                            <name>platform.sysroot</name>
-                            <value>${javacpp.platform.sysroot}</value>
-                        </property>
-                    </propertyKeysAndValues>
-                    <classPaths>
-                        <classPath>${project.build.outputDirectory}</classPath>
-                    </classPaths>
-                    <includePaths>
-                        <includePath>${libnd4jhome}/blasbuild/cuda/include</includePath>
-                        <includePath>${libnd4jhome}/blasbuild/cuda/flatbuffers-src/include/
-                        </includePath>
-                        <includePath>${libnd4jhome}/blas</includePath>
-                        <includePath>${libnd4jhome}/include</includePath>
-                        <includePath>${libnd4jhome}/include/helpers</includePath>
-                        <includePath>${libnd4jhome}/include/array</includePath>
-                        <includePath>${libnd4jhome}/include/cnpy</includePath>
-                        <includePath>${libnd4jhome}/include/execution</includePath>
-                        <includePath>${libnd4jhome}/include/exceptions</includePath>
-                        <includePath>${libnd4jhome}/include/graph</includePath>
-                        <includePath>${libnd4jhome}/include/indexing</includePath>
-                        <includePath>${libnd4jhome}/include/memory</includePath>
-                        <includePath>${libnd4jhome}/include/performance</includePath>
-                    </includePaths>
-                    <linkPaths>
-                        <linkPath>${libnd4jhome}/blasbuild/cuda/blas</linkPath>
-                    </linkPaths>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>javacpp-parser</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${javacpp.parser.skip}</skip>
-                            <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
-                            <classOrPackageName>org.nd4j.presets.cuda.Nd4jCudaPresets
-                            </classOrPackageName>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>javacpp-compiler</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>build</goal>
-                        </goals>
-                        <configuration>
-                            <skip>${javacpp.compiler.skip}</skip>
-                            <classOrPackageName>org.nd4j.linalg.jcublas.bindings.Nd4jCuda</classOrPackageName>
-                            <copyLibs>true</copyLibs>
-                            <configDirectory>${project.build.directory}/classes/META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</configDirectory>
-                            <outputDirectory>${javacpp.build.output.path}</outputDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>javacpp-parser</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <skipMain>${javacpp.parser.skip}</skipMain>
-                            <includes>
-                                <include>org/nd4j/linalg/jcublas/bindings/**.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <compilerArgs>
-                        <arg>--add-exports</arg>
-                        <arg>java.base/java.nio=ALL-UNNAMED</arg>
-                        <arg>--add-opens</arg>
-                        <arg>java.base/java.nio=ALL-UNNAMED</arg>
-                    </compilerArgs>
-                </configuration>
             </plugin>
 
             <plugin>
@@ -268,6 +115,7 @@
                                 <exclude>*.so</exclude>
                                 <exclude>META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</exclude>
                             </excludes>
+
                         </configuration>
                     </execution>
                     <execution>
@@ -298,78 +146,270 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>libnd4j-checks</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireProperty>
-                                    <property>libnd4jhome</property>
-                                    <message>You must set the LIBND4J_HOME environment variable!
-                                    </message>
-                                    <regex>.*/.*</regex>
-                                    <regexMessage>!!! LIBND4J_HOME must be a valid unix path!
-                                    </regexMessage>
-                                </requireProperty>
-                                <requireFilesExist>
-                                    <files>
-                                        <file>${libnd4jhome}/include/legacy/NativeOps.h</file>
-                                        <file>${libnd4jhome}/blasbuild/cuda/blas</file>
-                                    </files>
-                                    <message>!!! You have to compile libnd4j with cuda support
-                                        first!
-                                    </message>
-                                </requireFilesExist>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
                 <executions>
                     <execution>
                         <id>default-deploy</id>
-                        <phase>none</phase>
-                    </execution>
+                        <phase>none</phase> </execution>
 
                     <execution>
                         <id>java-classes</id>
                         <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy-file</goal>
+                        </goals>
                         <configuration>
                             <packaging>jar</packaging>
                             <artifactId>${project.artifactId}</artifactId>
                             <groupId>${project.groupId}</groupId>
                             <version>${project.version}</version>
-                            <sources>${project.build.directory}/nd4j-cuda-${cuda.version}-${project.version}.jar</sources>
-                        </configuration>
+                            <file>${project.build.directory}/${project.build.finalName}.jar</file> </configuration>
                     </execution>
 
                     <execution>
                         <id>native-deps</id>
                         <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy-file</goal>
+                        </goals>
                         <configuration>
                             <packaging>jar</packaging>
                             <artifactId>${project.artifactId}</artifactId>
                             <groupId>${project.groupId}</groupId>
                             <version>${project.version}</version>
-                            <classifier>${javacpp.platform}</classifier>
-                            <sources>${project.build.directory}/nd4j-cuda-${cuda.version}-${project.version}-${javacpp.platform}.jar</sources>
-                        </configuration>
+                            <classifier>${javacpp.platform}${javacpp.platform.extension}</classifier>
+                            <file>${project.build.directory}/${project.build.finalName}-${javacpp.platform}${javacpp.platform.extension}.jar</file> </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
 
         </plugins>
     </build>
 
     <profiles>
+        <profile>
+            <id>non-functrace</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>!libnd4j.calltrace</name> </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.bytedeco</groupId>
+                        <artifactId>javacpp</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.eclipse.deeplearning4j</groupId>
+                                <artifactId>nd4j-cuda-12.3-preset</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.eclipse.deeplearning4j</groupId>
+                                <artifactId>nd4j-native-api</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.bytedeco</groupId>
+                                <artifactId>cuda</artifactId>
+                                <version>${cuda.version}-${cudnn.version}-${javacpp-presets.cuda.version}</version>
+                                <classifier>${dependency.platform}</classifier>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <properties>${javacpp.platform}</properties>
+                            <propertyKeysAndValues>
+                                <property>
+                                    <name>platform.root</name>
+                                    <value>${javacpp.platform.root}</value>
+                                </property>
+                                <property>
+                                    <name>platform.compiler</name>
+                                    <value>${javacpp.platform.compiler}</value>
+                                </property>
+                                <property>
+                                    <name>platform.sysroot</name>
+                                    <value>${javacpp.platform.sysroot}</value>
+                                </property>
+                            </propertyKeysAndValues>
+                            <classPaths>
+                                <classPath>${project.build.outputDirectory}</classPath>
+                            </classPaths>
+                            <includePaths>
+                                <includePath>${libnd4jhome}/blasbuild/cuda/include</includePath>
+                                <includePath>${libnd4jhome}/blasbuild/cuda/flatbuffers-src/include/</includePath>
+                                <includePath>${libnd4jhome}/blas</includePath>
+                                <includePath>${libnd4jhome}/include</includePath>
+                                <includePath>${libnd4jhome}/include/helpers</includePath>
+                                <includePath>${libnd4jhome}/include/array</includePath>
+                                <includePath>${libnd4jhome}/include/cnpy</includePath>
+                                <includePath>${libnd4jhome}/include/execution</includePath>
+                                <includePath>${libnd4jhome}/include/exceptions</includePath>
+                                <includePath>${libnd4jhome}/include/graph</includePath>
+                                <includePath>${libnd4jhome}/include/indexing</includePath>
+                                <includePath>${libnd4jhome}/include/memory</includePath>
+                                <includePath>${libnd4jhome}/include/performance</includePath>
+                            </includePaths>
+                            <linkPaths>
+                                <linkPath>${libnd4jhome}/blasbuild/cuda</linkPath> </linkPaths>
+                            <compilerOptions>
+                                <compilerOption>-std=c++17</compilerOption>
+                                <compilerOption>-Wl,--no-undefined</compilerOption>
+                                <compilerOption>-L${libnd4jhome}/blasbuild/cuda/blas</compilerOption> </compilerOptions>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>javacpp-parser</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${javacpp.parser.skip}</skip>
+                                    <deleteJniFiles>false</deleteJniFiles>
+                                    <outputDirectory>${project.build.sourceDirectory}</outputDirectory> <classOrPackageName>org.nd4j.presets.cuda.Nd4jCudaPresets</classOrPackageName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>javacpp-compiler</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${javacpp.compiler.skip}</skip>
+                                    <classOrPackageName>org.nd4j.linalg.jcublas.bindings.Nd4jCuda</classOrPackageName>
+                                    <copyLibs>true</copyLibs> <configDirectory>${project.build.directory}/classes/META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</configDirectory>
+                                    <outputDirectory>${javacpp.build.output.path}</outputDirectory> </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+
+        <profile>
+            <id>functrace</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>libnd4j.calltrace</name>
+                    <value>ON</value> </property>
+            </activation>
+            <properties>
+                <libnd4j.functrace>ON</libnd4j.functrace>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.bytedeco</groupId>
+                        <artifactId>javacpp</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.eclipse.deeplearning4j</groupId>
+                                <artifactId>nd4j-cuda-12.3-preset</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.eclipse.deeplearning4j</groupId>
+                                <artifactId>nd4j-native-api</artifactId>
+                                <version>${project.version}</version>
+                            </dependency>
+                            <dependency>
+                                <groupId>org.bytedeco</groupId>
+                                <artifactId>cuda</artifactId>
+                                <version>${cuda.version}-${cudnn.version}-${javacpp-presets.cuda.version}</version>
+                                <classifier>${dependency.platform}</classifier>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <properties>${javacpp.platform}</properties>
+                            <deleteJniFiles>false</deleteJniFiles>
+                            <propertyKeysAndValues>
+                                <property>
+                                    <name>libnd4j.functrace</name>
+                                    <value>${libnd4j.functrace}</value> </property>
+                                <property>
+                                    <name>platform.root</name>
+                                    <value>${javacpp.platform.root}</value>
+                                </property>
+                                <property>
+                                    <name>platform.compiler</name>
+                                    <value>${javacpp.platform.compiler}</value>
+                                </property>
+                                <property>
+                                    <name>platform.sysroot</name>
+                                    <value>${javacpp.platform.sysroot}</value>
+                                </property>
+                            </propertyKeysAndValues>
+                            <classPaths>
+                                <classPath>${project.build.outputDirectory}</classPath>
+                            </classPaths>
+                            <includePaths>
+                                <includePath>${libnd4jhome}/blasbuild/cuda/include</includePath>
+                                <includePath>${libnd4jhome}/blasbuild/cuda/flatbuffers-src/include/</includePath>
+                                <includePath>${libnd4jhome}/blas</includePath>
+                                <includePath>${libnd4jhome}/include</includePath>
+                                <includePath>${libnd4jhome}/include/helpers</includePath>
+                                <includePath>${libnd4jhome}/include/array</includePath>
+                                <includePath>${libnd4jhome}/include/cnpy</includePath>
+                                <includePath>${libnd4jhome}/include/execution</includePath>
+                                <includePath>${libnd4jhome}/include/exceptions</includePath>
+                                <includePath>${libnd4jhome}/include/graph</includePath>
+                                <includePath>${libnd4jhome}/include/indexing</includePath>
+                                <includePath>${libnd4jhome}/include/memory</includePath>
+                                <includePath>${libnd4jhome}/include/legacy</includePath>
+                            </includePaths>
+                            <linkPaths>
+                                <linkPath>${libnd4jhome}/blasbuild/cuda/blas</linkPath> </linkPaths>
+                            <compilerOptions>
+                                <compilerOption>${javacpp.compiler.options}</compilerOption> <compilerOption>-finstrument-functions</compilerOption> <compilerOption>-rdynamic</compilerOption> <compilerOption>-ldl</compilerOption> <compilerOption>-lbfd</compilerOption> <compilerOption>-O0</compilerOption> <compilerOption>-DSD_GCC_FUNCTRACE=ON</compilerOption> <compilerOption>-v</compilerOption> <compilerOption>-lunwind</compilerOption> <compilerOption>-ldw</compilerOption> <compilerOption>-Bsymbolic</compilerOption>
+                                <compilerOption>-fno-omit-frame-pointer</compilerOption>
+                                <compilerOption>-fno-optimize-sibling-calls</compilerOption>
+                                <compilerOption>-g</compilerOption> <compilerOption>-fPIC</compilerOption> <compilerOption>-std=c++17</compilerOption>
+                                <compilerOption>-L${libnd4jhome}blasbuild/cuda/blas</compilerOption> </compilerOptions>
+
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>javacpp-parser</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${javacpp.parser.skip}</skip>
+                                    <outputDirectory>${project.build.sourceDirectory}</outputDirectory>
+                                    <classOrPackageName>org.nd4j.presets.cuda.Nd4jCudaPresets</classOrPackageName>
+                                    <deleteJniFiles>false</deleteJniFiles>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>javacpp-compiler</id>
+                                <phase>process-classes</phase>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <configuration>
+                                    <skip>${javacpp.compiler.skip}</skip>
+                                    <classOrPackageName>org.nd4j.linalg.jcublas.bindings.Nd4jCuda</classOrPackageName>
+                                    <copyLibs>true</copyLibs>
+                                    <configDirectory>${project.build.directory}/classes/META-INF/native-image/${javacpp.platform}${javacpp.platform.extension}/</configDirectory>
+                                    <outputDirectory>${javacpp.build.output.path}</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 
         <profile>
             <id>msvc</id>
@@ -384,15 +424,14 @@
                         <groupId>org.bytedeco</groupId>
                         <artifactId>javacpp</artifactId>
                         <configuration>
-                            <properties>${javacpp.platform}</properties>
                             <compilerOptions>
-                                <compilerOption>/MT</compilerOption>
-                            </compilerOptions>
+                                <compilerOption>/MT</compilerOption> </compilerOptions>
                         </configuration>
                     </plugin>
                 </plugins>
             </build>
         </profile>
+
         <profile>
             <id>libnd4j-assembly</id>
             <activation>
@@ -405,7 +444,7 @@
             </properties>
             <dependencies>
                 <dependency>
-                    <groupId>org.nd4j</groupId>
+                    <groupId>org.eclipse.deeplearning4j</groupId>
                     <artifactId>libnd4j</artifactId>
                     <version>${project.version}</version>
                     <type>zip</type>
@@ -416,42 +455,23 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-enforcer-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>libnd4j-checks</id>
-                                <goals>
-                                    <goal>enforce</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>true</skip>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-dependency-plugin</artifactId>
-                        <version>3.1.2</version>
                         <executions>
                             <execution>
                                 <id>unpack</id>
-                                <phase>initialize</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
+                                <phase>initialize</phase> <goals>
+                                <goal>unpack</goal>
+                            </goals>
                                 <configuration>
                                     <artifactItems>
                                         <artifactItem>
-                                            <groupId>org.nd4j</groupId>
+                                            <groupId>org.eclipse.deeplearning4j</groupId>
                                             <artifactId>libnd4j</artifactId>
                                             <version>${project.version}</version>
                                             <type>zip</type>
-                                            <classifier>${javacpp.platform}-cuda-${cuda.version}
-                                            </classifier>
+                                            <classifier>${javacpp.platform}-cuda-${cuda.version}</classifier>
                                             <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}
-                                            </outputDirectory>
+                                            <outputDirectory>${project.build.directory}/libnd4j</outputDirectory>
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>

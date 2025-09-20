@@ -23,7 +23,6 @@
 #ifndef LIBND4J_STASH_H
 #define LIBND4J_STASH_H
 
-//#include <graph/Block.h>
 #include <array/NDArray.h>
 
 #include <atomic>
@@ -67,21 +66,18 @@ namespace sd {
 namespace graph {
 class SD_LIB_EXPORT Stash {
  protected:
-  std::map<sd::graph::KeyPair, sd::NDArray *> _stash;
-  std::vector<sd::NDArray *> _handles;
+  std::map<KeyPair, NDArray *> _stash;
+  std::vector<NDArray *> _handles;
 
  public:
   Stash();
   ~Stash();
 
-  // void storeArray(sd::graph::Block<T>& block, const char *name, sd::NDArray<T> *array);
-  void storeArray(int nodeId, const char *name, sd::NDArray *array);
+  void storeArray(int nodeId, const char *name, NDArray *array);
 
-  // bool checkStash(sd::graph::Block<T>& block, const char *name);
   bool checkStash(int nodeId, const char *name);
 
-  // sd::NDArray<T>* extractArray(sd::graph::Block<T>& block, const char *name);
-  sd::NDArray *extractArray(int nodeId, const char *name);
+  NDArray *extractArray(int nodeId, const char *name);
 
   void clear();
 };

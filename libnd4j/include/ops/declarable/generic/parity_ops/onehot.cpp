@@ -44,7 +44,7 @@ CUSTOM_OP_IMPL(onehot, 1, 1, false, -2, -2) {
   if (block.numI() > 1) {
     depth = INT_ARG(1);
   } else if (block.width() > 1) {
-    depth = INPUT_VARIABLE(1)->e<int>(0);
+    depth = INPUT_VARIABLE(1)->e<sd::LongType>(0);
   }
 
   REQUIRE_TRUE(depth > 0, 0, "OneHot: depth must be positive value");
@@ -65,23 +65,23 @@ CUSTOM_OP_IMPL(onehot, 1, 1, false, -2, -2) {
 
   helpers::onehot(block.launchContext(), input, output, axis, depth, on, off);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(onehot) {
   auto inShape = inputShape->at(0);
 
-  sd::DataType dtype = block.numD() > 0 ? D_ARG(0) : sd::DataType::FLOAT32;
+  DataType dtype = block.numD() > 0 ? D_ARG(0) : FLOAT32;
 
   int depth = -1;
-  sd::LongType axis = -1;
+  LongType axis = -1;
 
   if (block.numI() > 0) axis = INT_ARG(0);
 
   if (block.numI() > 1) {
     depth = INT_ARG(1);
   } else if (block.width() > 1) {
-    depth = INPUT_VARIABLE(1)->e<int>(0);
+    depth = INPUT_VARIABLE(1)->e<sd::LongType>(0);
   }
 
   REQUIRE_TRUE(depth > 0, 0, "OneHot: depth must be positive value");
@@ -90,17 +90,17 @@ DECLARE_SHAPE_FN(onehot) {
 
   if (axis < 0) axis = rank + 1 + axis;
 
-  std::vector<sd::LongType> shape;
+  std::vector<LongType> shape;
   for (int e = 0; e < rank; e++) shape.push_back(shape::shapeOf(inShape)[e]);
 
   shape.insert(shape.begin() + axis, depth);
-  auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', rank + 1, shape.data());
+  auto newShape = ConstantShapeHelper::getInstance().createShapeInfo(dtype, 'c', rank + 1, shape.data(), -1);
 
   return SHAPELIST(newShape);
 }
 
 DECLARE_TYPES(onehot) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS, ALL_INTS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS, ALL_INTS});
 }
 }  // namespace ops
 }  // namespace sd

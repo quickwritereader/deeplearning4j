@@ -25,12 +25,9 @@ import lombok.val;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.Pointer;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.nd4j.common.tests.tags.NativeTag;
-import org.nd4j.common.tests.tags.TagNames;
 import org.nd4j.linalg.BaseNd4jTestWithBackends;
 import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
@@ -53,9 +50,8 @@ public class TestNDArrayCreation extends BaseNd4jTestWithBackends {
     public void testBufferCreation(Nd4jBackend backend) {
         DataBuffer dataBuffer = Nd4j.createBuffer(new float[] {1, 2});
         Pointer pointer = dataBuffer.pointer();
-        FloatPointer floatPointer = new FloatPointer(pointer);
+        FloatPointer floatPointer = (FloatPointer) pointer;
         DataBuffer dataBuffer1 = Nd4j.createBuffer(floatPointer, 2, DataType.FLOAT);
-
         assertEquals(2, dataBuffer.length());
         assertEquals(1.0, dataBuffer.getDouble(0), 1e-1);
         assertEquals(2.0, dataBuffer.getDouble(1), 1e-1);
@@ -109,7 +105,7 @@ public class TestNDArrayCreation extends BaseNd4jTestWithBackends {
         assertEquals(8, arrCreate.length());
         assertEquals(3, arrCreate.rank());
 
-        Pointer pointer = NativeOpsHolder.getInstance().getDeviceNativeOps()
+        Pointer pointer =Nd4j.getNativeOps()
                         .pointerForAddress(arrCreate.data().address());
         assertEquals(arrCreate.data().address(), pointer.address());
     }
@@ -122,7 +118,7 @@ public class TestNDArrayCreation extends BaseNd4jTestWithBackends {
         Nd4j.create(1);
 
         val origDeviceLimit = Nd4j.getEnvironment().getDeviceLimit(0);
-        val origDeviceCount = Nd4j.getEnvironment().getDeviceCouner(0);
+        val origDeviceCount = Nd4j.getEnvironment().getDeviceCounter(0);
 
         val limit = origDeviceCount + 10000;
 
@@ -139,7 +135,7 @@ public class TestNDArrayCreation extends BaseNd4jTestWithBackends {
         }
 
         // we want to be sure there's nothing left after exception
-        assertEquals(0, NativeOpsHolder.getInstance().getDeviceNativeOps().lastErrorCode());
+        assertEquals(0,Nd4j.getNativeOps().lastErrorCode());
 
         Nd4j.getEnvironment().setDeviceLimit(0, origDeviceLimit);
 

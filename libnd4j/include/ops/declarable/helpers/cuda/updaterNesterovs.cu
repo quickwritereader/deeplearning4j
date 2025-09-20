@@ -25,30 +25,52 @@
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <system/op_boilerplate.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL void nesterovsUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vin,
-                                    const sd::LongType* inShapeInfo, void* vz, const sd::LongType* zShapeInfo,
-                                    void* vst, const sd::LongType* stShapeInfo, const T lr, const T momentum) {
+SD_KERNEL void nesterovsUpdaterCuda(const void* vx, const LongType* xShapeInfo, const void* vin,
+                                    const LongType* inShapeInfo, void* vz, const LongType* zShapeInfo,
+                                    void* vst, const LongType* stShapeInfo, const T lr, const T momentum) {
   const auto grad = reinterpret_cast<const T*>(vx);
   const auto init = reinterpret_cast<const T*>(vin);
   auto up = reinterpret_cast<T*>(vz);
   auto st = reinterpret_cast<T*>(vst);
 
-  __shared__ sd::LongType xLen;
+  __shared__ LongType xLen, xRank, zRank, inRank, stRank;
   __shared__ T momentumT;
-  __shared__ bool bEWS, bOrdering, bXZsame, bXInSame, bXStSame;
+  __shared__ bool bOrdering, bXZsame, bXInSame, bXStSame;
+  __shared__ LongType *sharedMem;
+  __shared__ const LongType *xShape, *zShape, *inShape, *stShape;
+  __shared__ const LongType *xStride, *zStride, *inStride, *stStride;
 
   if (threadIdx.x == 0) {
+    extern __shared__ unsigned char shmem[];
+    sharedMem = reinterpret_cast<LongType*>(shmem);
+
     xLen = shape::length(xShapeInfo);
     momentumT = (-momentum - 1);
 
-    bEWS = 1 == shape::elementWiseStride(xShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo) &&
-           1 == shape::elementWiseStride(stShapeInfo) && 1 == shape::elementWiseStride(inShapeInfo);
+    xRank = shape::rank(xShapeInfo);
+    zRank = shape::rank(zShapeInfo);
+    inRank = shape::rank(inShapeInfo);
+    stRank = shape::rank(stShapeInfo);
+
+    xShape = shape::shapeOf(xShapeInfo);
+    xStride = shape::stride(xShapeInfo);
+    zShape = shape::shapeOf(zShapeInfo);
+    zStride = shape::stride(zShapeInfo);
+    inShape = shape::shapeOf(inShapeInfo);
+    inStride = shape::stride(inShapeInfo);
+    stShape = shape::shapeOf(stShapeInfo);
+    stStride = shape::stride(stShapeInfo);
+
     bOrdering = shape::order(xShapeInfo) == shape::order(zShapeInfo) &&
                 shape::order(xShapeInfo) == shape::order(inShapeInfo) &&
                 shape::order(xShapeInfo) == shape::order(stShapeInfo);
@@ -59,17 +81,30 @@ SD_KERNEL void nesterovsUpdaterCuda(const void* vx, const sd::LongType* xShapeIn
   }
   __syncthreads();
 
-  int coords[SD_MAX_RANK];
+  LongType coords[SD_MAX_RANK];
 
-  for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
-    auto xOffset = i, zOffset = i, initOffset = i, stOffset = i;
+  for (LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    LongType xOffset, zOffset, initOffset, stOffset;
 
-    if (!bEWS || !bOrdering) {
-      shape::index2coords(i, xShapeInfo, coords);
-      xOffset = shape::getOffset(xShapeInfo, coords);
-      zOffset = bXZsame ? xOffset : shape::getOffset(zShapeInfo, coords);
-      initOffset = bXInSame ? xOffset : shape::getOffset(inShapeInfo, coords);
-      stOffset = bXStSame ? xOffset : shape::getOffset(stShapeInfo, coords);
+    INDEX2COORDS(i, xRank, xShape, coords);
+    COORDS2INDEX(xRank, xStride, coords, xOffset);
+
+    if (bXZsame) {
+      zOffset = xOffset;
+    } else {
+      COORDS2INDEX(zRank, zStride, coords, zOffset);
+    }
+
+    if (bXInSame) {
+      initOffset = xOffset;
+    } else {
+      COORDS2INDEX(inRank, inStride, coords, initOffset);
+    }
+
+    if (bXStSame) {
+      stOffset = xOffset;
+    } else {
+      COORDS2INDEX(stRank, stStride, coords, stOffset);
     }
 
     T prevState = momentum * init[initOffset];
@@ -77,31 +112,31 @@ SD_KERNEL void nesterovsUpdaterCuda(const void* vx, const sd::LongType* xShapeIn
     up[zOffset] = prevState + momentumT * st[stOffset];
   }
 }
-
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-void nesterovsUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream,
-                                  const void* vx, const sd::LongType* xShapeInfo, const void* vin,
-                                  const sd::LongType* inShapeInfo, void* vz, const sd::LongType* zShapeInfo, void* vst,
-                                  const sd::LongType* stShapeInfo, const double dLr, const double dMomentum) {
+void nesterovsUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMemory,
+                                  const cudaStream_t* stream, const void* vx, const LongType* xShapeInfo,
+                                  const void* vin, const LongType* inShapeInfo, void* vz,
+                                  const LongType* zShapeInfo, void* vst, const LongType* stShapeInfo,
+                                  const double dLr, const double dMomentum) {
   const T lr = static_cast<T>(dLr);
   const T momentum = static_cast<T>(dMomentum);
-  nesterovsUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, vin, inShapeInfo, vz,
+  nesterovsUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMemory, *stream>>>(vx, xShapeInfo, vin, inShapeInfo, vz,
                                                                             zShapeInfo, vst, stShapeInfo, lr, momentum);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "nesterovsUpdaterCuda failed");
+
 }
 
 ///////////////////////////////////////////////////////////////////
-void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update,
+void updaterNesterovs(LaunchContext* context, NDArray& gradient, NDArray& initState, NDArray& update,
                       NDArray& stateV, const double dLr, const double dMomentum) {
   PointersManager manager(context, "nesterovsUpdater");
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
-  const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-
+  dim3 launchDims = updaterDims(gradient.lengthOf());
   NDArray::prepareSpecialUse({&update, &stateV}, {&gradient, &initState});
   BUILD_SINGLE_SELECTOR(
       gradient.dataType(), nesterovsUpdaterCudaLauncher,
-      (blocksPerGrid, threadsPerBlock, context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
+      (launchDims.y, launchDims.x,launchDims.z, context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
        initState.specialBuffer(), initState.specialShapeInfo(), update.specialBuffer(), update.specialShapeInfo(),
        stateV.specialBuffer(), stateV.specialShapeInfo(), dLr, dMomentum),
       SD_FLOAT_TYPES);

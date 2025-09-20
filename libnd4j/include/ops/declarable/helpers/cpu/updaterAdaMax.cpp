@@ -32,9 +32,26 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void adaMaxUpdater_(const NDArray& gradient, const NDArray& initStateU, const NDArray& initStateM,
+static void adaMaxUpdater_(NDArray& gradient, NDArray& initStateU, NDArray& initStateM,
                            NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr, const double dBeta1,
                            const double dBeta2, const double dEpsilon, const int nIteration) {
+  // Cache shape information
+  const auto gradientShapeInfo = gradient.shapeInfo();
+  const auto updateShapeInfo = update.shapeInfo();
+  const auto initStateUShapeInfo = initStateU.shapeInfo();
+  const auto stateUShapeInfo = stateU.shapeInfo();
+  const auto initStateMShapeInfo = initStateM.shapeInfo();
+  const auto stateMShapeInfo = stateM.shapeInfo();
+  
+  const auto gradRank = shape::rank(gradientShapeInfo);
+  const auto* gradShape = shape::shapeOf(gradientShapeInfo);
+  const auto* gradStride = shape::stride(gradientShapeInfo);
+  const auto* updateStride = shape::stride(updateShapeInfo);
+  const auto* initStateUStride = shape::stride(initStateUShapeInfo);
+  const auto* stateUStride = shape::stride(stateUShapeInfo);
+  const auto* initStateMStride = shape::stride(initStateMShapeInfo);
+  const auto* stateMStride = shape::stride(stateMShapeInfo);
+
   const T* grad = gradient.bufferAsT<T>();
   const T* initU = initStateU.bufferAsT<T>();
   const T* initM = initStateM.bufferAsT<T>();
@@ -46,7 +63,11 @@ static void adaMaxUpdater_(const NDArray& gradient, const NDArray& initStateU, c
   const T lr = static_cast<T>(dLr);
   const T beta1 = static_cast<T>(dBeta1);
   const T beta2 = static_cast<T>(dBeta2);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   const T iteration = static_cast<T>(nIteration);
   const T beta1T = sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
   T epsilonT = lr / (1.0 - beta1T);
@@ -64,7 +85,7 @@ static void adaMaxUpdater_(const NDArray& gradient, const NDArray& initStateU, c
         // m = B_1 * m + (1-B_1)*grad
         stM[i] = beta1 * initM[i] + grad[i] * (1 - beta1);
         // u = max(B_2 * u, |grad|)
-        stU[i] = sd::math::sd_max((beta2 * initU[i]), sd::math::sd_abs(grad[i])) + 1e-32;
+        stU[i] = sd::math::sd_max((beta2 * initU[i]), sd::math::sd_abs<T, T>(grad[i])) + 1e-32;
 
         up[i] = stM[i] * epsilonT / stU[i];
       }
@@ -74,27 +95,59 @@ static void adaMaxUpdater_(const NDArray& gradient, const NDArray& initStateU, c
     return;
   }
 
-  bool bXZsame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), update.shapeInfo());
-  bool bXInVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateU.shapeInfo());
-  bool bXStVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateU.shapeInfo());
-  bool bXInMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateM.shapeInfo());
-  bool bXStMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateM.shapeInfo());
+  bool bXZsame = shape::haveSameShapeAndStrides(gradientShapeInfo, updateShapeInfo);
+  bool bXInVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateUShapeInfo);
+  bool bXStVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateUShapeInfo);
+  bool bXInMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateMShapeInfo);
+  bool bXStMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateMShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initUOffset = bXInVSame ? xOffset : shape::getOffset(initStateU.shapeInfo(), coords);
-      const auto stUOffset = bXStVSame ? xOffset : shape::getOffset(stateU.shapeInfo(), coords);
-      const auto initMOffset = bXInMSame ? xOffset : shape::getOffset(initStateM.shapeInfo(), coords);
-      const auto stMOffset = bXStMSame ? xOffset : shape::getOffset(stateM.shapeInfo(), coords);
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
+
+      sd::LongType xOffset;
+      COORDS2INDEX(gradRank, gradStride, coords, xOffset);
+
+      sd::LongType zOffset;
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, updateStride, coords, zOffset);
+      }
+
+      sd::LongType initUOffset;
+      if (bXInVSame) {
+        initUOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateUStride, coords, initUOffset);
+      }
+
+      sd::LongType stUOffset;
+      if (bXStVSame) {
+        stUOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateUStride, coords, stUOffset);
+      }
+
+      sd::LongType initMOffset;
+      if (bXInMSame) {
+        initMOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateMStride, coords, initMOffset);
+      }
+
+      sd::LongType stMOffset;
+      if (bXStMSame) {
+        stMOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateMStride, coords, stMOffset);
+      }
 
       // m = B_1 * m + (1-B_1)*grad
       stM[stMOffset] = beta1 * initM[initMOffset] + grad[xOffset] * (1 - beta1);
       // u = max(B_2 * u, |grad|)
-      stU[stUOffset] = sd::math::sd_max((beta2 * initU[initUOffset]), sd::math::sd_abs(grad[xOffset])) + 1e-32;
+      stU[stUOffset] = sd::math::sd_max((beta2 * initU[initUOffset]), sd::math::sd_abs<T, T>(grad[xOffset])) + 1e-32;
 
       up[zOffset] = stM[stMOffset] * epsilonT / stU[stUOffset];
     }
@@ -104,8 +157,8 @@ static void adaMaxUpdater_(const NDArray& gradient, const NDArray& initStateU, c
   return;
 }
 
-void updaterAdaMax(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateU,
-                   const NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr,
+void updaterAdaMax(sd::LaunchContext* context, NDArray& gradient, NDArray& initStateU,
+                   NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr,
                    const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
   BUILD_SINGLE_SELECTOR(
       gradient.dataType(), adaMaxUpdater_,

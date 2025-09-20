@@ -37,7 +37,7 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////////
-static void batchnormMKLDNN(const NDArray* x, const NDArray* mean, const NDArray* variance, const NDArray* weights,
+static void batchnormMKLDNN(NDArray* x, NDArray* mean, NDArray* variance, NDArray* weights,
                             NDArray* z, const float epsilon, const bool isNCHW) {
   // unfortunately mkl dnn doesn't support any format (dnnl::memory::format_tag::any) for x
 
@@ -60,9 +60,9 @@ static void batchnormMKLDNN(const NDArray* x, const NDArray* mean, const NDArray
   dnnl::memory::dims dims;
   dnnl::memory::format_tag format;
 
-  const int indHW = isNCHW ? 2 : 1;
-  const int bS = x->sizeAt(0);
-  const int iC = isNCHW ? x->sizeAt(1) : x->sizeAt(-1);
+  const sd::LongType indHW = isNCHW ? 2 : 1;
+  const sd::LongType bS = x->sizeAt(0);
+  const sd::LongType iC = isNCHW ? x->sizeAt(1) : x->sizeAt(-1);
 
   int iD, iH, iW;
 
@@ -137,12 +137,11 @@ static void batchnormMKLDNN(const NDArray* x, const NDArray* mean, const NDArray
 
   stream.wait();
 
-  // shape::printArray(z_mkl_mem.map_data<float>(),8);
 }
 
 //////////////////////////////////////////////////////////////////////////
-static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArray* variance, const NDArray& dLdO,
-                              const NDArray* weights, NDArray* dLdI, NDArray* dLdW, const float epsilon,
+static void batchnormBpMKLDNN(NDArray* x, NDArray* mean, NDArray* variance, NDArray* dLdO,
+                              NDArray* weights, NDArray* dLdI, NDArray* dLdW, const float epsilon,
                               const bool isNCHW) {
   // unfortunately mkl dnn doesn't support any format (dnnl::memory::format_tag::any) for x
 
@@ -154,7 +153,7 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
   // dLdI - same shape as x
   // dLdW - same shape as weights, dLdW({0,1, 0,0}) contains grad_gamma and dLdW({1,2, 0,0}) contains grad_beta
 
-  const int xRank = x->rankOf();
+  const sd::LongType xRank = x->rankOf();
 
   // input type
   dnnl::memory::data_type type = dnnl::memory::data_type::f32;
@@ -167,11 +166,11 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
   dnnl::memory::dims dims;
   dnnl::memory::format_tag format;
 
-  const int indHW = isNCHW ? 2 : 1;
-  const int bS = x->sizeAt(0);
-  const int iC = isNCHW ? x->sizeAt(1) : x->sizeAt(-1);
+  const sd::LongType indHW = isNCHW ? 2 : 1;
+  const sd::LongType bS = x->sizeAt(0);
+  const sd::LongType iC = isNCHW ? x->sizeAt(1) : x->sizeAt(-1);
 
-  int iD, iH, iW;
+  sd::LongType iD, iH, iW;
 
   if (xRank == 2) {
     dims = {bS, iC};
@@ -199,7 +198,7 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
   // dLdO
   dnnl::memory::desc dLdO_mkl_md = dnnl::memory::desc(dims, type, dnnl::memory::format_tag::any);
   dnnl::memory::desc dLdO_user_md = dnnl::memory::desc(dims, type, format);
-  onednnUtils::setBlockStrides(dLdO, dLdO_user_md);
+  onednnUtils::setBlockStrides(*dLdO, dLdO_user_md);
 
   // dLdI
   dnnl::memory::desc dLdI_mkl_md = dnnl::memory::desc(dims, type, dnnl::memory::format_tag::any);
@@ -227,7 +226,7 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
   onednnUtils::loadDataToMklStream(*x, engine, stream, x_user_md, op_bp_prim_desc.src_desc(), args[DNNL_ARG_SRC]);
 
   // dLdO
-  onednnUtils::loadDataToMklStream(dLdO, engine, stream, dLdO_user_md, op_bp_prim_desc.diff_dst_desc(),
+  onednnUtils::loadDataToMklStream(*dLdO, engine, stream, dLdO_user_md, op_bp_prim_desc.diff_dst_desc(),
                                    args[DNNL_ARG_DIFF_DST]);
 
   // mean
@@ -260,7 +259,6 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
 
   stream.wait();
 
-  // shape::printArray(dLdI_mkl_mem.map_data<float>(),8);
 
   // notations:
   // f = g * (gamma * ((x - m) / (v + eps)^0.5) + beta) -> means dLdO * ff_output
@@ -284,46 +282,46 @@ static void batchnormBpMKLDNN(const NDArray* x, const NDArray* mean, const NDArr
   // dLdI = dfdm / N + (2/N) * dfdv * (dvdm/2  + (x - m))
   // dLdI = gamma * (  stdInv * -g_sum/N + (2/N) * dfdv * (dvdm/2  + (x - m))  )
 
-  std::vector<int> axes = isNCHW ? std::vector<int>{1} : std::vector<int>{xRank - 1};
-  const auto excludedAxes = ShapeUtils::evalDimsToExclude(x->rankOf(), axes);
+  std::vector<sd::LongType> axes = isNCHW ? std::vector<sd::LongType>{1} : std::vector<sd::LongType>{xRank - 1};
+  const auto excludedAxes = ShapeUtils::evalDimsToExclude(x->rankOf(),axes.size(), axes.data());
 
   // inversed batch size 1 / N
   const auto Ninv = 1.f * mean->lengthOf() / x->lengthOf();
 
   // x - mean
   NDArray xMinusMean(x);  // empty array with same shape as x
-  const_cast<NDArray*>(x)->applyBroadcast(sd::broadcast::Subtract, axes, *mean, xMinusMean);
+  const_cast<NDArray*>(x)->applyBroadcast(sd::broadcast::Subtract, &axes, mean, &xMinusMean);
 
   // stdInv
   NDArray stdInv = *variance + epsilon;
-  stdInv.applyTransform(transform::Reciprocal, stdInv);  // 1 / (variance + epsilon)
-  stdInv.applyTransform(transform::Sqrt, stdInv);        // 1 / (variance + epsilon)^0.5
+  stdInv.applyTransform(transform::Reciprocal, &stdInv);  // 1 / (variance + epsilon)
+  stdInv.applyTransform(transform::Sqrt, &stdInv);        // 1 / (variance + epsilon)^0.5
 
   // dfdm / N
-  auto dfdm = dLdO.reduceAlongDimension(sd::reduce::Sum, excludedAxes);
+  auto dfdm = dLdO->reduceAlongDimension(sd::reduce::Sum, excludedAxes);
   dfdm *= stdInv;
   dfdm *= -Ninv;
 
   // dvdm / 2
   NDArray dvdm(mean);  // empty array with same shape as mean
-  xMinusMean.reduceAlongDimension(sd::reduce::Sum, dvdm, excludedAxes);
+  xMinusMean.reduceAlongDimension(sd::reduce::Sum, &dvdm, excludedAxes);
   dvdm *= -Ninv;
 
   // (2/N)*dfdv
   NDArray dfdv(variance);  // empty array with same shape as variance
-  (xMinusMean * dLdO).reduceAlongDimension(sd::reduce::Sum, dfdv, excludedAxes);
+  (xMinusMean * *dLdO).reduceAlongDimension(sd::reduce::Sum, &dfdv, excludedAxes);
   dfdv *= stdInv * stdInv * stdInv;
   dfdv *= -Ninv;
 
   // dvdm/2  + (x - m)
-  xMinusMean.applyBroadcast(sd::broadcast::Add, axes, dvdm, xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Add, &axes, &dvdm, &xMinusMean);
   // dfdv * (dvdm/2  + (x - m))
-  xMinusMean.applyBroadcast(sd::broadcast::Multiply, axes, dfdv, xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Multiply, &axes, &dfdv, &xMinusMean);
   // add dfdm / N
-  xMinusMean.applyBroadcast(sd::broadcast::Add, axes, dfdm, xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Add, &axes, &dfdm, &xMinusMean);
   // * gamma
   auto gamma = (*weights)({0, 1, 0, 0});
-  xMinusMean.applyBroadcast(sd::broadcast::Multiply, axes, gamma, xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Multiply, &axes, &gamma, &xMinusMean);
 
   *dLdI += xMinusMean;
 }
@@ -345,16 +343,16 @@ PLATFORM_IMPL(batchnorm, ENGINE_CPU) {
   if (applyOffset) beta = INPUT_VARIABLE(3 + (int)applyScale);
 
   const int numOfIntArgs = block.getIArguments()->size();
-  const int inRank = input->rankOf();
+  const sd::LongType inRank = input->rankOf();
 
   // get axes args to normalize input array over
-  std::vector<int> axes;
+  std::vector<sd::LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
     axes.push_back(inRank - 1);  // default dimension to reduce along is last dimension
 
-  const int numOfAxes = axes.size();
+  const sd::LongType numOfAxes = axes.size();
   REQUIRE_TRUE(numOfAxes == 1, 0,
                "BATCHNORM_MKLDNN op: mkl dnn library supports only one axis which represents channel dimension, but "
                "got %i axes instead!",
@@ -378,19 +376,22 @@ PLATFORM_IMPL(batchnorm, ENGINE_CPU) {
                  input->sizeAt(axes[0]), ShapeUtils::shapeAsString(beta).c_str());
 
   // types of all input arrays should be the same (except dLdO)
-  for (int i = 1; i < block.width() - 1; ++i)
+  for (size_t i = 1; i < block.width() - 1; ++i)
     REQUIRE_TRUE(INPUT_VARIABLE(0)->dataType() == INPUT_VARIABLE(i)->dataType(), 0,
                  "BATCHNORM_MKLDNN op: types of all input arrays should be the same !");
 
   NDArray* weights = nullptr;
 
   if (applyScale || applyOffset) {
-    weights = new NDArray(input->ordering(), {2, input->sizeAt(axes[0])}, input->dataType());
+    std::vector<sd::LongType > shape = {2, input->sizeAt(axes[0])};
+    weights = new NDArray(input->ordering(),shape , input->dataType());
 
     if (applyScale)
       (*weights)({0, 1, 0, 0}).assign(gamma);
-    else
-      (*weights)({0, 1, 0, 0}).assign(1);
+    else {
+      sd::LongType scalarVal = 1;
+      (*weights)({0, 1, 0, 0}).assign(scalarVal);
+    }
     if (applyOffset)
       (*weights)({1, 2, 0, 0}).assign(beta);
     else
@@ -423,7 +424,7 @@ PLATFORM_CHECK(batchnorm, ENGINE_CPU) {
   if (applyOffset) beta = INPUT_VARIABLE(3 + (int)applyScale);
 
   const int numOfIntArgs = block.getIArguments()->size();
-  std::vector<int> axes;
+  std::vector<sd::LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
@@ -454,137 +455,6 @@ PLATFORM_CHECK(batchnorm, ENGINE_CPU) {
   return req;
 }
 
-//////////////////////////////////////////////////////////////////////////
-// PLATFORM_IMPL(batchnorm) {
-
-//     auto input = INPUT_VARIABLE(0);
-//     auto mean = INPUT_VARIABLE(1);
-//     auto variance = INPUT_VARIABLE(2);
-//     NDArray *gamma = nullptr;
-//     NDArray *beta = nullptr;
-
-//     auto output = OUTPUT_VARIABLE(0);
-
-//     const bool applyScale = (bool) INT_ARG(0);
-//     const bool applyOffset = (bool) INT_ARG(1);
-//     const double epsilon = T_ARG(0);
-
-//     if (applyScale)
-//         gamma = INPUT_VARIABLE(3);
-//     if (applyOffset)
-//         beta = INPUT_VARIABLE(3 + static_cast<int>(applyScale));
-
-//     std::vector<int> axes;
-//     if (block.numI() > 2)
-//         for (int i = 2; i < block.numI(); ++i)
-//             axes.push_back(INT_ARG(i));
-//     else
-//         axes.push_back(input->rankOf() - 1);
-
-//     std::vector<sd::LongType> shape({2, mean->lengthOf()});
-//     NDArray weights = NDArrayFactory::create<float>('c', shape, block.launchContext());
-//     weights({0, 1, 0, 0}).assign(1.0f);
-//     weights({1, 2, 0, 0}).assign(0.0f);
-
-//     mkldnn_memory_desc_t empty;
-//     dnnl::memory::desc batchnorm_src_md(empty), batchnorm_dst_md(empty), user_src_md(empty), user_dst_md(empty);
-
-//     auto flag = dnnl::normalization_flags::use_global_stats;
-//     if (applyScale || applyOffset)
-//         flag |= dnnl::normalization_flags::use_scale_shift;
-
-//     onednnUtils::getMKLDNNMemoryDescBatchNorm(input, nullptr, output,
-//                                               &batchnorm_src_md, nullptr, &batchnorm_dst_md,
-//                                               &user_src_md, nullptr, &user_dst_md, axes[0]);
-
-//     auto batchnorm_desc = dnnl::batch_normalization_forward::desc(dnnl::prop_kind::forward_inference,
-//     batchnorm_src_md, epsilon, flag);
-
-//     auto engine = onednnUtils::getEngine(LaunchContext::defaultContext()->engine());
-//     dnnl::stream stream(engine);
-//     auto batchnorm_prim_desc = dnnl::batch_normalization_forward::primitive_desc(batchnorm_desc, engine);
-//     auto user_src_memory = dnnl::memory(user_src_md, engine, input->buffer());
-//     auto user_dst_memory = dnnl::memory(user_dst_md, engine, output->buffer());
-//     auto batchnorm_mean_memory = dnnl::memory(batchnorm_prim_desc.mean_desc(), engine,
-//                                                 mean->buffer());
-//     auto batchnorm_variance_memory = dnnl::memory(batchnorm_prim_desc.variance_desc(), engine,
-//                                                     variance->buffer());
-//     auto batchnorm_src_memory = user_src_memory;
-//     dnnl::memory m(batchnorm_src_md, engine);
-//     if (m.get_desc() != user_src_memory.get_desc()) {
-//         batchnorm_src_memory = dnnl::memory(batchnorm_src_md, engine);
-//         dnnl::reorder(user_src_memory, batchnorm_src_memory).execute(stream, user_src_memory,
-//                                                                batchnorm_src_memory);
-//     }
-//     auto batchnorm_dst_memory = user_dst_memory;
-//     if (batchnorm_prim_desc.dst_desc() != user_dst_memory.get_desc()) {
-//         batchnorm_dst_memory = dnnl::memory(batchnorm_prim_desc.dst_desc(), engine);
-//     }
-//     if (applyScale || applyOffset) {
-//         if (gamma != nullptr) {
-//             weights({0, 1, 0, 0}).assign(gamma);
-//         }
-//         if (beta != nullptr) {
-//             weights({1, 2, 0, 0}).assign(beta);
-//         }
-
-//         auto batchnorm_weights_memory = dnnl::memory(batchnorm_prim_desc.weights_desc(), engine, weights.buffer());
-//         dnnl::batch_normalization_forward(batchnorm_prim_desc).execute(stream,
-//                                                                  {{MKLDNN_ARG_SRC,      batchnorm_src_memory},
-//                                                                   {MKLDNN_ARG_MEAN,     batchnorm_mean_memory},
-//                                                                   {MKLDNN_ARG_VARIANCE, batchnorm_variance_memory},
-//                                                                   {MKLDNN_ARG_WEIGHTS,  batchnorm_weights_memory},
-//                                                                   {MKLDNN_ARG_DST,      batchnorm_dst_memory}});
-//     } else {
-//         dnnl::batch_normalization_forward(batchnorm_prim_desc).execute(stream,
-//                                                                  {{MKLDNN_ARG_SRC,      batchnorm_src_memory},
-//                                                                   {MKLDNN_ARG_MEAN,     batchnorm_mean_memory},
-//                                                                   {MKLDNN_ARG_VARIANCE, batchnorm_variance_memory},
-//                                                                   {MKLDNN_ARG_DST,      batchnorm_dst_memory}});
-//     }
-//     if (batchnorm_prim_desc.dst_desc() != user_dst_memory.get_desc()) {
-//         dnnl::reorder(batchnorm_dst_memory, user_dst_memory).execute(stream, batchnorm_dst_memory,
-//                                                                user_dst_memory);
-//     }
-//     stream.wait();
-
-//     return sd::Status::OK;
-// }
-
-//////////////////////////////////////////////////////////////////////////
-// PLATFORM_CHECK(batchnorm) {
-//     // we don't want to use mkldnn if cpu doesn't support avx/avx2
-//     if (::optimalLevel() < 2)
-//         return false;
-
-//     auto input = INPUT_VARIABLE(0);
-//     auto mean = INPUT_VARIABLE(1);
-//     auto variance = INPUT_VARIABLE(2);
-//     NDArray *gamma = nullptr;
-//     NDArray *beta = nullptr;
-
-//     auto output = OUTPUT_VARIABLE(0);
-
-//     const bool applyScale = (bool) INT_ARG(0);
-//     const bool applyOffset = (bool) INT_ARG(1);
-//     const double epsilon = T_ARG(0);
-
-//     if (applyScale)
-//         gamma = INPUT_VARIABLE(3);
-//     if (applyOffset)
-//         beta = INPUT_VARIABLE(3 + static_cast<int>(applyScale));
-
-//     std::vector<int> axes;
-//     if (block.numI() > 2)
-//         for (int i = 2; i < block.numI(); ++i)
-//             axes.push_back(INT_ARG(i));
-//     else
-//         axes.push_back(input->rankOf() - 1);
-
-//     return block.isUseONEDNN() &&
-//            sd::ONEDNNStream::isSupported({input, mean, variance, gamma, beta, output}) &&
-//            axes.size() == 1;
-// }
 
 //////////////////////////////////////////////////////////////////////////
 PLATFORM_IMPL(batchnorm_bp, ENGINE_CPU) {
@@ -610,15 +480,15 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CPU) {
     dLdG = OUTPUT_VARIABLE(3);
   }
   if (applyOffset) {
-    beta = INPUT_VARIABLE(3 + (int)applyScale);
-    dLdB = OUTPUT_VARIABLE(3 + (int)applyScale);
+    beta = INPUT_VARIABLE(3 + (sd::LongType)applyScale);
+    dLdB = OUTPUT_VARIABLE(3 + (sd::LongType)applyScale);
   }
 
   const int numOfIntArgs = block.getIArguments()->size();
   const int inRank = input->rankOf();
 
   // get axes args to normalize input array over
-  std::vector<int> axes;
+  std::vector<sd::LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
@@ -651,19 +521,21 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CPU) {
                  input->sizeAt(axes[0]), ShapeUtils::shapeAsString(beta).c_str());
 
   // types of all input arrays should be the same
-  for (int i = 1; i < block.width() - 1; ++i)
+  for (size_t i = 1; i < block.width() - 1; ++i)
     REQUIRE_TRUE(INPUT_VARIABLE(0)->dataType() == INPUT_VARIABLE(i)->dataType(), 0,
                  "BATCHNORM_BP_MKLDNN op: types of all input arrays should be the same !");
 
   NDArray *weights = nullptr, *dLdW = nullptr;
 
   if (applyScale || applyOffset) {
-    weights = new NDArray(input->ordering(), {2, input->sizeAt(axes[0])}, input->dataType());
-    dLdW = new NDArray(input->ordering(), {2, input->sizeAt(axes[0])}, input->dataType());
+    sd::LongType scalar = 1;
+    std::vector<sd::LongType> shape =  {2, input->sizeAt(axes[0])};
+    weights = new NDArray(input->ordering(),shape, input->dataType());
+    dLdW = new NDArray(input->ordering(), shape, input->dataType());
     if (applyScale)
       (*weights)({0, 1, 0, 0}).assign(gamma);
     else
-      (*weights)({0, 1, 0, 0}).assign(1);
+      (*weights)({0, 1, 0, 0}).assign(scalar);
     if (applyOffset)
       (*weights)({1, 2, 0, 0}).assign(beta);
     else
@@ -673,16 +545,23 @@ PLATFORM_IMPL(batchnorm_bp, ENGINE_CPU) {
   const bool isNCHW = !(axes[0] == inRank - 1 && inRank > 2);
 
   if (shape::strideDescendingCAscendingF(dLdO->shapeInfo()))
-    batchnormBpMKLDNN(input, mean, variance, *dLdO, weights, dLdI, dLdW, epsilon, isNCHW);
-  else
-    batchnormBpMKLDNN(input, mean, variance, dLdO->dup(), weights, dLdI, dLdW, epsilon, isNCHW);
-
+    batchnormBpMKLDNN(input, mean, variance, dLdO, weights, dLdI, dLdW, epsilon, isNCHW);
+  else {
+    NDArray dupped = dLdO->dup();
+    batchnormBpMKLDNN(input, mean, variance, &dupped, weights, dLdI, dLdW, epsilon, isNCHW);
+  }
   *dLdM = 0;
   *dLdV = 0;
 
   if (applyScale || applyOffset) {
-    if (applyScale) dLdG->assign((*dLdW)({0, 1, 0, 0}));
-    if (applyOffset) dLdB->assign((*dLdW)({1, 2, 0, 0}));
+    if (applyScale) {
+      NDArray assign = (*dLdW)({0, 1, 0, 0});
+      dLdG->assign(&assign);
+    }
+    if (applyOffset)  {
+      NDArray assign = (*dLdW)({1, 2, 0, 0});
+      dLdB->assign(&assign);
+    }
 
     delete weights;
     delete dLdW;
@@ -714,22 +593,22 @@ PLATFORM_CHECK(batchnorm_bp, ENGINE_CPU) {
     dLdG = OUTPUT_VARIABLE(3);
   }
   if (applyOffset) {
-    beta = INPUT_VARIABLE(4 + (int)applyScale);
-    dLdB = OUTPUT_VARIABLE(3 + (int)applyScale);
+    beta = INPUT_VARIABLE(4 + (sd::LongType)applyScale);
+    dLdB = OUTPUT_VARIABLE(3 + (sd::LongType)applyScale);
   }
 
   const int numOfIntArgs = block.getIArguments()->size();
-  std::vector<int> axes;
+  std::vector<sd::LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
     axes.push_back(input->rankOf() - 1);  // default dimension to reduce along is last dimension
 
-  const int inRank = input->rankOf();
+  const sd::LongType inRank = input->rankOf();
+  std::vector<sd::LongType> shape =  {1, inRank - 1};
   Requirements req("ONEDNN BATCHNORM_BP OP");
   req.expectTrue(block.isUseONEDNN(), IS_USE_ONEDNN_MSG) &&
       req.expectEq(makeInfoVariable(axes.size(), "axes.size()"), 1) &&
-      req.expectIn(makeInfoVariable(axes[0], "axes#0"), {1, inRank - 1}) &&
       req.expectIn(makeInfoVariable(inRank, RANK_MSG_INPUT0), {2, 4, 5}) &&
       req.expectTrue(makeInfoVariable(
                          [input, mean, variance, dLdO, gamma, beta, dLdG, dLdB, dLdI] {

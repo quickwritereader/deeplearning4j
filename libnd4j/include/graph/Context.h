@@ -40,25 +40,26 @@ namespace graph {
 /**
  * This class defines input desired for any given node/operation within graph
  */
-class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
+class SD_LIB_EXPORT Context : public ContextPrototype {
  protected:
-  sd::memory::Workspace* _workspace = nullptr;
-  sd::graph::VariableSpace* _variableSpace = nullptr;
-  std::pair<sd::LongType, sd::LongType> _executionTime;
-  sd::random::RandomBuffer* _rng = nullptr;
+  memory::Workspace* _workspace = nullptr;
+  VariableSpace* _variableSpace = nullptr;
+  std::pair<LongType, LongType> _executionTime;
+  random::RandomBuffer* _rng = nullptr;
 
-  sd::DataType _dataType = sd::DataType::FLOAT32;
+  DataType _dataType = FLOAT32;
   // branch for divergent_op
   int _branch = 0;
 
   // temporary context for standalone ops execution
   LaunchContext* _context = nullptr;
 
-  std::vector<sd::DataType> _dataTypes;
+  std::vector<DataType> _dataTypes;
 
   // fields for fast execution (out-of-graph ops use)
   std::vector<NDArray*> _fastpath_in;
   std::vector<NDArray*> _fastpath_out;
+  std::vector<NDArray*> _intermediateResults;
   std::vector<NDArray*> _handles;
 
   bool _helpersAllowed = true;
@@ -71,7 +72,6 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
 
  public:
   Context(ContextPrototype* prototype, VariableSpace* variableSpace);
-
   explicit Context(int nodeId, VariableSpace* variableSpace = nullptr);
   Context(int nodeId, VariableSpace* variableSpace, bool isInplace);
 
@@ -79,35 +79,35 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
   ~Context();
 
   // these methods are for execution timing
-  void setOuterTime(sd::LongType time);
-  void setInnerTime(sd::LongType time);
-  sd::LongType getOuterTime();
-  sd::LongType getInnerTime();
+  void setOuterTime(LongType time);
+  void setInnerTime(LongType time);
+  LongType getOuterTime();
+  LongType getInnerTime();
 
-  sd::DataType dataType() override;
+  DataType dataType() override;
 
-  sd::DataType dataType(int index) override;
-  void setDataType(int index, sd::DataType type) override;
+  DataType dataType(int index) override;
+  void setDataType(int index, DataType type) override;
   // these methods are related to Workspace abstraction
   bool hasWorkspaceProvided();
-  void attachWorkspace(sd::memory::Workspace* workspace);
+  void attachWorkspace(memory::Workspace* workspace);
   void forgetWorkspace();
 
   // these methods return full-time workspace
-  sd::memory::Workspace* getWorkspace();
-  sd::memory::Workspace* workspace();
-  sd::memory::Workspace* fWorkspace();
+  memory::Workspace* getWorkspace();
+  memory::Workspace* workspace();
+  memory::Workspace* fWorkspace();
 
   // this method returns workspace for temporary allocations
-  sd::memory::Workspace* tWorkspace();
+  memory::Workspace* tWorkspace();
 
   // this method returns workspace for object allocations
-  sd::memory::Workspace* oWorkspace();
+  memory::Workspace* oWorkspace();
 
   void setVariableSpace(VariableSpace* variableSpace);
 
-  sd::random::RandomBuffer* getRNG();
-  void setRNG(sd::random::RandomBuffer* rng);
+  random::RandomBuffer* getRNG();
+  void setRNG(random::RandomBuffer* rng);
 
   void setTargetEngine(samediff::Engine engine);
 
@@ -150,6 +150,45 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
   NDArray* array(int idx);
 
   /**
+   * An intermediate results
+   * is a performance optimization
+   * meant for use with backpropagation.
+   * There are many ops where a part of the forward
+   * pass is used as a component of the backward pass.
+   * By storing this in the context
+   * it can be passed down to a backward op.
+   * @param idx the index of the intermediate result
+   * @return
+   */
+  NDArray *intermediateResult(int idx) {
+    return _intermediateResults.at(idx);
+  }
+
+  /**
+   * Add an intermediate result as described
+   * in {@link #intermediateResult(int)}
+   * @param array the intermediate result to add
+   */
+  void addIntermediateResult(NDArray *array) {
+        _intermediateResults.push_back(array);
+  }
+
+
+
+  /**
+   * This method returns the number of intermediate results
+   * in this context.
+   * @return
+   */
+  int numIntermediates() {
+    return _intermediateResults.size();
+  }
+
+  bool hasIntermediateResults() {
+    return numIntermediates() > 0;
+  }
+
+  /**
    * This method fetches variable from VariableSpace DIRECTLY
    * @param p
    * @return
@@ -170,6 +209,8 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
 
   unsigned long width() override;
 
+  unsigned long outputWidth();
+
   // methods used in java interop
   /**
    * This method checks if Context uses fastpath variable access
@@ -183,31 +224,47 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
    */
   void forbidFastPath(bool reallyForbid);
 
-#ifndef __JAVACPP_HACK__
+
   std::vector<NDArray*>& fastpath_in();
   std::vector<NDArray*>& fastpath_out();
-#endif
+
+
+
+  std::vector<NDArray*>& intermediateResults() {
+    return _intermediateResults;
+  }
+
+  void pushIntermediateResult(NDArray* array) {
+    _intermediateResults.push_back(array);
+  }
+
+  void setIntermediateResult(int idx, NDArray* array) {
+    if(static_cast<int>(intermediateResults().size()) < idx) {
+        intermediateResults().resize(idx + 1);
+    }
+
+    _intermediateResults[idx] = array;
+  }
+
+  void setInputArrays(int numArrays,NDArray** array, bool removable = false);
 
   void setInputArray(int index, NDArray* array, bool removable = false);
-  void setInputArray(int index, void* buffer, void const* shapeInfo, void* specialBuffer, void const* specialShapeInfo);
-  void setInputArray(int index, void* buffer, void* shapeInfo, void* specialBuffer, void* specialShapeInfo);
-  void setInputArray(int index, void* databuffer, void const* shapeInfo, void const* specialShapeInfo);
+
 
   void setOutputArray(int index, NDArray* array, bool removable = false);
-  void setOutputArray(int index, void* buffer, const void* shapeInfo, void* specialBuffer,
-                      const void* specialShapeInfo);
-  void setOutputArray(int index, void* buffer, void* shapeInfo, void* specialBuffer, void* specialShapeInfo);
-  void setOutputArray(int index, void* databuffer, void const* shapeInfo, void const* specialShapeInfo);
+
+
+  void setOutputArrays(int numArrays,NDArray** array, bool removable = false);
 
   void setTArguments(double* arguments, int numberOfArguments);
-  void setIArguments(sd::LongType* arguments, int numberOfArguments);
+  void setIArguments(LongType* arguments, int numberOfArguments);
   void setBArguments(bool* arguments, int numberOfArguments);
-  void setDArguments(sd::DataType* arguments, int numberOfArguments);
+  void setDArguments(DataType* arguments, int numberOfArguments);
 
   void setTArguments(const std::vector<double>& tArgs);
-  void setIArguments(const std::vector<sd::LongType>& tArgs);
+  void setIArguments(const std::vector<LongType>& tArgs);
   void setBArguments(const std::vector<bool>& tArgs);
-  void setDArguments(const std::vector<sd::DataType>& dArgs);
+  void setDArguments(const std::vector<DataType>& dArgs);
 
   /**
    * This method purges fastpath in/out contents and releases all the handles.
@@ -216,7 +273,7 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
    */
   void clearFastPath();
 
-  void setCudaContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer allocationPointer);
+  void setCudaContext(Pointer cudaStream, Pointer reductionPointer, Pointer allocationPointer);
 
   void allowHelpers(bool reallyAllow);
   bool helpersAllowed();
@@ -229,6 +286,8 @@ class SD_LIB_EXPORT Context : public sd::graph::ContextPrototype {
 
   bool isTraining();
   bool isInference();
+
+  NDArray* outputArray(int idx);
 };
 }  // namespace graph
 }  // namespace sd

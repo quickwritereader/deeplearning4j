@@ -29,8 +29,8 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-SD_LIB_HIDDEN void onehot(const sd::LaunchContext *context, const NDArray *indices, NDArray *output,
-                          const sd::Unsigned axis, const sd::Unsigned depth, const double on, const double off);
+SD_LIB_HIDDEN void onehot(const LaunchContext *context, NDArray *indices, NDArray *output,
+                          const LongType axis, const LongType depth, const double on, const double off);
 
 }
 }  // namespace ops

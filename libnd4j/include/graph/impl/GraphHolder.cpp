@@ -43,7 +43,7 @@ void GraphHolder::registerGraph(sd::LongType graphId, Graph* graph) {
 Graph* GraphHolder::cloneGraph(sd::LongType graphId) {
   if (!this->hasGraph(graphId)) {
     sd_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
-    throw std::runtime_error("Bad argument");
+    THROW_EXCEPTION("Bad argument");
   }
 
   auto graph = _graphF[graphId]->cloneWithProxy();
@@ -54,7 +54,7 @@ Graph* GraphHolder::cloneGraph(sd::LongType graphId) {
 Graph* GraphHolder::pullGraph(sd::LongType graphId) {
   if (!this->hasGraph(graphId)) {
     sd_printf("GraphHolder doesn't have graph stored for [%lld]\n", graphId);
-    throw std::runtime_error("Bad argument");
+    THROW_EXCEPTION("Bad argument");
   }
 
   auto graph = _graphF[graphId];
@@ -101,8 +101,8 @@ void GraphHolder::replaceGraph(sd::LongType graphId, Graph* graph) {
   this->unlockWrite(graphId);
 }
 
-flatbuffers::Offset<FlatResult> GraphHolder::execute(sd::LongType graphId, flatbuffers::FlatBufferBuilder& builder,
-                                                     const FlatInferenceRequest* request) {
+flatbuffers::Offset<::graph::FlatResult> GraphHolder::execute(sd::LongType graphId, flatbuffers::FlatBufferBuilder& builder,
+                                                     const ::graph::FlatInferenceRequest* request) {
   if (!hasGraph(graphId)) throw unknown_graph_exception(graphId);
 
   lockRead(graphId);

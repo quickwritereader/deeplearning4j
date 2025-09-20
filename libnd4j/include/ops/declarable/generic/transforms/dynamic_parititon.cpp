@@ -34,9 +34,6 @@ CUSTOM_OP_IMPL(dynamic_partition, 2, 1, false, 0, 1) {
   auto input = INPUT_VARIABLE(0);
   auto indices = INPUT_VARIABLE(1);
 
-  // input->printShapeInfo("input");
-  // indices->printShapeInfo("indices");
-
   REQUIRE_TRUE(input->rankOf() >= indices->rankOf(), 0,
                "dynamic_partition: data tensor rank should be non-lesser than indices\' tensor, but %i < %i given,",
                input->rankOf(), indices->rankOf());
@@ -60,7 +57,7 @@ CUSTOM_OP_IMPL(dynamic_partition, 2, 1, false, 0, 1) {
 DECLARE_SHAPE_FN(dynamic_partition) {
   auto numPartition = INT_ARG(0);
   auto indices = INPUT_VARIABLE(1);
-  std::vector<int> partitionSizes(numPartition, 0);
+  std::vector<sd::LongType> partitionSizes(numPartition, 0);
   auto in = inputShape->at(0);
   auto idx = inputShape->at(1);
   for (int i = 0; i < numPartition; i++) {
@@ -69,16 +66,15 @@ DECLARE_SHAPE_FN(dynamic_partition) {
   }
 
   auto shapes = SHAPELIST();
-  int outRank = shape::rank(in) - shape::rank(idx) + 1;
-  for (int e = 0; e < numPartition; e++) {
+  sd::LongType outRank = shape::rank(in) - shape::rank(idx) + 1;
+  for (sd::LongType e = 0; e < numPartition; e++) {
     sd::LongType *newShape;
     ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
-    // shape::shapeVector(partitionSizes[e], newShape);
     newShape[0] = outRank;
     newShape[1] = partitionSizes[e];
-    for (int i = 1; i < outRank; ++i) newShape[i + 1] = shape::sizeAt(in, outRank + i - 1);
+    for (sd::LongType i = 1; i < outRank; ++i) newShape[i + 1] = shape::sizeAt(in, outRank + i - 1);
 
-    shape::updateStrides(newShape, shape::order(in));
+    shape::updateStrides(newShape, shape::order(in), false);
     ArrayOptions::setDataType(newShape, ArrayOptions::dataType(in));
     shapes->push_back(CONSTANT(newShape));
   }
@@ -95,7 +91,6 @@ DECLARE_TYPES(dynamic_partition_bp) { getOpDescriptor()->setAllowedInputTypes(sd
 CUSTOM_OP_IMPL(dynamic_partition_bp, 3, 2, false, 0, 1) {
   auto input = INPUT_VARIABLE(0);
   auto indices = INPUT_VARIABLE(1);
-  // auto gradOut = ;
   auto numPartition = INT_ARG(0);
 
   std::vector<NDArray *> outputList(2);  // only for output
@@ -105,39 +100,35 @@ CUSTOM_OP_IMPL(dynamic_partition_bp, 3, 2, false, 0, 1) {
   }
   outputList[0] = OUTPUT_VARIABLE(0);
   outputList[1] = OUTPUT_VARIABLE(1);
-  NDArray originalIndices(*indices);  //->ordering(), indices->shapeInfo(), indices->dataType());
+  NDArray originalIndices(*indices);
   originalIndices.linspace(0);
   ops::dynamic_partition op;
   auto res = op.evaluate({&originalIndices, indices}, {numPartition});
   REQUIRE_TRUE(res.status() == sd::Status::OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
-  ops::dynamic_stitch stichOp;
+  ops::dynamic_stitch stitchOp;
   std::vector<NDArray *> partitions(numPartition * 2);
-  for (size_t i = 0; i < res.size(); i++) {
+  for (int i = 0; i < res.size(); i++) {
     partitions[i] = res.at(i);
     partitions[i + numPartition] = gradOutList[i];
   }
 
-  auto result = stichOp.evaluate(partitions, {numPartition});
+  auto result = stitchOp.evaluate(partitions, {numPartition});
   REQUIRE_TRUE(result.status() == sd::Status::OK, 0, "dynamic_partition_bp: Error with dynamic partitioning.");
-  result.at(0)->reshapei(outputList[0]->getShapeAsVector());
   outputList[1]->assign(indices);
   outputList[0]->assign(result.at(0));
 
-  //        helpers::dynamicPartitionFunctorBP(block.launchContext(), input, indices, gradOutList, outputList);
   return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(dynamic_partition_bp) {
   auto numPartition = INT_ARG(0);
   auto indices = INPUT_VARIABLE(1);
-  std::vector<int> partitionSizes(numPartition, 0);
+  std::vector<sd::LongType> partitionSizes(numPartition, 0);
 
   auto shapes = SHAPELIST();
   // just copy shape info from input and indices to output
   for (sd::LongType i = 0; i < 2; i++) {
-    sd::LongType *newShape;
-    COPY_SHAPE(inputShape->at(i), newShape);
-    shapes->push_back(CONSTANT(newShape));
+    shapes->push_back(CONSTANT(inputShape->at(i)));
   }
 
   return shapes;

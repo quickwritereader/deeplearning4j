@@ -43,7 +43,7 @@ class ExecutionResult {
   bool _releasable = false;
 
  public:
-  ExecutionResult(const FlatResult *flatResult);
+  ExecutionResult(const ::graph::FlatResult *flatResult);
   ExecutionResult(std::initializer_list<Variable *> variables);
   ExecutionResult() = default;
   ~ExecutionResult();
@@ -82,13 +82,13 @@ class ExecutionResult {
    * This method returns number of elements stored in this entity
    * @return
    */
-  sd::LongType size();
+  LongType size();
 
 #ifndef __JAVACPP_HACK__
   /**
    * This method converts ExecutionResult entity to FlatResult
    */
-  flatbuffers::Offset<FlatResult> asFlatResult(flatbuffers::FlatBufferBuilder &builder);
+  flatbuffers::Offset<::graph::FlatResult> asFlatResult(flatbuffers::FlatBufferBuilder &builder);
 #endif
 };
 }  // namespace graph

@@ -1,6 +1,5 @@
 /* ******************************************************************************
  *
- *
  * This program and the accompanying materials are made available under the
  * terms of the Apache License, Version 2.0 which is available at
  * https://www.apache.org/licenses/LICENSE-2.0.
@@ -16,10 +15,6 @@
  * SPDX-License-Identifier: Apache-2.0
  ******************************************************************************/
 
-//
-//  @author raver119@gmail.com
-//
-
 #ifndef DEV_TESTS_CONSTANTTADHELPER_H
 #define DEV_TESTS_CONSTANTTADHELPER_H
 
@@ -28,18 +23,19 @@
 #include <array/ShapeDescriptor.h>
 #include <array/TadDescriptor.h>
 #include <array/TadPack.h>
+#include <helpers/DirectTadTrie.h>
 #include <system/op_boilerplate.h>
 
 #include <map>
 #include <mutex>
 #include <vector>
+
 namespace sd {
 class SD_LIB_EXPORT ConstantTadHelper {
  private:
-  std::mutex _mutex;
-  std::vector<SD_MAP_IMPL<TadDescriptor, TadPack>> _cache;
+  DirectTadTrie _trie;  // Single trie for device 0
 
-  ConstantTadHelper();
+  ConstantTadHelper() = default;
 
  public:
   ~ConstantTadHelper() = default;
@@ -54,36 +50,14 @@ class SD_LIB_EXPORT ConstantTadHelper {
    * @param keepUnitiesInShape
    * @return
    */
-  TadPack tadForDimensions(const sd::LongType *originalShape, const std::vector<int> &dimensions,
+
+  TadPack *tadForDimensions(LongType *originalShape, LongType *dimensions, LongType dimLength);
+  TadPack *tadForDimensions(ShapeDescriptor &descriptor, std::vector<LongType> &dimensions,
                            const bool keepUnitiesInShape = false);
-  TadPack tadForDimensions(const sd::LongType *originalShape, int *dimensions, int dimLength,
-                           const bool keepUnitiesInShape = false);
-  TadPack tadForDimensions(const sd::LongType *originalShape, int dimensions, const bool keepUnitiesInShape = false);
-  TadPack tadForDimensions(ShapeDescriptor &descriptor, std::vector<int> &dimensions,
-                           const bool keepUnitiesInShape = false);
-  TadPack tadForDimensions(TadDescriptor &descriptor);
+  TadPack *tadForDimensions(TadDescriptor *descriptor);
 
-  /**
-   * This method returns number of cached TAD shapes/offsets on specific device
-   * @return
-   */
-  SD_INLINE int cachedEntriesForDevice(int deviceId) {
-    if (deviceId > _cache.size()) throw std::runtime_error("deviceId > number of actual devices");
-
-    return _cache[deviceId].size();
-  }
-
-  /**
-   * This method returns total number of cached TAD shapes/offsets on all devices
-   * @return
-   */
-  SD_INLINE int totalCachedEntries() {
-    int total = 0;
-
-    for (int e = 0; e < _cache.size(); e++) total += _cache[e].size();
-
-    return total;
-  }
+  TadPack *tadForDimensions(LongType *originalShape, LongType dimension);
+  TadPack *tadForDimensions(LongType *originalShape, std::vector<LongType> *dimensions);
 };
 }  // namespace sd
 

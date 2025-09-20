@@ -31,7 +31,7 @@ namespace ops {
 namespace helpers {
 
 template <typename T>
-static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateG,
+static void rmsPropUpdater_(NDArray& gradient, NDArray& initState, NDArray& update, NDArray& stateG,
                             const double dLr, const double dRmsDecay, const double dEpsilon) {
   const T* grad = gradient.bufferAsT<T>();
   const T* init = initState.bufferAsT<T>();
@@ -63,14 +63,40 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
   bool bXInSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initState.shapeInfo());
   bool bXStSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateG.shapeInfo());
 
+  sd::LongType gradRank = shape::rank(gradient.shapeInfo());
+  sd::LongType initStateRank = shape::rank(initState.shapeInfo());
+  sd::LongType updateRank = shape::rank(update.shapeInfo());
+
+  sd::LongType *gradShape = shape::shapeOf(gradient.shapeInfo());
+  sd::LongType *gradStride = shape::stride(gradient.shapeInfo());
+  sd::LongType *updateStride = shape::stride(update.shapeInfo());
+  sd::LongType *initStateStride = shape::stride(initState.shapeInfo());
+
+  sd::LongType *stateGShape = shape::shapeOf(stateG.shapeInfo());
+  sd::LongType *stateGStride = shape::stride(stateG.shapeInfo());
+  sd::LongType stateGRank = shape::rank(stateG.shapeInfo());
+
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initOffset = bXInSame ? xOffset : shape::getOffset(initState.shapeInfo(), coords);
-      const auto stOffset = bXStSame ? xOffset : shape::getOffset(stateG.shapeInfo(), coords);
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
+      sd::LongType xOffset, zOffset, initOffset, stOffset;
+      COORDS2INDEX(gradRank,gradStride, coords, xOffset);
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(updateRank,updateStride, coords, zOffset);
+      }
+      if (bXInSame) {
+        initOffset = xOffset;
+      } else {
+        COORDS2INDEX(initStateRank, initStateStride, coords, initOffset);
+      }
+      if (bXStSame) {
+        stOffset = xOffset;
+      } else {
+        COORDS2INDEX(stateGRank, stateGStride, coords, stOffset);
+      }
 
       st[stOffset] = init[initOffset] * rmsDecay + grad[xOffset] * grad[xOffset] * (1 - rmsDecay);
       up[zOffset] = (lr * grad[xOffset]) / (math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
@@ -81,7 +107,7 @@ static void rmsPropUpdater_(const NDArray& gradient, const NDArray& initState, N
   return;
 }
 
-void updaterRmsProp(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update,
+void updaterRmsProp(sd::LaunchContext* context, NDArray& gradient, NDArray& initState, NDArray& update,
                     NDArray& stateG, const double dLr, const double dRmsDecay, const double dEpsilon) {
   BUILD_SINGLE_SELECTOR(gradient.dataType(), rmsPropUpdater_,
                         (gradient, initState, update, stateG, dLr, dRmsDecay, dEpsilon), SD_FLOAT_TYPES);

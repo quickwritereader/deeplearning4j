@@ -79,7 +79,26 @@
 #define ELEMENT_THRESHOLD sd::Environment::getInstance().elementwiseThreshold()
 #define TAD_THRESHOLD sd::Environment::getInstance().tadThreshold()
 
-#define SHAPELIST(...) new ShapeList({__VA_ARGS__}, block.workspace() != nullptr)
+// Helper to pick the correct macro based on the number of arguments.
+// This macro works by “peeling” off up to 10 parameters; if only one parameter is passed,
+// then _1 is that parameter and NAME ends up as SHAPELIST_1. For two or more parameters,
+// NAME ends up as SHAPELIST_N.
+#define GET_SHAPELIST_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, NAME, ...) NAME
+
+// This chooser macro always returns SHAPELIST_1 when only one argument is given,
+// and returns SHAPELIST_N when more than one argument is passed.
+#define SHAPELIST_CHOOSER(...) \
+    GET_SHAPELIST_MACRO(__VA_ARGS__, SHAPELIST_N, SHAPELIST_N, SHAPELIST_N, SHAPELIST_N, \
+                         SHAPELIST_N, SHAPELIST_N, SHAPELIST_N, SHAPELIST_N, SHAPELIST_N, SHAPELIST_1)
+
+// For one argument, call the constructor directly.
+#define SHAPELIST_1(a) new ShapeList(a)
+// For two or more arguments, wrap them in braces so that the constructor
+// accepting a vector is called.
+#define SHAPELIST_N(...) new ShapeList({__VA_ARGS__})
+
+// Finally, define SHAPELIST(...) to select the proper version:
+#define SHAPELIST(...) SHAPELIST_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #ifdef __CUDA_ARCH__
 #define PRINT_FIRST(...)                     \
@@ -97,7 +116,7 @@
     cudaError_t tRes = cudaStreamSynchronize(*STREAM); \
     checkCudaErrors(tRes);                             \
     if (tRes != 0) {                                   \
-      throw std::runtime_error();                      \
+      THROW_EXCEPTION();                      \
     };                                                 \
   }
 #define DEBUG_KERNEL(STREAM, OP_NUM)                                                             \
@@ -109,7 +128,7 @@
       std::string tOp = "Kernel OpNum failed: [" + sd::StringUtils::valueToString<int>(OP_NUM) + \
                         std::string("]; File: ") + tFile + std::string(":") +                    \
                         sd::StringUtils::valueToString<int>(__LINE__);                           \
-      throw std::runtime_error(tOp.c_str());                                                     \
+      THROW_EXCEPTION(tOp.c_str());                                                     \
     };                                                                                           \
   }
 
@@ -2269,22 +2288,17 @@
 #define CALL_T(A, B) EXPAND(_EXPAND_PACKED_CALL_T(A, B))
 #define DIRECT(A, B) EXPAND(_EXPAND_PACKED_DIRECT(A, B))
 
+#ifndef  __JAVACPP_HACK__
 /// graph definitions
 #define REQUIRE_OK(A) \
   if (sd::ops::resultHelper((A), #A, __FILE__, __LINE__) != sd::Status::OK) return sd::Status::VALIDATION;
 #define REQUIRE_TRUE(COND, ...)                                                            \
   if (!(COND)) {                                                                           \
-    if (sd::ops::conditionHelper(__FILE__, __LINE__, COND, __VA_ARGS__) != sd::Status::OK) \
-      throw std::invalid_argument("Op validation failed");                                 \
+    sd::ErrorResult errorResult = sd::ops::conditionHelper(__FILE__, __LINE__, COND, __VA_ARGS__); \
+    if (errorResult.status != sd::Status::OK) \
+      THROW_EXCEPTION(errorResult.message.c_str());                                 \
   };
-
-#define DECLARE_ENTRY(NAME, ...)                                          \
-  template struct SD_LIB_EXPORT __registratorFloat<NAME<float>>;          \
-  template struct SD_LIB_EXPORT __registratorHalf<NAME<float16>>;         \
-  template struct SD_LIB_EXPORT __registratorDouble<NAME<double>>;        \
-  template struct SD_LIB_EXPORT __registratorSynonymHalf<NAME<float16>>;  \
-  template struct SD_LIB_EXPORT __registratorSynonymDouble<NAME<double>>; \
-  template struct SD_LIB_EXPORT __registratorSynonymFloat<NAME<float>>;
+#endif
 
 #if defined(SD_ALL_OPS)
 #define SD_ALL_OPS_ACTIVATED 1
@@ -2392,10 +2406,10 @@
     auto shapeList = SHAPELIST();                                                                                     \
     auto opLimit = this->getOpDescriptor()->getNumberOfOutputs() < 1 ? block.width()                                  \
                                                                      : this->getOpDescriptor()->getNumberOfOutputs(); \
-    for (int e = 0; e < opLimit; e++) {                                                                               \
+    for (size_t e = 0; e < opLimit; e++) {                                                                               \
       auto newshape = ConstantShapeHelper::getInstance().createShapeInfo(                                             \
           ArrayOptions::dataType(inputShape->at(e)), shape::order(inputShape->at(e)), shape::rank(inputShape->at(e)), \
-          shape::shapeOf(inputShape->at(e)));                                                                         \
+          shape::shapeOf(inputShape->at(e)),shape::extra(inputShape->at(e)));                                                                         \
       shapeList->push_back(newshape);                                                                                 \
     }                                                                                                                 \
     return shapeList;                                                                                                 \
@@ -2436,10 +2450,8 @@
     auto shapeList = SHAPELIST();                                                                                     \
     auto opLimit = this->getOpDescriptor()->getNumberOfOutputs() < 1 ? block.width()                                  \
                                                                      : this->getOpDescriptor()->getNumberOfOutputs(); \
-    for (int e = 0; e < opLimit; e++) {                                                                               \
-      sd::LongType* newshape;                                                                                         \
-      COPY_SHAPE(inputShape->at(0), newshape);                                                                        \
-      shapeList->push_back(CONSTANT(newshape));                                                                       \
+    for (size_t e = 0; e < opLimit; e++) {                                                                               \
+      shapeList->push_back(CONSTANT(inputShape->at(0)));                                                                       \
     }                                                                                                                 \
     return shapeList;                                                                                                 \
   }                                                                                                                   \
@@ -2464,15 +2476,37 @@
     auto shapeList = SHAPELIST();                                                                                     \
     auto opLimit = this->getOpDescriptor()->getNumberOfOutputs() < 1 ? block.width()                                  \
                                                                      : this->getOpDescriptor()->getNumberOfOutputs(); \
-    for (int e = 0; e < opLimit; e++) {                                                                               \
-      auto newshape = ConstantShapeHelper::getInstance().createShapeInfo(                                             \
-          ArrayOptions::dataType(inputShape->at(e)), shape::order(inputShape->at(e)), shape::rank(inputShape->at(e)), \
-          shape::shapeOf(inputShape->at(e)));                                                                         \
-      shapeList->push_back(newshape);                                                                                 \
+    for (size_t e = 0; e < opLimit; e++) {                                                                               \
+      int inputShapeIdx = block.width() < opLimit ? 0 : e;                                                            \
+      auto shapeInfo = inputShape->at(inputShapeIdx);                                                                 \
+      if(shape::isEmptyConst(shapeInfo)) {                                                                                 \
+           std::vector<sd::LongType> shape2;                                                                          \
+             if(shape::rank(shapeInfo) < 1)                                                                           \
+                  shape2.push_back(0);                                                                                \
+              else {                                                                                                  \
+                 auto shapeOf = shape::shapeOf(shapeInfo);                                                            \
+                  for(int i = 0; i < shape::rank(shapeInfo); i++) {                                                   \
+                          shape2.push_back(shapeOf[i]);                                                               \
+                }                                                                                                      \
+             }                                                                                                        \
+                                                                                                                      \
+            auto dtString = DataTypeUtils::asString(ArrayOptions::dataType(shapeInfo));                               \
+             printf("CONFIGURABLE_OP_IMPL: Creating empty data type: %s for index %d\n",dtString.c_str(),static_cast<int>(e));\
+                                                                                                          \
+            auto newShape = ConstantShapeHelper::getInstance()                                                        \
+                            .emptyShapeInfoWithShape(ArrayOptions::dataType(shapeInfo),shape2);               \
+            shapeList->push_back(newShape);                                                                                  \
+      }    else {                                                                                                               \
+        auto newshape = ConstantShapeHelper::getInstance().createShapeInfo(                                             \
+               ArrayOptions::dataType(shapeInfo), shape::order(shapeInfo), shape::rank(shapeInfo), \
+               shape::shapeOf(shapeInfo),shape::extra(shapeInfo));                             \
+           shapeList->push_back(newshape);  \
+      }                                                                                                    \
+                                                                                  \
     }                                                                                                                 \
     return shapeList;                                                                                                 \
   }                                                                                                                   \
-  sd::Status sd::ops::NAME::validateAndExecute(Context& block)
+  sd::Status sd::ops::NAME::validateAndExecute(sd::graph::Context& block)
 
 #define DECLARE_REDUCTION_OP(NAME, NIN, NOUT, INPLACEABLE, TARGS, IARGS) \
   class SD_LIB_EXPORT NAME : public sd::ops::DeclarableReductionOp {     \
@@ -2481,7 +2515,7 @@
                                                                          \
    protected:                                                            \
     void registerTypes();                                                \
-    sd::Status validateAndExecute(Context& block);                       \
+    sd::Status validateAndExecute(sd::graph::Context& block);                       \
   };                                                                     \
   REGISTER_H(NAME)
 
@@ -2494,7 +2528,7 @@
   class SD_LIB_EXPORT NAME : public sd::ops::DeclarableCustomOp {                              \
    protected:                                                                                  \
     void registerTypes();                                                                      \
-    sd::Status validateAndExecute(Context& block);                                             \
+    sd::Status validateAndExecute(sd::graph::Context& block);                                             \
                                                                                                \
    public:                                                                                     \
     NAME();                                                                                    \
@@ -2520,7 +2554,7 @@
   class SD_LIB_EXPORT NAME : public sd::ops::BroadcastableOp { \
    protected:                                                  \
     void registerTypes();                                      \
-    sd::Status validateAndExecute(Context& block);             \
+    sd::Status validateAndExecute(sd::graph::Context& block);             \
                                                                \
    public:                                                     \
     NAME();                                                    \
@@ -2531,7 +2565,7 @@
   class SD_LIB_EXPORT NAME : public sd::ops::BroadcastableBoolOp { \
    protected:                                                      \
     void registerTypes();                                          \
-    sd::Status validateAndExecute(Context& block);                 \
+    sd::Status validateAndExecute(sd::graph::Context& block);                 \
                                                                    \
    public:                                                         \
     NAME();                                                        \
@@ -2556,16 +2590,16 @@
   else                                                                                               \
     shape::shapeBufferFortran(shape::rank(SRC), sd::ArrayOptions::dataType(SRC), shape::shapeOf(SRC), TGT);
 
-#ifdef __CUDABLAS__
+#if defined(__CUDABLAS__)
 
-#ifdef _RELEASE
+#if defined(_RELEASE)
 
 // we intentionally add 8 tail bytes here to avoid problems with atomic operations
 #define ALLOCATE_SPECIAL(VARIABLE, WORKSPACE, LENGTH, TT)                                                         \
   if (WORKSPACE == nullptr) {                                                                                     \
     auto erc_##VARIABLE = cudaMalloc(reinterpret_cast<void**>(&VARIABLE), LENGTH * sizeof(TT) + 8);               \
     if (erc_##VARIABLE != 0) {                                                                                    \
-      throw cuda_exception::build("[DEVICE] allocation failed", erc_##VARIABLE);                                  \
+     THROW_EXCEPTION("[DEVICE] allocation failed", erc_##VARIABLE);                                  \
     } else {                                                                                                      \
     };                                                                                                            \
   } else {                                                                                                        \
@@ -2577,25 +2611,29 @@
     if (WORKSPACE == nullptr) {                                                      \
       auto erc_##VARIABLE = cudaFree(reinterpret_cast<void*>(VARIABLE));             \
       if (erc_##VARIABLE != 0) {                                                     \
-        throw cuda_exception::build("[DEVICE] deallocation failed", erc_##VARIABLE); \
+        THROW_EXCEPTION("[DEVICE] deallocation failed", erc_##VARIABLE); \
       };                                                                             \
     };                                                                               \
   };
 
 #else
 
+
 // we intentionally add 8 tail bytes here to avoid problems with atomic operations
-#define ALLOCATE_SPECIAL(VARIABLE, WORKSPACE, LENGTH, TT)                                                              \
-  if (WORKSPACE == nullptr) {                                                                                          \
-    auto erc_##VARIABLE = cudaMalloc(reinterpret_cast<void**>(&VARIABLE), LENGTH * sizeof(TT) + 8);                    \
-    if (erc_##VARIABLE != 0) {                                                                                         \
-      throw cuda_exception::build("[DEVICE] allocation failed", erc_##VARIABLE);                                       \
-    } else {                                                                                                           \
-      sd::memory::MemoryTracker::getInstance().countIn(sd::memory::MemoryType::DEVICE, VARIABLE, LENGTH * sizeof(TT)); \
-    };                                                                                                                 \
-  } else {                                                                                                             \
-    VARIABLE =                                                                                                         \
-        reinterpret_cast<TT*>(WORKSPACE->allocateBytes(sd::memory::MemoryType::DEVICE, LENGTH * sizeof(TT) + 8));      \
+#define ALLOCATE_SPECIAL(VARIABLE, WORKSPACE, LENGTH, TT)                                                             \
+  if (WORKSPACE == nullptr) {                                                                                         \
+                                                                                          \
+    /* Calculate allocation size */                                                                                   \
+    size_t allocSize = LENGTH * sizeof(TT) + 8;                                                                       \
+                                                                                                                      \
+    /* Allocation with proper error handling */                                                                       \
+    checkCudaErrors(cudaMalloc(reinterpret_cast<void**>(&VARIABLE), allocSize));                          \
+    sd::memory::MemoryTracker::getInstance().countIn(sd::memory::MemoryType::DEVICE, VARIABLE, allocSize);          \
+                                                                                                              \
+  } else {                                                                                                            \
+    /* Using workspace allocator */                                                                                   \
+    size_t allocSize = LENGTH * sizeof(TT) + 8;                                                                       \
+    VARIABLE = reinterpret_cast<TT*>(WORKSPACE->allocateBytes(sd::memory::MemoryType::DEVICE, allocSize));            \
   }
 #define RELEASE_SPECIAL(VARIABLE, WORKSPACE)                                         \
   if (VARIABLE != nullptr) {                                                         \
@@ -2617,13 +2655,18 @@
 
 #endif
 
+#include <type_traits>
+#include <cstring>
+#include <algorithm>
+
 template <typename TT, typename WW>
 SD_INLINE TT* internal_alloc_host(WW workSpace, sd::LongType len) {
   TT* var;
   if (workSpace == nullptr) {
 #if defined(SD_ALIGNED_ALLOC)
     var = static_cast<TT*>(
-        aligned_alloc(SD_DESIRED_ALIGNMENT, (len * sizeof(TT) + SD_DESIRED_ALIGNMENT - 1) & (-SD_DESIRED_ALIGNMENT)));
+        aligned_alloc(SD_DESIRED_ALIGNMENT,
+                      (len * sizeof(TT) + SD_DESIRED_ALIGNMENT - 1) & (-SD_DESIRED_ALIGNMENT)));
 #else
     var = new TT[len];
 #endif
@@ -2633,9 +2676,14 @@ SD_INLINE TT* internal_alloc_host(WW workSpace, sd::LongType len) {
   } else {
     var = reinterpret_cast<TT*>(workSpace->allocateBytes(len * sizeof(TT)));
   }
-  memset(var, 0, len * sizeof(TT));
+  if constexpr (std::is_trivially_copyable<TT>::value) {
+    memset(var, 0, len * sizeof(TT));
+  } else {
+    std::fill_n(var, len, TT());
+  }
   return var;
 }
+
 
 template <typename TT_PTR, typename WW>
 SD_INLINE void internal_release_host(WW workspace, TT_PTR var) {
@@ -2646,15 +2694,31 @@ SD_INLINE void internal_release_host(WW workspace, TT_PTR var) {
 #if defined(SD_ALIGNED_ALLOC)
     free(var);
 #else
-    delete[] var;
+    delete var;
 #endif
   }
 }
 
-#define ALLOCATE(VARIABLE, WORKSPACE, LENGTH, TT) VARIABLE = internal_alloc_host<TT>(WORKSPACE, LENGTH);
+
+#ifndef __JAVACPP_HACK__
+
+#if defined(SD_GCC_FUNCTRACE) && !defined(OP_BOILER_PLATE_THROW_EXCEPTIONS)
+#define OP_BOILER_PLATE_THROW_EXCEPTIONS
+#include <exceptions/backward.hpp>
+using namespace backward;
+void throwException(const char* exceptionMessage);
+#else
+void throwException(const char* exceptionMessage);
+
+#endif
+#define THROW_EXCEPTION(exceptionMessage) throwException(exceptionMessage);
+#endif
+
+
+#define ALLOCATE(VARIABLE, WORKSPACE, LENGTH, TT) VARIABLE = internal_alloc_host<TT>(WORKSPACE, static_cast<sd::LongType>(LENGTH));
 #define RELEASE(VARIABLE, WORKSPACE) internal_release_host(WORKSPACE, VARIABLE);
 
-#define CONSTANT(SHAPE) ConstantShapeHelper::getInstance().createFromExisting(SHAPE, block.workspace())
+#define CONSTANT(SHAPE) ConstantShapeHelper::getInstance().createFromExisting(SHAPE)
 
 #define STORE_RESULT(A) this->storeResult(block, 0, A)
 #define OVERWRITE_RESULT(A) this->overwriteResult(block, 0, A)
@@ -2683,15 +2747,18 @@ SD_INLINE void internal_release_host(WW workspace, TT_PTR var) {
   this->storeResult(block, 4, E)
 #define BROADCAST_CHECK_EMPTY(X, Y, Z)                                                                     \
   if (X->isEmpty() || Y->isEmpty()) {                                                                      \
-    if (!Z->isEmpty()) {                                                                                   \
-      throw std::invalid_argument("Broadcast op validation failed: if x or y are empty, z must be empty"); \
+    if (!Z->isEmpty()) {                                                                                     \
+       std::string errorMessage;                                                                             \
+       errorMessage += "Broadcast op validation failed: if x or y are empty, z must be empty";               \
+       errorMessage += " X empty:";                                                                     \
+       errorMessage += std::to_string(X->isEmpty());                                                         \
+       errorMessage += "\n Y empty:";                                                                     \
+       errorMessage += std::to_string(Y->isEmpty());                                                          \
+      THROW_EXCEPTION(errorMessage.c_str()); \
     }                                                                                                      \
     return sd::Status::OK;                                                                                 \
   }
 
-#define STASH(NAME, ARRAY) block.getStash()->storeArray(block.getNodeId(), NAME, ARRAY);
-#define CHECK_STASH(NAME) block.getStash()->checkStash(block.getNodeId(), NAME);
-#define UNSTASH(NAME) block.getStash()->extractArray(block.getNodeId(), NAME);
 
 #define INPUT_VARIABLE(INDEX) block.array(INDEX)
 #define OUTPUT_VARIABLE(INDEX) reinterpret_cast<sd::NDArray*>(this->getZ(block, INDEX))
@@ -2714,73 +2781,97 @@ SD_INLINE void internal_release_host(WW workspace, TT_PTR var) {
     throw sd::allocation_exception::build(MSG, BYTES); \
   };
 
-#ifdef __CUDABLAS__
 
-#define LAMBDA_T(X, ...) [=] SD_HOST_DEVICE(T X) -> T
-#define LAMBDA_TT(X, Y, ...) [=] SD_DEVICE(T X, T Y) -> T
-#define LAMBDA_TTT(t, u, v, ...) [=] SD_DEVICE(T t, T u, T v) -> T
+#include <functional>
 
-#define ILAMBDA_T(X, ...) [=] SD_DEVICE(sd::LongType _idx, T X) -> T
-#define ILAMBDA_TT(X, Y, ...) [=] SD_DEVICE(sd::LongType _idx, T X, T Y) -> T
-
-#define LAMBDA_D(X, ...) [=] SD_HOST_DEVICE(double X) -> double
-#define LAMBDA_DD(X, Y, ...) [=] SD_HOST_DEVICE(double X, double Y) -> double
-#define LAMBDA_DDD(t, u, v, ...) [=] SD_HOST_DEVICE(double t, double u, double v) -> double
-
-#define LAMBDA_H(X, ...) [__VA_ARGS__] SD_HOST_DEVICE(float16 X) -> float16
-#define LAMBDA_HH(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE(float16 X, float16 Y) -> float16
-
-#define ILAMBDA_D(X, ...) [__VA_ARGS__] SD_HOST_DEVICE(sd::LongType _idx, double X) -> double
-#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE(sd::LongType _idx, double X, double Y) -> double
-
-#define ILAMBDA_F(X, ...) [__VA_ARGS__] SD_HOST_DEVICE(sd::LongType _idx, float X) -> float
-#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE(sd::LongType _idx, float X, float Y) -> float
-
-#define LAMBDA_F(X, ...) [__VA_ARGS__] SD_HOST_DEVICE(float X) -> float
-#define LAMBDA_FF(X, Y, ...) [__VA_ARGS__] SD_HOST_DEVICE(float X, float Y) -> float
-#define LAMBDA_FFF(t, u, v, ...) [__VA_ARGS__] SD_HOST_DEVICE(float t, float u, float v) -> float
-
+// ======== Environment Detection ========
+// CUDA environment detection
+#if defined(__CUDACC__) || defined(__CUDA_ARCH__)
+#define IS_CUDA_ENVIRONMENT 1
 #else
-
-#define LAMBDA_T(X, ...) [__VA_ARGS__](T X) -> T
-#define LAMBDA_TT(X, Y, ...) [__VA_ARGS__](T X, T Y) -> T
-#define LAMBDA_TTT(t, u, v, ...) [__VA_ARGS__](T t, T u, T v) -> T
-
-#define ILAMBDA_T(X, ...) [__VA_ARGS__](sd::LongType _idx, T X) -> T
-#define ILAMBDA_TT(X, Y, ...) [__VA_ARGS__](sd::LongType _idx, T X, T Y) -> T
-
-#define LAMBDA_D(X, ...) [__VA_ARGS__](double X) -> double
-#define LAMBDA_DD(X, Y, ...) [__VA_ARGS__](double X, double Y) -> double
-#define LAMBDA_DDD(t, u, v, ...) [__VA_ARGS__](double t, double u, double v) -> double
-
-#define LAMBDA_H(X, ...) [__VA_ARGS__](float16 X) -> float16
-#define LAMBDA_HH(X, Y, ...) [__VA_ARGS__](float16 X, float16 Y) -> float16
-
-#define ILAMBDA_D(X, ...) [__VA_ARGS__](sd::LongType _idx, double X) -> double
-#define ILAMBDA_DD(X, Y, ...) [__VA_ARGS__](sd::LongType _idx, double X, double Y) -> double
-
-#define ILAMBDA_F(X, ...) [__VA_ARGS__](sd::LongType _idx, float X) -> float
-#define ILAMBDA_FF(X, Y, ...) [__VA_ARGS__](sd::LongType _idx, float X, float Y) -> float
-
-#define LAMBDA_F(X, ...) [__VA_ARGS__](float X) -> float
-#define LAMBDA_FF(X, Y, ...) [__VA_ARGS__](float X, float Y) -> float
-#define LAMBDA_FFF(t, u, v, ...) [__VA_ARGS__](float t, float u, float v) -> float
-
+#define IS_CUDA_ENVIRONMENT 0
 #endif
 
-// stuff for benchmarks
+// nvfunctional availability detection
+#if IS_CUDA_ENVIRONMENT && defined(NVFUNCTIONAL_AVAILABLE)
+#include <nvfunctional>
+#define HAS_NVFUNCTIONAL 1
+#else
+#define HAS_NVFUNCTIONAL 0
+#endif
+
+// ======== Function Implementation Selection ========
+#if HAS_NVFUNCTIONAL
+// Use nvfunctional when available in CUDA context
+template<typename Signature>
+using portable_function = nvfunctional::function<Signature>;
+#else
+// Fall back to std::function
+template<typename Signature>
+using portable_function = std::function<Signature>;
+#endif
+
+#ifndef __JAVACPP_HACK__
+// ======== Host/Device Decorators ========
+#if IS_CUDA_ENVIRONMENT
+#define HOST_DEVICE __host__ __device__
+#define DEVICE_ONLY __device__
+#define HOST_ONLY __host__
+#else
+#define HOST_DEVICE
+#define DEVICE_ONLY
+#define HOST_ONLY
+#endif
+#endif
+// ======== Lambda Function Macros ========
+// Generic type T lambdas
+#define LAMBDA_T(X, ...) portable_function<T(T)>([__VA_ARGS__] HOST_DEVICE (T X) -> T
+#define LAMBDA_TT(X, Y, ...) portable_function<T(T,T)>([__VA_ARGS__] HOST_DEVICE (T X, T Y) -> T
+#define LAMBDA_TTT(t, u, v, ...) portable_function<T(T,T,T)>([__VA_ARGS__] HOST_DEVICE (T t, T u, T v) -> T
+
+// Indexed lambdas for generic type T
+#define ILAMBDA_T(X, ...) portable_function<T(sd::LongType,T)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, T X) -> T
+#define ILAMBDA_TT(X, Y, ...) portable_function<T(sd::LongType,T,T)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, T X, T Y) -> T
+
+// Double-specific lambdas
+#define LAMBDA_D(X, ...) portable_function<double(double)>([__VA_ARGS__] HOST_DEVICE (double X) -> double
+#define LAMBDA_DD(X, Y, ...) portable_function<double(double,double)>([__VA_ARGS__] HOST_DEVICE (double X, double Y) -> double
+#define LAMBDA_DDD(t, u, v, ...) portable_function<double(double,double,double)>([__VA_ARGS__] HOST_DEVICE (double t, double u, double v) -> double
+
+// Float16-specific lambdas
+#define LAMBDA_H(X, ...) portable_function<float16(float16)>([__VA_ARGS__] HOST_DEVICE (float16 X) -> float16
+#define LAMBDA_HH(X, Y, ...) portable_function<float16(float16,float16)>([__VA_ARGS__] HOST_DEVICE (float16 X, float16 Y) -> float16
+
+// Indexed double lambdas
+#define ILAMBDA_D(X, ...) portable_function<double(sd::LongType,double)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, double X) -> double
+#define ILAMBDA_DD(X, Y, ...) portable_function<double(sd::LongType,double,double)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, double X, double Y) -> double
+
+// Indexed float lambdas
+#define ILAMBDA_F(X, ...) portable_function<float(sd::LongType,float)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, float X) -> float
+#define ILAMBDA_FF(X, Y, ...) portable_function<float(sd::LongType,float,float)>([__VA_ARGS__] HOST_DEVICE (sd::LongType _idx, float X, float Y) -> float
+
+// Float-specific lambdas
+#define LAMBDA_F(X, ...) portable_function<float(float)>([__VA_ARGS__] HOST_DEVICE (float X) -> float
+#define LAMBDA_FF(X, Y, ...) portable_function<float(float,float)>([__VA_ARGS__] HOST_DEVICE (float X, float Y) -> float
+#define LAMBDA_FFF(t, u, v, ...) portable_function<float(float,float,float)>([__VA_ARGS__] HOST_DEVICE (float t, float u, float v) -> float
+
+// ======== Device-specific variants ========
+// Use these when you need explicit control over execution context
+#define DEVICE_LAMBDA_T(X, ...) portable_function<T(T)>([__VA_ARGS__] DEVICE_ONLY (T X) -> T
+#define HOST_LAMBDA_T(X, ...) portable_function<T(T)>([__VA_ARGS__] HOST_ONLY (T X) -> T
+
+// ======== Benchmark-specific lambdas ========
+// These don't need portable_function since they're just capturing lambdas
 #define GENERATE_XYZ() [&](ResultSet & x, ResultSet & y, ResultSet & z)
 #define GENERATE_XZ() [&](ResultSet & x, ResultSet & z)
-
 #define PARAMETRIC_XYZ() [&](Parameters & p, ResultSet & x, ResultSet & y, ResultSet & z)
 #define PARAMETRIC_XZ() [&](Parameters & p, ResultSet & x, ResultSet & z)
-
 #define PARAMETRIC_D() [&](Parameters & p) -> Context*
 
 #ifdef __CUDABLAS__
 #define checkCudaErrors(ERR)                                        \
   if (ERR != 0) {                                                   \
-    throw std::runtime_error("CUDA stream synchronization failed"); \
+    THROW_EXCEPTION("CUDA stream synchronization failed"); \
   }
 #endif
 

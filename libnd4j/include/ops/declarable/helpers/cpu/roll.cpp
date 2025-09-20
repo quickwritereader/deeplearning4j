@@ -42,20 +42,17 @@ static void rollFunctorLinear_(NDArray* input, NDArray* output, int shift, bool 
     int remainShift = fullLen % actualShift;
 
     // stage 1) swap last actualShift elements with first ones.
-    // PRAGMA_OMP_PARALLEL_FOR //_IF(actualShift > Environment::getInstance().elementwiseThreshold())
     for (int e = 0; e < actualShift; ++e) {
       int sourceIndex = fullLen - actualShift + e;
 
       auto _e0 = output->e<T>(e);
       auto _e1 = output->e<T>(sourceIndex);
 
-      // sd::math::sd_swap((*output)(e), (*output)(sourceIndex));
       output->p<T>(e, _e1);
       output->p<T>(sourceIndex, _e0);
     }
 
     // stage 2) swap swapped actualShift elements with rest remainShiftCount times.
-    // PRAGMA_OMP_PARALLEL_FOR //_IF(shiftCount > Environment::getInstance().tadThreshold())
     for (int count = 1; count < shiftCount; ++count) {
       for (int e = 0; e < actualShift; ++e) {
         int destinationIndex = fullLen - (count + 1) * actualShift + e;
@@ -64,7 +61,6 @@ static void rollFunctorLinear_(NDArray* input, NDArray* output, int shift, bool 
         auto _e0 = output->e<T>(destinationIndex);
         auto _e1 = output->e<T>(sourceIndex);
 
-        // sd::math::sd_swap((*output)(destinationIndex), (*output)(sourceIndex));
         output->p<T>(destinationIndex, _e1);
         output->p<T>(sourceIndex, _e0);
       }
@@ -75,23 +71,19 @@ static void rollFunctorLinear_(NDArray* input, NDArray* output, int shift, bool 
       for (int i = actualShift; i < 2 * actualShift; ++i) {
         auto _e0 = output->e<T>(i);
         auto _e1 = output->e<T>(i + remainShift);
-
-        // sd::math::sd_swap((*output)(i), (*output)(i + remainShift));
-
         output->p<T>(i, _e1);
         output->p<T>(i + remainShift, _e0);
       }
   }
 }
 
-void rollFunctorFull(sd::LaunchContext* context, NDArray* input, NDArray* output, std::vector<int> const& shifts,
-                     std::vector<int> const& axes, bool inplace) {
+void rollFunctorFull(sd::LaunchContext* context, NDArray* input, NDArray* output, const std::vector<LongType>& shifts,
+                     const std::vector<LongType>& axes, bool inplace) {
   if (!inplace) output->assign(input);
 
   auto source = output;  // input;
   for (size_t i = 0; i < axes.size(); i++) {
     int axe = axes[i];
-    // if (axe == source->rankOf() - 1) {// last dimension
     ResultSet listOfTensors = source->allTensorsAlongDimension({axe});
     ResultSet listOfOutTensors = output->allTensorsAlongDimension({axe});
     int fullLen = listOfTensors.size();
@@ -105,48 +97,7 @@ void rollFunctorFull(sd::LaunchContext* context, NDArray* input, NDArray* output
     for (int k = 0; k < fullLen; k++) {
       rollFunctorLinear(context, listOfTensors.at(k), listOfOutTensors.at(k), theShift, true);
     }
-    /*        }
-            else {
-                std::vector<int> dims(source->rankOf() - axe - 1);
-                for (size_t i = 0; i < dims.size(); ++i)
-                    dims[i] = axe + 1 + i;
 
-                ResultSet listOfTensors = source->allTensorsAlongDimension({dims});
-                ResultSet listOfOutTensors = output->allTensorsAlongDimension({dims});
-                //
-                int fullLen = listOfTensors.size();
-                int sizeAt = input->sizeAt(axe);
-                sd_debug("Roll: fullLen at  dimension %d is %d\n",i,fullLen);
-
-                int theShift = shifts[i];
-
-                if (theShift > 0) {
-                    theShift %= sizeAt;
-                }
-                else {
-                    theShift -= sizeAt * (theShift / sizeAt - 1);
-                }
-
-                if (theShift) {
-                    for (size_t dim = 0; dim < fullLen / sizeAt; ++dim) {
-                        for (size_t e = theShift; e < sizeAt - theShift; ++e) {
-                            auto sourceM = listOfTensors.at(dim * sizeAt + e - theShift);
-                            auto targetM = listOfOutTensors.at(dim * sizeAt + e);
-                            sourceM->swapUnsafe(*targetM);
-                        }
-
-                        for (size_t e = 0; e < theShift; ++e) {
-                            int sourceIndex = dim * sizeAt + sizeAt - theShift + e;
-                            auto sourceM = listOfTensors.at(sourceIndex);
-                            auto targetM = listOfOutTensors.at(dim * sizeAt + e);
-
-                            sourceM->swapUnsafe(*targetM);
-                        }
-                    }
-                }
-            }
-//            if (!inplace)
-//                source = output;*/
   }
 }
 

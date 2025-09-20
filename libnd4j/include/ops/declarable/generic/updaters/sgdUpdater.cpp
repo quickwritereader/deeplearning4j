@@ -36,7 +36,7 @@ CONFIGURABLE_OP_IMPL(sgd_updater, 1, 1, true, 0, 0) {
   const auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
 
-  if (input->isEmpty()) return sd::Status::OK;
+  if (input->isEmpty()) return Status::OK;
 
   bool bLearningRate = 2 == block.width() || 1 == block.getTArguments()->size();
 
@@ -47,12 +47,12 @@ CONFIGURABLE_OP_IMPL(sgd_updater, 1, 1, true, 0, 0) {
     REQUIRE_TRUE(lr->isScalar(), 0, "SGD UPDATER OP: Learning rate has to be a scalar, but instead got rank %i!",
                  lr->rankOf());
 
-    input->applyScalarArr(scalar::Multiply, *lr, *output);
+    input->applyScalarArr(scalar::Multiply, lr, output);
   } else {
-    input->applyScalar(scalar::Multiply, T_ARG(0), *output);
+    input->applyScalar(scalar::Multiply, T_ARG(0), output);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(sgd_updater) { getOpDescriptor()->setAllowedInputTypes({ALL_FLOATS})->setSameMode(true); }

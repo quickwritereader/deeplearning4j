@@ -378,20 +378,10 @@ val sequenceLength = OnnxMappingProcess(
 //TODO: EyeLike
 //TODO: FeatureVectorizer
 val gru = OnnxMappingProcess(
-        opMappingRegistry = onnxOpRegistry,
+        opName = "noop",
         inputFrameworkOpName = "GRU",
-        opName = "gruCell",
-        tensorMappingRules = listOf(mappingNDArrayInputs(mutableMapOf(
-                "input" to "X",
-                "Wru" to "R",
-                "Wc" to "W",
-                "bc" to "B",
-                "hLast" to "initial_h",
-                //TODO: erroneous mappings
-                "bru" to "B"))),
-        attributeMappingRules = listOf()
+        opMappingRegistry = onnxOpRegistry
 )
-
 val gather = OnnxMappingProcess(
         opMappingRegistry = onnxOpRegistry,
         inputFrameworkOpName = "Gather",
@@ -902,7 +892,7 @@ val flatten = OnnxMappingProcess(
         inputFrameworkOpName = "Flatten",
         opName = "flatten_2d",
         tensorMappingRules = listOf(mappingNDArrayInputs(mutableMapOf("input" to "input"))),
-        attributeMappingRules = listOf(valueMappings(mutableMapOf("dimensions" to "axis"))),
+        attributeMappingRules = listOf(valueMappings(mutableMapOf("flattenDimension" to "axis"))),
         opMappingRegistry = onnxOpRegistry
 )
 

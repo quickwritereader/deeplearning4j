@@ -28,9 +28,9 @@
 using namespace sd;
 
 //////////////////////////////////////////////////////////////////////
-class SparseUtilsTest : public testing::Test {
+class SparseUtilsTest : public NDArrayTests {
  public:
-  static const sd::LongType nnz = 40;
+  static const LongType nnz = 40;
   static const int rank = 3;
 };
 

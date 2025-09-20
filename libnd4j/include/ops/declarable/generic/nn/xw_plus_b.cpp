@@ -42,7 +42,7 @@ CUSTOM_OP_IMPL(xw_plus_b, 3, 1, false, 0, 0) {
 
   auto b = INPUT_VARIABLE(2);
 
-  if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty()) return sd::Status::OK;
+  if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty()) return Status::OK;
 
 
   REQUIRE_TRUE(x->rankOf() == 2, 0, "xw_plus_b: Input x array should have rank equal 2, but got instead %i!",
@@ -57,31 +57,37 @@ CUSTOM_OP_IMPL(xw_plus_b, 3, 1, false, 0, 0) {
   // multiply x to y
   MmulHelper::mmul(x, w, z, 1.0, 0.0);
   if(bTranspose && b->rankOf() == 1) {
-      b = new NDArray(INPUT_VARIABLE(2)->reshape('c',{INPUT_VARIABLE(2)->lengthOf(),1}));
-      z->addiColumnVector(*b);
+    std::vector<sd::LongType> bShape = {INPUT_VARIABLE(2)->lengthOf(), 1};
+    b = new NDArray(INPUT_VARIABLE(2)->reshape('c', bShape));
+    if(z->isMatrix()) {
+      z->addiColumnVector(b);
+    } else {
+      *z += *b;
+    }
   } else {
 
-    b->printShapeInfo("Shape buffer of bias before is \n");
-
     if(b->rankOf() == 1) {
-      b = new NDArray(INPUT_VARIABLE(2)->reshape('c',{1,INPUT_VARIABLE(2)->lengthOf()}));
+      std::vector<sd::LongType> bShape = {1, INPUT_VARIABLE(2)->lengthOf()};
+      b = new NDArray(INPUT_VARIABLE(2)->reshape('c', bShape));
     }
-    b->printShapeInfo("Shape buffer of bias after is \n");
+
+    if(z->isMatrix()) {
+      // adding b vector
+      z->addiRowVector(b);
+    } else  {
+      *z += *b;
+    }
+  }
 
 
-     // adding b vector
-     z->addiRowVector(*b);
-   }
-
-
-   if(bTranspose || b->lengthOf() == 1) {
-     delete b;
-   }
+  if(bTranspose || b->lengthOf() == 1) {
+    delete b;
+  }
 
   if (bTranspose) {
     delete w;
   }
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(xw_plus_b) {
@@ -93,9 +99,9 @@ DECLARE_SHAPE_FN(xw_plus_b) {
   const int nWeightsFormat = block.getIArguments()->size() > 0 ? INT_ARG(0) : 0;
 
   auto weightsShape =
-      (1 == nWeightsFormat) ? ShapeUtils::evalTranspShapeInfo(*weights, block.getWorkspace()) : inputShape->at(1);
+      (1 == nWeightsFormat) ? ShapeUtils::evalTransposeShapeInfo(*weights, block.getWorkspace()) : inputShape->at(1);
 
-  auto outputShape = ShapeUtils::matrixProductShape(inputShape->at(0), weightsShape, aTranspose,
+  auto outputShape = ShapeUtils::matrixProductShape(inputShape->at(0), const_cast<sd::LongType *>(weightsShape), aTranspose,
                                                     bTranspose,
                                                     ArrayOptions::dataType(inputShape->at(0)), block.getWorkspace());
 
@@ -103,7 +109,7 @@ DECLARE_SHAPE_FN(xw_plus_b) {
 }
 
 DECLARE_TYPES(xw_plus_b) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 CUSTOM_OP_IMPL(xw_plus_b_bp, 4, 3, false, 0, 0) {
@@ -114,7 +120,7 @@ CUSTOM_OP_IMPL(xw_plus_b_bp, 4, 3, false, 0, 0) {
   auto b = INPUT_VARIABLE(2);
   auto dLdz = INPUT_VARIABLE(3);
 
-  if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty() || dLdz->isEmpty()) return sd::Status::OK;
+  if (x->isEmpty() || INPUT_VARIABLE(1)->isEmpty() || b->isEmpty() || dLdz->isEmpty()) return Status::OK;
 
   auto w = bTranspose ? new NDArray(INPUT_VARIABLE(1)->transpose()) : INPUT_VARIABLE(1);
 
@@ -131,7 +137,9 @@ CUSTOM_OP_IMPL(xw_plus_b_bp, 4, 3, false, 0, 0) {
   auto dLdw = (bTranspose) ? new NDArray(OUTPUT_VARIABLE(1)->transpose()) : OUTPUT_VARIABLE(1);
 
   // dLdb
-  dLdb->assign(dLdz->reduceAlongDimension(reduce::Sum, {0}));
+  std::vector<LongType> dims({0});
+  NDArray assign = dLdz->reduceAlongDimension(reduce::Sum, &dims);
+  dLdb->assign(&assign);
 
   matmul_bp mmul_bp;
   mmul_bp.execute({x, w, dLdz}, std::vector<NDArray*>{dLdx, dLdw}, {}, {}, {});
@@ -146,22 +154,15 @@ CUSTOM_OP_IMPL(xw_plus_b_bp, 4, 3, false, 0, 0) {
     delete dLdw;
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(xw_plus_b_bp) {
-  sd::LongType* xShapeInfo;
-  sd::LongType* wShapeInfo;
-  sd::LongType* bShapeInfo;
-
-  COPY_SHAPE(inputShape->at(0), xShapeInfo);
-  COPY_SHAPE(inputShape->at(1), wShapeInfo);
-  COPY_SHAPE(inputShape->at(2), bShapeInfo);
-  return SHAPELIST(CONSTANT(xShapeInfo), CONSTANT(wShapeInfo), CONSTANT(bShapeInfo));
+  return SHAPELIST(CONSTANT(inputShape->at(0)), CONSTANT(inputShape->at(1)), CONSTANT(inputShape->at(2)));
 }
 
 DECLARE_TYPES(xw_plus_b_bp) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 }  // namespace ops
 }  // namespace sd

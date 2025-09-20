@@ -28,10 +28,11 @@ import org.nd4j.linalg.api.ops.CustomOp;
 import org.nd4j.linalg.api.ops.Op;
 import org.nd4j.linalg.api.ops.OpContext;
 import org.nd4j.linalg.api.ops.impl.reduce.longer.MatchCondition;
+import org.nd4j.linalg.api.ops.impl.transforms.comparison.CompareAndReplace;
+import org.nd4j.linalg.api.ops.impl.transforms.comparison.CompareAndSet;
 import org.nd4j.linalg.exception.ND4JOpProfilerException;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.conditions.Conditions;
-import org.nd4j.linalg.profiler.OpProfiler;
 
 import java.util.List;
 
@@ -41,9 +42,6 @@ public class OpExecutionerUtil {
     private OpExecutionerUtil() {}
 
     public static void checkForNaN(INDArray z) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForNAN())
-            return;
-
         if(z.isEmpty() || !z.dataType().isFPType())
             return;
 
@@ -71,9 +69,6 @@ public class OpExecutionerUtil {
     }
 
     public static void checkForInf(INDArray z) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForINF())
-            return;
-
         if(z.isEmpty() || !z.dataType().isFPType())
             return;
 
@@ -97,9 +92,6 @@ public class OpExecutionerUtil {
     }
 
     public static void checkForNaN(Op op, OpContext oc) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForNAN())
-            return;
-
         INDArray z = oc != null ? oc.getOutputArray(0) : op.z();
         if (z != null && !(op instanceof MatchCondition)) {
             checkForNaN(z);
@@ -107,19 +99,13 @@ public class OpExecutionerUtil {
     }
 
     public static void checkForInf(Op op, OpContext oc) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForINF())
-            return;
-
         INDArray z = oc != null ? oc.getOutputArray(0) : op.z();
-        if (z != null && !(op instanceof MatchCondition)) {
+        if (z != null && !(op instanceof MatchCondition) && !(op instanceof CompareAndSet) && !(op instanceof CompareAndReplace)) {
             checkForInf(z);
         }
     }
 
     public static void checkForInf(CustomOp op, OpContext oc) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForINF())
-            return;
-
         List<INDArray> inArgs = oc != null ? oc.getInputArrays() : op.inputArguments();
         List<INDArray> outArgs = oc != null ? oc.getOutputArrays() : op.outputArguments();
 
@@ -132,9 +118,6 @@ public class OpExecutionerUtil {
 
 
     public static void checkForNaN(CustomOp op, OpContext oc) {
-        if (!OpProfiler.getInstance().getConfig().isCheckForNAN())
-            return;
-
         List<INDArray> inArgs = oc != null ? oc.getInputArrays() : op.inputArguments();
         List<INDArray> outArgs = oc != null ? oc.getOutputArrays() : op.outputArguments();
 

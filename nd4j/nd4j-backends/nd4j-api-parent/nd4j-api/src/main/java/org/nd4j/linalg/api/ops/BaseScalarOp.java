@@ -27,8 +27,8 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.util.SameDiffUtils;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
-import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
@@ -50,9 +50,8 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
         if (x.isCompressed())
             Nd4j.getCompressor().decompressi(x);
 
-        try(MemoryWorkspace ws = Nd4j.getMemoryManager().scopeOutOfWorkspaces()) {
-            this.scalarValue = Nd4j.scalar(x.dataType(), num);
-        }
+        this.scalarValue = Nd4j.scalar(x.dataType(), num);
+
     }
 
     public BaseScalarOp(INDArray x, Number num) {
@@ -60,9 +59,8 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
         if (x.isCompressed())
             Nd4j.getCompressor().decompressi(x);
 
-        try(MemoryWorkspace ws = Nd4j.getMemoryManager().scopeOutOfWorkspaces()) {
-            this.scalarValue = Nd4j.scalar(x.dataType(), num);
-        }
+        this.scalarValue = Nd4j.scalar(x.dataType(), num);
+
 
     }
     public BaseScalarOp(INDArray x, INDArray z, Number set) {
@@ -70,9 +68,8 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
         if (x.isCompressed())
             Nd4j.getCompressor().decompressi(x);
 
-        try(MemoryWorkspace ws = Nd4j.getMemoryManager().scopeOutOfWorkspaces()) {
-            this.scalarValue = Nd4j.scalar(x.dataType(), set);
-        }
+        this.scalarValue = Nd4j.scalar(x.dataType(), set);
+
     }
 
 
@@ -115,18 +112,18 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
 
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         return calculateOutputShape(null);
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc) {
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray x = oc != null ? oc.getInputArray(0) : x();
 
-        val ret = new ArrayList<LongShapeDescriptor>(1);
+        val ret = new ArrayList<DataBuffer>(1);
 
         long[] s;
-        if(x != null){
+        if(x != null) {
             s = x.shape();
         } else {
             s = arg().getShape();
@@ -135,7 +132,9 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
         val aT = arg().dataType();
         val sT = scalarValue.dataType();
 
-        ret.add(LongShapeDescriptor.fromShape(s, Shape.pickPairwiseDataType(aT, sT)));
+        LongShapeDescriptor desc = x.isEmpty() ? LongShapeDescriptor.fromShape(x.shape(),Shape.pickPairwiseDataType(aT, sT)) :
+                LongShapeDescriptor.fromShape(s, Shape.pickPairwiseDataType(aT, sT));
+        ret.add(Nd4j.createBuffer(desc.toShapeInfo()));
         return ret;
     }
 
@@ -162,12 +161,12 @@ public abstract class BaseScalarOp extends BaseOp implements ScalarOp {
     }
 
     @Override
-    public int[] getDimension() {
+    public long[] getDimension() {
         return dimensions;
     }
 
     @Override
-    public void setDimension(int... dimension) {
+    public void setDimension(long... dimension) {
         defineDimensions(dimension);
     }
 

@@ -27,7 +27,7 @@ namespace sd {
 namespace ops {
 namespace platforms {
 
-std::vector<int> getConcatTargets(const NDArray &targetLabels, const NDArray &targetLabelLengths) {
+std::vector<int> getConcatTargets(NDArray&targetLabels, NDArray&targetLabelLengths) {
   // concatenate target labels
   const int32_t *tlabels = bufferInHost<int32_t>(targetLabels);
   const int32_t *tlens = bufferInHost<int32_t>(targetLabelLengths);
@@ -37,16 +37,6 @@ std::vector<int> getConcatTargets(const NDArray &targetLabels, const NDArray &ta
   std::vector<int> labels;
   labels.resize(targetLabels.lengthOf());
   int j = 0;
-  if (targetLabels.ews()) {
-    for (int i = 0; i < batchCount; i++) {
-      int count = tlens[i];
-      for (int k = 0; k < count; k++) {
-        labels[j] = tlabels[k];
-        j++;
-      }
-      tlabels += nextOffset;
-    }
-  } else {
     for (int i = 0; i < batchCount; i++) {
       int count = tlens[i];
       for (int k = 0; k < count; k++) {
@@ -55,12 +45,12 @@ std::vector<int> getConcatTargets(const NDArray &targetLabels, const NDArray &ta
       }
       tlabels += nextOffset;
     }
-  }
+
   return labels;
 }
 
-void cudnnCtcLoss(const LaunchContext &context, const NDArray &probs, const int32_t *targetLabelsPtr,
-                  const NDArray &probInputLengthes, const NDArray &targetLabelLengths, NDArray &ctcLosses,
+void cudnnCtcLoss(const LaunchContext &context, NDArray&probs, const int32_t *targetLabelsPtr,
+                  NDArray&probInputLengthes, NDArray&targetLabelLengths, NDArray &ctcLosses,
                   NDArray &grads) {
   const int dims[] = {(int)probs.sizeAt(0), (int)probs.sizeAt(1), (int)probs.sizeAt(2)};
   const int strides[] = {(int)probs.strideAt(0), (int)probs.strideAt(1), (int)probs.strideAt(2)};
@@ -118,12 +108,12 @@ PLATFORM_IMPL(ctc_loss, ENGINE_CUDA) {
   const int32_t *ldata = labels.data();
   auto emptyGrads = NDArrayFactory::empty<float>();
   cudnnCtcLoss(*context, *logitInput, ldata, *logitInputLengths, *targetLabelLengths, *outputLosses, emptyGrads);
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 template <typename T>
-bool checkLabelLength(const NDArray &labelLengthArr) {
-  // check label lengthes
+bool checkLabelLength(NDArray&labelLengthArr) {
+  // check label lengths
   auto lenBatch = labelLengthArr.lengthOf();
   for (int i = 0; i < lenBatch; i++) {
     // The labelLengths is greater than 256.
@@ -142,12 +132,8 @@ PLATFORM_CHECK(ctc_loss, ENGINE_CUDA) {
 
   Requirements req("CUDNN CTC_LOSS OP");
   req.expectEq(makeInfoVariable(blankIndex, "Blank Index"), 0) &&
-      req.expectEq(makeInfoVariable(logitInput->dataType(), TYPE_MSG_INPUT1), DataType::FLOAT32) &&
-      req.expectEq(makeInfoVariable(targetLabelLengths->dataType(), TYPE_MSG_INPUT2), DataType::INT32) &&
-      req.expectEq(makeInfoVariable(targetLabels->ews(), EWS_MSG_INPUT0), 1) &&
-      req.expectEq(makeInfoVariable(targetLabelLengths->ews(), EWS_MSG_INPUT2), 1) &&
-      req.expectEq(makeInfoVariable(logitInputLengths->ews(), EWS_MSG_INPUT3), 1) &&
-      req.expectEq(makeInfoVariable(outputLosses->ews(), EWS_MSG_OUTPUT), 1) &&
+      req.expectEq(makeInfoVariable(logitInput->dataType(), TYPE_MSG_INPUT1), FLOAT32) &&
+      req.expectEq(makeInfoVariable(targetLabelLengths->dataType(), TYPE_MSG_INPUT2), INT32) &&
       req.expectTrue(
           makeInfoVariable(checkLabelLength<int32_t>(*targetLabelLengths), "target Label lengthes should be <= 256"),
           NO_MSG);
@@ -176,7 +162,7 @@ PLATFORM_IMPL(ctc_loss_grad, ENGINE_CUDA) {
   // restore grads shape from {T, BATCH, C} -> {BATCHS, T, C}
   outputGradients->permutei({1, 0, 2});
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 PLATFORM_CHECK(ctc_loss_grad, ENGINE_CUDA) {
@@ -189,12 +175,8 @@ PLATFORM_CHECK(ctc_loss_grad, ENGINE_CUDA) {
 
   Requirements req("CUDNN CTC_LOSS_GRAD OP");
   req.expectEq(makeInfoVariable(blankIndex, "Blank Index"), 0) &&
-      req.expectEq(makeInfoVariable(logitInput->dataType(), TYPE_MSG_INPUT1), DataType::FLOAT32) &&
-      req.expectEq(makeInfoVariable(targetLabelLengths->dataType(), TYPE_MSG_INPUT2), DataType::INT32) &&
-      req.expectEq(makeInfoVariable(targetLabels->ews(), EWS_MSG_INPUT0), 1) &&
-      req.expectEq(makeInfoVariable(targetLabelLengths->ews(), EWS_MSG_INPUT2), 1) &&
-      req.expectEq(makeInfoVariable(logitInputLengths->ews(), EWS_MSG_INPUT3), 1) &&
-      req.expectEq(makeInfoVariable(outputGrads->ews(), EWS_MSG_OUTPUT), 1) &&
+      req.expectEq(makeInfoVariable(logitInput->dataType(), TYPE_MSG_INPUT1), FLOAT32) &&
+      req.expectEq(makeInfoVariable(targetLabelLengths->dataType(), TYPE_MSG_INPUT2), INT32) &&
       req.expectTrue(
           makeInfoVariable(checkLabelLength<int32_t>(*targetLabelLengths), "target Label lengthes should be <= 256"),
           NO_MSG);

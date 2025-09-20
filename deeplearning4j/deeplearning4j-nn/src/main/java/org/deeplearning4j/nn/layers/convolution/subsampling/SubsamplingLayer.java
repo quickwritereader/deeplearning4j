@@ -29,9 +29,6 @@ import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.gradient.DefaultGradient;
 import org.deeplearning4j.nn.gradient.Gradient;
 import org.deeplearning4j.nn.layers.AbstractLayer;
-import org.deeplearning4j.nn.layers.HelperUtils;
-import org.deeplearning4j.nn.layers.LayerHelper;
-import org.deeplearning4j.nn.layers.mkldnn.MKLDNNSubsamplingHelper;
 import org.deeplearning4j.nn.workspace.ArrayType;
 import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
 import org.deeplearning4j.util.ConvolutionUtils;
@@ -39,7 +36,7 @@ import org.nd4j.common.primitives.Pair;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
-import org.nd4j.linalg.exception.ND4JOpProfilerException;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.Arrays;
@@ -47,10 +44,8 @@ import java.util.Arrays;
 @Slf4j
 public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.layers.SubsamplingLayer> {
 
-    protected SubsamplingHelper helper = null;
     protected int helperCountFail = 0;
     protected ConvolutionMode convolutionMode;
-    public final static String  CUDNN_SUBSAMPLING_HELPER_CLASS_NAME = "org.deeplearning4j.cuda.convolution.subsampling.CudnnSubsamplingHelper";
     public SubsamplingLayer(NeuralNetConfiguration conf, DataType dataType) {
         super(conf, dataType);
         initializeHelper();
@@ -59,11 +54,7 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
     }
 
     void initializeHelper() {
-        helper = HelperUtils.createHelper(
-                CUDNN_SUBSAMPLING_HELPER_CLASS_NAME,
-                MKLDNNSubsamplingHelper.class.getName(),
-                SubsamplingHelper.class, layerConf().getLayerName(), dataType
-        );
+
     }
 
     @Override
@@ -95,47 +86,19 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
         int inH = (int)input.size(hIdx);
         int inW = (int)input.size(wIdx);
 
-        int[] kernel = layerConf().getKernelSize();
-        int[] strides = layerConf().getStride();
-        int[] dilation = layerConf().getDilation();
+        long[] kernel = layerConf().getKernelSize();
+        long[] strides = layerConf().getStride();
+        long[] dilation = layerConf().getDilation();
 
-        int[] pad;
-        int[] outSizeFwd = new int[]{(int)epsilon.size(hIdx), (int)epsilon.size(wIdx)};    //NCHW
+        long[] pad;
+        long[] outSizeFwd = {(int)epsilon.size(hIdx), (int)epsilon.size(wIdx)};    //NCHW
         boolean same = convolutionMode == ConvolutionMode.Same;
         if (same) {
-            pad = ConvolutionUtils.getSameModeTopLeftPadding(outSizeFwd, new int[] {inH, inW}, kernel, strides, dilation);
+            pad = ConvolutionUtils.getSameModeTopLeftPadding(outSizeFwd, new long[] {inH, inW}, kernel, strides, dilation);
         } else {
             pad = layerConf().getPadding();
         }
 
-        if (helper != null && (helperCountFail == 0 || !layerConf().isCudnnAllowFallback())) {
-            Pair<Gradient, INDArray> ret = null;
-            try{
-                ret = helper.backpropGradient(input, epsilon, kernel, strides, pad,
-                        layerConf().getPoolingType(), convolutionMode, dilation, dataFormat, workspaceMgr);
-            } catch (ND4JOpProfilerException e){
-                throw e;    //NaN panic etc for debugging
-            } catch (Exception e){
-                if(e.getMessage() != null && e.getMessage().contains("Failed to allocate")){
-                    //This is a memory exception - don't fallback to built-in implementation
-                    throw e;
-                }
-
-                if(layerConf().isCudnnAllowFallback()){
-                    helperCountFail++;
-                    if(helper instanceof MKLDNNSubsamplingHelper){
-                        log.warn("MKL-DNN execution failed - falling back on built-in implementation",e);
-                    } else {
-                        log.warn("CuDNN execution failed - falling back on built-in implementation",e);
-                    }
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (ret != null) {
-                return ret;
-            }
-        }
 
         //subsampling doesn't have weights and thus gradients are not calculated for this layer
         //only scale and reshape epsilon
@@ -144,8 +107,8 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
 
         INDArray epsAtInput = workspaceMgr.createUninitialized(ArrayType.ACTIVATION_GRAD, input.dataType(), input.shape(), 'c');
         DynamicCustomOp.DynamicCustomOpsBuilder b;
-        int extra = 0;
-        switch (layerConf().getPoolingType()){
+        long extra = 0;
+        switch (layerConf().getPoolingType()) {
             case MAX:
                 b = DynamicCustomOp.builder("maxpool2d_bp");
                 break;
@@ -197,20 +160,20 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
 
         INDArray input = this.input.castTo(dataType);
         boolean same = convolutionMode == ConvolutionMode.Same;
-        int[] kernel = layerConf().getKernelSize();
-        int[] strides = layerConf().getStride();
-        int[] dilation = layerConf().getDilation();
-        int[] pad = layerConf().getPadding();
+        long[] kernel = layerConf().getKernelSize();
+        long[] strides = layerConf().getStride();
+        long[] dilation = layerConf().getDilation();
+        long[] pad = layerConf().getPadding();
 
         DynamicCustomOp.DynamicCustomOpsBuilder b;
-        int extra = 0;
+        long extra = 0;
         switch (layerConf().getPoolingType()) {
             case MAX:
                 b = DynamicCustomOp.builder("maxpool2d");
                 break;
             case AVG:
                 b = DynamicCustomOp.builder("avgpool2d");
-                if(layerConf().isAvgPoolIncludePadInDivisor()){
+                if(layerConf().isAvgPoolIncludePadInDivisor()) {
                     //Mostly this is a legacy case - beta4 and earlier models.
                     extra = 1;    //Divide by "number present" excluding padding
                 } else {
@@ -232,7 +195,7 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
                         layerConf().getCnn2dDataFormat() == CNN2DFormat.NCHW ? 0 : 1);  //0: NCHW, 1=NHWC
 
         DynamicCustomOp build = b.build();
-        long[] shape = build.calculateOutputShape().get(0).getShape();
+        long[] shape = Shape.shape(build.calculateOutputShape().get(0).asLong());
 
         INDArray output = workspaceMgr.createUninitialized(ArrayType.ACTIVATIONS, input.dataType(), shape, 'c');
         build.addOutputArgument(output);
@@ -252,10 +215,6 @@ public class SubsamplingLayer extends AbstractLayer<org.deeplearning4j.nn.conf.l
         //no op
     }
 
-    @Override
-    public LayerHelper getHelper() {
-        return helper;
-    }
 
     @Override
     public Gradient gradient() {

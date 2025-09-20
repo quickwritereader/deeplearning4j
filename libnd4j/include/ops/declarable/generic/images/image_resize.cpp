@@ -79,15 +79,21 @@ CUSTOM_OP_IMPL(image_resize, 2, 1, false, -2, -2) {
   auto inRank = image->rankOf();
   REQUIRE_TRUE(inRank >= 3 && inRank <= 4, 0, "image_resize: Input rank should be 4 or 3, but %i given.",
                image->rankOf());
+  std::vector<sd::LongType> imageShape1 = {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2),image->sizeAt(3)};
+  std::vector<sd::LongType> imageShape2 = {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)};
   auto source =
       inRank == 4
-          ? image->reshape(image->ordering(), {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2), image->sizeAt(3)})
-          : image->reshape(image->ordering(), {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)});
+          ? image->reshape(image->ordering(), imageShape1)
+          : image->reshape(image->ordering(),imageShape2);
+
+  std::vector<sd::LongType> outputShape1 = {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2),output->sizeAt(3)};
+  std::vector<sd::LongType> outputShape2 = {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)};
+
   auto target =
       inRank == 4
           ? output->reshape(output->ordering(),
-                            {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2), output->sizeAt(3)}, false)
-          : output->reshape(output->ordering(), {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)}, false);
+                            outputShape1, false)
+          : output->reshape(output->ordering(), outputShape2, false);
 
   // inform the user about the current state of the implementation
   if (antialias && method != helpers::ImageResizeMethods::kResizeNearest) {
@@ -101,14 +107,14 @@ CUSTOM_OP_IMPL(image_resize, 2, 1, false, -2, -2) {
                  "this method supports only HALF_PIXEL and exclude_outside being set true");
   }
 
-  return helpers::resizeFunctor(block.launchContext(), image, width, height, method, coorMode, exclude_outside,
+  return resizeFunctor(block.launchContext(), image, width, height, method, coorMode, exclude_outside,
                                 nearestMode, bicubicCoefficient, antialias, output);
 }
 
 DECLARE_SHAPE_FN(image_resize) {
   auto in = inputShape->at(0);
 
-  sd::LongType* outputShape;
+  LongType* outputShape;
   auto method = helpers::ImageResizeMethods::kResizeBilinear;
   if (block.numI() >= 1) {
     method = (helpers::ImageResizeMethods)INT_ARG(0);
@@ -116,12 +122,11 @@ DECLARE_SHAPE_FN(image_resize) {
 
   int width;
   int height;
-  double ratio = shape::sizeAt(in, 1) / (0.0 + shape::sizeAt(in, 2));
+  double ratio = shape::sizeAt(in, static_cast<LongType>(1)) / (0.0 + shape::sizeAt(in, static_cast<LongType>(2)));
   auto newImageSize = INPUT_VARIABLE(1);
   REQUIRE_TRUE(newImageSize->lengthOf() == 2, 0, "resize_bilinear: Resize params is a pair of values, not %i.",
                newImageSize->lengthOf());
-  // if(method != helpers::ImageResizeMethods::kResizeNearest) REQUIRE_TRUE(block.numI() <= 1, 0, "resize_bilinear:
-  // Resize params already given by the second param. Int params are expensive.");
+
   width = newImageSize->e<int>(1);
   height = newImageSize->e<int>(0);
   if (block.numB() > 0) {
@@ -129,12 +134,12 @@ DECLARE_SHAPE_FN(image_resize) {
       width = math::sd_ceil<double, int>(height / ratio);
     }
   }
-  auto dtype = DataType::FLOAT32;
+  auto dtype = FLOAT32;
   if (method == helpers::ImageResizeMethods::kResizeNearest) dtype = ArrayOptions::dataType(in);
   auto shape = ConstantShapeHelper::getInstance().createShapeInfo(
       dtype, 'c',
-      shape::rank(in) == 4 ? std::vector<sd::LongType>{in[1], height, width, in[4]}
-                           : std::vector<sd::LongType>{height, width, in[4]});
+      shape::rank(in) == 4 ? std::vector<LongType>{in[1], height, width, in[4]}
+                           : std::vector<LongType>{height, width, in[4]});
 
   return SHAPELIST(shape);
 }

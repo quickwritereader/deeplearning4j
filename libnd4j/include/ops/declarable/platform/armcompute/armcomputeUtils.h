@@ -46,7 +46,6 @@ using namespace samediff;
 
 #if 0
 #define internal_printf(FORMAT, ...) sd_printf(FORMAT, __VA_ARGS__)
-//define ARM_COMPUTE_ASSERTS_ENABLED 1
 #define internal_print_arm_array(a, b) print_tensor(a, b)
 #define internal_print_nd_array(a, b) ((a).printIndexedBuffer(b))
 #define internal_print_nd_shape(a, b) ((a).printShapeInfo(b))
@@ -88,14 +87,14 @@ Arm_DataType getArmType(const sd::DataType& dType);
 Arm_TensorInfo getArmTensorInfo(int rank, sd::LongType* bases, sd::DataType ndArrayType,
                                 Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
 
-Arm_TensorInfo getArmTensorInfo(const NDArray& arr, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
+Arm_TensorInfo getArmTensorInfo(NDArray& arr, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
 
-Arm_Tensor getArmTensor(const NDArray& arr, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
+Arm_Tensor getArmTensor(NDArray& arr, Arm_DataLayout layout = Arm_DataLayout::UNKNOWN);
 
 void copyFromTensor(const Arm_Tensor& inTensor, NDArray& output);
-void copyToTensor(const NDArray& input, Arm_Tensor& outTensor);
+void copyToTensor(NDArray& input, Arm_Tensor& outTensor);
 void print_tensor(Arm_ITensor& tensor, const char* msg);
-bool isArmcomputeFriendly(const NDArray& arr);
+bool isArmcomputeFriendly(NDArray& arr);
 
 template <typename F>
 class ArmFunction {
@@ -120,7 +119,7 @@ class ArmFunction {
     }
     armFunction.configure(&in, &out, std::forward<Args>(args)...);
     if (!inputHasPaddedBuffer) {
-      if (in.info()->has_padding() || input->ews() != 1) {
+      if (in.info()->has_padding()) {
         // allocate and copy
         in.allocator()->allocate();
         inputNd = input;
@@ -131,14 +130,13 @@ class ArmFunction {
       }
     }
     if (!outputHasPaddedBuffer) {
-      if (out.info()->has_padding() || output->ews() != 1) {
+      if (out.info()->has_padding()) {
         // store pointer to our array to copy after run
         out.allocator()->allocate();
         outNd = output;
       } else {
         // import only for ews()==1
         out.allocator()->import_memory(output->buffer());
-        internal_printf("output import %d\n", 0);
       }
     }
   }
@@ -146,9 +144,6 @@ class ArmFunction {
     if (inputNd) {
       // copy
       copyToTensor(*inputNd, in);
-      internal_printf("input copy %d\n", 0);
-      internal_print_nd_array(*inputNd, "input");
-      internal_print_arm_array(in, "in");
     }
     armFunction.run();
     if (outNd) {
@@ -178,19 +173,16 @@ class ArmFunctionWeighted {
     bool biasesHasPaddedBuffer = false;
     if (inputHasPaddedBuffer) {
       in = getArmTensor(*input, layout);
-      internal_printf("input is a padded buffer %d\n", 1);
     } else {
       in.allocator()->init(getArmTensorInfo(*input, layout));
     }
     if (weightsHasPaddedBuffer) {
       w = getArmTensor(*weights, layout);
-      internal_printf("weights is a padded buffer %d\n", 1);
     } else {
       w.allocator()->init(getArmTensorInfo(*weights, layout));
     }
     if (outputHasPaddedBuffer) {
       out = getArmTensor(*output, layout);
-      internal_printf("output is a padded buffer %d\n", 1);
     } else {
       out.allocator()->init(getArmTensorInfo(*output, layout));
     }
@@ -199,7 +191,6 @@ class ArmFunctionWeighted {
       biasesHasPaddedBuffer = biases->hasPaddedBuffer();
       if (biasesHasPaddedBuffer) {
         b = getArmTensor(*biases, layout);
-        internal_printf("biases is a padded buffer %d\n", 1);
       } else {
         b.allocator()->init(getArmTensorInfo(*biases, layout));
       }
@@ -228,47 +219,43 @@ class ArmFunctionWeighted {
     }
     // import buffer
     if (!inputHasPaddedBuffer) {
-      if (in.info()->has_padding() || input->ews() != 1) {
+      if (in.info()->has_padding()) {
         // allocate and copy
         in.allocator()->allocate();
         inputNd = input;
       } else {
         // import buffer
         in.allocator()->import_memory(input->buffer());
-        internal_printf("input import %d\n", 1);
       }
     }
     if (!weightsHasPaddedBuffer) {
-      if (w.info()->has_padding() || weights->ews() != 1) {
+      if (w.info()->has_padding()) {
         // store pointer to our array to copy after run
         w.allocator()->allocate();
         wNd = weights;
       } else {
         // import
         w.allocator()->import_memory(weights->buffer());
-        internal_printf("weights import %d\n", 1);
       }
     }
     if (biases && !biasesHasPaddedBuffer) {
-      if (b.info()->has_padding() || biases->ews() != 1) {
+      if (b.info()->has_padding()) {
         // store pointer to our array to copy after run
         b.allocator()->allocate();
         bNd = biases;
       } else {
         // import
         b.allocator()->import_memory(biases->buffer());
-        internal_printf("biases import %d\n", 1);
       }
     }
     if (!outputHasPaddedBuffer) {
-      if (out.info()->has_padding() || output->ews() != 1) {
+      if (out.info()->has_padding()) {
         // store pointer to our array to copy after run
         out.allocator()->allocate();
         outNd = output;
       } else {
         // import
         out.allocator()->import_memory(output->buffer());
-        internal_printf("output import %d\n", 1);
       }
     }
   }
@@ -276,17 +263,14 @@ class ArmFunctionWeighted {
     if (inputNd) {
       // copy
       copyToTensor(*inputNd, in);
-      internal_printf("input copy %d\n", 1);
     }
     if (bNd) {
       // copy
       copyToTensor(*bNd, b);
-      internal_printf("biases copy %d\n", 1);
     }
     if (wNd) {
       // copy
       copyToTensor(*wNd, w);
-      internal_printf("weights copy %d\n", 1);
     }
     if (runPerm) {
       permuter.run();
@@ -294,7 +278,6 @@ class ArmFunctionWeighted {
     armFunction.run();
     if (outNd) {
       copyFromTensor(out, *outNd);
-      internal_printf("output copy %d\n", 1);
     }
   }
 

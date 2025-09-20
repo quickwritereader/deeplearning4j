@@ -38,7 +38,7 @@ CUSTOM_OP_IMPL(biasadd, 2, 1, true, 0, 0) {
   auto output = OUTPUT_VARIABLE(0);
 
   const bool isNCHW = !block.getBArguments()->empty() ? B_ARG(0) : false;
-  const int channelDim = isNCHW ? 1 : input->rankOf() - 1;  // second or last
+  const sd::LongType channelDim = isNCHW ? 1 : input->rankOf() - 1;  // second or last
 
   REQUIRE_TRUE(bias->rankOf() == 1, 0, "BIASADD CUSTOM_OP: bias array should have rank = 1, but got %i instead !",
                bias->rankOf());
@@ -53,7 +53,6 @@ CUSTOM_OP_IMPL(biasadd, 2, 1, true, 0, 0) {
                ShapeUtils::shapeAsString(input).c_str(), ShapeUtils::shapeAsString(output).c_str());
 
   helpers::addBias(block, *input, *bias, *output, isNCHW);
-  // input->applyBroadcast(sd::broadcast::Add, {channelDim}, bias, output);
 
   return sd::Status::OK;
 }
@@ -65,7 +64,8 @@ DECLARE_SHAPE_FN(biasadd) {
   auto yShape = inputShape->at(1);
 
   auto dtype = ArrayOptions::dataType(yShape);
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(xShape, dtype)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().castToDataType(xShape, dtype));
+  return ret;
 }
 
 DECLARE_TYPES(biasadd) {
@@ -86,8 +86,11 @@ CUSTOM_OP_IMPL(biasadd_bp, 3, 2, false, 0, 0) {
 
   gradI->assign(gradO);
 
-  gradO->reduceAlongDimension(sd::reduce::Sum, *gradB, ShapeUtils::evalDimsToExclude(gradO->rankOf(), {channelDim}));
-
+  std::vector<sd::LongType> channel;
+  channel.push_back(channelDim);
+  auto dims = ShapeUtils::evalDimsToExclude(gradO->rankOf(), 1,channel.data());
+  gradO->reduceAlongDimension(sd::reduce::Sum, gradB, dims);
+  delete dims;
   return sd::Status::OK;
 }
 DECLARE_SYN(BiasAddGrad, biasadd_bp);
@@ -96,14 +99,7 @@ DECLARE_SYN(BiasAddGrad, biasadd_bp);
 DECLARE_SHAPE_FN(biasadd_bp) {
   auto input = inputShape->at(0);
   auto bias = inputShape->at(1);
-
-  sd::LongType* epsShape;
-  sd::LongType* gradShape;
-
-  COPY_SHAPE(input, epsShape);
-  COPY_SHAPE(bias, gradShape);
-
-  return SHAPELIST(CONSTANT(epsShape), CONSTANT(gradShape));
+  return SHAPELIST(CONSTANT(input), CONSTANT(bias));
 }
 
 DECLARE_TYPES(biasadd_bp) {

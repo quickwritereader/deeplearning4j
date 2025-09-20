@@ -24,33 +24,41 @@
 #include <helpers/PointersManager.h>
 #include <ops/declarable/helpers/convolutions.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 
 //////////////////////////////////////////////////////////////////////////
 // vol [bS, iC, iD, iH, iW] is convoluted to col [bS, iC, kD, kH, kW, oD, oH, oW]
 template <typename T>
-static SD_KERNEL void vol2colCuda(const void* volume, const sd::LongType* volShapeInfo, void* columns,
-                                  const sd::LongType* colShapeInfo, const int sD, const int sH, const int sW,
-                                  const int pD, const int pH, const int pW, const int dD, const int dH, const int dW) {
+static SD_KERNEL void vol2colCuda(const void* volume, const LongType* volShapeInfo, void* columns,
+                                  const LongType* colShapeInfo, const LongType sD, const LongType sH, const LongType sW,
+                                  const LongType pD, const LongType pH, const LongType pW, const LongType dD, const LongType dH, const LongType dW) {
   const T* vol = reinterpret_cast<const T*>(volume);
   T* col = reinterpret_cast<T*>(columns);
 
-  __shared__ int colRank, volRank;
-  __shared__ sd::LongType colLen, iD, iH, iW, *sharedMem;
+  __shared__ LongType colRank, volRank, colLen;
+  __shared__ LongType iD, iH, iW;
+  __shared__ const LongType *volShape, *volStride, *colShape, *colStride;
 
   if (threadIdx.x == 0) {
-    extern __shared__ unsigned char shmem[];
-    sharedMem = reinterpret_cast<sd::LongType*>(shmem);
-
     volRank = 5;
     colRank = 8;
 
+    volShape = shape::shapeOf(volShapeInfo);
+    volStride = shape::stride(volShapeInfo);
+
+    colShape = shape::shapeOf(colShapeInfo);
+    colStride = shape::stride(colShapeInfo);
+
     colLen = shape::length(colShapeInfo);
 
-    iD = volShapeInfo[3];
-    iH = volShapeInfo[4];
-    iW = volShapeInfo[5];
+    iD = volShape[2];
+    iH = volShape[3];
+    iW = volShape[4];
   }
   __syncthreads();
 
@@ -58,61 +66,60 @@ static SD_KERNEL void vol2colCuda(const void* volume, const sd::LongType* volSha
 
   if (colInd >= colLen) return;
 
+  extern __shared__ LongType sharedMem[];
   auto coords = sharedMem + threadIdx.x * colRank;
 
-  shape::index2coords(colInd, colShapeInfo, coords);
+  INDEX2COORDS(colInd, colRank, colShape, coords);
 
-  // const auto colW = coords[7];
-  // const auto colH = coords[6];
-  // const auto colD = coords[5];
-  // const auto kCol = coords[4];
-  // const auto kRow = coords[3];
-  // const auto kDep = coords[2];
-  // const auto c    = coords[1];
-  // const auto b    = coords[0];
+  LongType colOffset;
+  COORDS2INDEX(colRank, colStride, coords, colOffset);
 
-  const auto colOffset = shape::getOffset(colShapeInfo, coords);
+  // Compute volumetric indices
+  const auto volDep = -pD + coords[2] * dD + coords[5] * sD;
+  const auto volRow = -pH + coords[3] * dH + coords[6] * sH;
+  const auto volCol = -pW + coords[4] * dW + coords[7] * sW;
 
-  coords[2] = -pD + coords[2] * dD + coords[5] * sD;  // const auto volDep = (-pD + kDep * dD) + colD * sD;
-  coords[3] = -pH + coords[3] * dH + coords[6] * sH;  // const auto volRow = (-pH + kRow * dH) + colH * sH;
-  coords[4] = -pW + coords[4] * dW + coords[7] * sW;  // const auto volCol = (-pW + kCol * dW) + colW * sW;
-
-  if (static_cast<unsigned>(coords[2]) >= static_cast<unsigned>(iD) ||
-      static_cast<unsigned>(coords[3]) >= static_cast<unsigned>(iH) ||
-      static_cast<unsigned>(coords[4]) >= static_cast<unsigned>(iW))
+  if (volDep < 0 || volDep >= iD || volRow < 0 || volRow >= iH || volCol < 0 || volCol >= iW) {
     col[colOffset] = static_cast<T>(0.);
-  else
-    col[colOffset] = vol[shape::getOffset(volShapeInfo, coords)];
+  } else {
+    coords[2] = volDep;
+    coords[3] = volRow;
+    coords[4] = volCol;
+
+    LongType volOffset;
+    COORDS2INDEX(volRank, volStride, coords, volOffset);
+    col[colOffset] = vol[volOffset];
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static void vol2colCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                                const cudaStream_t* stream, const void* volume, const sd::LongType* volShapeInfo,
-                                void* columns, const sd::LongType* colShapeInfo, const int sD, const int sH,
-                                const int sW, const int pD, const int pH, const int pW, const int dD, const int dH,
-                                const int dW) {
+                                const cudaStream_t* stream, const void* volume, const LongType* volShapeInfo,
+                                void* columns, const LongType* colShapeInfo, const int sD, const LongType sH,
+                                const LongType sW, const LongType pD, const LongType pH, const LongType pW, const LongType dD, const LongType dH,
+                                const LongType dW) {
   vol2colCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(volume, volShapeInfo, columns, colShapeInfo,
                                                                          sD, sH, sW, pD, pH, pW, dD, dH, dW);
+  DebugHelper::checkErrorCode(const_cast<cudaStream_t*>(stream),"vol2colCudaLauncher failed");
+
 }
 
 //////////////////////////////////////////////////////////////////////////
-void ConvolutionUtils::vol2col(sd::graph::Context& block, const NDArray& vol, NDArray& col, const int sD, const int sH,
-                               const int sW, const int pD, const int pH, const int pW, const int dD, const int dH,
-                               const int dW) {
+void ConvolutionUtils::vol2col(graph::Context& block, NDArray* vol, NDArray* col, const LongType sD, const LongType sH,
+                               const LongType sW, const LongType pD, const LongType pH, const LongType pW, const LongType dD, const LongType dH,
+                               const LongType dW) {
   PointersManager manager(block.launchContext(), "vol2col");
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
-  const int blocksPerGrid = (col.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-  const int sharedMem = col.rankOf() * sizeof(sd::LongType) * threadsPerBlock + 128;
+  dim3 vol2ColDims = getVol2ColDims(col->lengthOf(),col->rankOf());
 
-  NDArray::prepareSpecialUse({&col}, {&vol});
+  NDArray::prepareSpecialUse({col}, {vol});
   BUILD_SINGLE_SELECTOR(
-      vol.dataType(), vol2colCudaLauncher,
-      (blocksPerGrid, threadsPerBlock, sharedMem, block.launchContext()->getCudaStream(), vol.specialBuffer(),
-       vol.specialShapeInfo(), col.specialBuffer(), col.specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW),
+      vol->dataType(), vol2colCudaLauncher,
+      (vol2ColDims.x, vol2ColDims.y, vol2ColDims.z, block.launchContext()->getCudaStream(), vol->specialBuffer(),
+       vol->specialShapeInfo(), col->specialBuffer(), col->specialShapeInfo(), sD, sH, sW, pD, pH, pW, dD, dH, dW),
       SD_FLOAT_TYPES);
-  NDArray::registerSpecialUse({&col}, {&vol});
+  NDArray::registerSpecialUse({col}, {vol});
 
   manager.synchronize();
 }

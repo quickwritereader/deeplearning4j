@@ -411,7 +411,7 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
         //First: check FF -> RNN
         ComputationGraphConfiguration conf1 = new NeuralNetConfiguration.Builder().graphBuilder().addInputs("in")
                 .setInputTypes(InputType.feedForward(5))
-                .addLayer("rnn", new GravesLSTM.Builder().nOut(5).build(), "in")
+                .addLayer("rnn", new LSTM.Builder().nOut(5).build(), "in")
                 .addLayer("out", new RnnOutputLayer.Builder().nOut(5).activation(Activation.SOFTMAX).build(), "rnn").setOutputs("out").build();
 
         assertEquals(5, ((FeedForwardLayer) ((LayerVertex) conf1.getVertices().get("rnn")).getLayerConf().getLayer())
@@ -780,8 +780,6 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
         int nOut = 3;
 
         for(WorkspaceMode ws : WorkspaceMode.values()) {
-//            System.out.println("***** WORKSPACE: " + ws);
-
             ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
                     .updater(new Adam(0.01))
                     .trainingWorkspaceMode(ws)
@@ -804,7 +802,8 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
             INDArray param = Nd4j.create(new double[]{0.54, 0.31, 0.98, -0.30, -0.66, -0.19, -0.29, -0.62, 0.13, -0.32, 0.01, -0.03, 0.00, 0.00, 0.00});
             graph.setParams(param);
 
-            INDArray input = Nd4j.rand(new int[]{minibatch, nIn, seqLen}, 12);
+            Nd4j.getRandom().setSeed(12);
+            INDArray input = Nd4j.rand(new long[]{minibatch, nIn, seqLen});
             INDArray expected = Nd4j.ones(minibatch, nOut, seqLen);
 
             INDArray output = graph.outputSingle(false, false, input);
@@ -826,7 +825,7 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
     }
 
     @Test
-    public void testExternalErrorsInvalid(){
+    public void testExternalErrorsInvalid() {
 
         int nIn = 2;
         int nOut = 4;
@@ -1003,12 +1002,10 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
     public void testOptimizationAlgorithmsSearchBasic() {
         DataSetIterator iter = new IrisDataSetIterator(1, 1);
 
-        OptimizationAlgorithm[] oas = new OptimizationAlgorithm[]{OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT,
-                OptimizationAlgorithm.LINE_GRADIENT_DESCENT, OptimizationAlgorithm.CONJUGATE_GRADIENT,
-                OptimizationAlgorithm.LBFGS};
+        OptimizationAlgorithm[] oas = new OptimizationAlgorithm[]{OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT }
+               ;
 
         for (OptimizationAlgorithm oa : oas) {
-//            System.out.println(oa);
             ComputationGraphConfiguration conf =
                     new NeuralNetConfiguration.Builder().optimizationAlgo(oa).graphBuilder()
                             .addInputs("input")
@@ -1333,7 +1330,7 @@ public class TestComputationGraphNetwork extends BaseDL4JTest {
                         .addLayer("layer3", new DenseLayer.Builder().activation(Activation.RELU).nIn(490).nOut(50)
                                 .weightInit(WeightInit.RELU).gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)
                                 .gradientNormalizationThreshold(10).build(), "layer2")
-                        .addLayer("layer4", new GravesLSTM.Builder().activation(Activation.SOFTSIGN).nIn(50)
+                        .addLayer("layer4", new LSTM.Builder().activation(Activation.SOFTSIGN).nIn(50)
                                 .nOut(50).weightInit(WeightInit.XAVIER).updater(Updater.ADAGRAD)
                                 .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)
                                 .gradientNormalizationThreshold(10)

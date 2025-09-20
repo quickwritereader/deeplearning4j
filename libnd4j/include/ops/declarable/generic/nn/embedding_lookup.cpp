@@ -40,14 +40,14 @@ CUSTOM_OP_IMPL(embedding_lookup, 2, 1, false, 0, 1) {
 
   if (block.width() > 2) {  // multiple input
     indices = INPUT_VARIABLE(block.width() - 1);
-    std::vector<int> dims(input->rankOf());
+    std::vector<sd::LongType> dims(input->rankOf());
     int i = output->rankOf() - input->rankOf();
     for (auto& v : dims) {
       v = i++;
     }
 
     ResultSet outputView = output->allTensorsAlongDimension(dims);
-    REQUIRE_TRUE(block.width() > output->sizeAt(0), 0,
+    REQUIRE_TRUE(static_cast<sd::LongType >(block.width()) > output->sizeAt(0), 0,
                  "embedding_lookup: input list should be greater then %i, but %i given.", output->sizeAt(0),
                  block.width());
     for (sd::LongType e = 0; e < indices->lengthOf(); ++e) {
@@ -89,7 +89,7 @@ DECLARE_SHAPE_FN(embedding_lookup) {
     std::vector<sd::LongType> shapeInfo(outRank);
 
     shapeInfo[0] = indicesShapeInfo[1];  // vector - how many elements
-    for (int e = 1; e < outRank; e++) shapeInfo[e] = shape::sizeAt(inShapeInfo, e);
+    for (sd::LongType e = 1; e < outRank; e++) shapeInfo[e] = shape::sizeAt(inShapeInfo, e);
 
     auto outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShapeInfo),
                                                                            shape::order(inShapeInfo), shapeInfo);
@@ -100,7 +100,7 @@ DECLARE_SHAPE_FN(embedding_lookup) {
   std::vector<sd::LongType> shapeInfo(outRank);
   auto indices = INPUT_VARIABLE(block.width() - 1);
   shapeInfo[0] = indices->lengthOf();  // vector - how many elements
-  for (int e = 1; e < outRank; e++) shapeInfo[e] = shape::sizeAt(inShapeInfo, e);
+  for (sd::LongType e = 1; e < outRank; e++) shapeInfo[e] = shape::sizeAt(inShapeInfo, e);
 
   auto outShapeInfo = ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inShapeInfo),
                                                                          shape::order(inShapeInfo), shapeInfo);

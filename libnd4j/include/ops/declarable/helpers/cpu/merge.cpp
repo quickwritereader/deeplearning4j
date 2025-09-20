@@ -31,7 +31,7 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-static void mergeMaxIndex_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeMaxIndex_(const std::vector<NDArray*>& inArrs, NDArray& output) {
   const sd::LongType numArgs = inArrs.size();
   auto x = inArrs[0];
 
@@ -55,14 +55,14 @@ static void mergeMaxIndex_(const std::vector<const NDArray*>& inArrs, NDArray& o
   samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-void mergeMaxIndex(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-  BUILD_DOUBLE_SELECTOR(inArrs[0]->dataType(), output.dataType(), mergeMaxIndex_, (inArrs, output), SD_COMMON_TYPES,
+void mergeMaxIndex(sd::LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
+  BUILD_DOUBLE_SELECTOR(inArrs[0]->dataType(), output.dataType(), mergeMaxIndex_, (inArrs, output), SD_NUMERIC_TYPES,
                         SD_INDEXING_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeMax_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeMax_(const std::vector<NDArray*>& inArrs, NDArray& output) {
   const sd::LongType numArgs = inArrs.size();
   auto x = inArrs[0];
 
@@ -80,71 +80,62 @@ static void mergeMax_(const std::vector<const NDArray*>& inArrs, NDArray& output
   samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-void mergeMax(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-  BUILD_SINGLE_SELECTOR(output.dataType(), mergeMax_, (inArrs, output), SD_COMMON_TYPES);
+void mergeMax(sd::LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
+  BUILD_SINGLE_SELECTOR(output.dataType(), mergeMax_, (inArrs, output), SD_NUMERIC_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
+static void mergeMaxBp_(const std::vector<NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
   // outArrs.size() == inArrs.size() - 1
   const sd::LongType numArgs = outArrs.size();
   // last array is gradient
   const auto gradient = inArrs[numArgs]->bufferAsT<T>();
   auto length = inArrs[numArgs]->lengthOf();
 
-  bool bSameOrderAndEws1 = (1 == inArrs[numArgs]->ews());
-
-  if (bSameOrderAndEws1) {
-    auto gradOrdering = inArrs[numArgs]->ordering();
-
-    for (int i = 0; i < numArgs; ++i) {
-      bSameOrderAndEws1 &= (gradOrdering == inArrs[i]->ordering());
-      bSameOrderAndEws1 &= (1 == inArrs[i]->ews());
-      bSameOrderAndEws1 &= (gradOrdering == outArrs[i]->ordering());
-      bSameOrderAndEws1 &= (1 == outArrs[i]->ews());
-    }
-  }
-
-  if (bSameOrderAndEws1) {
-    auto func = PRAGMA_THREADS_FOR {
-      for (auto e = start; e < stop; e++) {
-        T max = -DataTypeUtils::max<T>();
-        sd::LongType nMaxIndex = 0;
-        for (sd::LongType i = 0; i < numArgs; i++) {
-          const T* v = inArrs[i]->bufferAsT<T>();
-          if (v[e] > max) {
-            max = v[e];
-            nMaxIndex = i;
-          }
-        }
-        T* z = outArrs[nMaxIndex]->bufferAsT<T>();
-        z[e] = gradient[e];
-      }
-    };
-
-    samediff::Threads::parallel_for(func, 0, length);
-    return;
-  }
-
   auto gradShape = inArrs[numArgs]->shapeInfo();
   std::vector<bool> vbSameShaepeAndStrides(numArgs);
+  std::vector<sd::LongType*> vShapePtrs(numArgs);
+  std::vector<sd::LongType*> vStridePtrs(numArgs);
+  std::vector<sd::LongType> vRanks(numArgs);
   for (int i = 0; i < numArgs; ++i) {
     vbSameShaepeAndStrides[i] = shape::haveSameShapeAndStrides(gradShape, inArrs[i]->shapeInfo());
+    vShapePtrs[i] = shape::shapeOf(inArrs[i]->shapeInfo());
+    vStridePtrs[i] = shape::stride(inArrs[i]->shapeInfo());
+    vRanks[i] = shape::rank(inArrs[i]->shapeInfo());
   }
 
-  auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto e = start; e < stop; e++) {
-      shape::index2coordsCPU(start, e, gradShape, coords);
 
-      const auto gradOffset = shape::getOffset(gradShape, coords);
+  std::vector<sd::LongType *> outShapePtrs(numArgs);
+  std::vector<sd::LongType *> outStridePtrs(numArgs);
+  std::vector<sd::LongType> outRanks(numArgs);
+  for (int i = 0; i < numArgs; ++i) {
+    outShapePtrs[i] = shape::shapeOf(outArrs[i]->shapeInfo());
+    outStridePtrs[i] = shape::stride(outArrs[i]->shapeInfo());
+    outRanks[i] = shape::rank(outArrs[i]->shapeInfo());
+  }
+
+  sd::LongType gradRank = shape::rank(gradShape);
+  sd::LongType *gradShapeOf = shape::shapeOf(gradShape);
+  sd::LongType *gradStride = shape::stride(gradShape);
+  auto func = PRAGMA_THREADS_FOR {
+    sd::LongType coords[SD_MAX_RANK];
+    for (auto e = start; e < stop; e++) {
+      INDEX2COORDS(e, gradRank, gradShapeOf, coords);
+
+      sd::LongType gradOffset;
+      COORDS2INDEX(gradRank,gradStride, coords, gradOffset);
 
       T max = -DataTypeUtils::max<T>();
       sd::LongType nMaxIndex = 0;
 
       for (sd::LongType i = 0; i < numArgs; i++) {
-        const auto xOffset = vbSameShaepeAndStrides[i] ? gradOffset : shape::getOffset(inArrs[i]->shapeInfo(), coords);
+        sd::LongType xOffset;
+        if (vbSameShaepeAndStrides[i]) {
+          xOffset = gradOffset;
+        } else {
+          COORDS2INDEX(vRanks[i],vStridePtrs[i], coords, xOffset);
+        }
         const T* v = inArrs[i]->bufferAsT<T>();
         if (v[xOffset] > max) {
           max = v[xOffset];
@@ -152,8 +143,12 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
         }
       }
 
-      const auto zOffset =
-          vbSameShaepeAndStrides[nMaxIndex] ? gradOffset : shape::getOffset(outArrs[nMaxIndex]->shapeInfo(), coords);
+      sd::LongType zOffset;
+      if (vbSameShaepeAndStrides[nMaxIndex]) {
+        zOffset = gradOffset;
+      } else {
+        COORDS2INDEX(outRanks[nMaxIndex],outStridePtrs[nMaxIndex], coords, zOffset);
+      }
 
       T* z = outArrs[nMaxIndex]->bufferAsT<T>();
       z[zOffset] = gradient[gradOffset];
@@ -164,13 +159,13 @@ static void mergeMaxBp_(const std::vector<const NDArray*>& inArrs, std::vector<N
   return;
 }
 
-void mergeMaxBp(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
-  BUILD_SINGLE_SELECTOR(outArrs[0]->dataType(), mergeMaxBp_, (inArrs, outArrs), SD_COMMON_TYPES);
+void mergeMaxBp(sd::LaunchContext* context, const std::vector<NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
+  BUILD_SINGLE_SELECTOR(outArrs[0]->dataType(), mergeMaxBp_, (inArrs, outArrs), SD_NUMERIC_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeAvg_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeAvg_(const std::vector<NDArray*>& inArrs, NDArray& output) {
   const sd::LongType numArgs = inArrs.size();
   const T factor = 1.f / numArgs;
   auto x = inArrs[0];
@@ -189,13 +184,13 @@ static void mergeAvg_(const std::vector<const NDArray*>& inArrs, NDArray& output
   samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
 
-void mergeAvg(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-  BUILD_SINGLE_SELECTOR(output.dataType(), mergeAvg_, (inArrs, output), SD_COMMON_TYPES);
+void mergeAvg(sd::LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
+  BUILD_SINGLE_SELECTOR(output.dataType(), mergeAvg_, (inArrs, output), SD_NUMERIC_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeAvgBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs) {
+static void mergeAvgBp_(NDArray& gradient, std::vector<NDArray*>& outArrs) {
   const sd::LongType numArgs = outArrs.size();
 
   auto func = PRAGMA_THREADS_FOR {
@@ -211,13 +206,13 @@ static void mergeAvgBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs)
   samediff::Threads::parallel_for(func, 0, gradient.lengthOf());
 }
 
-void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-  BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAvgBp_, (gradient, outArrs), SD_COMMON_TYPES);
+void mergeAvgBp(sd::LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs) {
+  BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAvgBp_, (gradient, outArrs), SD_NUMERIC_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeAdd_(const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeAdd_(const std::vector<NDArray*>& inArrs, NDArray& output) {
   const sd::LongType numArgs = inArrs.size();
   auto x = inArrs[0];
 
@@ -232,13 +227,13 @@ static void mergeAdd_(const std::vector<const NDArray*>& inArrs, NDArray& output
 
   samediff::Threads::parallel_for(func, 0, x->lengthOf());
 }
-void mergeAdd(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
-  BUILD_SINGLE_SELECTOR(output.dataType(), mergeAdd_, (inArrs, output), SD_COMMON_TYPES);
+void mergeAdd(sd::LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
+  BUILD_SINGLE_SELECTOR(output.dataType(), mergeAdd_, (inArrs, output), SD_NUMERIC_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void mergeAddBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs) {
+static void mergeAddBp_(NDArray& gradient, std::vector<NDArray*>& outArrs) {
   const sd::LongType numArgs = outArrs.size();
 
   auto func = PRAGMA_THREADS_FOR {
@@ -254,8 +249,8 @@ static void mergeAddBp_(const NDArray& gradient, std::vector<NDArray*>& outArrs)
   samediff::Threads::parallel_for(func, 0, gradient.lengthOf());
 }
 
-void mergeAddBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-  BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAddBp_, (gradient, outArrs), SD_COMMON_TYPES);
+void mergeAddBp(sd::LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs) {
+  BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAddBp_, (gradient, outArrs), SD_NUMERIC_TYPES);
 }
 
 }  // namespace helpers

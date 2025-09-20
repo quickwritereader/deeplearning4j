@@ -120,7 +120,7 @@ static SD_INLINE void indexInnerReductionConstRank(const X* buffer, X& current, 
 }
 
 template <typename X, typename Z, typename ReductionOp, bool LastIndexFaster = true>
-static SD_INLINE void indexInnerReduction(const int& rank, const X* buffer, X& current, Z& argCurrent,
+static SD_INLINE void indexInnerReduction(const LongType& rank, const X* buffer, X& current, Z& argCurrent,
                                           const sd::LongType* bases, const sd::LongType* strides,
                                           const sd::LongType& outerLoopStart, const sd::LongType& outerLoopStop,
                                           const sd::LongType& innerLoopCount) {
@@ -129,8 +129,8 @@ static SD_INLINE void indexInnerReduction(const int& rank, const X* buffer, X& c
   sd::LongType coords[SD_MAX_RANK] = {};
   sd::LongType* ptr_coords = (sd::LongType*)&coords;
   if (outerLoopStart > 0) {
-    sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
-    offset = sd::offset_from_coords(strides, ptr_coords, rank);
+    INDEX2COORDS(outerLoopStart, rank - 1, bases, ptr_coords);
+    COORDS2INDEX(rank, strides, ptr_coords, offset);
   }
   Z startIndex = outerLoopStart * innerLoopCount;
   argCurrent = startIndex;
@@ -138,13 +138,10 @@ static SD_INLINE void indexInnerReduction(const int& rank, const X* buffer, X& c
   LOG_CALLS(0)
   for (Z i = 0; i < outerLoopCount; i++) {
     const X* inner_buffer = &(buffer[offset]);
-    // typename std::make_signed<Z>::type iArgMax = -1;
     for (Z j = 0; j < innerLoopCount; j++) {
-      // sd_printf("%f\n", inner_buffer[j]);
       ReductionOp::update(current, argCurrent, inner_buffer[j], j + startIndex);
     }
     offset = inc_coords<true>(bases, strides, ptr_coords, offset, rank, 1);
-    // if (iArgMax >= 0) argCurrent = startIndex + iArgMax;
     startIndex += innerLoopCount;
   }
 }
@@ -159,8 +156,8 @@ static SD_INLINE void indexInnerReduction(const int& rank, const X* buffer, X& c
   sd::LongType coords[SD_MAX_RANK] = {};
   sd::LongType* ptr_coords = (sd::LongType*)&coords;
   if (outerLoopStart > 0) {
-    sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
-    offset = sd::offset_from_coords(strides, ptr_coords, rank);
+    INDEX2COORDS(outerLoopStart, rank - 1, bases, ptr_coords);
+    COORDS2INDEX(rank, strides, ptr_coords, offset);
   }
   Z startIndex = outerLoopStart * innerLoopCount;
   argCurrent = startIndex;
@@ -168,13 +165,10 @@ static SD_INLINE void indexInnerReduction(const int& rank, const X* buffer, X& c
   LOG_CALLS(0)
   for (Z i = 0; i < outerLoopCount; i++) {
     const X* inner_buffer = &(buffer[offset]);
-    // typename std::make_signed<Z>::type iArgMax = -1;
     for (Z j = 0; j < innerLoopCount; j++) {
       ReductionOp::update(current, argCurrent, inner_buffer[j * inner_stride], startIndex + j);
     }
     offset = inc_coords<true>(bases, strides, ptr_coords, offset, rank, 1);
-    // offset = inc_coords<LastIndexFaster>(bases, strides, ptr_coords, offset, rank, 1);
-    // if (iArgMax >= 0) argCurrent = startIndex + iArgMax;
     startIndex += innerLoopCount;
   }
 }
@@ -574,7 +568,6 @@ static void argReductionInnerCases(Movement& movement, sd::LongType loopTotal, c
 
       } else {
         LOG_CALLS(3)
-        // sd_printf("-----%d \n", loopTotal);
         for (sd::LongType i = 0; i < loopTotal; i++) {
           X current;
           const X* buffer0 = &(bufferX[movement.First()]);
@@ -682,7 +675,6 @@ static void argReductionInnerCases(Movement& movement, sd::LongType loopTotal, c
 
       } else {
         LOG_CALLS(13)
-        // sd_printf("-------%d inner loop %d inner_last %d\n", loopTotal, inner_loop,inner_last);
         for (sd::LongType i = 0; i < loopTotal; i++) {
           X current;
           const X* buffer0 = &(bufferX[movement.First()]);
@@ -785,7 +777,7 @@ static void argIndexCaseNonScalar(const int& first_rank, const int& output_rank,
 }
 
 template <typename X, typename Z, typename ReductionOp>
-SD_LIB_HIDDEN void argIndex_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+SD_LIB_HIDDEN void argIndex_(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   char input_order = input.ordering();
   bool try_squash_outer = (input_order == output.ordering()) && output.ews() != 0;
   const sd::LongType* input_shapeInfo = input.shapeInfo();
@@ -797,7 +789,7 @@ SD_LIB_HIDDEN void argIndex_(const NDArray& input, NDArray& output, const std::v
   const sd::LongType* output_strides = &(output_shapeInfo[output_rank + 1]);
   sd::LongType new_bases[SD_MAX_RANK];
   sd::LongType new_strides[SD_MAX_RANK];
-  int first_begin, first_end, second_begin, second_end;
+  sd::LongType first_begin, first_end, second_begin, second_end;
   // rePartition into two parts based on the selection
   rePartition(input_order, dimensions, rank, input_bases, input_strides, new_bases, new_strides, first_begin, first_end,
               second_begin, second_end, try_squash_outer, input_order == 'c');
@@ -858,7 +850,7 @@ struct IndexMin {
 template <typename X, typename Z>
 struct IndexAbsMax {
   static SD_INLINE void update(X& current, Z& currentIndex, const X& candidate, const Z& candidateIndex) {
-    auto absCandidate = sd::math::sd_abs<X>(candidate);
+    auto absCandidate = sd::math::sd_abs<X,X>(candidate);
     if (absCandidate > current) {
       current = absCandidate;
       currentIndex = candidateIndex;
@@ -869,7 +861,7 @@ struct IndexAbsMax {
 template <typename X, typename Z>
 struct IndexAbsMin {
   static SD_INLINE void update(X& current, Z& currentIndex, const X& candidate, const Z& candidateIndex) {
-    auto absCandidate = sd::math::sd_abs<X>(candidate);
+    auto absCandidate = sd::math::sd_abs<X,X>(candidate);
     if (absCandidate < current) {
       current = absCandidate;
       currentIndex = candidateIndex;
@@ -879,22 +871,22 @@ struct IndexAbsMin {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Z>
-SD_LIB_HIDDEN void argMax_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+SD_LIB_HIDDEN void argMax_(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   return argIndex_<X, Z, IndexMax<X, Z>>(input, output, dimensions);
 }
 
 template <typename X, typename Z>
-SD_LIB_HIDDEN void argMin_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+SD_LIB_HIDDEN void argMin_(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   return argIndex_<X, Z, IndexMin<X, Z>>(input, output, dimensions);
 }
 
 template <typename X, typename Z>
-SD_LIB_HIDDEN void argAbsMax_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+SD_LIB_HIDDEN void argAbsMax_(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   return argIndex_<X, Z, IndexAbsMax<X, Z>>(input, output, dimensions);
 }
 
 template <typename X, typename Z>
-SD_LIB_HIDDEN void argAbsMin_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+SD_LIB_HIDDEN void argAbsMin_(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   return argIndex_<X, Z, IndexAbsMin<X, Z>>(input, output, dimensions);
 }
 }  // namespace helpers

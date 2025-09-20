@@ -26,8 +26,8 @@ namespace sd {
 namespace ops {
 namespace helpers {
 template <typename T, typename F, typename I>
-SD_LIB_HIDDEN void cropAndResizeFunctor_(NDArray const *images, NDArray const *boxes, NDArray const *indices,
-                                         NDArray const *cropSize, int method, double extrapolationVal, NDArray *crops) {
+SD_LIB_HIDDEN void cropAndResizeFunctor_(NDArray *images, NDArray *boxes, NDArray *indices,
+                                         NDArray *cropSize, int method, double extrapolationVal, NDArray *crops) {
   const int batchSize = images->sizeAt(0);
   const int imageHeight = images->sizeAt(1);
   const int imageWidth = images->sizeAt(2);
@@ -48,9 +48,12 @@ SD_LIB_HIDDEN void cropAndResizeFunctor_(NDArray const *images, NDArray const *b
       continue;
     }
 
-    T heightScale = (cropHeight > 1) ? (y2 - y1) * (imageHeight - 1) / (cropHeight - 1) : T(0);
-    T widthScale = (cropWidth > 1) ? (x2 - x1) * (imageWidth - 1) / (cropWidth - 1) : T(0);
-
+    T heightScale = (cropHeight > 1)
+                        ? T((y2 - y1) * (imageHeight - 1) / (cropHeight - 1))
+                        : T(0);
+    T widthScale = (cropWidth > 1)
+                       ? T((x2 - x1) * (imageWidth - 1) / (cropWidth - 1))
+                       : T(0);
     auto func = PRAGMA_THREADS_FOR {
       for (auto y = start; y < stop; y++) {
         const float inY =

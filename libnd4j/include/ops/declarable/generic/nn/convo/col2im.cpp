@@ -35,37 +35,37 @@ CUSTOM_OP_IMPL(col2im, 1, 1, false, 0, 9) {
   REQUIRE_TRUE(x->rankOf() == 6, 0, "col2im input should be 6D, but got %i instead", x->rankOf());
   REQUIRE_TRUE(z->rankOf() == 4, 0, "col2im output should be 4D, but got %i instead", z->rankOf());
 
-  int strideY = INT_ARG(0);
-  int strideX = INT_ARG(1);
-  int padHeight = INT_ARG(2);
-  int padWidth = INT_ARG(3);
-  int imgHeight = INT_ARG(4);
-  int imgWidth = INT_ARG(5);
-  int dY = INT_ARG(6);  // Dilation in height/y dimension
-  int dX = INT_ARG(7);  // Dilation in width/x dimension
+  LongType strideY = INT_ARG(0);
+  LongType strideX = INT_ARG(1);
+  LongType padHeight = INT_ARG(2);
+  LongType padWidth = INT_ARG(3);
+  LongType imgHeight = INT_ARG(4);
+  LongType imgWidth = INT_ARG(5);
+  LongType dY = INT_ARG(6);  // Dilation in height/y dimension
+  LongType dX = INT_ARG(7);  // Dilation in width/x dimension
 
   LaunchContext* ctx = block.launchContext();
-  helpers::col2im(*ctx, *x, *z, strideY, strideX, padHeight, padWidth, imgHeight, imgWidth, dY, dX);
+  helpers::col2im(*ctx, x, z, strideY, strideX, padHeight, padWidth, imgHeight, imgWidth, dY, dX);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SHAPE_FN(col2im) {
   auto inShape = inputShape->at(0);
 
-  int bS = shape::shapeOf(inShape)[0];
-  int iD = shape::shapeOf(inShape)[1];
+  LongType bS = shape::shapeOf(inShape)[0];
+  LongType iD = shape::shapeOf(inShape)[1];
 
-  int sY = INT_ARG(0);
-  int sX = INT_ARG(1);
-  int pY = INT_ARG(2);
-  int pX = INT_ARG(3);
-  int inY = INT_ARG(4);
-  int inX = INT_ARG(5);
-  int dY = INT_ARG(6);  // Dilation, height/y dimension
-  int dX = INT_ARG(7);  // Dilation, width/x dimension
+  LongType sY = INT_ARG(0);
+  LongType sX = INT_ARG(1);
+  LongType pY = INT_ARG(2);
+  LongType pX = INT_ARG(3);
+  LongType inY = INT_ARG(4);
+  LongType inX = INT_ARG(5);
+  LongType dY = INT_ARG(6);  // Dilation, height/y dimension
+  LongType dX = INT_ARG(7);  // Dilation, width/x dimension
   bool isSameMode = INT_ARG(8) > 0;
 
-  sd::LongType* zShape;
+  LongType* zShape;
   ALLOCATE(zShape, block.getWorkspace(), shape::shapeInfoLength(4), sd::LongType);
 
   zShape[0] = 4;
@@ -84,8 +84,8 @@ DECLARE_SHAPE_FN(col2im) {
 
 DECLARE_TYPES(col2im) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT)
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedOutputTypes(0, INHERIT)
       ->setSameMode(true);
 }
 }  // namespace ops

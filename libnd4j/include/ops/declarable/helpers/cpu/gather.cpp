@@ -23,6 +23,7 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
 #include <ops/declarable/helpers/gather.h>
+#include <legacy/NativeOpExecutioner.h>
 
 #include <numeric>
 #if NOT_EXCLUDED(OP_gather)
@@ -31,13 +32,13 @@ namespace ops {
 namespace helpers {
 
 ////////////////////////////////////////////////////////////////////////
-void gather(sd::LaunchContext* context, const NDArray* input, const NDArray* indices, NDArray* output,
-            const std::vector<int>& intArgs) {
-  int axis = intArgs.size() > 0 ? intArgs[0] : 0;
-  const int inputRank = input->rankOf();
+void gather(sd::LaunchContext* context, NDArray* input, NDArray* indices, NDArray* output,
+            const std::vector<LongType>& intArgs) {
+  sd::LongType axis = intArgs.size() > 0 ? intArgs[0] :static_cast<LongType>(0);
+  const sd::LongType inputRank = input->rankOf();
   if (axis < 0) axis += inputRank;
 
-  const int numOfIntArgs = intArgs.size();
+  const sd::LongType numOfIntArgs = intArgs.size();
 
   if (indices != nullptr) {
     // first case: indices consist of only one scalar
@@ -47,41 +48,45 @@ void gather(sd::LaunchContext* context, const NDArray* input, const NDArray* ind
         // we want to get a scalar
         auto idx = indices->e<sd::LongType>(0);
         auto scalarNDArray = input->e(idx);
-        output->assign(scalarNDArray);
+        output->assign(&scalarNDArray);
       } else {
         NDArray inSubArr = (*input)(indices->e<sd::LongType>(0), {axis});
-        output->assign(inSubArr);
+        output->assign(&inSubArr);
       }
     } else {
       if (input->rankOf() == 1 && output->rankOf() == 1) {
         auto func = PRAGMA_THREADS_FOR {
-          for (auto i = start; i < stop; i++) output->p(i, input->e(indices->e<sd::LongType>(i)));
+          for (auto i = start; i < stop; i++) {
+            auto curr = indices->e<sd::LongType>(i);
+            output->p(i, curr);
+          }
         };
 
         samediff::Threads::parallel_for(func, 0, output->lengthOf());
 
       } else {
-        std::vector<int> dimsOut;
-        for (int i = 0; i < axis; ++i) dimsOut.push_back(i);
-        for (int i = axis + indices->rankOf(); i < output->rankOf(); ++i) dimsOut.push_back(i);
+        std::vector<sd::LongType> dimsOut;
+        for (sd::LongType i = 0; i < axis; ++i) dimsOut.push_back(i);
+        for (sd::LongType i = axis + indices->rankOf(); i < output->rankOf(); ++i) dimsOut.push_back(i);
 
-        std::vector<int> dimsIn = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
+        std::vector<sd::LongType> axesVec = {axis};
+        std::vector<sd::LongType> *dimsIn = ShapeUtils::evalDimsToExclude(input->rankOf(), 1,axesVec.data());
 
         const sd::LongType numOfSubArrs = indices->lengthOf();
 
         auto inTadPack = ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dimsIn);
-        auto outTadPack = ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dimsOut);
-
-        auto inTadShapeInfo = inTadPack.primaryShapeInfo();
-        auto outTadShapeInfo = outTadPack.primaryShapeInfo();
+        delete dimsIn;
+        auto outTadPack = ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), &dimsOut);
+        auto inTadShapeInfo = inTadPack->primaryShapeInfo();
+        auto outTadShapeInfo = outTadPack->primaryShapeInfo();
 
         if (shape::order(inTadShapeInfo) == shape::order(outTadShapeInfo) && shape::order(inTadShapeInfo) == 'c' &&
             input->dataType() == output->dataType() && shape::elementWiseStride(inTadShapeInfo) == 1 &&
             shape::elementWiseStride(outTadShapeInfo) == 1) {
           auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
-              auto inBuff = input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<sd::LongType>(i)]);
-              auto outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
+              auto inBuff = input->bufferWithOffset(inTadPack->primaryOffsets()[indices->e<sd::LongType>(i)]);
+              auto outBuff = output->bufferWithOffset(outTadPack->primaryOffsets()[i]);
 
               memcpy(outBuff, inBuff, shape::length(inTadShapeInfo) * input->sizeOfT());
             }
@@ -90,13 +95,14 @@ void gather(sd::LaunchContext* context, const NDArray* input, const NDArray* ind
         } else {
           auto func = PRAGMA_THREADS_FOR {
             for (auto i = start; i < stop; i++) {
-              auto inBuff = input->bufferWithOffset(inTadPack.primaryOffsets()[indices->e<sd::LongType>(i)]);
-              auto outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
-
-              NativeOpExecutioner::execTransformAny(
-                  input->getContext(), transform::Assign, inBuff, inTadShapeInfo, nullptr /*input specialBuffer*/,
-                  nullptr /*input special*/, outBuff, outTadShapeInfo, nullptr /*output specialBuffer*/,
-                  nullptr /*output special*/, nullptr, nullptr, nullptr, false /*allowParallelism*/);
+              auto offset = inTadPack->primaryOffsets()[indices->e<sd::LongType>(i)];
+              auto inBuff = input->bufferWithOffset(offset);
+              auto outOffset = outTadPack->primaryOffsets()[i];
+              auto outBuff = output->bufferWithOffset(outOffset);
+              NativeOpExecutioner::execTransformAny(input->getContext(), transform::Assign, inBuff, inTadShapeInfo,
+                                                    nullptr /*input specialBuffer*/, nullptr /*input special*/, outBuff,
+                                                    outTadShapeInfo, nullptr /*output specialBuffer*/,
+                                                    nullptr /*output special*/, nullptr, false /*allowParallelism*/);
             }
           };
 
@@ -107,27 +113,28 @@ void gather(sd::LaunchContext* context, const NDArray* input, const NDArray* ind
   } else {
     // we only allow scalar/vector case here
     if (numOfIntArgs == 2) {  // scalar case
-
-      output->assign((*input)(intArgs[1], {axis}));
+      NDArray assign = (*input)(intArgs[1], {axis});
+      output->assign(&assign);
     } else {  // vector case
-
       const sd::LongType numOfSubArrs = intArgs.size() - 1;
 
-      std::vector<int> dims = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
+      std::vector<sd::LongType> axesVec = {axis};
+      std::vector<sd::LongType> *dims = ShapeUtils::evalDimsToExclude(input->rankOf(),1,axesVec.data());
 
       auto inTadPack = ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(), dims);
       auto outTadPack = ConstantTadHelper::getInstance().tadForDimensions(output->shapeInfo(), dims);
+      delete dims;
 
-      auto inTadShapeInfo = inTadPack.primaryShapeInfo();
-      auto outTadShapeInfo = outTadPack.primaryShapeInfo();
+      auto inTadShapeInfo = inTadPack->primaryShapeInfo();
+      auto outTadShapeInfo = outTadPack->primaryShapeInfo();
 
       if (shape::order(inTadShapeInfo) == shape::order(outTadShapeInfo) && shape::order(inTadShapeInfo) == 'c' &&
           input->dataType() == output->dataType() && shape::elementWiseStride(inTadShapeInfo) == 1 &&
           shape::elementWiseStride(outTadShapeInfo) == 1) {
         auto func = PRAGMA_THREADS_FOR {
-          for (auto i = start; i < stop; i++) {
-            auto inBuff = input->bufferWithOffset(inTadPack.primaryOffsets()[intArgs[i + 1]]);
-            void* outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
+          for (sd::LongType i = start; i < stop; i++) {
+            auto inBuff = input->bufferWithOffset(inTadPack->primaryOffsets()[intArgs[i + 1]]);
+            void* outBuff = output->bufferWithOffset(outTadPack->primaryOffsets()[i]);
 
             std::memcpy(outBuff, inBuff, shape::length(inTadShapeInfo) * input->sizeOfT());
           }
@@ -137,13 +144,13 @@ void gather(sd::LaunchContext* context, const NDArray* input, const NDArray* ind
       } else {
         auto func = PRAGMA_THREADS_FOR {
           for (auto i = start; i < stop; i++) {
-            auto inBuff = input->bufferWithOffset(inTadPack.primaryOffsets()[intArgs[i + 1]]);
-            auto outBuff = output->bufferWithOffset(outTadPack.primaryOffsets()[i]);
+            auto inBuff = input->bufferWithOffset(inTadPack->primaryOffsets()[intArgs[i + 1]]);
+            auto outBuff = output->bufferWithOffset(outTadPack->primaryOffsets()[i]);
 
-            NativeOpExecutioner::execTransformAny(
-                input->getContext(), transform::Assign, inBuff, inTadShapeInfo, nullptr /*input specialBuffer*/,
-                nullptr /*input special*/, outBuff, outTadShapeInfo, nullptr /*output specialBuffer*/,
-                nullptr /*output special*/, nullptr, nullptr, nullptr, false /*allowParallelism*/);
+            NativeOpExecutioner::execTransformAny(input->getContext(), transform::Assign, inBuff, inTadShapeInfo,
+                                                  nullptr /*input specialBuffer*/, nullptr /*input special*/, outBuff,
+                                                  outTadShapeInfo, nullptr /*output specialBuffer*/,
+                                                  nullptr /*output special*/, nullptr, false /*allowParallelism*/);
           }
         };
         samediff::Threads::parallel_tad(func, 0, numOfSubArrs);

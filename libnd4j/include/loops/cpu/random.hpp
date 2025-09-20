@@ -1,20 +1,20 @@
 /* ******************************************************************************
- *
- *
- * This program and the accompanying materials are made available under the
- * terms of the Apache License, Version 2.0 which is available at
- * https://www.apache.org/licenses/LICENSE-2.0.
- *
- *  See the NOTICE file distributed with this work for additional
- *  information regarding copyright ownership.
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- ******************************************************************************/
+*
+*
+* This program and the accompanying materials are made available under the
+* terms of the Apache License, Version 2.0 which is available at
+* https://www.apache.org/licenses/LICENSE-2.0.
+*
+*  See the NOTICE file distributed with this work for additional
+*  information regarding copyright ownership.
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+* WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+* License for the specific language governing permissions and limitations
+* under the License.
+*
+* SPDX-License-Identifier: Apache-2.0
+******************************************************************************/
 
 //
 //  @author raver119@gmail.com, created on 15.12.17.
@@ -45,105 +45,45 @@ void RandomFunction<X>::execTransform(sd::Pointer state, const void *vx, const s
     return;
   }
 
-  auto length = shape::length(zShapeInfo);
+  // Cache shape-related values
+  sd::LongType xRank = shape::rank(xShapeInfo);
+  sd::LongType yRank = shape::rank(yShapeInfo);
+  sd::LongType zRank = shape::rank(zShapeInfo);
+  sd::LongType *xShape = shape::shapeOf(xShapeInfo);
+  sd::LongType *yShape = shape::shapeOf(yShapeInfo);
+  sd::LongType *zShape = shape::shapeOf(zShapeInfo);
+  sd::LongType *xStride = shape::stride(xShapeInfo);
+  sd::LongType *yStride = shape::stride(yShapeInfo);
+  sd::LongType *zStride = shape::stride(zShapeInfo);
 
+  auto length = shape::length(zShapeInfo);
   sd::graph::RandomGenerator *rng = reinterpret_cast<sd::graph::RandomGenerator *>(state);
 
   if (shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo) &&
       shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
-    if (shape::elementWiseStride(zShapeInfo) == 1 && shape::elementWiseStride(xShapeInfo) == 1 &&
-        shape::elementWiseStride(yShapeInfo) == 1 && shape::order(xShapeInfo) == shape::order(zShapeInfo) &&
-        shape::order(zShapeInfo) == shape::order(yShapeInfo)) {
-      auto func = PRAGMA_THREADS_FOR {
-        PRAGMA_OMP_SIMD
-        for (auto i = start; i < stop; i++) {
-          z[i] = OpClass::op(x[i], y[i], i, length, rng, extraArguments);
-        }
-      };
-      samediff::Threads::parallel_for(func, 0, length, 1);
-    } else {
-      sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-      const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-
-      auto func = PRAGMA_THREADS_FOR {
-        PRAGMA_OMP_SIMD
-        for (auto i = start; i < stop; i++) {
-          auto offset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-          z[offset] = OpClass::op(x[offset], y[offset], i, length, rng, extraArguments);
-        }
-      };
-
-      samediff::Threads::parallel_for(func, 0, length, 1);
-    }
-  } else if (shape::haveSameShapeAndStrides(xShapeInfo, yShapeInfo)) {
-    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
-    const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-    const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
-
     auto func = PRAGMA_THREADS_FOR {
       PRAGMA_OMP_SIMD
       for (auto i = start; i < stop; i++) {
-        auto offset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-        auto zOffset = shape::indexOffset(i, zShapeInfo, zShapeInfoCast, canCastZ);
-        z[zOffset] = OpClass::op(x[offset], y[offset], i, length, rng, extraArguments);
+        z[i] = OpClass::op(x[i], y[i], i, length, rng, extraArguments);
       }
     };
-
-    samediff::Threads::parallel_for(func, 0, length, 1);
-  } else if (shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
-    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
-    const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-    const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
-
-    auto func = PRAGMA_THREADS_FOR {
-      PRAGMA_OMP_SIMD
-      for (auto i = start; i < stop; i++) {
-        auto offset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-        auto yOffset = shape::indexOffset(i, yShapeInfo, yShapeInfoCast, canCastY);
-        z[offset] = OpClass::op(x[offset], y[yOffset], i, length, rng, extraArguments);
-      }
-    };
-
-    samediff::Threads::parallel_for(func, 0, length, 1);
-  } else if (shape::haveSameShapeAndStrides(yShapeInfo, zShapeInfo)) {
-    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
-    const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-    const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
-
-    auto func = PRAGMA_THREADS_FOR {
-      PRAGMA_OMP_SIMD
-      for (auto i = start; i < stop; i++) {
-        auto xOffset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-        auto offset = shape::indexOffset(i, yShapeInfo, yShapeInfoCast, canCastY);
-        z[offset] = OpClass::op(x[xOffset], y[offset], i, length, rng, extraArguments);
-      }
-    };
-
     samediff::Threads::parallel_for(func, 0, length, 1);
   } else {
-    sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-    sd::Unsigned yShapeInfoCast[SD_MAX_RANK];
-    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
-    const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-    const bool canCastY = sd::DataTypeUtils::castShapeInfo(yShapeInfo, yShapeInfoCast);
-    const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
-
+    sd::LongType coords[SD_MAX_RANK];
     auto func = PRAGMA_THREADS_FOR {
       PRAGMA_OMP_SIMD
       for (auto i = start; i < stop; i++) {
-        auto xOffset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-        auto yOffset = shape::indexOffset(i, yShapeInfo, yShapeInfoCast, canCastY);
-        auto zOffset = shape::indexOffset(i, zShapeInfo, zShapeInfoCast, canCastZ);
+        INDEX2COORDS(i, xRank, xShape, coords);
+        sd::LongType xOffset, yOffset, zOffset;
+        COORDS2INDEX(xRank, xStride, coords, xOffset);
+        COORDS2INDEX(yRank, yStride, coords, yOffset);
+        COORDS2INDEX(zRank, zStride, coords, zOffset);
         z[zOffset] = OpClass::op(x[xOffset], y[yOffset], i, length, rng, extraArguments);
       }
     };
-
     samediff::Threads::parallel_for(func, 0, length, 1);
   }
-};
+}
 
 template <typename X>
 template <typename OpClass>
@@ -153,47 +93,41 @@ void RandomFunction<X>::execTransform(sd::Pointer state, const void *vx, const s
   auto z = reinterpret_cast<X *>(vz);
   auto extraArguments = reinterpret_cast<X *>(vextraArguments);
 
+  // Cache shape-related values
+  sd::LongType xRank = shape::rank(xShapeInfo);
+  sd::LongType zRank = shape::rank(zShapeInfo);
+  sd::LongType *xShape = shape::shapeOf(xShapeInfo);
+  sd::LongType *zShape = shape::shapeOf(zShapeInfo);
+  sd::LongType *xStride = shape::stride(xShapeInfo);
+  sd::LongType *zStride = shape::stride(zShapeInfo);
+
   auto length = shape::length(zShapeInfo);
-
-  sd::Unsigned xShapeInfoCast[SD_MAX_RANK];
-  const bool canCastX = sd::DataTypeUtils::castShapeInfo(xShapeInfo, xShapeInfoCast);
-
   sd::graph::RandomGenerator *rng = reinterpret_cast<sd::graph::RandomGenerator *>(state);
 
   if (shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo)) {
-    if (shape::elementWiseStride(zShapeInfo) == 1 && shape::elementWiseStride(xShapeInfo) == 1 &&
-        shape::order(xShapeInfo) == shape::order(zShapeInfo)) {
-      auto func = PRAGMA_THREADS_FOR {
-        PRAGMA_OMP_SIMD
-        for (auto i = start; i < stop; i++) {
-          z[i] = OpClass::op(x[i], i, length, rng, extraArguments);
-        }
-      };
-      samediff::Threads::parallel_for(func, 0, length, 1);
-    } else {
-      auto func = PRAGMA_THREADS_FOR {
-        PRAGMA_OMP_SIMD
-        for (auto i = start; i < stop; i++) {
-          auto offset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-          z[offset] = OpClass::op(x[offset], i, length, rng, extraArguments);
-        }
-      };
-
-      samediff::Threads::parallel_for(func, 0, length, 1);
-    }
-  } else {
-    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
-    const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
-
+    sd::LongType coords[SD_MAX_RANK];
     auto func = PRAGMA_THREADS_FOR {
       PRAGMA_OMP_SIMD
       for (auto i = start; i < stop; i++) {
-        auto xOffset = shape::indexOffset(i, xShapeInfo, xShapeInfoCast, canCastX);
-        auto zOffset = shape::indexOffset(i, zShapeInfo, zShapeInfoCast, canCastZ);
+        INDEX2COORDS(i, xRank, xShape, coords);
+        sd::LongType offset;
+        COORDS2INDEX(xRank, xStride, coords, offset);
+        z[offset] = OpClass::op(x[offset], i, length, rng, extraArguments);
+      }
+    };
+    samediff::Threads::parallel_for(func, 0, length, 1);
+  } else {
+    sd::LongType coords[SD_MAX_RANK];
+    auto func = PRAGMA_THREADS_FOR {
+      PRAGMA_OMP_SIMD
+      for (auto i = start; i < stop; i++) {
+        INDEX2COORDS(i, xRank, xShape, coords);
+        sd::LongType xOffset, zOffset;
+        COORDS2INDEX(xRank, xStride, coords, xOffset);
+        COORDS2INDEX(zRank, zStride, coords, zOffset);
         z[zOffset] = OpClass::op(x[xOffset], i, length, rng, extraArguments);
       }
     };
-
     samediff::Threads::parallel_for(func, 0, length, 1);
   }
 }
@@ -205,37 +139,29 @@ void RandomFunction<X>::execTransform(sd::Pointer state, void *vz, const sd::Lon
   auto z = reinterpret_cast<X *>(vz);
   auto extraArguments = reinterpret_cast<X *>(vextraArguments);
 
-  auto length = shape::length(zShapeInfo);
+  // Cache shape-related values
+  sd::LongType zRank = shape::rank(zShapeInfo);
+  sd::LongType *zShape = shape::shapeOf(zShapeInfo);
+  sd::LongType *zStride = shape::stride(zShapeInfo);
 
+  auto length = shape::length(zShapeInfo);
   sd::graph::RandomGenerator *rng = reinterpret_cast<sd::graph::RandomGenerator *>(state);
 
-  if (shape::elementWiseStride(zShapeInfo) == 1) {
-    auto func = PRAGMA_THREADS_FOR {
-      PRAGMA_OMP_SIMD
-      for (auto i = start; i < stop; i++) {
-        z[i] = OpClass::op(i, length, rng, extraArguments);
-      }
-    };
+  sd::LongType coords[SD_MAX_RANK];
+  auto func = PRAGMA_THREADS_FOR {
+    PRAGMA_OMP_SIMD
+    for (auto i = start; i < stop; i++) {
+      INDEX2COORDS(i, zRank, zShape, coords);
+      sd::LongType offset;
+      COORDS2INDEX(zRank, zStride, coords, offset);
+      z[offset] = OpClass::op(i, length, rng, extraArguments);
+    }
+  };
 
-    samediff::Threads::parallel_for(func, 0, length, 1);
-  } else {
-    sd::OmpLaunchHelper info(length);
-
-    sd::Unsigned zShapeInfoCast[SD_MAX_RANK];
-    const bool canCastZ = sd::DataTypeUtils::castShapeInfo(zShapeInfo, zShapeInfoCast);
-
-    auto func = PRAGMA_THREADS_FOR {
-      PRAGMA_OMP_SIMD
-      for (auto i = start; i < stop; i++) {
-        auto offset = shape::indexOffset(i, zShapeInfo, zShapeInfoCast, canCastZ);
-        z[offset] = OpClass::op(i, length, rng, extraArguments);
-      }
-    };
-
-    samediff::Threads::parallel_for(func, 0, length, 1);
-  }
+  samediff::Threads::parallel_for(func, 0, length, 1);
 }
 
+// Dispatch functions remain unchanged as they just route to the optimized implementations
 template <typename X>
 void RandomFunction<X>::execTransform(int opNum, sd::Pointer state, const void *x, const sd::LongType *xShapeInfo,
                                       void *z, const sd::LongType *zShapeInfo, void *extraArguments) {
@@ -256,6 +182,5 @@ void RandomFunction<X>::execTransform(int opNum, sd::Pointer state, void *z, con
   DISPATCH_BY_OPNUM_T(execTransform, PARAMS(state, z, zShapeInfo, extraArguments), RANDOM_OPS)
 }
 
-// BUILD_SINGLE_TEMPLATE(template class SD_LIB_HIDDEN RandomFunction, , SD_FLOAT_TYPES);
 }  // namespace random
 }  // namespace functions

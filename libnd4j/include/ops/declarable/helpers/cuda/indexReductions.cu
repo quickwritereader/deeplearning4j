@@ -23,11 +23,12 @@
 #include <legacy/NativeOpExecutioner.h>
 #include <ops/declarable/helpers/reductions.h>
 
+
 namespace sd {
 namespace ops {
 namespace helpers {
 //////////////////////////////////////////////////////////////////////////
-void argMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+void argMax(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   NDArray::prepareSpecialUse({&output}, {&input});
   if (output.isScalar()) {
     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexMax,
@@ -35,19 +36,19 @@ void argMax(const NDArray& input, NDArray& output, const std::vector<int>& dimen
                                                input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
                                                output.specialBuffer(), output.specialShapeInfo());
   } else {
-    auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimensions);
+    auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), (LongType*)&dimensions,dimensions.size());
 
     NativeOpExecutioner::execIndexReduce(LaunchContext::defaultContext(), indexreduce::Ops::IndexMax, input.buffer(),
                                          input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr,
                                          output.buffer(), output.shapeInfo(), output.specialBuffer(),
-                                         output.specialShapeInfo(), (int*)nullptr, dimensions.size(),
-                                         tadPack.specialShapeInfo(), tadPack.specialOffsets());
+                                         output.specialShapeInfo(), (LongType*)nullptr, dimensions.size(),
+                                         tadPack->specialShapeInfo(), tadPack->specialOffsets());
   }
 
   NDArray::registerSpecialUse({&output}, {&input});
 }
 
-void argMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+void argMin(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   NDArray::prepareSpecialUse({&output}, {&input});
   if (output.isScalar()) {
     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexMin,
@@ -55,19 +56,19 @@ void argMin(const NDArray& input, NDArray& output, const std::vector<int>& dimen
                                                input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
                                                output.specialBuffer(), output.specialShapeInfo());
   } else {
-    auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimensions);
+    auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), (LongType)&dimensions);
 
     NativeOpExecutioner::execIndexReduce(LaunchContext::defaultContext(), indexreduce::Ops::IndexMin, input.buffer(),
                                          input.shapeInfo(), input.specialBuffer(), input.specialShapeInfo(), nullptr,
                                          output.buffer(), output.shapeInfo(), output.specialBuffer(),
-                                         output.specialShapeInfo(), (int*)nullptr, dimensions.size(),
-                                         tadPack.specialShapeInfo(), tadPack.specialOffsets());
+                                         output.specialShapeInfo(), (LongType*)nullptr, dimensions.size(),
+                                         tadPack->specialShapeInfo(), tadPack->specialOffsets());
   }
 
   NDArray::registerSpecialUse({&output}, {&input});
 }
 
-void argAbsMax(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+void argAbsMax(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   NDArray::prepareSpecialUse({&output}, {&input});
   if (output.isScalar()) {
     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMax,
@@ -75,19 +76,19 @@ void argAbsMax(const NDArray& input, NDArray& output, const std::vector<int>& di
                                                input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
                                                output.specialBuffer(), output.specialShapeInfo());
   } else {
-    auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimensions);
+    auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), (LongType)&dimensions);
 
     NativeOpExecutioner::execIndexReduce(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMax,
                                          input.buffer(), input.shapeInfo(), input.specialBuffer(),
                                          input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
-                                         output.specialBuffer(), output.specialShapeInfo(), (int*)nullptr,
-                                         dimensions.size(), tadPack.specialShapeInfo(), tadPack.specialOffsets());
+                                         output.specialBuffer(), output.specialShapeInfo(), (LongType*)nullptr,
+                                         dimensions.size(), tadPack->specialShapeInfo(), tadPack->specialOffsets());
   }
 
   NDArray::registerSpecialUse({&output}, {&input});
 }
 
-void argAbsMin(const NDArray& input, NDArray& output, const std::vector<int>& dimensions) {
+void argAbsMin(NDArray& input, NDArray& output, const std::vector<LongType>& dimensions) {
   NDArray::prepareSpecialUse({&output}, {&input});
   if (output.isScalar()) {
     NativeOpExecutioner::execIndexReduceScalar(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMin,
@@ -95,13 +96,13 @@ void argAbsMin(const NDArray& input, NDArray& output, const std::vector<int>& di
                                                input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
                                                output.specialBuffer(), output.specialShapeInfo());
   } else {
-    auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimensions);
+    auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), (LongType)&dimensions);
 
     NativeOpExecutioner::execIndexReduce(LaunchContext::defaultContext(), indexreduce::Ops::IndexAbsoluteMin,
                                          input.buffer(), input.shapeInfo(), input.specialBuffer(),
                                          input.specialShapeInfo(), nullptr, output.buffer(), output.shapeInfo(),
-                                         output.specialBuffer(), output.specialShapeInfo(), (int*)nullptr,
-                                         dimensions.size(), tadPack.specialShapeInfo(), tadPack.specialOffsets());
+                                         output.specialBuffer(), output.specialShapeInfo(), (LongType*)nullptr,
+                                         dimensions.size(), tadPack->specialShapeInfo(), tadPack->specialOffsets());
   }
 
   NDArray::registerSpecialUse({&output}, {&input});

@@ -46,14 +46,14 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
                "CUSTOM DECONV2D ARMCOMPUTE OP: rank of weights array must be equal to 4, but got %i instead !",
                weights->rankOf());
 
-  int kH = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<int>(weights->sizeAt(0));  // filter(kernel) height
-  int kW = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<int>(weights->sizeAt(1));  // filter(kernel) width
-  int sH = INT_ARG(2);                                                          // strides height
-  int sW = INT_ARG(3);                                                          // strides width
-  int pH = INT_ARG(4);                                                          // paddings height
-  int pW = INT_ARG(5);                                                          // paddings width
-  int dH = INT_ARG(6);                                                          // dilations height
-  int dW = INT_ARG(7);                                                          // dilations width
+  sd::LongType kH = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<sd::LongType>(weights->sizeAt(0));  // filter(kernel) height
+  sd::LongType kW = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<sd::LongType>(weights->sizeAt(1));  // filter(kernel) width
+  sd::LongType sH = INT_ARG(2);                                                          // strides height
+  sd::LongType sW = INT_ARG(3);                                                          // strides width
+  sd::LongType pH = INT_ARG(4);                                                          // paddings height
+  sd::LongType pW = INT_ARG(5);                                                          // paddings width
+  sd::LongType dH = INT_ARG(6);                                                          // dilations height
+  sd::LongType dW = INT_ARG(7);                                                          // dilations width
   int paddingMode = INT_ARG(8);                                                 // 0-VALID, 1-SAME
   bool isNCHW = block.getIArguments()->size() > 9 ? !INT_ARG(9) : 1;            // INT_ARG(9): 0-NCHW,  1-NHWC
   int wFormat = block.getIArguments()->size() > 10
@@ -61,10 +61,10 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
                     : 0;  // 0 - [kH, kW, iC, oC], 1 - [oC, iC, kH, kW], 2 - [oC, kH, kW, iC]
 
   // Calculate individual paddings
-  unsigned int padLeft, padTop, padRight, padBottom;
-  int bS, iC, iH, iW, oC, oH,
+  sd::LongType padLeft, padTop, padRight, padBottom;
+  sd::LongType bS, iC, iH, iW, oC, oH,
       oW;  // batch size, input channels, input height/width, output channels, output height/width;
-  int indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;  // corresponding indexes
+  sd::LongType indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, wFormat, *input, *output, bS, iC, iH, iW, oC, oH, oW, indIOioC,
                                              indIiH, indWoC, indWiC, indWkH, indOoH);
 
@@ -87,15 +87,6 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
   padTop = pH;
   padRight = (iW - 1) * sW - oW + kW - pW;
   padBottom = (iH - 1) * sH - oH + kH - pH;
-  // deconv2dMKLDNN(input, weights, bias, output, kH, kW, sH, sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat);
-#if 0
-    sd_printf("deconv2d  bS = %d,  iH =%d, iW = %d,  oH=%d, oW=%d  kH=%d, kW=%d wformat=%d, iC =%d, , oC=%d\n",
-       bS, iH, iW, oH, oW, kH, kW, wFormat, iC, oC
-     );
-    sd_printf("deconv2d kH = %d, kW = %d, sH = %d, sW = %d  , pH = %d  , pW = %d, dH = %d, dW = %d, paddingMode = %d , isNCHW %d \n" , kH , kW , sH , sW  , pH 
-     , pW , dH , dW , paddingMode,isNCHW?1:0 );
-#endif
-
   auto dataLayout = isNCHW ? arm_compute::DataLayout::NCHW : arm_compute::DataLayout::NHWC;
   // check weight input datalayout match
   bool dataLayoutMatch = (isNCHW && wFormat == 1) || (!isNCHW && wFormat == 2);
@@ -106,40 +97,25 @@ PLATFORM_IMPL(deconv2d, ENGINE_CPU) {
     // lets premute
     if (wFormat == 0) {
       if (isNCHW) {
-#if 0
-                sd_printf("perm choise %d\n", 0);
-#endif
         // reshape
         permuteVector = arm_compute::PermutationVector(2U, 3U, 0U, 1U);
       } else {
-#if 0
-                sd_printf("perm choise %d\n", 1);
-#endif
         // reshape
         permuteVector = arm_compute::PermutationVector(0U, 2U, 3U, 1U);
       }
     } else if (wFormat == 1) {
-#if 0
-            sd_printf("perm choise %d\n", 2);
-#endif
+
       permuteVector = arm_compute::PermutationVector(3U, 0U, 1U, 2U);
     } else {
-#if 0
-            sd_printf("perm choise %d\n", 3);
-#endif
+
       permuteVector = arm_compute::PermutationVector(1U, 2U, 3U, 0U);
     }
   } else {
     // fix weight
     if (isNCHW) {
-#if 0
-        sd_printf("perm choise %d\n", 4);
-#endif
       permuteVector = arm_compute::PermutationVector(0U, 1U, 3U, 2U);
     } else {
-#if 0
-        sd_printf("perm choise %d\n", 5);
-#endif
+
       permuteVector = arm_compute::PermutationVector(3U, 1U, 2U, 0U);
     }
   }

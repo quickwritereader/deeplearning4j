@@ -37,20 +37,20 @@ BROADCASTABLE_OP_IMPL(squaredsubtract, 0, 0) {
 
   auto tZ = BroadcastHelper::broadcastApply(BROADCAST(SquaredSubtract), x, y, z);
   if (tZ == nullptr)
-    return sd::Status::KERNEL_FAILURE;
+    return Status::KERNEL_FAILURE;
   else if (tZ != z) {
     OVERWRITE_RESULT(tZ);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(squareddifference, squaredsubtract);
 
 DECLARE_TYPES(squaredsubtract) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 CUSTOM_OP_IMPL(squaredsubtract_bp, 3, 2, false, 0, 0) {
@@ -61,15 +61,6 @@ CUSTOM_OP_IMPL(squaredsubtract_bp, 3, 2, false, 0, 0) {
   auto gradX = OUTPUT_VARIABLE(0);
   auto gradY = OUTPUT_VARIABLE(1);
 
-  /*
-  auto lambdaX = LAMBDA_TTT(_e, _x, _y) {
-      return _e * (T) 2.0 * (_x - _y) ;
-  };
-
-  auto lambdaY = LAMBDA_TTT(_e, _x, _y) {
-      return _e * (T) 2.0 * (_y - _x);
-  };
-  */
 
   auto ts = NDArrayFactory::create(x->dataType(), 2, block.launchContext());
 
@@ -77,55 +68,54 @@ CUSTOM_OP_IMPL(squaredsubtract_bp, 3, 2, false, 0, 0) {
     // PWT case case
 
     // X gradient
-    // epsNext->applyTriplewiseLambda(x, y, lambdaX, gradX);
-    gradX->assign((*epsNext) * ts * ((*x) - (*y)));
+    // X gradient
+    NDArray gradXTemp = (*epsNext) * ts * ((*x) - (*y));
+    gradX->assign(&gradXTemp);
 
     // Y gradient
-    // epsNext->applyTriplewiseLambda(x, y, lambdaY, gradY);
-    gradY->assign((*epsNext) * ts * ((*y) - (*x)));
+    NDArray gradYTemp = (*epsNext) * ts * ((*y) - (*x));
+    gradY->assign(&gradYTemp);
 
   } else if (y->isScalar()) {
     // scalar case
     auto tmpX = x->reduceNumber(reduce::Sum);
-    gradY->assign(tmpX);
-
-    // epsNext->applyPairwiseLambda(x, lambdaS, gradX);
-    gradX->assign((*epsNext) * ts * ((*x) - (*y)));
+    gradY->assign(&tmpX);
+    // X gradient
+    NDArray gradXTemp = (*epsNext) * ts * ((*x) - (*y));
+    gradX->assign(&gradXTemp);
   } else {
     // broadcast case
 
-    auto preX = x->dup();
-    auto preY = y->dup();
+    auto preX = x->dup(x->ordering());
+    auto preY = y->dup(y->ordering());
 
     auto targetShape = epsNext->getShapeAsVector();
 
     preX.tileToShape(targetShape, preX);
     preY.tileToShape(targetShape, preY);
 
-    // epsNext->applyTriplewiseLambda(x, y, lambdaX, preX);
-    // epsNext->applyTriplewiseLambda(x, y, lambdaY, preY);
     auto resX = (*epsNext) * ts * ((*x) - (*y));
-    preX.assign(resX);
+    preX.assign(&resX);
     auto resY = (*epsNext) * ts * ((*y) - (*x));
-    preY.assign(resY);
+    preY.assign(&resY);
 
     auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = preX.reduceAlongDimension(reduce::Sum, axisX);
-      gradX->assign(sum);
+      auto sum = preX.reduceAlongDimension(reduce::Sum, &axisX);
+      gradX->assign(&sum);
     } else
-      gradX->assign(preX);
+      gradX->assign(&preX);
 
     if (axisY.size() > 0) {
-      auto sum = preY.reduceAlongDimension(reduce::Sum, axisY);
-      gradY->assign(sum);
+      auto sum = preY.reduceAlongDimension(reduce::Sum, &axisY);
+      gradY->assign(&sum);
     } else
-      gradY->assign(preY);
+      gradY->assign(&preY);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(squaredsubtract_bp) {
@@ -136,17 +126,11 @@ DECLARE_SHAPE_FN(squaredsubtract_bp) {
   // eps always has shape of x
   // grad always has shape of y
 
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  return SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  return SHAPELIST(CONSTANT(x), CONSTANT(y));
 }
 
 DECLARE_TYPES(squaredsubtract_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 }  // namespace ops

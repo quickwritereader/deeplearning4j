@@ -172,7 +172,6 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
 
         val dfInstance = if( DifferentialFunctionClassHolder.getInstance()
                 .hasName(nd4jOpName)) DifferentialFunctionClassHolder
-            .getInstance()
             .getInstance(nd4jOpName)
         else DynamicCustomOp.builder(nd4jOpName).build()
         Preconditions.checkState(dfInstance != null, "Could not find class for input framework Ops: %s", opName)
@@ -215,13 +214,15 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
      * @param opFilter       Optional filter - ops to exclude/ignore
      * @return Imported model
      */
-    fun importGraph(irGraph: IRGraph<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE, DATA_TYPE>,
-                    importOverride: Map<String?, ImportRunner<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE, DATA_TYPE>?>?,
-                    opFilter: OpImportFilter<GRAPH_TYPE, NODE_TYPE, ATTR_VALUE_TYPE>?,
-                    dynamicVariables: MutableMap<String, TENSOR_TYPE> = HashMap(),
-                    opMappingRegistry:
-                    OpMappingRegistry<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE,
-                            DATA_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE>): SameDiff {
+    fun importGraph(
+        irGraph: IRGraph<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE, DATA_TYPE>,
+        importOverride: Map<String?, ImportRunner<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE, DATA_TYPE>?>?,
+        opFilter: OpImportFilter<GRAPH_TYPE, NODE_TYPE, ATTR_VALUE_TYPE>?,
+        dynamicVariables: MutableMap<String, TENSOR_TYPE> = HashMap(),
+        opMappingRegistry:
+        OpMappingRegistry<GRAPH_TYPE, NODE_TYPE, OP_DEF_TYPE, TENSOR_TYPE, DATA_TYPE, ATTR_DEF_TYPE, ATTR_VALUE_TYPE>,
+        trackVariableChanges: Boolean
+    ): SameDiff {
 
 
 
@@ -256,16 +257,13 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
         //First, add any constants, placeholders, and zero-input ops
         //note: we enable eager mode here for dynamic variable resolution
         val sd = SameDiff.create().enableEagerMode()
+
         val convertedDynamic = HashMap<String,INDArray>()
 
         if(dynamicVariables != null) {
             //declare as variables
             dynamicVariables.forEach { (name, ndarray) ->
                 val converted = irGraph.convertToNDArray(ndarray)
-                /**
-                 * TODO: convert placeholders to proper data types
-                 * with checking. It appears not all dyanmicVariables will match expected data type.
-                 */
                 if(!sd.hasVariable(name))
                     sd.`var`(name,converted)
                 sd.setEagerArrForVarName(name,converted)
@@ -442,7 +440,7 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
                             //Get array, create a constant
                             val arr = irGraph.getConstantArrayForName(name)
                             //probably implicit output like in tensorflow
-                            if(nd.numOutputs() < 1)
+                            if(nd.numOutputs() < 1 || irGraph.frameworkName().contains("tensorflow"))
                                 sd.constant(name, arr)
                             else //onnx case
                                 sd.constant(nd.outputAt(0),arr)
@@ -785,7 +783,7 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
 
 
                     val dfInstance = if( DifferentialFunctionClassHolder.getInstance()
-                            .hasName(opName)) DifferentialFunctionClassHolder.getInstance().getInstance(opName)
+                            .hasName(opName)) DifferentialFunctionClassHolder.getInstance(opName)
                     else DynamicCustomOp.builder(opName).build()
                     Preconditions.checkState(
                         dfInstance != null,
@@ -864,12 +862,10 @@ open class ImportGraph <GRAPH_TYPE: GeneratedMessageV3,
                             inName = inName.substring(0, inName.length - 2)
                         }
 
-//                        log.info("Input: {}, {}", s, inName);
                         //note on initializers, sometimes ops mentions pre initialized constants
                         //that haven't been seen by import yet. In this case, we need to allow the
                         //op to be added, otherwise no further import can happen
                         if (!sd.hasVariable(inName) && !skipCase && !irGraph.hasConstantInitializer(inName) && !irGraph.hasConstantInitializer(inName)) {
-//                            log.info("Not found: {} for op {}", inName, nextOpDef.getName());
                             allAlreadyInGraph = false
                             break
                         } else if (!isControlDep(s)) {

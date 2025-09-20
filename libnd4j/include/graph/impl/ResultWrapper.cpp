@@ -25,8 +25,8 @@
 
 namespace sd {
 namespace graph {
-ResultWrapper::ResultWrapper(sd::LongType size, sd::Pointer ptr) {
-  if (size <= 0) throw std::runtime_error("FlatResult size should be > 0");
+ResultWrapper::ResultWrapper(LongType size, Pointer ptr) {
+  if (size <= 0) THROW_EXCEPTION("FlatResult size should be > 0");
 
   _size = size;
   _pointer = ptr;
@@ -39,8 +39,8 @@ ResultWrapper::~ResultWrapper() {
   }
 }
 
-sd::LongType ResultWrapper::size() { return _size; }
+LongType ResultWrapper::size() { return _size; }
 
-sd::Pointer ResultWrapper::pointer() { return _pointer; }
+Pointer ResultWrapper::pointer() { return _pointer; }
 }  // namespace graph
 }  // namespace sd

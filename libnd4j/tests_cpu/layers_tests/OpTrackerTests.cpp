@@ -32,22 +32,18 @@ using namespace sd;
 using namespace sd::ops;
 using namespace sd::graph;
 
-class OpTrackerTests : public testing::Test {
+class OpTrackerTests : public NDArrayTests {
  public:
   int numIterations = 10;
   int poolSize = 10;
 
   OpTrackerTests() {
-    printf("\n");
-    fflush(stdout);
   }
 };
 
 TEST_F(OpTrackerTests, Test_Existence_1) {
-  sd::_loader loader;
+  _loader loader;
 
-  // sd_printf("Groups: %i; Operations: %i\n", OpTracker::getInstance().totalGroups(),
-  // OpTracker::getInstance().totalOperations());
 
   ASSERT_TRUE(OpTracker::getInstance().totalGroups() > 0);
   ASSERT_TRUE(OpTracker::getInstance().totalOperations() > 0);
@@ -56,16 +52,12 @@ TEST_F(OpTrackerTests, Test_Existence_1) {
 }
 
 TEST_F(OpTrackerTests, Test_Ops_List_1) {
-  sd::ops::less op;
+  less op;
   auto vec = OpRegistrator::getInstance().getAllHashes();
-
-  // sd_printf("Total ops: %lld\n", vec.size());
-  // sd_printf("Less hash: %lld\n", op.getOpHash());
 
   for (const auto &v : vec) {
     if (v == 5484196977525668316L) {
       auto op = OpRegistrator::getInstance().getOperation(v);
-      // sd_printf("OpName: %s\n", op->getOpName()->c_str());
     }
   }
 }

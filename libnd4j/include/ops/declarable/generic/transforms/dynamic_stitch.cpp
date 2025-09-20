@@ -65,7 +65,7 @@ DECLARE_SHAPE_FN(dynamic_stitch) {
   auto restShape = inputShape->at(numOfData);
   auto firstShape = inputShape->at(0);
   // check up inputs to avoid non-int indices and calculate max value from indices to output shape length
-  for (int i = 0; i < numOfData; i++) {
+  for (size_t i = 0; i < numOfData; i++) {
     auto input = INPUT_VARIABLE(i);
     REQUIRE_TRUE(input->isZ(), 0, "dynamic_stitch: Indices should be integer, but %d type given.",
                  (int)input->dataType());
@@ -77,10 +77,12 @@ DECLARE_SHAPE_FN(dynamic_stitch) {
   std::vector<sd::LongType> outShape(outRank);
   // fill up output shape template: the first to max index, and rests - to vals from the first data input
   outShape[0] = maxValue + 1;
-  for (int i = 1; i < outRank; ++i) outShape[i] = shape::sizeAt(restShape, i);
+  for (sd::LongType i = 1; i < outRank; ++i) outShape[i] = shape::sizeAt(restShape, i);
 
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(
-      ShapeDescriptor(ArrayOptions::dataType(restShape), shape::order(firstShape), outShape)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().bufferForShapeInfo(ArrayOptions::dataType(restShape),
+                                                                             shape::order(firstShape),
+                                                                             outShape)->primary());
+  return ret;
 }
 }  // namespace ops
 }  // namespace sd

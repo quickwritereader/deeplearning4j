@@ -49,7 +49,6 @@ public interface Op {
         REDUCE3,
         GRID,
         META,
-        AGGREGATION,
         CUSTOM,
         GRADIENT,
         CONDITIONAL,
@@ -58,7 +57,8 @@ public interface Op {
         RETURN,
         RANDOM,
         SUMMARYSTATS,
-        LOGIC
+        LOGIC,
+        UDF
     }
 
     /**

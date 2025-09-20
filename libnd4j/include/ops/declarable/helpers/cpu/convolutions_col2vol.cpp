@@ -28,22 +28,22 @@ namespace ops {
 //////////////////////////////////////////////////////////////////////////
 // [bS, iC, kD, kH, kW, oD, oH, oW] is de-convoluted to [bS, iC, iD, iH, iW]
 template <typename T>
-static void col2vol_(const NDArray& columns, NDArray& volume, const int sD, const int sH, const int sW, const int pD,
-                     const int pH, const int pW, const int dD, const int dH, const int dW) {
+static void col2vol_(NDArray& columns, NDArray& volume, const LongType sD, const LongType sH, const LongType sW, const LongType pD,
+                     const LongType pH, const LongType pW, const LongType dD, const LongType dH, const LongType dW) {
   // initial zeroing of volume content
   volume.nullify();
 
-  const int bS = volume.sizeAt(0);
-  const int iC = volume.sizeAt(1);
-  const int iD = volume.sizeAt(2);
-  const int iH = volume.sizeAt(3);
-  const int iW = volume.sizeAt(4);
-  const int kD = columns.sizeAt(2);
-  const int kH = columns.sizeAt(3);
-  const int kW = columns.sizeAt(4);
-  const int oD = columns.sizeAt(5);
-  const int oH = columns.sizeAt(6);
-  const int oW = columns.sizeAt(7);
+  const LongType bS = volume.sizeAt(0);
+  const LongType iC = volume.sizeAt(1);
+  const LongType iD = volume.sizeAt(2);
+  const LongType iH = volume.sizeAt(3);
+  const LongType iW = volume.sizeAt(4);
+  const LongType kD = columns.sizeAt(2);
+  const LongType kH = columns.sizeAt(3);
+  const LongType kW = columns.sizeAt(4);
+  const LongType oD = columns.sizeAt(5);
+  const LongType oH = columns.sizeAt(6);
+  const LongType oW = columns.sizeAt(7);
   const sd::LongType colStride0 = columns.stridesOf()[0];
   const sd::LongType colStride1 = columns.stridesOf()[1];
   const sd::LongType colStride2 = columns.stridesOf()[2];
@@ -65,27 +65,33 @@ static void col2vol_(const NDArray& columns, NDArray& volume, const int sD, cons
       shape::strideDescendingCAscendingF(columns.shapeInfo())) {
     auto func = PRAGMA_THREADS_FOR {
       T *col, *vol;
-      int volDep, volRow, volCol;
+      sd::LongType volDep, volRow, volCol;
 
-      for (int b = start; b < stop; b++) {
-        for (int c = 0; c < iC; c++) {
-          for (int kDep = 0; kDep < kD; ++kDep) {
-            for (int kRow = 0; kRow < kH; ++kRow) {
-              for (int kCol = 0; kCol < kW; ++kCol) {
-                for (int colD = 0; colD < oD; ++colD) {
-                  for (int colH = 0; colH < oH; ++colH) {
-                    for (int colW = 0; colW < oW; ++colW) {
-                      volDep = -pD + kDep * dD + colD * sD;
-                      volRow = -pH + kRow * dH + colH * sH;
-                      volCol = -pW + kCol * dW + colW * sW;
+      for (sd::LongType b = start; b < stop; b++) {
+        for (sd::LongType c = 0; c < iC; c++) {
+          for (sd::LongType kDep = 0; kDep < kD; ++kDep) {
+            for (sd::LongType kRow = 0; kRow < kH; ++kRow) {
+              for (sd::LongType kCol = 0; kCol < kW; ++kCol) {
+                for (sd::LongType colD = 0; colD < oD; ++colD) {
+                  for (sd::LongType colH = 0; colH < oH; ++colH) {
+                    for (sd::LongType colW = 0; colW < oW; ++colW) {
+                      volDep = (-pD + kDep * dD) + colD * sD;
+                      volRow = (-pH + kRow * dH) + colH * sH;
+                      volCol = (-pW + kCol * dW) + colW * sW;
 
-                      if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) &&
-                          static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) &&
-                          static_cast<unsigned>(volCol) < static_cast<unsigned>(iW)) {
-                        col = colBuff + b * colStride0 + c * colStride1 + kDep * colStride2 + kRow * colStride3 +
-                              kCol * colStride4 + colD * colStride5 + colH * colStride6 + colW * colStride7;
-                        vol = volBuff + b * volStride0 + c * volStride1 + volDep * volStride2 + volRow * volStride3 +
-                              volCol * volStride4;
+                      if (volDep >= 0 && volDep < iD &&
+                          volRow >= 0 && volRow < iH &&
+                          volCol >= 0 && volCol < iW) {
+
+                        auto colIndex = b * colStride0 + c * colStride1 + kDep * colStride2 + kRow * colStride3 +
+                                        kCol * colStride4 + colD * colStride5 + colH * colStride6 + colW * colStride7;
+                        auto volIndex = b * volStride0 + c * volStride1 + volDep * volStride2 + volRow * volStride3 +
+                                        volCol * volStride4;
+
+
+
+                        col = colBuff + colIndex;
+                        vol = volBuff + volIndex;
                         *vol += *col;
                       }
                     }
@@ -103,27 +109,31 @@ static void col2vol_(const NDArray& columns, NDArray& volume, const int sD, cons
   } else {
     auto func = PRAGMA_THREADS_FOR {
       T *col, *vol;
-      int volDep, volRow, volCol;
+      sd::LongType volDep, volRow, volCol;
 
-      for (int b = start; b < stop; b++) {
-        for (int colD = 0; colD < oD; colD++) {
-          for (int colH = 0; colH < oH; ++colH) {
-            for (int colW = 0; colW < oW; ++colW) {
-              for (int c = 0; c < iC; ++c) {
-                for (int kDep = 0; kDep < kD; ++kDep) {
-                  for (int kRow = 0; kRow < kH; ++kRow) {
-                    for (int kCol = 0; kCol < kW; ++kCol) {
+      for (sd::LongType b = start; b < stop; b++) {
+        for (sd::LongType colD = 0; colD < oD; colD++) {
+          for (sd::LongType colH = 0; colH < oH; ++colH) {
+            for (sd::LongType colW = 0; colW < oW; ++colW) {
+              for (sd::LongType c = 0; c < iC; ++c) {
+                for (sd::LongType kDep = 0; kDep < kD; ++kDep) {
+                  for (sd::LongType kRow = 0; kRow < kH; ++kRow) {
+                    for (sd::LongType kCol = 0; kCol < kW; ++kCol) {
                       volDep = (-pD + kDep * dD) + colD * sD;
                       volRow = (-pH + kRow * dH) + colH * sH;
                       volCol = (-pW + kCol * dW) + colW * sW;
 
-                      if (static_cast<unsigned>(volDep) < static_cast<unsigned>(iD) &&
-                          static_cast<unsigned>(volRow) < static_cast<unsigned>(iH) &&
-                          static_cast<unsigned>(volCol) < static_cast<unsigned>(iW)) {
-                        col = colBuff + b * colStride0 + c * colStride1 + kDep * colStride2 + kRow * colStride3 +
-                              kCol * colStride4 + colD * colStride5 + colH * colStride6 + colW * colStride7;
-                        vol = volBuff + b * volStride0 + c * volStride1 + volDep * volStride2 + volRow * volStride3 +
-                              volCol * volStride4;
+                      if (volDep >= 0 && volDep < iD &&
+                          volRow >= 0 && volRow < iH &&
+                          volCol >= 0 && volCol < iW) {
+
+                        auto colIndex = b * colStride0 + c * colStride1 + kDep * colStride2 + kRow * colStride3 +
+                                        kCol * colStride4 + colD * colStride5 + colH * colStride6 + colW * colStride7;
+                        auto volIndex = b * volStride0 + c * volStride1 + volDep * volStride2 + volRow * volStride3 +
+                                        volCol * volStride4;
+
+                        col = colBuff + colIndex;
+                        vol = volBuff + volIndex;
                         *vol += *col;
                       }
                     }
@@ -140,9 +150,9 @@ static void col2vol_(const NDArray& columns, NDArray& volume, const int sD, cons
   }
 }
 
-void ConvolutionUtils::col2vol(sd::graph::Context& block, const NDArray& columns, NDArray& volume, const int sD,
-                               const int sH, const int sW, const int pD, const int pH, const int pW, const int dD,
-                               const int dH, const int dW) {
+void ConvolutionUtils::col2vol(sd::graph::Context& block, NDArray& columns, NDArray& volume, const LongType sD,
+                               const LongType sH, const LongType sW, const LongType pD, const LongType pH, const LongType pW, const LongType dD,
+                               const LongType dH, const LongType dW) {
   BUILD_SINGLE_SELECTOR(volume.dataType(), col2vol_, (columns, volume, sD, sH, sW, pD, pH, pW, dD, dH, dW),
                         SD_FLOAT_TYPES);
 }

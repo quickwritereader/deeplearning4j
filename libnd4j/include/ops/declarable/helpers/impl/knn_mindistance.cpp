@@ -39,23 +39,22 @@ void mindistance_(const void *vinput, const void *vlow, const void *vhigh, int32
   T res = 0.0f;
   T po = 2.f;
   T o = 1.f;
-  PRAGMA_OMP_SIMD_SUM(res)
   for (auto e = 0; e < length; e++) {
     T p = input[e];
     T l = low[e];
     T h = high[e];
     if (!(l <= p || h <= p)) {
       if (p < l)
-        res += sd::math::sd_pow<T, T, T>((p - o), po);
+        res += math::sd_pow<T, T, T>((p - o), po);
       else
-        res += sd::math::sd_pow<T, T, T>((p - h), po);
+        res += math::sd_pow<T, T, T>((p - h), po);
     }
   }
 
-  output[0] = sd::math::sd_pow<T, T, T>(res, (T)0.5f);
+  output[0] = math::sd_pow<T, T, T>(res, (T)0.5f);
 }
 
-void knn_mindistance(const NDArray &input, const NDArray &lowest, const NDArray &highest, NDArray &output) {
+void knn_mindistance(NDArray&input, NDArray&lowest, NDArray&highest, NDArray &output) {
   NDArray::preparePrimaryUse({&output}, {&input, &lowest, &highest});
 
   BUILD_SINGLE_SELECTOR(input.dataType(), mindistance_,

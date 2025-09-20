@@ -29,6 +29,7 @@ import org.nd4j.linalg.api.buffer.DataTypeEx;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.rng.distribution.Distribution;
+import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 
 import java.io.File;
 import java.util.*;
@@ -90,6 +91,8 @@ public interface NDArrayFactory {
      */
     void createLapack();
 
+
+
     /**
      * Sets the order. Primarily for testing purposes
      *
@@ -112,6 +115,15 @@ public interface NDArrayFactory {
      * @return the ndarray
      */
     INDArray create(int[] shape, DataBuffer buffer);
+
+    /**
+     * Create an ndarray with the given shape
+     * and data
+     * @param buffer the buffer to use
+     * @param longShapeDescriptor the shape descriptor to use.
+     * @return the ndarray
+     */
+    INDArray create(DataBuffer buffer,LongShapeDescriptor longShapeDescriptor);
 
     /**
      * Returns the order for this ndarray for internal data storage
@@ -304,9 +316,17 @@ public interface NDArrayFactory {
      * @param source source tensor
      * @param sourceDimension dimension of source tensor
      * @param indexes indexes from source array
-     * @return
+     * @return the concatneated ndarrays
      */
     INDArray pullRows(INDArray source, int sourceDimension, int[] indexes);
+
+    /**
+     * This method produces concatenated array, that consist from tensors, fetched from source array, against some dimension and specified indexes
+     * @param source source tensor
+     * @param sourceDimension  dimension of source tensor
+     * @param indexes indexes from source array
+     * @return the concatneated ndarrays
+     */
     INDArray pullRows(INDArray source, int sourceDimension, long[] indexes);
 
     /**
@@ -342,7 +362,7 @@ public interface NDArrayFactory {
      * @param dimension the dimension to do the shuffle
      * @return
      */
-    void shuffle(INDArray array, Random rnd, int... dimension);
+    void shuffle(INDArray array, Random rnd, long... dimension);
 
     /**
      * Symmetric in place shuffle of an ndarray
@@ -352,7 +372,7 @@ public interface NDArrayFactory {
      * @param dimension the dimension to do the shuffle
      * @return
      */
-    void shuffle(Collection<INDArray> array, Random rnd, int... dimension);
+    void shuffle(Collection<INDArray> array, Random rnd, long... dimension);
 
     /**
      * Symmetric in place shuffle of an ndarray
@@ -362,50 +382,7 @@ public interface NDArrayFactory {
      * @param dimensions the dimensions to do the shuffle
      * @return
      */
-    void shuffle(List<INDArray> array, Random rnd, List<int[]> dimensions);
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param arrays
-     * @return
-     */
-    INDArray average(INDArray target, INDArray[] arrays);
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param arrays
-     * @return
-     */
-    INDArray average(INDArray[] arrays);
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param arrays
-     * @return
-     */
-    INDArray average(Collection<INDArray> arrays);
-
-
-    /**
-     * This method sums given arrays to target
-     *
-     * @param target
-     * @param arrays
-     * @return
-     */
-    INDArray accumulate(INDArray target, INDArray... arrays);
-
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param arrays
-     * @return
-     */
-    INDArray average(INDArray target, Collection<INDArray> arrays);
+    void shuffle(List<INDArray> array, Random rnd, List<long[]> dimensions);
 
 
     /**
@@ -731,6 +708,11 @@ public interface NDArrayFactory {
      */
     INDArray zeros(int[] shape);
 
+    /**
+     * Create an ndarray of zeros
+     * @param shape the shape of the ndarray
+     * @return an ndarray with ones filled in
+     */
     INDArray zeros(long[] shape);
 
     /**
@@ -868,18 +850,33 @@ public interface NDArrayFactory {
      */
     INDArray create(DataBuffer data, int[] shape, int[] stride, long offset);
 
+    /**
+     * Creates an ndarray with the specified shape
+     * @param data the data to use with tne ndarray
+     * @param shape the shape of the ndarray
+     * @param stride the stride for the ndarray
+     * @param offset the offset of the ndarray
+     * @return the instance
+     */
 
     INDArray create(DataBuffer data, long[] shape, long[] stride, long offset);
 
 
     /**
      * Creates an ndarray with the specified shape
-     *
+     * concatneated from the given input arrays
      * @param shape the shape of the ndarray
      * @return the instance
      */
     INDArray create(List<INDArray> list, int[] shape);
 
+    /**
+     * Creates an ndarray with the specified shape
+     * concatneated from the given input arrays
+     * @param list  the list of ndarrays to concatneate
+     * @param shape the shape of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(List<INDArray> list, long[] shape);
 
     /**
@@ -893,6 +890,14 @@ public interface NDArrayFactory {
      */
     INDArray create(long rows, long columns, int[] stride, long offset);
 
+    /**
+     * Creates an ndarray with the specified shape
+     * @param rows the rows of the ndarray
+     * @param columns the columns of the ndarray
+     * @param stride the stride for the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(long rows, long columns, long[] stride, long offset);
 
     /**
@@ -901,11 +906,18 @@ public interface NDArrayFactory {
      * @param shape  the shape of the ndarray
      * @param stride the stride for the ndarray
      * @param offset the offset of the ndarray
-     * @return the instance
+     * @return the created ndarray
      */
     INDArray create(int[] shape, int[] stride, long offset);
 
 
+    /**
+     * Creates an ndarray with the specified shape
+     * @param shape the shape of the ndarray
+     * @param stride the stride for the ndarray
+     * @param offset  the offset of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(long[] shape, long[] stride, long offset);
 
     /**
@@ -927,8 +939,19 @@ public interface NDArrayFactory {
      */
     INDArray create(int[] shape, int[] stride);
 
+    /**
+     * Creates an ndarray with the specified shape
+     * @param shape the shape of the ndarray
+     * @param stride the stride for the ndarray
+     * @return the created ndarray
+     */
     INDArray create(long[] shape, long[] stride);
 
+    /**
+     * Creates an ndarray with the specified shape
+     * @param shape the shape of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(long[] shape);
 
     /**
@@ -1017,21 +1040,27 @@ public interface NDArrayFactory {
     INDArray create(float[] data, int[] shape, long offset);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param ordering
-     * @return
+     * Create an ndarray with the specified data
+     * @param data the data to use
+     * @param shape the shape of the ndarray
+     * @param ordering  the ordering of the ndarray
+     * @return the created ndarray
      */
     INDArray create(float[] data, int[] shape, char ordering);
 
     /**
-     *
-     * @param floats
-     * @return
+     * Create an ndarray with the specified data
+     * @param floats the data to use
+     * @return the created ndarray
      */
     INDArray create(float[][] floats);
 
+    /**
+     * Create an ndarray with the specified data
+     * @param data the data to use
+     * @param ordering the ordering to use
+     * @return the created ndarray
+     */
     INDArray create(float[][] data, char ordering);
 
     /**
@@ -1046,27 +1075,50 @@ public interface NDArrayFactory {
     INDArray create(float[] data, int[] shape, int[] stride, long offset, char ordering);
 
     /**
-     *
-     * @param buffer
-     * @param shape
-     * @param offset
-     * @return
+     * Create an ndarray with the specified shape
+     * @param buffer the buffer to use
+     * @param shape the shape of the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
      */
     INDArray create(DataBuffer buffer, int[] shape, long offset);
 
     /**
-     *
-     * @param shape
-     * @param ordering
-     * @return
+     * Create an ndarray with the specified shape
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering of the ndarray
+     * @return the created ndarray
      */
     INDArray create(int[] shape, char ordering);
 
 
+    /**
+     * Create an ndarray with the specified shape
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(long[] shape, char ordering);
 
+    /**
+     * Create an ndarray with the specified shape
+     * @param dataType the data type of the ndarray
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering of the ndarray
+     * @param workspace the workspace to allocate the ndarray in
+     * @return
+     */
     INDArray create(DataType dataType, long[] shape, char ordering, MemoryWorkspace workspace);
 
+    /**
+     * Create an ndarray with the specified shape
+     * @param dataType  Data type of the new array
+     * @param shape     Shape of the new array
+     * @param strides   Strides of the new array
+     * @param ordering  Fortran 'f' or C/C++ 'c' ordering.
+     * @param workspace Workspace to allocate the array in
+     * @return
+     */
     INDArray create(DataType dataType, long[] shape, long[] strides, char ordering, MemoryWorkspace workspace);
 
    /**
@@ -1086,7 +1138,12 @@ public interface NDArrayFactory {
     INDArray createUninitialized(long[] shape, char ordering);
 
     INDArray createUninitialized(DataType dataType, long[] shape, char ordering, MemoryWorkspace workspace);
-    
+
+    default INDArray createUninitialized(DataType dataType, long[] shape, long[] strides, char ordering) {
+        return createUninitialized(dataType, shape, strides, ordering, Nd4j.getWorkspaceManager().getWorkspaceForCurrentThread());
+    }
+
+
     /**
      * Create an uninitialized ndArray. Detached from workspace.
      * @param dataType data type. Exceptions will be thrown for UTF8, COMPRESSED and UNKNOWN data types.
@@ -1107,154 +1164,221 @@ public interface NDArrayFactory {
      */
     INDArray create(DataBuffer data, int[] newShape, int[] newStride, long offset, char ordering);
 
+    /**
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param newShape the new shape of the ndarray
+     * @param newStride the new stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
+     */
     INDArray create(DataBuffer data, long[] newShape, long[] newStride, long offset, char ordering);
 
+    /**
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param newShape the new shape of the ndarray
+     * @param newStride  the new stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ews  the element wise stride of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
+     */
     INDArray create(DataBuffer data, long[] newShape, long[] newStride, long offset, long ews, char ordering);
 
+    /**
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param newShape the new shape of the ndarray
+     * @param newStride  the new stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ews  the element wise stride of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @param isView  whether the ndarray is a view or not
+     * @return the created ndarray
+     */
+    INDArray create(DataBuffer data, long[] newShape, long[] newStride, long offset, long ews, char ordering,boolean isView);
+
+    /**
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param newShape the new shape of the ndarray
+     * @param newStride the new stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @param dataType the data type of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(DataBuffer data, long[] newShape, long[] newStride, long offset, char ordering, DataType dataType);
 
     /**
-     *
-     * @param rows
-     * @param columns
-     * @param min
-     * @param max
-     * @param rng
-     * @return
+     * Create an ndarray from the given data buffer
+     * @param rows the rows of the ndarray
+     * @param columns the columns of the ndarray
+     * @param min the min number for the uniform distribution
+     * @param max the max number for the uniform distribution
+     * @param rng the rng to use
+     * @return the created ndarray
      */
     INDArray rand(long rows, long columns, double min, double max, org.nd4j.linalg.api.rng.Random rng);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param offset
-     * @param order
-     * @return
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param shape the shape of the ndarray
+     * @param offset the offset of the ndarray
+     * @param order  the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(float[] data, int[] shape, long offset, Character order);
 
     /**
-     *
-     * @param data
-     * @param rows
-     * @param columns
-     * @param stride
-     * @param offset
-     * @param ordering
-     * @return
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param rows the rows of the ndarray
+     * @param columns the columns of the ndarray
+     * @param stride the stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(float[] data, long rows, long columns, int[] stride, long offset, char ordering);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param ordering
-     * @return
+     * Create an ndarray from the given data buffer
+     * @param data the data buffer to use
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(double[] data, int[] shape, char ordering);
 
     /**
-     *
-     * @param list
-     * @param shape
-     * @param ordering
-     * @return
+     * Create an ndarray from the given list of ndarrays.
+     * @param list  the list to create the ndarray from
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(List<INDArray> list, int[] shape, char ordering);
 
+    /**
+     * Create an ndarray from the given list of ndarrays.
+     * @param list the list to create the ndarray from
+     * @param shape the shape of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
+     */
     INDArray create(List<INDArray> list, long[] shape, char ordering);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param offset
-     * @return
+     * Create an ndarray from the double array as the data.
+     * @param data the data to create the ndarray from
+     * @param shape the shape of the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
      */
     INDArray create(double[] data, int[] shape, long offset);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param stride
-     * @param offset
-     * @param ordering
-     * @return
+     * Create an ndarray from the double array as the data.
+     * @param data the data to create the ndarray from
+     * @param shape the shape of the ndarray
+     * @param stride the stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(double[] data, int[] shape, int[] stride, long offset, char ordering);
 
     /**
-     *
-     * @param shape
-     * @param min
-     * @param max
-     * @param rng
-     * @return
+     * Create a random ndrray  with the min and max values specified.
+     * @param shape  the shape of the ndarray
+     * @param min the min number for the uniform distribution
+     * @param max the max number for the uniform distribution
+     * @param rng the rng to use
+     * @return the created ndarray
      */
     INDArray rand(int[] shape, double min, double max, org.nd4j.linalg.api.rng.Random rng);
 
+    /**
+     * Create a random ndrray  with the min and max values specified.
+     * @param shape the shape of the ndarray
+     * @param min the min number for the uniform distribution
+     * @param max the max number for the uniform distribution
+     * @param rng the rng to use
+     * @return the created ndarray
+     */
     INDArray rand(long[] shape, double min, double max, org.nd4j.linalg.api.rng.Random rng);
 
     /**
-     *
-     * @param ints
-     * @param ints1
-     * @param stride
-     * @param offset
-     * @return
+     * Create an int ndarray from the givne data.
+     * @param ints the shape of the ndarray
+     * @param shape the shape of the ndarray
+     * @param stride the stride of the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
      */
-    INDArray create(int[] ints, int[] ints1, int[] stride, long offset);
+    INDArray create(int[] ints, int[] shape, int[] stride, long offset);
 
     /**
-     *
-     * @param shape
-     * @param ints1
-     * @param stride
-     * @param order
-     * @param offset
-     * @return
+     * Create an int ndarray from the given data.
+     * @param data the shape of the ndarray
+     * @param shape the shape of the ndarray
+     * @param stride the stride of the ndarray
+     * @param order the ordering for the ndarray
+     * @param offset  the offset of the ndarray
+     * @return the created ndarray
      */
-    INDArray create(int[] shape, int[] ints1, int[] stride, char order, long offset);
+    INDArray create(int[] data, int[] shape, int[] stride, char order, long offset);
 
     /**
-     *
-     * @param rows
-     * @param columns
-     * @param ordering
-     * @return
+     * Create an ndarray of data type
+     * {@link Nd4j#dataType()}
+     * @param rows  the rows of the ndarray
+     * @param columns the columns of the ndarray
+     * @param ordering the ordering for the ndarray
+     * @return  the created ndarray
      */
     INDArray create(long rows, long columns, char ordering);
 
     /**
-     *
-     * @param shape
-     * @param dataType
-     * @return
+     * Create an ndarray of data type
+     * @param shape the shape of the ndarray
+     * @param dataType the data type of the ndarray
+     * @return the created ndarray
      */
     INDArray create(int[] shape, DataType dataType, MemoryWorkspace workspace);
 
     /**
-     *
-     * @param data
-     * @param order
-     * @return
+     * Create an ndarray of data type
+     * @param data the data to use
+     * @param order the ordering for the ndarray
+     * @return the created ndarray
      */
     INDArray create(float[] data, char order);
 
     /**
-     *
-     * @param data
-     * @param shape
-     * @param stride
-     * @param order
-     * @param offset
-     * @return
+     * Create an ndarray of data type
+     * @param data the data to use
+     * @param shape  the shape of the ndarray
+     * @param stride the stride of the ndarray
+     * @param order the ordering for the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
      */
     INDArray create(float[] data, int[] shape, int[] stride, char order, long offset);
 
+    /**
+     * Create an ndarray of data type
+     * @param data the data to use
+     * @param shape the shape of the ndarray
+     * @param stride the stride of the ndarray
+     * @param order the ordering for the ndarray
+     * @param offset the offset of the ndarray
+     * @return the created ndarray
+     */
     INDArray create(float[] data, long[] shape, long[] stride, char order, long offset);
 
     /**
@@ -1299,11 +1423,6 @@ public interface NDArrayFactory {
 
     INDArray create(long[] shape, long[] stride, long offset, char ordering);
 
-
-    //    DataBuffer restoreFromHalfs(DataBuffer buffer);
-
-
-    //    DataBuffer convertToHalfs(DataBuffer buffer);
 
     /**
      *
@@ -1361,6 +1480,8 @@ public interface NDArrayFactory {
      */
     INDArray createFromNpyPointer(Pointer pointer);
 
+    INDArray createFromDescriptor(DataBuffer shapeInformation);
+
 
     /**
      * Create from an in memory numpy header.
@@ -1396,25 +1517,32 @@ public interface NDArrayFactory {
      * Note that this will create a zero copy reference
      * to this ndarray's underlying data.
      *
-     *
      * @param array the array to convert
      * @returnthe created pointer representing
      * a pointer to a numpy header
      */
     Pointer convertToNumpy(INDArray array);
 
+    /**
+     * Convert an {@link INDArray}
+     * to a numpy array.
+     * This will usually be used
+     * for writing out to an external source.
+     * Note that this will create a zero copy reference
+     * to this ndarray's underlying data.
+     *
+     *
+     * @param array the array to convert
+     * @returnthe created pointer representing
+     * a pointer to a numpy header
+     */
+    DataBuffer convertToNumpyBuffer(INDArray array);
+
     INDArray create(float[] data, long[] shape, long[] stride, long offset, char ordering);
 
     INDArray create(double[] data, long[] shape, long[] stride, long offset, char ordering);
 
 
-    /**
-     *
-     * @param tensor
-     * @param dimensions
-     * @return
-     */
-    INDArray[] tear(INDArray tensor, int... dimensions);
 
     /**
      *
@@ -1424,7 +1552,7 @@ public interface NDArrayFactory {
      */
     INDArray sort(INDArray x, boolean descending);
 
-    INDArray sort(INDArray x, boolean descending, int... dimensions);
+    INDArray sort(INDArray x, boolean descending, long... dimensions);
 
     INDArray sortCooIndices(INDArray x);
 
@@ -1433,7 +1561,19 @@ public interface NDArrayFactory {
     INDArray create(float[] data, long[] shape, char ordering);
     INDArray create(double[] data, long[] shape, char ordering);
 
+    /**
+     * Create from a {@link LongShapeDescriptor}
+     * a buffer will be allocated if the descriptor is not marked as empty.
+     * @param longShapeDescriptor the shape descriptor
+     * @return
+     */
+    INDArray create(LongShapeDescriptor longShapeDescriptor);
+
     // =========== String methods ============
 
     INDArray create(Collection<String> strings, long[] shape, char order);
+
+    INDArray createUninitialized(DataType dataType, long[] shape, long[] strides, char ordering, MemoryWorkspace currentWorkspace);
+
+    INDArray create(DataBuffer dataBuffer, DataBuffer descriptor);
 }

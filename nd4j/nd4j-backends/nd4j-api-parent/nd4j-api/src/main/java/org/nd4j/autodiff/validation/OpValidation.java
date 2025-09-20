@@ -21,6 +21,7 @@
 package org.nd4j.autodiff.validation;
 
 import org.nd4j.common.config.ND4JClassLoading;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ops.custom.*;
 import org.nd4j.linalg.api.ops.impl.indexaccum.custom.ArgMax;
 import org.nd4j.linalg.api.ops.impl.indexaccum.custom.ArgMin;
@@ -383,7 +384,7 @@ public class OpValidation {
         collectCoverageInformation(testCase);
 
         //Check shape function:
-        List<LongShapeDescriptor> outShapes;
+        List<DataBuffer> outShapes;
         try {
             outShapes = Nd4j.getExecutioner().calculateOutputShape(testCase.op());
         } catch (Throwable t) {
@@ -401,7 +402,12 @@ public class OpValidation {
             if(!Objects.equals(exp.dataType(), act.dataType())) {
                 return "Shape function check failed for output " + i + ": expected shape " + exp + ", actual shape " + act;
             }
-            if(!Arrays.equals(act.getShape(), exp.getShape())){
+            long[] shapeInfo = act.asLong();
+            long[] actShape = new long[(int) shapeInfo[0]];
+            for(int j = 1; j < shapeInfo.length; j++) {
+                actShape[j - 1] = shapeInfo[j];
+            }
+            if(!Arrays.equals(actShape, exp.getShape())) {
                 return "Shape function check failed for output " + i + ": expected shape " + exp + ", actual shape " + act;
             }
         }
@@ -719,55 +725,10 @@ public class OpValidation {
             }
         }
 
-        //Log info for TF import op coverage:
-        Map<String,DifferentialFunction> tfOpsMap = DifferentialFunctionClassHolder.getInstance().getTensorFlowNames();
-        int totalTFMappedOps = tfOpsMap.size();
-        int tfOpsWithImportTests = 0;
-        if(logUntestedTFImport)
-            log.info(" --- Ops with TF Mapping but No TF Import Tests ---");
-        List<String> tfOpsKeys = new ArrayList<>(tfOpsMap.keySet());
-        Collections.sort(tfOpsKeys);
-        Set<String> tfIgnored = excludeFromTfImportCoverage();
-        int tfImportIgnored = 0;
-        for(String s : tfOpsKeys){
-            Integer count = tfMappedOpsImportTestCounts.get(s);
-            if(count == null || count == 0){
-                if(tfIgnored.contains(s)){
-                    tfImportIgnored++;
-                } else if(logUntestedTFImport)
-                    log.info("TF mapped op with no import tests: {}", s);
-            } else {
-                tfOpsWithImportTests++;
-            }
-        }
-
-        if(logUnmappedTFOps){
-            log.info(" --- TF Ops Not Mapped for Import ---");
-            Map<String,OpDef> allTFOps;
-            try{
-                allTFOps = TensorflowDescriptorParser.opDescs();
-            } catch (Throwable t){
-                throw new RuntimeException(t);
-            }
-
-            List<String> notMapped = new ArrayList<>();
-            for(String s : allTFOps.keySet()){
-                if(DifferentialFunctionClassHolder.getInstance().getOpWithTensorflowName(s) == null &&
-                        !tfIgnored.contains(s)){
-                    notMapped.add(s);
-                }
-            }
-
-            Collections.sort(notMapped);
-            int subsets = (int)Math.ceil(notMapped.size() / 10);
-            for( int i=0; i<subsets; i++ ){
-                log.info("TF ops not mapped for import: {}", notMapped.subList(10*i, Math.min(10*(i+1), notMapped.size())));
-            }
-        }
 
 
         int totalFwd = 0;
-        for(Class c : allOps){
+        for(Class c : allOps) {
             if(!excludedFromAllTestCoverage.contains(c))
                 totalFwd++;
         }
@@ -785,15 +746,10 @@ public class OpValidation {
         String pcBwd = String.format("%.2f", fracBwdAdequate * 100.0);
         String pc = String.format("%.2f", fracAdequate * 100.0);
 
-        int countTf = DifferentialFunctionClassHolder.getInstance().getCountTotalTfOps();
-        int countTfMapped = DifferentialFunctionClassHolder.getInstance().getCountTotalMappedOps();
-        double tfFrac = countTfMapped / (double)countTf;
-        String fracTfStr = String.format("%.2f", 100.0 * tfFrac);
 
         int countLibnd4jMapped = countTotalLibnd4jOps - nonMappedLibnd4jOps.size();
         String fracLibnd4j = String.format("%.2f", 100.0 * (countLibnd4jMapped / (double)(countTotalLibnd4jOps - countLibnd4jIgnored)));
 
-        String fracTFMappedTested = String.format("%.2f", 100.0 * tfOpsWithImportTests / (double)(totalTFMappedOps-tfImportIgnored));
 
         log.info("*****************************************************");
         log.info("Op Validation:                        {} of {} classes with adequate tests ({}% coverage)", countAdequate, totalFwd, pc);
@@ -801,8 +757,6 @@ public class OpValidation {
         log.info("Gradient check tests:                 {} of {} classes ({}% coverage)", countAdequateBwd, totalBwd, pcBwd);
         log.info("({} ops excluded from gradient check coverage)", excludedFromBackpropCoverage.size());
         log.info("({} ops excluded from fwd+gradient tests)", excludedFromAllTestCoverage.size());
-        log.info("TF mapped ops:                        {} of {} ({}%)", countTfMapped, countTf, fracTfStr);
-        log.info("SD ops with TF import mapping + test  {} of {} ({}%) - {} ignored for coverage", tfOpsWithImportTests, (totalTFMappedOps-tfImportIgnored), fracTFMappedTested, tfImportIgnored);
         log.info("Libnd4j mapped ops:                   {} of {} ({}%) - {} excluded for coverage", countLibnd4jMapped, countTotalLibnd4jOps, fracLibnd4j, countLibnd4jIgnored);
         log.info("*****************************************************");
     }

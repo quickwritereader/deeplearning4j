@@ -378,7 +378,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    @Disabled //temporary till libnd4j implements general broadcasting
+
     public void testAutoBroadcastAdd(Nd4jBackend backend) {
         INDArray left = Nd4j.linspace(1,4,4, DataType.DOUBLE).reshape(2,1,2,1);
         INDArray right = Nd4j.linspace(1,10,10, DataType.DOUBLE).reshape(2,1,5);
@@ -1148,32 +1148,11 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
                 //1s for non-leading/non-trailing dimensions
                 {4, 1, 3, 2}, {4, 3, 1, 2}, {4, 1, 1, 2}};
 
-        int[][] sumDims = {{0}, {1}, {2}, {3}, {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {0, 1, 2}, {0, 1, 3}, {0, 2, 3},
+        long[][] sumDims = {{0}, {1}, {2}, {3}, {0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {0, 1, 2}, {0, 1, 3}, {0, 2, 3},
                 {0, 1, 2, 3}};
-        /*        for( int[] shape : shapes) {
-            for (int[] dims : sumDims) {
-                System.out.println("Shape");
-                System.out.println(Arrays.toString(shape));
-                System.out.println("Dimensions");
-                System.out.println(Arrays.toString(dims));
-                int length = ArrayUtil.prod(shape);
-                INDArray inC = Nd4j.linspace(1, length, length).reshape('c', shape);
-                System.out.println("TAD shape");
-                System.out.println(Arrays.toString((inC.tensorAlongDimension(0,dims).shape())));
 
-                INDArray inF = inC.dup('f');
-                System.out.println("C stride " + Arrays.toString(inC.tensorAlongDimension(0,dims).stride()) + " and f stride " + Arrays.toString(inF.tensorAlongDimension(0,dims).stride()));
-                for(int i = 0; i < inC.tensorsAlongDimension(dims); i++) {
-                    System.out.println(inC.tensorAlongDimension(i,dims).ravel());
-                }
-                for(int i = 0; i < inF.tensorsAlongDimension(dims); i++) {
-                    System.out.println(inF.tensorAlongDimension(i,dims).ravel());
-                }
-            }
-        }*/
         for (val shape : shapes) {
-            for (int[] dims : sumDims) {
-//                System.out.println("Shape: " + Arrays.toString(shape) + ", sumDims=" + Arrays.toString(dims));
+            for (long[] dims : sumDims) {
                 int length = ArrayUtil.prod(shape);
                 INDArray inC = Nd4j.linspace(1, length, length, DataType.DOUBLE).reshape('c', shape);
                 INDArray inF = inC.dup('f');
@@ -1389,17 +1368,15 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
     public void testSum2dv2(Nd4jBackend backend) {
         INDArray in = Nd4j.linspace(1, 8, 8, DataType.DOUBLE).reshape('c', 2, 2, 2);
 
-        val dims = new int[][] {{0, 1}, {1, 0}, {0, 2}, {2, 0}, {1, 2}, {2, 1}};
+        val dims = new long[][] {{0, 1}, {1, 0}, {0, 2}, {2, 0}, {1, 2}, {2, 1}};
         double[][] exp = new double[][] {{16, 20}, {16, 20}, {14, 22}, {14, 22}, {10, 26}, {10, 26}};
 
-//        System.out.println("dims\texpected\t\tactual");
         for (int i = 0; i < dims.length; i++) {
             val d = dims[i];
             double[] e = exp[i];
 
             INDArray out = in.sum(d);
 
-//            System.out.println(Arrays.toString(d) + "\t" + Arrays.toString(e) + "\t" + out);
             assertEquals(Nd4j.create(e, out.shape()), out);
         }
     }
@@ -1414,11 +1391,11 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         INDArray arrC = Nd4j.linspace(1, length, length, DataType.DOUBLE).reshape('c', shape);
         INDArray arrF = Nd4j.create(arrC.shape()).assign(arrC);
 
-        int[][] dimsToSum = new int[][] {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}};
+        long[][] dimsToSum = new long[][] {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}};
         double[][] expD = new double[][] {{64, 72}, {60, 76}, {52, 84}, {36, 100}};
 
         for (int i = 0; i < dimsToSum.length; i++) {
-            int[] d = dimsToSum[i];
+            long[] d = dimsToSum[i];
 
             INDArray outC = arrC.sum(d);
             INDArray outF = arrF.sum(d);
@@ -1464,7 +1441,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             zC.setData(Nd4j.linspace(1, 24, 24, DataType.DOUBLE).data());
             for (int tad = 0; tad < zC.tensorsAlongDimension(dim); tad++) {
                 INDArray javaTad = zC.tensorAlongDimension(tad, dim);
-//                System.out.println("Tad " + tad + " is " + zC.tensorAlongDimension(tad, dim));
+
             }
 
             INDArray zF = Nd4j.create(shape, 'f');
@@ -1476,10 +1453,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             INDArray exp = Nd4j.create(expLinspaced[i], shape, 'c');
             INDArray expF = Nd4j.create(shape, 'f');
             expF.assign(exp);
-//            for (int tad = 0; tad < zC.tensorsAlongDimension(dim); tad++) {
-//                System.out.println(zC.tensorAlongDimension(tad, dim).offset() + " and f offset is "
-//                        + zF.tensorAlongDimension(tad, dim).offset());
-//            }
 
             Nd4j.getExecutioner().exec(opc);
             Nd4j.getExecutioner().exec(opf);
@@ -1497,11 +1470,11 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         INDArray arrC = Nd4j.linspace(1, length, length, DataType.DOUBLE).reshape('c', shape);
         INDArray arrF = Nd4j.create(arrC.shape()).assign(arrC);
 
-        int[][] dimsToSum = new int[][] {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}};
+        long[][] dimsToSum = new long[][] {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}};
         double[][] expD = new double[][] {{324, 342}, {315, 351}, {174, 222, 270}, {78, 222, 366}};
 
         for (int i = 0; i < dimsToSum.length; i++) {
-            int[] d = dimsToSum[i];
+            long[] d = dimsToSum[i];
 
             INDArray outC = arrC.sum(d);
             INDArray outF = arrF.sum(d);
@@ -2288,7 +2261,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testEps2(Nd4jBackend backend) {
 
-        INDArray first = Nd4j.valueArrayOf(10, 1e-2).castTo(DataType.DOUBLE); //0.01
+        INDArray first = Nd4j.valueArrayOf(10, 1e-6).castTo(DataType.DOUBLE); //0.01
         INDArray second = Nd4j.zeros(10).castTo(DataType.DOUBLE); //0.0
 
         INDArray expAllZeros1 = Nd4j.getExecutioner().exec(new Eps(first, second, Nd4j.create(DataType.BOOL, new long[] {1, 10}, 'f')));
@@ -3526,7 +3499,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    @Disabled //not relevant anymore
     public void testAssignMixedC(Nd4jBackend backend) {
         int[] shape1 = {3, 2, 2, 2, 2, 2};
         int[] shape2 = {12, 8};
@@ -3942,50 +3914,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
     }
 
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    @Disabled("Crashes")
-    @Tag(TagNames.NEEDS_VERIFY)
-    public void testSingleDeviceAveraging(Nd4jBackend backend) {
-        int LENGTH = 512 * 1024 * 2;
-        INDArray array1 = Nd4j.valueArrayOf(LENGTH, 1.0);
-        INDArray array2 = Nd4j.valueArrayOf(LENGTH, 2.0);
-        INDArray array3 = Nd4j.valueArrayOf(LENGTH, 3.0);
-        INDArray array4 = Nd4j.valueArrayOf(LENGTH, 4.0);
-        INDArray array5 = Nd4j.valueArrayOf(LENGTH, 5.0);
-        INDArray array6 = Nd4j.valueArrayOf(LENGTH, 6.0);
-        INDArray array7 = Nd4j.valueArrayOf(LENGTH, 7.0);
-        INDArray array8 = Nd4j.valueArrayOf(LENGTH, 8.0);
-        INDArray array9 = Nd4j.valueArrayOf(LENGTH, 9.0);
-        INDArray array10 = Nd4j.valueArrayOf(LENGTH, 10.0);
-        INDArray array11 = Nd4j.valueArrayOf(LENGTH, 11.0);
-        INDArray array12 = Nd4j.valueArrayOf(LENGTH, 12.0);
-        INDArray array13 = Nd4j.valueArrayOf(LENGTH, 13.0);
-        INDArray array14 = Nd4j.valueArrayOf(LENGTH, 14.0);
-        INDArray array15 = Nd4j.valueArrayOf(LENGTH, 15.0);
-        INDArray array16 = Nd4j.valueArrayOf(LENGTH, 16.0);
-
-
-        long time1 = System.currentTimeMillis();
-        INDArray arrayMean = Nd4j.averageAndPropagate(new INDArray[] {array1, array2, array3, array4, array5, array6,
-                array7, array8, array9, array10, array11, array12, array13, array14, array15, array16});
-        long time2 = System.currentTimeMillis();
-        System.out.println("Execution time: " + (time2 - time1));
-
-        assertNotEquals(null, arrayMean);
-
-        assertEquals(8.5f, arrayMean.getFloat(12), 0.1f);
-        assertEquals(8.5f, arrayMean.getFloat(150), 0.1f);
-        assertEquals(8.5f, arrayMean.getFloat(475), 0.1f);
-
-
-        assertEquals(8.5f, array1.getFloat(475), 0.1f);
-        assertEquals(8.5f, array2.getFloat(475), 0.1f);
-        assertEquals(8.5f, array3.getFloat(475), 0.1f);
-        assertEquals(8.5f, array5.getFloat(475), 0.1f);
-        assertEquals(8.5f, array16.getFloat(475), 0.1f);
-    }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -4347,7 +4275,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             arr.get(NDArrayIndex.point(i), NDArrayIndex.all(), NDArrayIndex.all()).assign(Nd4j.create(slices[i]));
         }
 
-        INDArray out = Nd4j.exec(new ArgMax(arr, false,new int[]{1,2}))[0];
+        INDArray out = Nd4j.exec(new ArgMax(arr, false,new long[]{1,2}))[0];
 
         assertEquals(DataType.LONG, out.dataType());
 
@@ -4390,8 +4318,8 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             }
         }
 
-        INDArray actC = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('c'), false,new int[]{0,1}))[0].castTo(DataType.DOUBLE);
-        INDArray actF = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('f'),  false,new int[]{0,1}))[0].castTo(DataType.DOUBLE);
+        INDArray actC = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('c'), false,new long[]{0,1}))[0].castTo(DataType.DOUBLE);
+        INDArray actF = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('f'),  false,new long[]{0,1}))[0].castTo(DataType.DOUBLE);
         //
         assertEquals(exp, actC);
         assertEquals(exp, actF);
@@ -4424,8 +4352,8 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             }
         }
 
-        actC = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('c'), false,new int[]{2, 3}))[0];
-        actF = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('f'), false,new int[]{2, 3}))[0];
+        actC = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('c'), false,new long[]{2, 3}))[0];
+        actF = Nd4j.getExecutioner().exec(new ArgMax(arr.dup('f'), false,new long[]{2, 3}))[0];
 
         assertEquals(exp, actC);
         assertEquals(exp, actF);
@@ -4583,65 +4511,9 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         }
     }
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testAveraging1(Nd4jBackend backend) {
-        Nd4j.getAffinityManager().allowCrossDeviceAccess(false);
 
-        List<INDArray> arrays = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            arrays.add(Nd4j.create(100).assign((double) i).castTo(DataType.DOUBLE));
-        }
 
-        INDArray result = Nd4j.averageAndPropagate(arrays);
 
-        assertEquals(4.5, result.meanNumber().doubleValue(), 0.01);
-
-        for (int i = 0; i < 10; i++) {
-            assertEquals(result, arrays.get(i));
-        }
-    }
-
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testAveraging2(Nd4jBackend backend) {
-
-        List<INDArray> arrays = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            arrays.add(Nd4j.create(100).assign((double) i));
-        }
-
-        Nd4j.averageAndPropagate(null, arrays);
-
-        INDArray result = arrays.get(0);
-
-        assertEquals(4.5, result.meanNumber().doubleValue(), 0.01);
-
-        for (int i = 0; i < 10; i++) {
-            assertEquals(result, arrays.get(i),"Failed on iteration " + i);
-        }
-    }
-
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testAveraging3(Nd4jBackend backend) {
-        Nd4j.getAffinityManager().allowCrossDeviceAccess(false);
-
-        List<INDArray> arrays = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            arrays.add(Nd4j.create(100).assign((double) i).castTo(DataType.DOUBLE));
-        }
-
-        Nd4j.averageAndPropagate(null, arrays);
-
-        INDArray result = arrays.get(0);
-
-        assertEquals(4.5, result.meanNumber().doubleValue(), 0.01);
-
-        for (int i = 0; i < 10; i++) {
-            assertEquals(result, arrays.get(i),"Failed on iteration " + i);
-        }
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -5753,7 +5625,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    @Disabled("Crashes")
     @Tag(TagNames.NEEDS_VERIFY)
     public void testNativeSortAlongDimension1(Nd4jBackend backend) {
         INDArray array = Nd4j.create(1000, 1000);
@@ -6493,7 +6364,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
                 .build();
 
         val shape = Nd4j.getExecutioner().calculateOutputShape(op).get(0);
-        assertArrayEquals(new long[]{}, shape.getShape());
+        assertArrayEquals(new long[]{}, Shape.shape(shape.asLong()));
 
         Nd4j.getExecutioner().exec(op);
 
@@ -6515,13 +6386,12 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
                 .build();
 
         val shape = Nd4j.getExecutioner().calculateOutputShape(op).get(0);
-        assertArrayEquals(new long[]{}, shape.getShape());
+        assertArrayEquals(new long[]{}, Shape.shape(shape.asLong()));
 
         Nd4j.getExecutioner().exec(op);
 
         assertEquals(exp, output);
     }
-
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testVectorSqueeze(Nd4jBackend backend) {
@@ -6535,7 +6405,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
                 .build();
 
         val shape = Nd4j.getExecutioner().calculateOutputShape(op).get(0);
-        assertArrayEquals(new long[]{6}, shape.getShape());
+        assertArrayEquals(new long[]{6}, Shape.shape(shape.asLong()));
 
         Nd4j.getExecutioner().exec(op);
 
@@ -6571,14 +6441,13 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
                 .build();
 
         val shape = Nd4j.getExecutioner().calculateOutputShape(op).get(0);
-        assertArrayEquals(exp.shape(), shape.getShape());
+        assertArrayEquals(exp.shape(), Shape.shape(shape.asLong()));
 
         Nd4j.getExecutioner().exec(op);
 
         assertArrayEquals(exp.shape(), output.shape());
         assertEquals(exp, output);
     }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -7121,21 +6990,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         assertEquals(exp, array2);
     }
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testTearPile_1(Nd4jBackend backend) {
-        val source = Nd4j.rand(new int[]{10, 15}).castTo(DataType.DOUBLE);
-
-        val list = Nd4j.tear(source, 1);
-
-        // just want to ensure that axis is right one
-        assertEquals(10, list.length);
-
-        val result = Nd4j.pile(list);
-
-        assertEquals(source.shapeInfoDataBuffer(), result.shapeInfoDataBuffer());
-        assertEquals(source, result);
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -7318,7 +7172,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
 
         val tS = System.nanoTime();
         for (int e = 0; e < iterations; e++) {
-            //val c = new GemmParams(arrayX, arrayY, arrayZ);
             arrayX.mmuli(arrayY, arrayZ);
         }
 
@@ -7683,36 +7536,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         assertTrue(arr == ti);  //Should be same object
     }
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testScatterUpdateShortcut(Nd4jBackend backend) {
-        val array = Nd4j.create(DataType.FLOAT, 5, 2);
-        val updates = Nd4j.createFromArray(new float[][] {{1,1}, {2,2}, {3, 3}});
-        val indices = Nd4j.createFromArray(new int[]{1, 2, 3});
-        val exp = Nd4j.createFromArray(new float[][] {{0,0}, {1,1}, {2,2}, {3, 3}, {0,0}});
 
-        assertArrayEquals(exp.shape(), array.shape());
-        Nd4j.scatterUpdate(ScatterUpdate.UpdateOp.ADD, array, indices, updates, 1);
-
-        assertEquals(exp, array);
-    }
-
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testScatterUpdateShortcut_f1(Nd4jBackend backend) {
-        assertThrows(IllegalStateException.class,() -> {
-            val array = Nd4j.create(DataType.FLOAT, 5, 2);
-            val updates = Nd4j.createFromArray(new float[][] {{1,1}, {2,2}, {3, 3}});
-            val indices = Nd4j.createFromArray(new int[]{1, 2, 3});
-            val exp = Nd4j.createFromArray(new float[][] {{0,0}, {1,1}, {2,2}, {3, 3}, {0,0}});
-
-            assertArrayEquals(exp.shape(), array.shape());
-            Nd4j.scatterUpdate(ScatterUpdate.UpdateOp.ADD, array, indices, updates, 0);
-
-            assertEquals(exp, array);
-        });
-
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -7895,10 +7719,9 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testLinspaceWithStep(){
-
+    public void testLinspaceWithStep() {
         double lower = -0.9, upper = 0.9, step = 0.2;
-        INDArray in = Nd4j.linspace(lower, upper, 10, DataType.DOUBLE);
+        INDArray in = Nd4j.linspace(DataType.DOUBLE,lower,step,10);
         for (int i = 0; i < 10; ++i) {
             assertEquals(lower + step * i, in.getDouble(i), 1e-5);
         }
@@ -8282,7 +8105,6 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         assertEquals(scalarRank2, scalarRank2.dup());
     }
 
-    //@Disabled // https://github.com/eclipse/deeplearning4j/issues/7632
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testGetWhereINDArray(Nd4jBackend backend) {
@@ -8590,13 +8412,11 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         c.addOutputArgument(out);
         Nd4j.getExecutioner().exec(c);
 
-        List<LongShapeDescriptor> l = c.calculateOutputShape();
+        List<DataBuffer> l = c.calculateOutputShape();
 
-//        System.out.println(Arrays.toString(l.get(0).getShape()));
 
         //from [4,4,3] to [2,4,6] then crop to [2,4,5]
     }
-
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testToFromByteArray() throws IOException {
@@ -8857,13 +8677,12 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
         for(DataType dt : DataType.values()){
             if(dt == DataType.COMPRESSED || dt == DataType.UTF8 || dt == DataType.UNKNOWN)
                 continue;
-//            System.out.println(dt);
 
             int lengthBytes = 256;
             int lengthElements = lengthBytes / dt.width();
             ByteBuffer bb = ByteBuffer.allocateDirect(lengthBytes);
 
-            DataBuffer db = Nd4j.createBuffer(bb, dt, lengthElements, 0);
+            DataBuffer db = Nd4j.createBuffer(bb, dt, lengthElements);
             INDArray arr = Nd4j.create(db, new long[]{lengthElements});
 
             arr.toStringFull();
@@ -8891,7 +8710,7 @@ public class Nd4jTestsC extends BaseNd4jTestWithBackends {
             int lengthElements = lengthBytes / dt.width();
             ByteBuffer bb = ByteBuffer.allocateDirect(lengthBytes);
 
-            DataBuffer db = Nd4j.createBuffer(bb, dt, lengthElements, 0);
+            DataBuffer db = Nd4j.createBuffer(bb, dt, lengthElements);
             INDArray arr = Nd4j.create(db, new long[]{lengthElements/2, 2});
 
             arr.toStringFull();

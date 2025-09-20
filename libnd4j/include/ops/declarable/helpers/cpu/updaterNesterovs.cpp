@@ -32,7 +32,7 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void nesterovsUpdater_(const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateV,
+static void nesterovsUpdater_(NDArray& gradient, NDArray& initState, NDArray& update, NDArray& stateV,
                               const double dLr, const double dMomentum) {
   const T* grad = gradient.bufferAsT<T>();
   const T* init = initState.bufferAsT<T>();
@@ -65,14 +65,39 @@ static void nesterovsUpdater_(const NDArray& gradient, const NDArray& initState,
   bool bXInSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initState.shapeInfo());
   bool bXStSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateV.shapeInfo());
 
+  sd::LongType *gradShape = shape::shapeOf(gradient.shapeInfo());
+  sd::LongType *gradStride = shape::stride(gradient.shapeInfo());
+  sd::LongType *updateStride = shape::stride(update.shapeInfo());
+  sd::LongType *initStateStride = shape::stride(initState.shapeInfo());
+  sd::LongType *stateVStride = shape::stride(stateV.shapeInfo());
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
+    sd::LongType coords[SD_MAX_RANK];
     for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initOffset = bXInSame ? xOffset : shape::getOffset(initState.shapeInfo(), coords);
-      const auto stOffset = bXStSame ? xOffset : shape::getOffset(stateV.shapeInfo(), coords);
+      INDEX2COORDS(i, gradient.rankOf(), gradShape, coords);
+
+      sd::LongType xOffset;
+      COORDS2INDEX(gradient.rankOf(), gradStride, coords, xOffset);
+
+      sd::LongType zOffset;
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(update.rankOf(), updateStride, coords, zOffset);
+      }
+
+      sd::LongType initOffset;
+      if (bXInSame) {
+        initOffset = xOffset;
+      } else {
+        COORDS2INDEX(initState.rankOf(), initStateStride, coords, initOffset);
+      }
+
+      sd::LongType stOffset;
+      if (bXStSame) {
+        stOffset = xOffset;
+      } else {
+        COORDS2INDEX(stateV.rankOf(), stateVStride, coords, stOffset);
+      }
 
       T prevState = momentum * init[initOffset];
       st[stOffset] = prevState - lr * grad[xOffset];
@@ -84,7 +109,7 @@ static void nesterovsUpdater_(const NDArray& gradient, const NDArray& initState,
   return;
 }
 
-void updaterNesterovs(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update,
+void updaterNesterovs(sd::LaunchContext* context, NDArray& gradient, NDArray& initState, NDArray& update,
                       NDArray& stateV, const double dLr, const double dMomentum) {
   BUILD_SINGLE_SELECTOR(gradient.dataType(), nesterovsUpdater_, (gradient, initState, update, stateV, dLr, dMomentum),
                         SD_FLOAT_TYPES);

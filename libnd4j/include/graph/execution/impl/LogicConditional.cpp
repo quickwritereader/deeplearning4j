@@ -25,13 +25,13 @@
 
 namespace sd {
 namespace graph {
-sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
+Status LogicConditional::processNode(Graph *graph, Node *node) {
   auto __variableSpace = graph->getVariableSpace();
 
   auto size = node->input()->size();
 
   // propagating inputs (optional)
-  for (int e = 0; e < size - 3; e++) {
+  for (size_t e = 0; e < size - 3; e++) {
     std::pair<int, int> pair(node->id(), e);
     if (!__variableSpace->hasVariable(pair)) {
       __variableSpace->putVariable(pair, new Variable(nullptr, nullptr, node->id(), e));
@@ -46,7 +46,7 @@ sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
       // TODO: ???
     } else {
       // FIXME: in some cases it's possible to have no NDArray
-      if (inputVar->hasNDArray()) innerVar->setNDArray(new NDArray(inputVar->getNDArray()->dup()));
+      if (inputVar->hasNDArray()) innerVar->setNDArray(new NDArray(inputVar->getNDArray()->dup(inputVar->getNDArray()->ordering())));
     }
   }
 
@@ -61,10 +61,8 @@ sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
     lastNode = v->id();
   }
 
-  // now we should take result of the Scope run, and evaluate it
-  // sd_debug("", "");
+
   auto result = __variableSpace->getVariable(lastNode)->getNDArray();
-  // result->printBuffer("Result of the last node:");
 
   bool isReturn = false;
 
@@ -80,13 +78,13 @@ sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
     }
 
     // last node is either return or just last op
-    auto *node = scopeFalse->nodes()->at(nodes - 1);
-    if (node->opType() == OpType_LOGIC && node->opNum() == 40) {
+    auto *node2 = scopeFalse->nodes()->at(nodes - 1);
+    if (node2->opType() == ::graph::OpType_LOGIC && node2->opNum() == 40) {
       isReturn = true;
-      LogicReturn::processNode(graph, node);
+      LogicReturn::processNode(graph, node2);
     } else {
-      GraphExecutioner::executeFlatNode(graph, node, __variableSpace);
-      lastNode = node->id();
+      GraphExecutioner::executeFlatNode(graph, node2, __variableSpace);
+      lastNode = node2->id();
     }
   } else {
     auto scopeTrue = graph->scopeById(scopeTrueIndex);
@@ -99,12 +97,12 @@ sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
     }
 
     // last node is either return or just last op
-    auto node = scopeTrue->nodes()->at(nodes - 1);
-    if (node->opType() == OpType_LOGIC && node->opNum() == 40) {
+    auto node2 = scopeTrue->nodes()->at(nodes - 1);
+    if (node2->opType() == ::graph::OpType_LOGIC && node2->opNum() == 40) {
       isReturn = true;
-      LogicReturn::processNode(graph, node);
+      LogicReturn::processNode(graph, node2);
     } else {
-      GraphExecutioner::executeFlatNode(graph, node, __variableSpace);
+      GraphExecutioner::executeFlatNode(graph, node2, __variableSpace);
       lastNode = node->id();
     }
   }
@@ -127,7 +125,7 @@ sd::Status LogicConditional::processNode(Graph *graph, Node *node) {
     }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 }  // namespace graph
 }  // namespace sd

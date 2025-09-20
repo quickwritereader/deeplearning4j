@@ -36,21 +36,21 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////
-static void softmaxMKLDNN(const NDArray* x, NDArray* z, const int axis) {
+static void softmaxMKLDNN(NDArray* x, NDArray* z, const sd::LongType axis) {
   dnnl::memory::dims shape = x->getShapeAsFlatVector();
 
-  const int xRank = x->rankOf();
+  const sd::LongType xRank = x->rankOf();
 
   dnnl::memory::format_tag xFormat = onednnUtils::getFormat(*x);
   dnnl::memory::format_tag zFormat = onednnUtils::getFormat(*z);
 
   // optimized cases
   if (2 == xRank && 0 == axis) {
-    if (x->ews() == 1) xFormat = dnnl::memory::format_tag::ba;
-    if (z->ews() == 1) zFormat = dnnl::memory::format_tag::ba;
+    xFormat = dnnl::memory::format_tag::ba;
+    zFormat = dnnl::memory::format_tag::ba;
   } else if (4 == xRank && 1 == axis && (x->sizeAt(2) * x->sizeAt(3)) > 1) {
-    if (x->ews() == 1) xFormat = dnnl::memory::format_tag::acdb;
-    if (z->ews() == 1) zFormat = dnnl::memory::format_tag::acdb;
+    xFormat = dnnl::memory::format_tag::acdb;
+   zFormat = dnnl::memory::format_tag::acdb;
   }
 
   dnnl::memory::data_type xType = dnnl::memory::data_type::f32;
@@ -139,7 +139,7 @@ PLATFORM_CHECK(softmax, ENGINE_CPU) {
 }
 
 //////////////////////////////////////////////////////////////////////
-static void softmaxBpMKLDNN(const NDArray* x, const NDArray* dLdz, NDArray* dLdx, const int axis) {
+static void softmaxBpMKLDNN(NDArray* x, NDArray* dLdz, NDArray* dLdx, const sd::LongType axis) {
   dnnl::memory::desc x_user_md, x_mkl_md, dLdx_mkl_md, dLdx_user_md, dLdz_mkl_md, dLdz_user_md;
 
   // x
@@ -189,8 +189,6 @@ static void softmaxBpMKLDNN(const NDArray* x, const NDArray* dLdz, NDArray* dLdx
   argsbp[DNNL_ARG_DIFF_SRC] = argsff[DNNL_ARG_DST];
   argsbp[DNNL_ARG_DST] = argsff[DNNL_ARG_DST];
 
-  // run calculations forward
-  dnnl::softmax_forward(op_ff_prim_desc).execute(stream, argsff);
 
   // run calculations backward
   dnnl::softmax_backward(op_bp_prim_desc).execute(stream, argsbp);
@@ -205,10 +203,12 @@ static void softmaxBpMKLDNN(const NDArray* x, const NDArray* dLdz, NDArray* dLdx
 PLATFORM_IMPL(softmax_bp, ENGINE_CPU) {
   auto input = INPUT_VARIABLE(0);
   auto dLdz = INPUT_VARIABLE(1);
+  auto softmaxOutput = INPUT_VARIABLE(2);
   auto dLdx = OUTPUT_VARIABLE(0);
+  dLdx->assign(softmaxOutput);
 
-  const int rank = input->rankOf();
-  const int dLdzRank = dLdz->rankOf();
+  const sd::LongType rank = input->rankOf();
+  const sd::LongType dLdzRank = dLdz->rankOf();
   int dim = block.getIArguments()->size() > 0 ? INT_ARG(0) : rank - 1;
 
   if (dim < 0) {
@@ -234,7 +234,9 @@ PLATFORM_IMPL(softmax_bp, ENGINE_CPU) {
 PLATFORM_CHECK(softmax_bp, ENGINE_CPU) {
   auto x = INPUT_VARIABLE(0);
   auto dLdz = INPUT_VARIABLE(1);
+  auto softmaxOutput = INPUT_VARIABLE(2);
   auto dLdx = OUTPUT_VARIABLE(0);
+  dLdx->assign(softmaxOutput);
 
   Requirements req("ONEDNN SOFTMAX_BP OP");
   req.expectTrue(block.isUseONEDNN(), IS_USE_ONEDNN_MSG) &&

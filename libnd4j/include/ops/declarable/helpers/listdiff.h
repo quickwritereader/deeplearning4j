@@ -21,16 +21,15 @@
 //
 #ifndef __LIST_DIFF_HELPERS__
 #define __LIST_DIFF_HELPERS__
-//#include <op_boilerplate.h>
 #include <array/NDArray.h>
 
 namespace sd {
 namespace ops {
 namespace helpers {
 
-SD_LIB_HIDDEN sd::Status listDiffFunctor(sd::LaunchContext* context, NDArray* values, NDArray* keep, NDArray* output1,
+SD_LIB_HIDDEN Status listDiffFunctor(LaunchContext* context, NDArray* values, NDArray* keep, NDArray* output1,
                                          NDArray* output2);
-SD_LIB_HIDDEN sd::LongType listDiffCount(sd::LaunchContext* context, NDArray* values, NDArray* keep);
+SD_LIB_HIDDEN LongType listDiffCount(LaunchContext* context, NDArray* values, NDArray* keep);
 }  // namespace helpers
 }  // namespace ops
 }  // namespace sd

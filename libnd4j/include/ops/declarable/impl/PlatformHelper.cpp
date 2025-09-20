@@ -33,22 +33,22 @@ PlatformHelper::PlatformHelper(const char* name, samediff::Engine engine) {
   _engine = engine;
 }
 
-sd::NDArray* PlatformHelper::getNullifiedZ(graph::Context& block, int inputId) {
+NDArray* PlatformHelper::getNullifiedZ(graph::Context& block, int inputId) {
   auto result = getZ(block, inputId);
   if (result != nullptr && !block.isInplace()) result->nullify();
 
   return result;
 }
 
-sd::NDArray* PlatformHelper::getZ(graph::Context& ctx, int inputId) {
+NDArray* PlatformHelper::getZ(graph::Context& ctx, int inputId) {
   NDArray* z = nullptr;
 
   if (ctx.isFastPath()) {
-    if (ctx.fastpath_out().size() <= inputId) {
+    if (ctx.fastpath_out().size() <= static_cast<size_t>(inputId)) {
       if (ctx.isInplace()) {
         z = ctx.fastpath_in()[inputId];
       } else
-        throw std::runtime_error("fastpath_out: unresolved output array");
+        THROW_EXCEPTION("fastpath_out: unresolved output array");
     } else {
       z = ctx.fastpath_out()[inputId];
     }
@@ -76,7 +76,7 @@ sd::NDArray* PlatformHelper::getZ(graph::Context& ctx, int inputId) {
         sd_printf("Can't get Z variable for node_%i!\n", ctx.nodeId());
       }
     } else {
-      throw std::runtime_error("Failed execution after attempting to get result outside of fast_path. This should not happen.\n");
+      THROW_EXCEPTION("Failed execution after attempting to get result outside of fast_path. This should not happen.\n");
     }
   }
 
@@ -87,7 +87,7 @@ samediff::Engine PlatformHelper::engine() { return _engine; }
 
 std::string PlatformHelper::name() { return _name; }
 
-sd::LongType PlatformHelper::hash() { return _hash; }
+LongType PlatformHelper::hash() { return _hash; }
 }  // namespace platforms
 }  // namespace ops
 }  // namespace sd

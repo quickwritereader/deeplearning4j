@@ -50,9 +50,6 @@ class JsonYamlTest {
         ImageTransformProcess itp = new ImageTransformProcess.Builder().colorConversionTransform(COLOR_BGR2Luv).cropImageTransform(10).equalizeHistTransform(CV_BGR2GRAY).flipImageTransform(0).resizeImageTransform(300, 300).rotateImageTransform(30).scaleImageTransform(3).warpImageTransform((float) 0.5).build();
         String asJson = itp.toJson();
         String asYaml = itp.toYaml();
-        // System.out.println(asJson);
-        // System.out.println("\n\n\n");
-        // System.out.println(asYaml);
         ImageWritable img = TestImageTransform.makeRandomImage(0, 0, 3);
         ImageWritable imgJson = new ImageWritable(img.getFrame().clone());
         ImageWritable imgYaml = new ImageWritable(img.getFrame().clone());
@@ -75,13 +72,6 @@ class JsonYamlTest {
                 assertTrue(img.getFrame().imageWidth == imgJson.getFrame().imageWidth);
                 assertTrue(img.getFrame().imageHeight == imgYaml.getFrame().imageHeight);
                 assertTrue(img.getFrame().imageWidth == imgYaml.getFrame().imageWidth);
-            } else if (it instanceof FilterImageTransform) {
-                assertEquals(img.getFrame().imageHeight, imgJson.getFrame().imageHeight);
-                assertEquals(img.getFrame().imageWidth, imgJson.getFrame().imageWidth);
-                assertEquals(img.getFrame().imageChannels, imgJson.getFrame().imageChannels);
-                assertEquals(img.getFrame().imageHeight, imgYaml.getFrame().imageHeight);
-                assertEquals(img.getFrame().imageWidth, imgYaml.getFrame().imageWidth);
-                assertEquals(img.getFrame().imageChannels, imgYaml.getFrame().imageChannels);
             } else {
                 assertEquals(img, imgJson);
                 assertEquals(img, imgYaml);

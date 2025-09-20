@@ -22,12 +22,14 @@
 #include <array/DataTypeUtils.h>
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/LegacyStatsOp.h>
+#include <ops/declarable/OpRegistrator.h>
+#include <legacy/NativeOpExecutioner.h>
 
 namespace sd {
 namespace ops {
-sd::Status LegacyStatsOp::validateAndExecute(Context &block) {
+Status LegacyStatsOp::validateAndExecute(Context &block) {
   auto x = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
@@ -44,7 +46,7 @@ sd::Status LegacyStatsOp::validateAndExecute(Context &block) {
   PointersManager manager(block.launchContext(), "LegacyStatsOp");
 
   if (block.getIArguments()->size() == 1 ||
-      (block.getIArguments()->size() == 2 && INT_ARG(1) == sd::DataTypeUtils::max<int>())) {
+      (block.getIArguments()->size() == 2 && INT_ARG(1) == DataTypeUtils::max<int>())) {
     // scalar
     NativeOpExecutioner::execSummaryStatsScalar(block.launchContext(), opNum, x->buffer(), x->shapeInfo(),
                                                 x->specialBuffer(), x->specialShapeInfo(),
@@ -53,22 +55,21 @@ sd::Status LegacyStatsOp::validateAndExecute(Context &block) {
   } else {
     // dimensions for TAD
     // we should skip first argument here, because it's addressing bias correction
-    std::vector<int> dims(*block.getIArguments());
-    for (int e = 0; e < dims.size(); e++)
+    std::vector<LongType> dims(*block.getIArguments());
+    for (size_t e = 0; e < dims.size(); e++)
       if (dims[e] < 0) dims[e] += x->rankOf();
 
     REQUIRE_TRUE(dims.size() > 0, 0, "Some dimensions requuired for reduction!");
 
-    auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
+    auto packX = ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), &dims);
 
     auto pTadShape = Environment::getInstance().isCPU()
-                         ? packX.primaryShapeInfo()
-                         : packX.specialShapeInfo();  //(sd::LongType *) manager.replicatePointer(tad.tadOnlyShapeInfo,
-                                                      //shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
+                         ? packX->primaryShapeInfo()
+                         : packX->specialShapeInfo();
+
     auto pTadOffsets = Environment::getInstance().isCPU()
-                           ? packX.primaryOffsets()
-                           : packX.specialOffsets();  //(sd::LongType *) manager.replicatePointer(tad.tadOffsets,
-                                                      //tad.numTads * sizeof(sd::LongType));
+                           ? packX->primaryOffsets()
+                           : packX->specialOffsets();
 
     NativeOpExecutioner::execSummaryStats(block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(),
                                           x->specialShapeInfo(), extras.argumentsAsT(z->dataType()), z->buffer(),
@@ -78,15 +79,16 @@ sd::Status LegacyStatsOp::validateAndExecute(Context &block) {
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
-LegacyStatsOp::LegacyStatsOp() : LegacyOp::LegacyOp(1) {
+LegacyStatsOp::LegacyStatsOp() : LegacyOp(1) {
   //
 }
 
-LegacyStatsOp::LegacyStatsOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyStatsOp::LegacyStatsOp(int opNum) : LegacyOp(1, opNum) {
   //
 }
 
@@ -96,12 +98,12 @@ LegacyOp *LegacyStatsOp::clone() { return new LegacyStatsOp(this->_opNum); }
  *   For all reductions rules are simple: either you return scalar, or you return reduced NDArray.
  *   It solely depends on input shape, and requested dimensions
  */
-ShapeList *LegacyStatsOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyStatsOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
 
-  sd::LongType *newShape;
+  LongType *newShape;
   if (block.getIArguments()->size() == 0 ||
-      (block.getIArguments()->size() == 1 && INT_ARG(0) == sd::DataTypeUtils::max<int>())) {
+      (block.getIArguments()->size() == 1 && INT_ARG(0) == DataTypeUtils::max<int>())) {
     // in this case we just return scalar
     ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
     newShape[0] = 2;
@@ -113,13 +115,8 @@ ShapeList *LegacyStatsOp::calculateOutputShape(ShapeList *inputShape, sd::graph:
     newShape[6] = 1;
     newShape[7] = 99;
   } else {
-    // in this case we're building proper shape for reduction
-    auto array = new NDArray(nullptr, inShape, block.launchContext());
-
-    auto newShape = ShapeUtils::evalReduceShapeInfo('c', *block.getIArguments(), *array, false, true);
-
-    delete array;
-    return SHAPELIST(newShape);
+    sd::LongType *xShape2 = ShapeUtils::evalReduceShapeInfo('c', block.getIArguments(), inShape, false, true);
+    return SHAPELIST(xShape2);
   }
 
   return SHAPELIST(CONSTANT(newShape));

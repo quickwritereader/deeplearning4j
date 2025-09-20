@@ -122,26 +122,27 @@ endif()
 # -fsanitize=address
 # -fsanitize=leak
 if (APPLE)
-    set(CMAKE_CXX_FLAGS  " -O0 -g -fPIC -std=c++11 -D__APPLE_OS__=true -DSD_APPLE_BUILD=true")
+    set(CMAKE_CXX_FLAGS  " -O0 -g -fPIC -std=gnu++17 -D__APPLE_OS__=true -DSD_APPLE_BUILD=true")
 elseif(WIN32)
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-        set(CMAKE_CXX_FLAGS  " -g -fPIC -std=c++11 -Wa,-mbig-obj")
+        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -fPIC -Wa,-mbig-obj")
     endif()
 else()
     set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -ffast-math -DFFAST_MATH=true -DLINUX_BUILD=true")
 
-    if ("${_RELEASE}" OR CMAKE_BUILD_TYPE STREQUAL "Release")
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
         message("Release build for tests")
-        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O3 -fPIC -std=c++11 -D_RELEASE=true")
+        set(CMAKE_CXX_FLAGS_RELEASE  "-O${SD_OPTIMIZATION_LEVEL} -fPIC -D_RELEASE=true")
+
+
         if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "ppc64*")
             set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} -mcpu=native")
         else()
             set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}")
         endif()
     else()
-        set(CMAKE_CXX_FLAGS  " -g -O0 -fPIC -std=c++11 ")
         if (NOT SD_CUDA)
-            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ")
         endif()
     endif()
 
@@ -293,10 +294,10 @@ foreach (TMP_PATH ${TEST_SOURCES})
 endforeach(TMP_PATH)
 
 
-add_executable(runtests ${LOOPS_SOURCES} ${LEGACY_SOURCES} ${EXEC_SOURCES} ${HELPERS_SOURCES}  ${ARRAY_SOURCES} ${TYPES_SOURCES}
+add_executable(runtests ${LOOPS_SOURCES} ${CALLSTACK_SRC} ${LEGACY_SOURCES} ${EXEC_SOURCES} ${HELPERS_SOURCES}  ${ARRAY_SOURCES} ${TYPES_SOURCES}
     ${MEMORY_SOURCES} ${GRAPH_SOURCES} ${CUSTOMOPS_SOURCES} ${EXCEPTIONS_SOURCES} ${INDEXING_SOURCES} ${CUSTOMOPS_PLATFORM_SOURCES} 
     ${CUSTOMOPS_ARMCOMPUTE_SOURCES} ${CUSTOMOPS_GENERIC_SOURCES}
     ${OPS_SOURCES} ${TEST_SOURCES} ${PERF_SOURCES})
 
-target_link_libraries(runtests gtest ${EXTERNAL_DEPENDENCY_LIBS} ${ONEDNN}  ${ARMCOMPUTE_LIBRARIES} gtest_main ${BLAS_LIBRARIES})
+target_link_libraries(runtests gtest ${EXTERNAL_DEPENDENCY_LIBS}  ${ONEDNN}  ${ARMCOMPUTE_LIBRARIES} gtest_main ${BLAS_LIBRARIES})
 

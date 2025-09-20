@@ -23,11 +23,13 @@ package org.nd4j.linalg.api.ops;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.factory.Nd4j;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -37,8 +39,8 @@ public abstract class BaseTransformFloatOp extends BaseTransformOp implements Tr
         super(sameDiff, i_v, inPlace);
     }
 
-    public BaseTransformFloatOp(SameDiff sameDiff, SDVariable i_v, long[] shape, boolean inPlace, Object[] extraArgs) {
-        super(sameDiff, i_v, shape, inPlace, extraArgs);
+    public BaseTransformFloatOp(SameDiff sameDiff, SDVariable i_v,  boolean inPlace, Object[] extraArgs) {
+        super(sameDiff, i_v, inPlace, extraArgs);
     }
 
     public BaseTransformFloatOp(SameDiff sameDiff, SDVariable i_v, Object[] extraArgs) {
@@ -100,16 +102,22 @@ public abstract class BaseTransformFloatOp extends BaseTransformOp implements Tr
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         return calculateOutputShape(null);
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc) {
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray x = oc != null ? oc.getInputArray(0) : x();
         if(x == null)
             return Collections.emptyList();
-        return Collections.singletonList(LongShapeDescriptor.fromShape(x.shape(), x.isR() ? x.dataType() : Nd4j.defaultFloatingPointType()));
+        if(x.isEmpty()) {
+            List<DataBuffer> ret = new ArrayList<>();
+            LongShapeDescriptor longShapeDescriptor = LongShapeDescriptor.emptyWithShape(x.shape(),x.dataType());
+            ret.add(Nd4j.createBuffer(longShapeDescriptor.toShapeInfo()));
+            return ret;
+        }
+        return Collections.singletonList(Nd4j.createBuffer(LongShapeDescriptor.fromShape(x.shape(), x.isR() ? x.dataType() : Nd4j.defaultFloatingPointType()).toShapeInfo()));
     }
 
     @Override

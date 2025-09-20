@@ -47,9 +47,12 @@ public interface SequenceLearningAlgorithm<T extends SequenceElement> {
      * @param learningRate
      * @return average score for this sequence
      */
-    double learnSequence(Sequence<T> sequence, AtomicLong nextRandom, double learningRate, BatchSequences<T> batchSequences);
+    double learnSequence(Sequence<T> sequence, AtomicLong nextRandom, double learningRate);
 
     boolean isEarlyTerminationHit();
+
+    INDArray inferSequence(INDArray inferenceVector, Sequence<T> sequence, long nextRandom, double learningRate, double minLearningRate,
+                           int iterations);
 
     /**
      * This method does training on previously unseen paragraph, and returns inferred vector
@@ -65,4 +68,6 @@ public interface SequenceLearningAlgorithm<T extends SequenceElement> {
     ElementsLearningAlgorithm<T> getElementsLearningAlgorithm();
 
     void finish();
+
+    void finish(INDArray inferenceVector);
 }

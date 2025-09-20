@@ -25,143 +25,116 @@
 #include <ops/declarable/helpers/prefix.h>
 #include <ops/ops.h>
 
+#include "execution/cuda/LaunchDims.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL static void prefixPerBlockCuda(scalar::Ops op, const void* vx, const sd::LongType* xTadShapeInfo,
-                                         const sd::LongType* xTadOffsets, void* vz, const sd::LongType* zTadShapeInfo,
-                                         const sd::LongType* zTadOffsets, const sd::LongType numTads,
-                                         const sd::LongType tadLen, const bool exclusive, const bool reverse) {
-  __shared__ T *shared, lastElemInChunk;
-  __shared__ sd::Unsigned numTadChunks, blockDim2;
+static void prefix_(scalar::Ops op, const void* vx, const LongType* xShapeInfo, void* vz, const LongType* zShapeInfo, bool exclusive, bool reverse) {
+  const auto x = reinterpret_cast<const T*>(vx);
+  auto z = reinterpret_cast<T*>(vz);
 
-  if (threadIdx.x == 0) {
-    extern __shared__ unsigned char shmem[];
-    shared = reinterpret_cast<T*>(shmem);
-    blockDim2 = 2 * blockDim.x;
-    numTadChunks = (tadLen + blockDim2 - 1) / blockDim2;  // ceil
-  }
-  __syncthreads();
+  const auto length = shape::length(xShapeInfo);
+  const auto rankX = shape::rank(xShapeInfo);
+  const auto rankZ = shape::rank(zShapeInfo);
+  const auto shapeX = shape::shapeOf(xShapeInfo);
+  const auto strideX = shape::stride(xShapeInfo);
+  const auto shapeZ = shape::shapeOf(zShapeInfo);
+  const auto strideZ = shape::stride(zShapeInfo);
 
-  const auto xTad = reinterpret_cast<const T*>(vx) + xTadOffsets[blockIdx.x];
-  auto zTad = reinterpret_cast<T*>(vz) + zTadOffsets[blockIdx.x];
+  T prevSum = (op == scalar::Add) ? static_cast<T>(0) : static_cast<T>(1);
+  T sum = prevSum;
 
-  sd::LongType sharedInd(2 * threadIdx.x), leftArrInd, rightArrInd, step;
-  T xLeft, xRight;
+  LongType coordsX[SD_MAX_RANK];
+  LongType coordsZ[SD_MAX_RANK];
 
-  for (sd::Unsigned i = 0; i < numTadChunks; ++i) {
-    leftArrInd = sharedInd + i * blockDim2;
-    rightArrInd = leftArrInd + 1;
+  if (reverse) {
+    for (LongType e = length - 1; e >= 0; --e) {
+      LongType offsetX, offsetZ;
 
-    if (reverse) {
-      if (rightArrInd < tadLen) {
-        rightArrInd = tadLen - 1 - rightArrInd;
-        leftArrInd = tadLen - 1 - leftArrInd;
-      } else if (leftArrInd < tadLen)
-        leftArrInd = tadLen - 1 - leftArrInd;
+      // Compute input and output offsets
+      INDEX2COORDS(e, rankX, shapeX, coordsX);
+      COORDS2INDEX(rankX, strideX, coordsX, offsetX);
+      INDEX2COORDS(e, rankZ, shapeZ, coordsZ);
+      COORDS2INDEX(rankZ, strideZ, coordsZ, offsetZ);
+
+      // Perform operation
+      sum = (op == scalar::Add) ? simdOps::Add<T, T, T>::op(sum, x[offsetX]) : simdOps::Multiply<T, T, T>::op(sum, x[offsetX]);
+
+      if (!exclusive) prevSum = sum;
+
+      z[offsetZ] = prevSum;
+      prevSum = sum;
     }
+  } else {
+    for (LongType e = 0; e < length; ++e) {
+      LongType offsetX, offsetZ;
 
-    if (leftArrInd < tadLen) shared[sharedInd] = xLeft = xTad[shape::getIndexOffset(leftArrInd, xTadShapeInfo)];
-    // else
-    //     shared[sharedInd] = (op == scalar::Add) ? 0 : 1;
+      // Compute input and output offsets
+      INDEX2COORDS(e, rankX, shapeX, coordsX);
+      COORDS2INDEX(rankX, strideX, coordsX, offsetX);
+      INDEX2COORDS(e, rankZ, shapeZ, coordsZ);
+      COORDS2INDEX(rankZ, strideZ, coordsZ, offsetZ);
 
-    if (rightArrInd < tadLen) shared[sharedInd + 1] = xRight = xTad[shape::getIndexOffset(rightArrInd, xTadShapeInfo)];
-    // else
-    //     shared[sharedInd + 1] = (op == scalar::Add) ? 0 : 1;
+      // Perform operation
+      sum = (op == scalar::Add) ? simdOps::Add<T, T, T>::op(sum, x[offsetX]) : simdOps::Multiply<T, T, T>::op(sum, x[offsetX]);
 
-    step = 1;
+      if (!exclusive) prevSum = sum;
 
-    for (sd::Unsigned d = blockDim.x; d > 0; d /= 2) {
-      __syncthreads();
-      if (threadIdx.x < d) {
-        sd::Unsigned left = step * (sharedInd + 1) - 1;
-        sd::Unsigned right = step * (sharedInd + 2) - 1;
-        shared[right] = (op == scalar::Add) ? (shared[right] + shared[left]) : (shared[right] * shared[left]);
-      }
-      step *= 2;
-    }
-
-    if (threadIdx.x == 0) shared[blockDim2 - 1] = (op == scalar::Add) ? 0 : 1;
-    __syncthreads();
-
-    for (sd::Unsigned d = 1; d < blockDim2; d *= 2) {
-      step /= 2;
-
-      __syncthreads();
-      if (threadIdx.x < d) {
-        sd::Unsigned left = step * (sharedInd + 1) - 1;
-        sd::Unsigned right = step * (sharedInd + 2) - 1;
-        T temp = shared[left];
-        shared[left] = shared[right];
-        shared[right] = (op == scalar::Add) ? (shared[right] + temp) : (shared[right] * temp);
-      }
-    }
-
-    __syncthreads();
-
-    if (leftArrInd < tadLen) {
-      T result = shared[sharedInd];
-      if (!exclusive) result = (op == scalar::Add) ? result + xLeft : result * xLeft;
-      if (i > 0) result = (op == scalar::Add) ? result + lastElemInChunk : result * lastElemInChunk;
-      zTad[shape::getIndexOffset(leftArrInd, zTadShapeInfo)] = result;
-    }
-
-    if (rightArrInd < tadLen) {
-      T result = shared[sharedInd + 1];
-      if (!exclusive) result = (op == scalar::Add) ? result + xRight : result * xRight;
-      if (i > 0) result = (op == scalar::Add) ? result + lastElemInChunk : result * lastElemInChunk;
-      if (i < numTadChunks - 1 && threadIdx.x == blockDim.x - 1)  // last element in chunk
-        lastElemInChunk = !exclusive ? result : (op == scalar::Add) ? result + xRight : result * xRight;
-      zTad[shape::getIndexOffset(rightArrInd, zTadShapeInfo)] = result;
+      z[offsetZ] = prevSum;
+      prevSum = sum;
     }
   }
 }
 
-///////////////////////////////////////////////////////////////////
-template <typename X>
-static void prefixPerBlockCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                                       const cudaStream_t* stream, scalar::Ops op, const void* vx,
-                                       const sd::LongType* xTadShapeInfo, const sd::LongType* xTadOffsets, void* vz,
-                                       const sd::LongType* zTadShapeInfo, const sd::LongType* zTadOffsets,
-                                       const sd::LongType numTads, const sd::LongType tadLen, const bool exclusive,
-                                       const bool reverse) {
-  prefixPerBlockCuda<X><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(
-      op, vx, xTadShapeInfo, xTadOffsets, vz, zTadShapeInfo, zTadOffsets, numTads, tadLen, exclusive, reverse);
-}
+template <typename T>
+static void prefix_(scalar::Ops op, NDArray* x, NDArray* z, const std::vector<LongType>& dims, bool exclusive,
+                    bool reverse) {
+  NDArray::preparePrimaryUse({z}, {x});
+  auto xTads = x->allTensorsAlongDimension(dims);
+  auto zTads = z->allTensorsAlongDimension(dims);
+  auto t = xTads.size();
+
+  for (int e = 0; e < t; e++) {
+    auto tx = xTads.at(e);
+    auto tz = zTads.at(e);
+
+    prefix_<T>(op, tx->buffer(), tx->shapeInfo(), tz->buffer(), tz->shapeInfo(), exclusive, reverse);
+  }
+
+  NDArray::registerPrimaryUse({z}, {x});
+};
 
 ///////////////////////////////////////////////////////////////////
-void prefix(sd::LaunchContext* context, scalar::Ops op, const NDArray* x, NDArray* z, const std::vector<int>& dims,
+
+template <typename T>
+static void prefix_(scalar::Ops op, NDArray* x, NDArray* z, bool exclusive, bool reverse) {
+  prefix_<T>(op, x->buffer(), x->shapeInfo(), z->buffer(), z->shapeInfo(), exclusive, reverse);
+};
+
+void prefix(LaunchContext* context, scalar::Ops op, NDArray* x, NDArray* z, bool exclusive, bool reverse) {
+  BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, exclusive, reverse), SD_COMMON_TYPES);
+}
+
+void prefix(LaunchContext* context, scalar::Ops op, NDArray* x, NDArray* z, const std::vector<LongType>& dims,
             bool exclusive, bool reverse) {
-  auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
-  auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(z->shapeInfo(), dims);
-
-  const sd::LongType numTads = packX.numberOfTads();
-  const sd::LongType tadLen = x->lengthOf() / numTads;
-
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = numTads;
-  const int sharedMem = 2 * threadsPerBlock * x->sizeOfT() + 128;
-
-  PointersManager manager(context, "prefix");
-
-  NDArray::prepareSpecialUse({z}, {x});
-  BUILD_SINGLE_SELECTOR(x->dataType(), prefixPerBlockCudaLauncher,
-                        (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), op, x->specialBuffer(),
-                         packX.platformShapeInfo(), packX.platformOffsets(), z->specialBuffer(),
-                         packZ.platformShapeInfo(), packZ.platformOffsets(), numTads, tadLen, exclusive, reverse),
-                        SD_NUMERIC_TYPES);
-  NDArray::registerSpecialUse({z}, {x});
-
-  manager.synchronize();
+  BUILD_SINGLE_SELECTOR(x->dataType(), prefix_, (op, x, z, dims, exclusive, reverse), SD_COMMON_TYPES);
 }
 
-///////////////////////////////////////////////////////////////////
-void prefix(sd::LaunchContext* context, scalar::Ops op, const NDArray* x, NDArray* z, bool exclusive, bool reverse) {
-  prefix(context, op, x, z, {}, exclusive, reverse);
-}
+BUILD_SINGLE_TEMPLATE(template void prefix_,
+                      (scalar::Ops op, const void* vx, sd::LongType const* xShapeInfo, void* vz,
+                          sd::LongType const* zShapeInfo, bool exclusive, bool reverse),
+                      SD_COMMON_TYPES);
+BUILD_SINGLE_TEMPLATE(template void prefix_,
+                      (scalar::Ops op, NDArray* x, NDArray* z, const std::vector<sd::LongType>& dims, bool exclusive,
+                          bool reverse),
+                      SD_COMMON_TYPES);
+BUILD_SINGLE_TEMPLATE(template void prefix_,
+                      (scalar::Ops op, NDArray* x, NDArray* z, bool exclusive, bool reverse), SD_COMMON_TYPES);
 
 }  // namespace helpers
 }  // namespace ops

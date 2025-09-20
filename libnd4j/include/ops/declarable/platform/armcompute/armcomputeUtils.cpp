@@ -80,7 +80,7 @@ Arm_DataType getArmType(const DataType& dType) {
   return ret;
 }
 
-bool isArmcomputeFriendly(const NDArray& arr) {
+bool isArmcomputeFriendly(NDArray& arr) {
   auto dType = getArmType(arr.dataType());
   int rank = (int)(arr.rankOf());
   int ind = arr.ordering() == 'c' ? rank - 1 : 0;
@@ -107,7 +107,7 @@ Arm_TensorInfo getArmTensorInfo(int rank, sd::LongType* bases, sd::DataType ndAr
   return Arm_TensorInfo(shape, numChannels, dType, layout);
 }
 
-Arm_TensorInfo getArmTensorInfo(const NDArray& arr, arm_compute::DataLayout layout) {
+Arm_TensorInfo getArmTensorInfo(NDArray& arr, arm_compute::DataLayout layout) {
   auto dType = getArmType(arr.dataType());
 
   internal_print_nd_shape(arr, "shape");
@@ -138,15 +138,13 @@ Arm_TensorInfo getArmTensorInfo(const NDArray& arr, arm_compute::DataLayout layo
 
   size_t total_size = arr.lengthOf() * element_size;
   size_t offset = 0;
-  // size_t size_ind = rank - 1;
-  // total_size = shape[size_ind] * strides[size_ind];
   if (arr.hasPaddedBuffer()) {
     internal_printf("---has padded buffer %d\n", 0);
     total_size = arr.getDataBuffer()->getLenInBytes();
-    offset = arr.bufferOffset() * element_size;
+    offset = arr.offset() * element_size;
   }
   internal_printf(":: offset %d el size %d  arr.getDataBuffer()->getLenInBytes() %d lengthof %d \n",
-                  (int)arr.bufferOffset(), (int)element_size, (int)arr.getDataBuffer()->getLenInBytes(),
+                  (int)arr.offset(), (int)element_size, (int)arr.getDataBuffer()->getLenInBytes(),
                   (int)arr.lengthOf());
   Arm_TensorInfo info;
   info.init(shape, numChannels, dType, strides, offset, total_size);
@@ -155,7 +153,7 @@ Arm_TensorInfo getArmTensorInfo(const NDArray& arr, arm_compute::DataLayout layo
   return info;
 }
 
-Arm_Tensor getArmTensor(const NDArray& arr, arm_compute::DataLayout layout) {
+Arm_Tensor getArmTensor(NDArray& arr, arm_compute::DataLayout layout) {
   // - Ownership of the backing memory is not transferred to the tensor itself.
   // - The tensor mustn't be memory managed.
   // - Padding requirements should be accounted by the client code.
@@ -176,10 +174,10 @@ Arm_Tensor getArmTensor(const NDArray& arr, arm_compute::DataLayout layout) {
 void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
   // only for C order
   if (output.ordering() != 'c') return;
-  const sd::LongType* shapeInfo = output.shapeInfo();
-  const sd::LongType* bases = &(shapeInfo[1]);
-  const sd::LongType rank = shapeInfo[0];
-  const sd::LongType* strides = output.stridesOf();
+  sd::LongType* shapeInfo = output.shapeInfo();
+  sd::LongType* bases = &(shapeInfo[1]);
+  sd::LongType rank = shapeInfo[0];
+  sd::LongType* strides = output.stridesOf();
   int width = bases[rank - 1];
   uint8_t* outputBuffer = (uint8_t*)output.buffer();
   size_t offset = 0;
@@ -189,18 +187,7 @@ void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
   int element_size = inTensor.info()->element_size();
   window.use_tensor_dimensions(inTensor.info()->tensor_shape(), /* first_dimension =*/arm_compute::Window::DimY);
 
-  if (output.ews() == 1) {
-    auto copySize = width * element_size;
-    auto dest = outputBuffer;
-    arm_compute::execute_window_loop(
-        window,
-        [&](const arm_compute::Coordinates& id) {
-          auto src = tensor_it.ptr();
-          memcpy(dest, src, copySize);
-          dest += copySize;
-        },
-        tensor_it);
-  } else {
+
     sd::LongType coords[SD_MAX_RANK] = {};
     auto copySize = width * element_size;
     arm_compute::execute_window_loop(
@@ -212,16 +199,16 @@ void copyFromTensor(const Arm_Tensor& inTensor, sd::NDArray& output) {
           offset = sd::inc_coords(bases, strides, coords, offset, rank, 1);
         },
         tensor_it);
-  }
+
 }
 
-void copyToTensor(const sd::NDArray& input, Arm_Tensor& outTensor) {
+void copyToTensor(sd::NDArray& input, Arm_Tensor& outTensor) {
   // only for C order
   if (input.ordering() != 'c') return;
-  const sd::LongType* shapeInfo = input.shapeInfo();
-  const sd::LongType* bases = &(shapeInfo[1]);
-  const sd::LongType rank = shapeInfo[0];
-  const sd::LongType* strides = input.stridesOf();
+  sd::LongType* shapeInfo = input.shapeInfo();
+  sd::LongType* bases = &(shapeInfo[1]);
+  sd::LongType rank = shapeInfo[0];
+  sd::LongType* strides = input.stridesOf();
   uint8_t* inputBuffer = (uint8_t*)input.buffer();
   int width = bases[rank - 1];
   size_t offset = 0;
@@ -231,18 +218,6 @@ void copyToTensor(const sd::NDArray& input, Arm_Tensor& outTensor) {
 
   window.use_tensor_dimensions(outTensor.info()->tensor_shape(), /* first_dimension =*/arm_compute::Window::DimY);
 
-  if (input.ews() == 1) {
-    auto copySize = width * element_size;
-    auto src = inputBuffer;
-    arm_compute::execute_window_loop(
-        window,
-        [&](const arm_compute::Coordinates& id) {
-          auto dest = tensor_it.ptr();
-          memcpy(dest, src, copySize);
-          src += copySize;
-        },
-        tensor_it);
-  } else {
     sd::LongType coords[SD_MAX_RANK] = {};
     auto copySize = width * element_size;
     arm_compute::execute_window_loop(
@@ -254,7 +229,7 @@ void copyToTensor(const sd::NDArray& input, Arm_Tensor& outTensor) {
           offset = sd::inc_coords(bases, strides, coords, offset, rank, 1);
         },
         tensor_it);
-  }
+
 }
 
 // armcompute should be built with debug option

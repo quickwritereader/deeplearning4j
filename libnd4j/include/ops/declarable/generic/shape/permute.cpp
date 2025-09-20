@@ -38,42 +38,43 @@ CUSTOM_OP_IMPL(permute, 1, 1, true, 0, -2) {
 
   if (x->isEmpty()) {
     REQUIRE_TRUE(z->isEmpty(), 0, "PERMUTE OP: when input is empty, output must also be empty");
-    return sd::Status::OK;  // No op
+    return Status::OK;  // No op
   }
 
   if (block.width() == 1 && block.getIArguments()->size() == 0) {
-    z->assign(x->transpose());
-    return sd::Status::OK;
+    NDArray t = x->transpose();
+    z->assign(&t);
+    return Status::OK;
   }
 
-  std::vector<int> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<int>() : *block.getIArguments();
-  if(permutationVector.size() != x->rankOf()) {
+  std::vector<LongType> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<LongType>() : *block.getIArguments();
+  if(permutationVector.size() != static_cast<size_t>(x->rankOf())) {
     sd_printf("PERMUTE OP: permutation vector size was %d and x input rank was %d\n",permutationVector.size(),x->rankOf());
   }
-  REQUIRE_TRUE(permutationVector.size() == x->rankOf(),permutationVector.size(),"PERMUTE OP: number of permutations is less in size than input rank.");
+  REQUIRE_TRUE(permutationVector.size() == static_cast<size_t>(x->rankOf()),permutationVector.size(),"PERMUTE OP: number of permutations is less in size than input rank.");
 
-  z->assign(x->permute(permutationVector));
+  z->assign(&x->permute(permutationVector, false, false));
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_TYPES(permute) {
-  getOpDescriptor()->setAllowedInputTypes(0, sd::DataType::ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
+  getOpDescriptor()->setAllowedInputTypes(0, ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
 }
 
 //////////////////////////////////////////////////////////////////////////
 DECLARE_SHAPE_FN(permute) {
   auto x = INPUT_VARIABLE(0);
 
-  if (block.width() == 1 && block.getIArguments()->size() == 0)
-    return SHAPELIST(ShapeUtils::evalTranspShapeInfo(*x, block.workspace(), true));
-
-  std::vector<int> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<int>() : *block.getIArguments();
+  if (block.width() == 1 && block.getIArguments()->size() == 0) {
+    auto ret = ShapeUtils::evalTransposeShapeInfo(*x, block.workspace(), true);
+    return SHAPELIST(ret);
+  }
+  std::vector<LongType> permutationVector = block.width() > 1 ? INPUT_VARIABLE(1)->asVectorT<LongType>() : *block.getIArguments();
 
   auto outputShapeInfo =
-      ShapeUtils::evalPermShapeInfo(permutationVector.data(), x->rankOf(), *x, block.workspace(), true);
-
+      ShapeUtils::evalPermShapeInfo(permutationVector.data(), x->rankOf(), x, block.workspace(), true);
   return SHAPELIST(outputShapeInfo);
 }
 

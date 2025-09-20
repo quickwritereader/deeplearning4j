@@ -28,11 +28,12 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.util.SameDiffUtils;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
-import org.nd4j.linalg.factory.Broadcast;
+import org.nd4j.linalg.factory.Nd4j;
 import org.tensorflow.framework.AttrValue;
 import org.tensorflow.framework.GraphDef;
 import org.tensorflow.framework.NodeDef;
@@ -45,13 +46,13 @@ import java.util.Map;
 @Slf4j
 public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
 
-    protected int[] dimension;
+    protected long[] dimension;
 
 
     public BaseBroadcastOp(SameDiff sameDiff,
                            SDVariable i_v1,
                            SDVariable i_v2,
-                           int[] dimension) {
+                           long[] dimension) {
         this(sameDiff, i_v1, i_v2, false, dimension);
     }
 
@@ -59,7 +60,7 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
                            SDVariable i_v1,
                            SDVariable i_v2,
                            boolean inPlace,
-                           int[] dimension) {
+                           long[] dimension) {
         super(sameDiff, inPlace, new Object[]{i_v2});
         if (i_v1 != null && i_v2 != null) {
             this.sameDiff = sameDiff;
@@ -78,7 +79,7 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
     public BaseBroadcastOp(SameDiff sameDiff,
                            SDVariable i_v1,
                            SDVariable i_v2,
-                           int[] dimension,
+                           long[] dimension,
                            Object[] extraArgs) {
         super(sameDiff, extraArgs);
         this.dimension = dimension;
@@ -97,7 +98,7 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
     }
 
 
-    public BaseBroadcastOp(SameDiff sameDiff, SDVariable i_v, int[] dimension, boolean inPlace) {
+    public BaseBroadcastOp(SameDiff sameDiff, SDVariable i_v, long[] dimension, boolean inPlace) {
         this(sameDiff, i_v, i_v.getShape(), inPlace, dimension, null);
     }
 
@@ -105,7 +106,7 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
                            SDVariable i_v,
                            long[] shape,
                            boolean inPlace,
-                           int[] dimension,
+                           long[] dimension,
                            Object[] extraArgs) {
         super(sameDiff, inPlace, extraArgs);
         this.dimension = dimension;
@@ -124,14 +125,13 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
 
     public BaseBroadcastOp(SameDiff sameDiff,
                            SDVariable i_v,
-                           int[] dimension,
+                           long[] dimension,
                            Object[] extraArgs) {
         this(sameDiff, i_v, i_v.getShape(), false, dimension, extraArgs);
     }
 
-    public BaseBroadcastOp(INDArray x, INDArray y, INDArray z, int... dimension) {
+    public BaseBroadcastOp(INDArray x, INDArray y, INDArray z, long... dimension) {
         super(x, y, z);
-        Broadcast.validateBroadcastDims(x,y,z, dimension);
 
         this.dimension = dimension;
 
@@ -148,20 +148,22 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
      *
      * @return
      */
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         if(x == null || y == null)
             return Collections.emptyList();
 
         long[] shapeX = x.shape();
         long[] shapeY = y.shape();
 
-        return Collections.singletonList(LongShapeDescriptor.fromShape(Shape.broadcastOutputShape(shapeX, shapeY),
-                Shape.pickPairwiseDataType(x.dataType(), y.dataType())));
+        return Collections.singletonList(Nd4j.createBuffer(LongShapeDescriptor
+                .fromShape(Shape.broadcastOutputShape(shapeX, shapeY),
+                Shape.pickPairwiseDataType(x.dataType(), y.dataType()))
+                .toShapeInfo()));
     }
 
 
     @Override
-    public int[] getDimension() {
+    public long[] getDimension() {
         if (dimension == null) {
             dimension = Shape.getBroadcastDimensions(larg().getShape(), rarg().getShape());
         }
@@ -170,7 +172,7 @@ public abstract class BaseBroadcastOp extends BaseOp implements BroadcastOp {
 
 
     @Override
-    public void setDimension(int... dimension) {
+    public void setDimension(long... dimension) {
         this.dimension = dimension;
     }
 

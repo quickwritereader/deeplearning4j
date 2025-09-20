@@ -36,27 +36,27 @@ class ConstantHolder {
   int _deviceId = 0;
   std::mutex _mutex;
 
-  std::map<sd::DataType, ConstantDataBuffer> _buffers;
+  std::map<DataType, ConstantDataBuffer> _buffers;
 
  public:
   ConstantHolder(const ConstantHolder &other);
   ConstantHolder() = default;
   ~ConstantHolder() = default;
 
-  ConstantHolder &operator=(const ConstantHolder &other) = default;
-  ConstantHolder &operator=(ConstantHolder &&other) = default;
+  ConstantHolder &operator=(const ConstantHolder &other) = delete;
+  ConstantHolder &operator=(ConstantHolder &&other) = delete;
 
-  bool hasBuffer(sd::DataType dataType);
+  bool hasBuffer(DataType dataType);
 
   template <typename T>
   bool hasBuffer();
 
-  void addBuffer(ConstantDataBuffer &pointer, sd::DataType dataType);
+  void addBuffer(ConstantDataBuffer &pointer, DataType dataType);
 
   template <typename T>
   void addBuffer(ConstantDataBuffer &pointer);
 
-  ConstantDataBuffer *getConstantDataBuffer(sd::DataType dataType);
+  ConstantDataBuffer *getConstantDataBuffer(DataType dataType);
 
   template <typename T>
   ConstantDataBuffer *getConstantDataBuffer();

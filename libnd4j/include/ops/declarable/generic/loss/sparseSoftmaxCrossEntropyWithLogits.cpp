@@ -45,8 +45,8 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0)
                "logits_rank - 1), but got labels_rank = %i and logits_rank = %i instead !",
                labelsRank, logitsRank);
 
-  std::vector<sd::LongType> labelsShape = labels->getShapeAsVector();  // this is correct
-  std::vector<sd::LongType> logitsShape = logits->getShapeAsVector();
+  std::vector<LongType> labelsShape = labels->getShapeAsVector();  // this is correct
+  std::vector<LongType> logitsShape = logits->getShapeAsVector();
   logitsShape.pop_back();
   bool equalSoft = logitsShape == labelsShape;
 
@@ -56,16 +56,16 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits, 2, 1, false, 0, 0)
       "logits shape with last dimension excluded, however got labels_shape = %s and logits_shape = %s instead !",
       ShapeUtils::shapeAsString(labelsShape).c_str(), ShapeUtils::shapeAsString(logitsShape).c_str());
 
-  std::vector<int> dimension = {-1};
+  std::vector<LongType> dimension = {-1};
 
-  auto maxAlongDim = logits->reduceAlongDimension(reduce::Max, dimension, true);
+  auto maxAlongDim = logits->reduceAlongDimension(reduce::Max, &dimension, true);
   auto logitsExp = (*logits - maxAlongDim).transform(transform::Exp, nullptr);
   auto logSoftMax =
-      -((logitsExp / logitsExp.reduceAlongDimension(reduce::Sum, dimension, true)).transform(transform::Log));
+      -((logitsExp / logitsExp.reduceAlongDimension(reduce::Sum, &dimension, true)).transform(transform::Log));
 
   helpers::scatterForLoss(block.launchContext(), *labels, logSoftMax, *output, false);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,8 +121,8 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits_grad, 2, 1, false, 
                "(labels_rank = logits_rank - 1), but got labels_rank = %i and logits_rank = %i instead !",
                labelsRank, logitsRank);
 
-  std::vector<sd::LongType> labelsShape = labels->getShapeAsVector();  // this is correct
-  std::vector<sd::LongType> logitsShape = logits->getShapeAsVector();
+  std::vector<LongType> labelsShape = labels->getShapeAsVector();  // this is correct
+  std::vector<LongType> logitsShape = logits->getShapeAsVector();
   logitsShape.pop_back();
   bool equalSoft = logitsShape == labelsShape;
 
@@ -132,19 +132,19 @@ CUSTOM_OP_IMPL(sparse_softmax_cross_entropy_loss_with_logits_grad, 2, 1, false, 
                "logits_shape = %s instead !",
                ShapeUtils::shapeAsString(labelsShape).c_str(), ShapeUtils::shapeAsString(logitsShape).c_str());
 
-  std::vector<int> dimension = {-1};
+  std::vector<LongType> dimension = {-1};
 
-  NDArray softmax = (*logits - logits->reduceAlongDimension(reduce::Max, dimension, true)).transform(transform::Exp);
-  softmax /= softmax.reduceAlongDimension(reduce::Sum, dimension, true);
+  NDArray softmax = (*logits - logits->reduceAlongDimension(reduce::Max, &dimension, true)).transform(transform::Exp);
+  softmax /= softmax.reduceAlongDimension(reduce::Sum, &dimension, true);
 
   // dEdp = softmax - 1 (or 0)
-  dLdp->assign(softmax);
+  dLdp->assign(&softmax);
 
   // subtract unities at appropriate indexes of dLdp array
   helpers::scatterForLoss(block.launchContext(), *labels, *dLdp,
                           *labels /*actually third array is unnecessary for gradient calculation*/, true);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -180,7 +180,7 @@ DECLARE_SHAPE_FN(sparse_softmax_cross_entropy_loss_with_logits_grad) {
 
   DataType outType = DataTypeUtils::pickFloatingType(ArrayOptions::dataType(logitsShapeInfo));
 
-  sd::LongType *dLdpShapeInfo =
+  LongType *dLdpShapeInfo =
       ShapeBuilders::copyShapeInfoAndType(logitsShapeInfo, outType, false, block.getWorkspace());
 
   return SHAPELIST(CONSTANT(dLdpShapeInfo));

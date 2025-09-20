@@ -25,7 +25,6 @@
 #include <system/op_boilerplate.h>
 #if NOT_EXCLUDED(OP_resize_nearest_neighbor)
 
-//#include <ops/declarable/headers/parity_ops.h>
 #include <ops/declarable/CustomOperations.h>
 #include <ops/declarable/helpers/image_resize.h>
 
@@ -38,7 +37,7 @@ CUSTOM_OP_IMPL(resize_nearest_neighbor, 1, 1, false, 0, -2) {
   int width;
   int height;
   bool alignCorners = false;  // - default value
-  if (output->isEmpty()) return sd::Status::OK;
+  if (output->isEmpty()) return Status::OK;
   if (block.width() > 1) {
     auto newImageSize = INPUT_VARIABLE(1);
     REQUIRE_TRUE(newImageSize->lengthOf() == 2, 0,
@@ -76,12 +75,14 @@ CUSTOM_OP_IMPL(resize_nearest_neighbor, 1, 1, false, 0, -2) {
                "resize_nearest_neighbor: Wrong input or output size to resize (width = %d, height = %d)", width,
                height);
 
+  std::vector<sd::LongType> imageShape = {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)};
   auto source = inRank == 4
                     ? *image
-                    : image->reshape(image->ordering(), {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)});
+                    : image->reshape(image->ordering(), imageShape);
+  std::vector<sd::LongType> outputShape = {1, output->sizeAt(0), output->sizeAt(1),output->sizeAt(2)};
   auto target = inRank == 4 ? *output
                             : output->reshape(output->ordering(),
-                                              {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)}, false);
+                                              outputShape, false);
 
   helpers::NearestMode nearestMode = helpers::NearestMode::FLOOR;
   if (alignCorners) {
@@ -91,7 +92,7 @@ CUSTOM_OP_IMPL(resize_nearest_neighbor, 1, 1, false, 0, -2) {
                                                        ? helpers::CoordinateTransformationMode::HALF_PIXEL_NN
                                                        : helpers::CoordinateTransformationMode::ASYMMETRIC;
 
-  return helpers::resizeNeighborFunctor(block.launchContext(), inRank == 4 ? image : &source, width, height, coorMode,
+  return resizeNeighborFunctor(block.launchContext(), inRank == 4 ? image : &source, width, height, coorMode,
                                         nearestMode, alignCorners, inRank == 4 ? output : &target);
 }
 
@@ -99,7 +100,7 @@ DECLARE_SHAPE_FN(resize_nearest_neighbor) {
   auto shapeList = SHAPELIST();
   auto in = inputShape->at(0);
   auto inRank = shape::rank(in);
-  sd::LongType* outputShape;
+  LongType* outputShape;
 
   REQUIRE_TRUE(inRank == 4 || inRank == 3, 0,
                "resize_nearest_neighbor: input image should be 4D "

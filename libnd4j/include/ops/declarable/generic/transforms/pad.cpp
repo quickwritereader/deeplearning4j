@@ -56,20 +56,21 @@ CUSTOM_OP_IMPL(pad, 2, 1, false, 0, 1) {
           input->dataType() == INPUT_VARIABLE(2)->dataType(), 0,
           "PAD op: data types of input and padValue arrays should be the same but got %i and %i correspondingly !",
           input->dataType(), INPUT_VARIABLE(2)->dataType());
-      padValue.assign(INPUT_VARIABLE(2)->e(0));
+      auto get = INPUT_VARIABLE(2)->e(0);
+      padValue.assign(&get);
     } else if (!block.getTArguments()->empty())
       padValue = T_ARG(0);
   } else if (INT_ARG(0) == 1) {  // REFLECT mode
     for (int dim = 0; dim < rank; ++dim)
-      REQUIRE_TRUE(paddings->e<sd::LongType>(dim, 0) <= (input->shapeOf()[dim] - 1) &&
-                       paddings->e<sd::LongType>(dim, 1) <= (input->shapeOf()[dim] - 1),
-                   0, "PAD op: wrong content of paddings array for REFLECT mode !");
+    REQUIRE_TRUE(paddings->e<sd::LongType>(dim, 0) <= (input->shapeOf()[dim] - 1) &&
+                 paddings->e<sd::LongType>(dim, 1) <= (input->shapeOf()[dim] - 1),
+                 0, "PAD op: wrong content of paddings array for REFLECT mode !");
   }
   if (INT_ARG(0) == 2) {  // SYMMETRIC mode
     for (int dim = 0; dim < rank; ++dim)
-      REQUIRE_TRUE(paddings->e<sd::LongType>(dim, 0) <= input->shapeOf()[dim] &&
-                       paddings->e<sd::LongType>(dim, 1) <= input->shapeOf()[dim],
-                   0, "PAD op: wrong content of paddings array for SYMMETRIC mode !");
+    REQUIRE_TRUE(paddings->e<sd::LongType>(dim, 0) <= input->shapeOf()[dim] &&
+                 paddings->e<sd::LongType>(dim, 1) <= input->shapeOf()[dim],
+                 0, "PAD op: wrong content of paddings array for SYMMETRIC mode !");
   }
 
   // CONSTANT->0, REFLECT->1, SYMMETRIC->2
@@ -78,10 +79,6 @@ CUSTOM_OP_IMPL(pad, 2, 1, false, 0, 1) {
       "PAD op: unknown padding mode, there are only three possible legal values -> 0,1,2, but got %i instead !",
       INT_ARG(0));
 
-  // std::vector<int> dimensions(input->rankOf());
-  //    std::iota(dimensions.begin(), dimensions.end(), 0);               // fill with 0, 1, ... rank-1
-
-  // helpers::recursiveLoopForPad(INT_ARG(0), *input, *paddings, *output, dimensions, 0, 0, 0, padValue);
   helpers::pad(block.launchContext(), INT_ARG(0), *input, *paddings, *output, padValue);
 
   return sd::Status::OK;
@@ -91,8 +88,6 @@ DECLARE_TYPES(pad) {
   getOpDescriptor()
       ->setAllowedInputTypes(0, sd::DataType::ANY)
       ->setAllowedInputTypes(1, {DataType::INT32, DataType::INT64})  // INT32 with TF
-      //        ->setAllowedInputTypes(1, {DataType::INT32, DataType::INT64}) // INT32 with TF, but used also INT64 due
-      //        long shapes
       ->setSameMode(true);
 }
 
@@ -101,7 +96,9 @@ DECLARE_SHAPE_FN(pad) {
   auto inputShapeInfo = inputShape->at(0);
   auto paddings = INPUT_VARIABLE(1);
   const int rank = inputShapeInfo[0];
-
+  if(rank < 0 || rank > SD_MAX_RANK) {
+    THROW_EXCEPTION("PAD op: Bad shape buffer. Likely corrupt. Please ensure buffer was not deallocated.");
+  }
   // paddings validation
   const std::vector<sd::LongType> expectedPaddingsShape = {rank, 2};
   const std::vector<sd::LongType> currentPaddingsShape = paddings->getShapeAsVector();
@@ -117,9 +114,8 @@ DECLARE_SHAPE_FN(pad) {
     outShapeInfo[i] = inputShapeInfo[i] + paddings->e<sd::LongType>(i - 1, 0) + paddings->e<sd::LongType>(i - 1, 1);
 
   ShapeUtils::updateStridesAndType(outShapeInfo, inputShapeInfo, shape::order(inputShapeInfo));
-  ShapeDescriptor descriptor(outShapeInfo);
-  RELEASE(outShapeInfo, block.getWorkspace());
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(descriptor));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().bufferForShapeInfo(outShapeInfo)->primary());
+  return ret;
 }
 
 }  // namespace ops

@@ -40,8 +40,8 @@ CONFIGURABLE_OP_IMPL(adam_updater, 3, 3, true, 0, 0) {
   auto stateU = OUTPUT_VARIABLE(1);
   auto stateM = OUTPUT_VARIABLE(2);
 
-  // todo maybe we need an error like on Java side
-  if (gradient->isEmpty() || initStateU->isEmpty() || initStateM->isEmpty()) return sd::Status::OK;
+  if (gradient->isEmpty() || initStateU->isEmpty() || initStateM->isEmpty())
+    THROW_EXCEPTION("adam_updater: Unable to apply empty update");
 
   REQUIRE_TRUE(gradient->isSameShape(initStateU), 0,
                "ADAM UPDATER OP: input state V must have the same shape as gradient,"
@@ -88,9 +88,10 @@ CONFIGURABLE_OP_IMPL(adam_updater, 3, 3, true, 0, 0) {
     dEpsilon = T_ARG(3);
   }
 
+
   helpers::updaterAdam(block.launchContext(), *gradient, *initStateU, *initStateM, *update, *stateU, *stateM, dLr,
                        dBeta1, dBeta2, dEpsilon, iteration);
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(adam_updater) { getOpDescriptor()->setAllowedInputTypes({ALL_FLOATS})->setSameMode(true); }

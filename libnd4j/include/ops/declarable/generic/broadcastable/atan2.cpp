@@ -36,23 +36,17 @@ BROADCASTABLE_OP_IMPL(tf_atan2, 0, 0) {
 
   BROADCAST_CHECK_EMPTY(x, y, z);
 
-  // auto tZ = BroadcastHelper<T>::template broadcastApply<simdOps::Atan2<T>>(y, x, z);
-  x->applyTrueBroadcast(sd::BroadcastOpsTuple::custom(scalar::Atan2, pairwise::Atan2, broadcast::Atan2), *y, *z, true);
+  x->applyTrueBroadcast(BroadcastOpsTuple::custom(scalar::Atan2, pairwise::Atan2, broadcast::Atan2), y, z, true);
 
-  // if (tZ == nullptr)
-  //     return sd::Status::KERNEL_FAILURE;
-  // else if (tZ != z) {
-  //     OVERWRITE_RESULT(tZ);
-  // }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(tf_atan2) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 }  // namespace ops

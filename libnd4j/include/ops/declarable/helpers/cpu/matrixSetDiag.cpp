@@ -29,7 +29,7 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, NDArray& output, const bool zeroPad) {
+void matrixSetDiag_(NDArray& input, NDArray& diagonal, NDArray& output, const bool zeroPad) {
   // input and output are the same array (x == z) when zeroPad = true
   // xRank = zRank, xRank = yRank + 1
   // xLen = zLen
@@ -38,37 +38,57 @@ void matrixSetDiag_(const NDArray& input, const NDArray& diagonal, NDArray& outp
   const T* y = diagonal.bufferAsT<T>();
   T* z = output.bufferAsT<T>();
 
+  // Cache all shape information upfront
   const sd::LongType* xShapeInfo = input.shapeInfo();
   const sd::LongType* yShapeInfo = diagonal.shapeInfo();
   const sd::LongType* zShapeInfo = output.shapeInfo();
 
-  const bool areSameOffsets =
-      shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);  // shapes are definitely the same, but strides might not
-
+  // Cache shape-related values
   const int xRank = input.rankOf();
   const auto xLen = input.lengthOf();
 
+  // Cache shape and stride pointers
+  const sd::LongType* xShape = shape::shapeOf(xShapeInfo);
+  const sd::LongType* xStride = shape::stride(xShapeInfo);
+  const sd::LongType* yStride = shape::stride(yShapeInfo);
+  const sd::LongType* zStride = shape::stride(zShapeInfo);
+
+  // Check if input and output have same offsets
+  const bool areSameOffsets = shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);
+
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
+    // Pre-allocate coords array outside the loop
+    sd::LongType coords[SD_MAX_RANK];
 
     for (sd::LongType i = 0; i < xLen; ++i) {
-      shape::index2coordsCPU(start, i, xShapeInfo, coords);
+      // Use cached shape data for coordinate transforms
+      INDEX2COORDS(i, xRank, xShape, coords);
 
-      const auto xOffset = shape::getOffset(xShapeInfo, coords);
-      const auto zOffset = areSameOffsets ? xOffset : shape::getOffset(zShapeInfo, coords);
+      sd::LongType xOffset;
+      COORDS2INDEX(xRank, xStride, coords, xOffset);
 
-      // condition to be on diagonal of innermost matrix
-      if (coords[xRank - 2] == coords[xRank - 1])
-        z[zOffset] = y[shape::getOffset(yShapeInfo, coords)];
-      else
+      sd::LongType zOffset;
+      if (areSameOffsets) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(xRank, zStride, coords, zOffset);
+      }
+
+      // Check diagonal condition using cached rank
+      if (coords[xRank - 2] == coords[xRank - 1]) {
+        sd::LongType yOffset;
+        COORDS2INDEX(xRank - 1, yStride, coords, yOffset);
+        z[zOffset] = y[yOffset];
+      } else {
         z[zOffset] = zeroPad ? static_cast<T>(0) : x[xOffset];
+      }
     }
   };
+
   samediff::Threads::parallel_for(func, 0, xLen);
 }
-
 //////////////////////////////////////////////////////////////////////////
-void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output,
+void matrixSetDiag(sd::LaunchContext* context, NDArray& input, NDArray& diagonal, NDArray& output,
                    const bool zeroPad) {
   BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiag_, (input, diagonal, output, zeroPad), SD_COMMON_TYPES);
 }

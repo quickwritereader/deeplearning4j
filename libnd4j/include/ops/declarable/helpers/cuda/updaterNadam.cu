@@ -25,39 +25,64 @@
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <system/op_boilerplate.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL void nadamUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vinv,
-                                const sd::LongType* invShapeInfo, const void* vinm, const sd::LongType* inmShapeInfo,
-                                void* vz, const sd::LongType* zShapeInfo, void* vstV, const sd::LongType* stvShapeInfo,
-                                void* vstM, const sd::LongType* stmShapeInfo, const T lr, const T beta1, const T beta2,
+SD_KERNEL void nadamUpdaterCuda(const void* vx, const LongType* xShapeInfo, const void* vinv,
+                                const LongType* invShapeInfo, const void* vinm, const LongType* inmShapeInfo,
+                                void* vz, const LongType* zShapeInfo, void* vstV, const LongType* stvShapeInfo,
+                                void* vstM, const LongType* stmShapeInfo, const T lr, const T beta1, const T beta2,
                                 const T epsilon, const T iteration) {
   const auto grad = reinterpret_cast<const T*>(vx);
   const auto initV = reinterpret_cast<const T*>(vinv);
   const auto initM = reinterpret_cast<const T*>(vinm);
-
   auto up = reinterpret_cast<T*>(vz);
   auto stV = reinterpret_cast<T*>(vstV);
   auto stM = reinterpret_cast<T*>(vstM);
 
-  __shared__ sd::LongType xLen;
+  __shared__ LongType xLen, xRank, zRank, invRank, inmRank, stvRank, stmRank;
   __shared__ T mbeta1T, mbeta1, mbeta2;
-  __shared__ bool bEWS, bOrdering, bXZsame, bXInUSame, bXStUSame, bXInMSame, bXStMSame;
+  __shared__ bool bOrdering, bXZsame, bXInUSame, bXStUSame, bXInMSame, bXStMSame;
+  __shared__ LongType *sharedMem;
+  __shared__ const LongType *xShape, *zShape, *invShape, *inmShape, *stvShape, *stmShape;
+  __shared__ const LongType *xStride, *zStride, *invStride, *inmStride, *stvStride, *stmStride;
 
   if (threadIdx.x == 0) {
-    xLen = shape::length(xShapeInfo);
+    extern __shared__ unsigned char shmem[];
+    sharedMem = reinterpret_cast<LongType*>(shmem);
 
-    mbeta1T = 1.0 - sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
+    xLen = shape::length(xShapeInfo);
+    mbeta1T = 1.0 - math::sd_pow<T, T, T>(beta1, (iteration + 1));
     mbeta1 = (1 - beta1);
     mbeta2 = (1 - beta2);
 
-    bEWS = 1 == shape::elementWiseStride(xShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo) &&
-           1 == shape::elementWiseStride(stmShapeInfo) && 1 == shape::elementWiseStride(inmShapeInfo) &&
-           1 == shape::elementWiseStride(stvShapeInfo) && 1 == shape::elementWiseStride(invShapeInfo);
+    xRank = shape::rank(xShapeInfo);
+    zRank = shape::rank(zShapeInfo);
+    invRank = shape::rank(invShapeInfo);
+    inmRank = shape::rank(inmShapeInfo);
+    stvRank = shape::rank(stvShapeInfo);
+    stmRank = shape::rank(stmShapeInfo);
+
+    xShape = shape::shapeOf(xShapeInfo);
+    xStride = shape::stride(xShapeInfo);
+    zShape = shape::shapeOf(zShapeInfo);
+    zStride = shape::stride(zShapeInfo);
+    invShape = shape::shapeOf(invShapeInfo);
+    invStride = shape::stride(invShapeInfo);
+    inmShape = shape::shapeOf(inmShapeInfo);
+    inmStride = shape::stride(inmShapeInfo);
+    stvShape = shape::shapeOf(stvShapeInfo);
+    stvStride = shape::stride(stvShapeInfo);
+    stmShape = shape::shapeOf(stmShapeInfo);
+    stmStride = shape::stride(stmShapeInfo);
+
     bOrdering = shape::order(xShapeInfo) == shape::order(zShapeInfo) &&
                 shape::order(zShapeInfo) == shape::order(stmShapeInfo) &&
                 shape::order(stmShapeInfo) == shape::order(inmShapeInfo) &&
@@ -72,66 +97,92 @@ SD_KERNEL void nadamUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, 
   }
   __syncthreads();
 
-  int coords[SD_MAX_RANK];
+  LongType coords[SD_MAX_RANK];
 
-  for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
-    auto xOffset = i, zOffset = i, initMOffset = i, initUOffset = i, stMOffset = i, stUOffset = i;
+  for (LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    LongType xOffset, zOffset, initMOffset, initUOffset, stMOffset, stUOffset;
 
-    if (!bEWS || !bOrdering) {
-      shape::index2coords(i, xShapeInfo, coords);
-      xOffset = shape::getOffset(xShapeInfo, coords);
-      zOffset = bXZsame ? xOffset : shape::getOffset(zShapeInfo, coords);
-      initUOffset = bXInUSame ? xOffset : shape::getOffset(invShapeInfo, coords);
-      stUOffset = bXStUSame ? xOffset : shape::getOffset(stvShapeInfo, coords);
-      initMOffset = bXInMSame ? xOffset : shape::getOffset(inmShapeInfo, coords);
-      stMOffset = bXStMSame ? xOffset : shape::getOffset(stmShapeInfo, coords);
+    INDEX2COORDS(i, xRank, xShape, coords);
+    COORDS2INDEX(xRank, xStride, coords, xOffset);
+
+    if (bXZsame) {
+      zOffset = xOffset;
+    } else {
+      COORDS2INDEX(zRank, zStride, coords, zOffset);
+    }
+
+    if (bXInUSame) {
+      initUOffset = xOffset;
+    } else {
+      COORDS2INDEX(invRank, invStride, coords, initUOffset);
+    }
+
+    if (bXStUSame) {
+      stUOffset = xOffset;
+    } else {
+      COORDS2INDEX(stvRank, stvStride, coords, stUOffset);
+    }
+
+    if (bXInMSame) {
+      initMOffset = xOffset;
+    } else {
+      COORDS2INDEX(inmRank, inmStride, coords, initMOffset);
+    }
+
+    if (bXStMSame) {
+      stMOffset = xOffset;
+    } else {
+      COORDS2INDEX(stmRank, stmStride, coords, stMOffset);
     }
 
     auto oneMinusBeta1Grad = grad[xOffset] * mbeta1;
-
     stM[stMOffset] = beta1 * initM[initMOffset] + oneMinusBeta1Grad;
     stV[stUOffset] = beta2 * initV[initUOffset] + grad[xOffset] * grad[xOffset] * mbeta2;
-
     up[zOffset] = (lr * ((stM[stMOffset] * beta1 + oneMinusBeta1Grad) / mbeta1T)) /
-                  (sd::math::sd_sqrt<T, T>(stV[stUOffset]) + epsilon);
+                  (math::sd_sqrt<T, T>(stV[stUOffset]) + epsilon);
   }
 }
-
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-void nadamUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream,
-                              const void* vx, const sd::LongType* xShapeInfo, const void* vinv,
-                              const sd::LongType* invShapeInfo, const void* vinm, const sd::LongType* inmShapeInfo,
-                              void* vz, const sd::LongType* zShapeInfo, void* vstV, const sd::LongType* stvShapeInfo,
-                              void* vstM, const sd::LongType* stmShapeInfo, const double dLr, const double dBeta1,
-                              const double dBeta2, const double dEpsilon, const int nIteration) {
+void nadamUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMemory,
+                              const cudaStream_t* stream, const void* vx, const LongType* xShapeInfo,
+                              const void* vinv, const LongType* invShapeInfo, const void* vinm,
+                              const LongType* inmShapeInfo, void* vz, const LongType* zShapeInfo, void* vstV,
+                              const LongType* stvShapeInfo, void* vstM, const LongType* stmShapeInfo,
+                              const double dLr, const double dBeta1, const double dBeta2, const double dEpsilon,
+                              const int nIteration) {
   const T lr = static_cast<T>(dLr);
   const T beta1 = static_cast<T>(dBeta1);
   const T beta2 = static_cast<T>(dBeta2);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   const T iteration = static_cast<T>(nIteration);
 
-  nadamUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(
+  nadamUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMemory, *stream>>>(
       vx, xShapeInfo, vinv, invShapeInfo, vinm, inmShapeInfo, vz, zShapeInfo, vstV, stvShapeInfo, vstM, stmShapeInfo,
       lr, beta1, beta2, epsilon, iteration);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "nadamUpdaterCuda failed");
+
 }
 
 ///////////////////////////////////////////////////////////////////
-void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV,
-                  const NDArray& initStateM, NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr,
+void updaterNadam(LaunchContext* context, NDArray& gradient, NDArray& initStateV,
+                  NDArray& initStateM, NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr,
                   const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
   PointersManager manager(context, "nadamUpdater");
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
-  const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
 
+  dim3 launchDims = updaterDims(gradient.lengthOf());
   NDArray::prepareSpecialUse({&update, &stateV, &stateM}, {&gradient, &initStateV, &initStateM});
   BUILD_SINGLE_SELECTOR(gradient.dataType(), nadamUpdaterCudaLauncher,
-                        (blocksPerGrid, threadsPerBlock, context->getCudaStream(), gradient.specialBuffer(),
-                         gradient.specialShapeInfo(), initStateV.specialBuffer(), initStateV.specialShapeInfo(),
-                         initStateM.specialBuffer(), initStateM.specialShapeInfo(), update.specialBuffer(),
-                         update.specialShapeInfo(), stateV.specialBuffer(), stateV.specialShapeInfo(),
-                         stateM.specialBuffer(), stateM.specialShapeInfo(), dLr, dBeta1, dBeta2, dEpsilon, nIteration),
+                        (launchDims.y, launchDims.x,launchDims.z, context->getCudaStream(), gradient.specialBuffer(),
+                            gradient.specialShapeInfo(), initStateV.specialBuffer(), initStateV.specialShapeInfo(),
+                            initStateM.specialBuffer(), initStateM.specialShapeInfo(), update.specialBuffer(),
+                            update.specialShapeInfo(), stateV.specialBuffer(), stateV.specialShapeInfo(),
+                            stateM.specialBuffer(), stateM.specialShapeInfo(), dLr, dBeta1, dBeta2, dEpsilon, nIteration),
                         SD_FLOAT_TYPES);
   NDArray::registerSpecialUse({&update, &stateV, &stateM}, {&gradient, &initStateV, &initStateM});
 

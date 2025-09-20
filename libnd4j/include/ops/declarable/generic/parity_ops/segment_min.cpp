@@ -45,7 +45,7 @@ CUSTOM_OP_IMPL(segment_min, 2, 1, false, 0, 0) {
   segmentedOutput->nullify();
   helpers::segmentMinFunctor(block.launchContext(), input, idxSegments, segmentedOutput);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(segment_min) {
@@ -53,7 +53,7 @@ DECLARE_SHAPE_FN(segment_min) {
 
   auto in = inputShape->at(0);
   int outRank = shape::rank(in);
-  sd::LongType* outputShape = nullptr;
+  LongType* outputShape = nullptr;
   int val = (*idxVector).e<int>(idxVector->lengthOf() - 1);
 
   int numOfClasses = val + 1;
@@ -62,7 +62,7 @@ DECLARE_SHAPE_FN(segment_min) {
 
   outputShape[0] = outRank;
   outputShape[1] = numOfClasses;
-  for (int i = 1; i < outRank; ++i) outputShape[i + 1] = shape::sizeAt(in, i);
+  for (LongType i = 1; i < outRank; ++i) outputShape[i + 1] = shape::sizeAt(in, i);
 
   ShapeUtils::updateStridesAndType(outputShape, in, shape::order(in));
 
@@ -80,13 +80,7 @@ CUSTOM_OP_IMPL(segment_min_bp, 3, 2, false, 0, 0) {
 DECLARE_SHAPE_FN(segment_min_bp) {
   auto in = inputShape->at(0);
   auto inIdx = inputShape->at(1);
-
-  sd::LongType* outShape;
-  sd::LongType* outIndex;
-  COPY_SHAPE(in, outShape);
-  COPY_SHAPE(inIdx, outIndex);
-  return SHAPELIST(CONSTANT(outShape), CONSTANT(outIndex));
-  //            return SHAPELIST(in, inIdx);
+  return SHAPELIST(CONSTANT(in), CONSTANT(inIdx));
 }
 
 DECLARE_TYPES(segment_min) {
@@ -98,7 +92,7 @@ DECLARE_TYPES(segment_min) {
 }
 DECLARE_TYPES(segment_min_bp) {
   getOpDescriptor()
-      ->setAllowedInputTypes(sd::DataType::ANY)
+      ->setAllowedInputTypes(ANY)
       ->setAllowedOutputTypes(0, {ALL_FLOATS})
       ->setAllowedOutputTypes(1, {ALL_INTS})
       ->setSameMode(true);

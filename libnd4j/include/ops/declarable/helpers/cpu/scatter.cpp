@@ -32,7 +32,7 @@ namespace helpers {
 ///////////////////////////////////////////////////////////////////
 // x - indices, z - input/output
 template <typename T>
-sd::LongType checkIndices_(const NDArray& indices, const NDArray& output, const int axis) {
+sd::LongType checkIndices_(NDArray& indices, NDArray& output, const int axis) {
   std::atomic<int64_t> numOfBadIndx{0};
 
   const auto x = indices.bufferAsT<T>();
@@ -40,18 +40,23 @@ sd::LongType checkIndices_(const NDArray& indices, const NDArray& output, const 
   const auto xShapeInfo = indices.shapeInfo();
   const auto zShapeInfo = output.shapeInfo();
 
-  const auto xRank = indices.rankOf();
+  // Cache shape information
+  const auto xRank = shape::rank(xShapeInfo);
+  const auto* xShape = shape::shapeOf(xShapeInfo);
+  const auto* xStride = shape::stride(xShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int xCoords[SD_MAX_RANK];
+    sd::LongType xCoords[SD_MAX_RANK];
 
     for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, xShapeInfo, xCoords);
+      INDEX2COORDS(i, xRank, xShape, xCoords);
 
-      const sd::LongType currentInd = x[shape::getOffset(xShapeInfo, xCoords)];
+      sd::LongType xOffset;
+      COORDS2INDEX(xRank, xStride, xCoords, xOffset);
+
+      const sd::LongType currentInd = x[xOffset];
 
       if (currentInd >= shape::sizeAt(zShapeInfo, axis == -1 ? xCoords[xRank - 1] : axis)) {
-        printf("checkIndices: out of range element %lld at index %ld \n", currentInd, i);
         ++numOfBadIndx;
       }
     }
@@ -63,12 +68,12 @@ sd::LongType checkIndices_(const NDArray& indices, const NDArray& output, const 
 }
 
 ///////////////////////////////////////////////////////////////////
-sd::LongType checkIndices(sd::LaunchContext* context, const NDArray& indices, const NDArray& output, const int axis) {
+sd::LongType checkIndices(sd::LaunchContext* context, NDArray& indices, NDArray& output, const int axis) {
   BUILD_SINGLE_SELECTOR(indices.dataType(), return checkIndices_, (indices, output, axis), SD_INDEXING_TYPES);
 }
 
 ///////////////////////////////////////////////////////////////////
-void scatter(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indices, const NDArray& updates,
+void scatter(sd::LaunchContext* context, pairwise::Ops op, NDArray& indices, NDArray& updates,
              NDArray& output, const bool lock) {
   const int outRank = output.rankOf();
   const int indRank = indices.rankOf();
@@ -80,8 +85,8 @@ void scatter(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indice
       for (auto i = start; i < stop; i++) {
         sd::LongType idx = indices.e<sd::LongType>(i);
         NDArray out = output({idx, idx + 1});
-
-        out.applyPairwiseTransform(op, updates.e(i));
+        NDArray updateE = updates.e(i);
+        out.applyPairwiseTransform(op, &updateE);
       }
     };
 
@@ -91,14 +96,14 @@ void scatter(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indice
     int sizeOfDims = indRank;
     if (outRank == updRank && indices.isVector()) sizeOfDims = 1;
 
-    std::vector<int> dimsToExcludeUpd(sizeOfDims);
+    std::vector<sd::LongType > dimsToExcludeUpd(sizeOfDims);
     std::iota(dimsToExcludeUpd.begin(), dimsToExcludeUpd.end(), 0);
 
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        NDArray outSubArr = output(indices.e<sd::LongType>(i), std::vector<int>({0}));
+        NDArray outSubArr = output(indices.e<sd::LongType>(i), std::vector<sd::LongType >({0}));
         NDArray updSubArr = updates(i, dimsToExcludeUpd);
-        outSubArr.applyPairwiseTransform(op, updSubArr);
+        outSubArr.applyPairwiseTransform(op, &updSubArr);
       }
     };
 
@@ -107,7 +112,7 @@ void scatter(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indice
 }
 
 ///////////////////////////////////////////////////////////////////
-void scatterND(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indices, const NDArray& updates,
+void scatterND(sd::LaunchContext* context, pairwise::Ops op, NDArray& indices, NDArray& updates,
                NDArray& output, const bool lock) {
   const sd::LongType indLen = indices.lengthOf();
   const int outRank = output.rankOf();
@@ -119,23 +124,24 @@ void scatterND(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indi
       for (auto i = start; i < stop; i++) {
         sd::LongType idx = indices.e<sd::LongType>(i);
         NDArray out = output({idx, idx + 1});
-
-        out.applyPairwiseTransform(op, updates.e(i), nullptr);
+        NDArray updatesE = updates.e(i);
+        ExtraArguments *extraArgs = nullptr;
+        out.applyPairwiseTransform(op, &updatesE, extraArgs);
       }
     };
 
     samediff::Threads::parallel_tad(func, 0, indLen, 1, lock ? 1 : sd::Environment::getInstance().maxThreads());
   } else {
-    std::vector<int> dimsToExcludeInd = ShapeUtils::evalDimsToExclude(indRank, {indRank - 1});
-    std::vector<int> dimsToExcludeUpd(indRank - 1);
+    std::vector<sd::LongType> dims = {indRank - 1};
+    std::vector<sd::LongType > *dimsToExcludeInd = ShapeUtils::evalDimsToExclude(indRank, dims.size(),dims.data());
+    std::vector<sd::LongType > dimsToExcludeUpd(indRank - 1);
     std::iota(dimsToExcludeUpd.begin(), dimsToExcludeUpd.end(), 0);
 
     auto func = PRAGMA_THREADS_FOR {
       std::vector<sd::LongType> idxRangeOut(2 * outRank, 0);
 
       for (auto i = start; i < stop; i++) {
-        NDArray indSubArr = indices(i, dimsToExcludeInd);
-
+        NDArray indSubArr = indices(i, *dimsToExcludeInd);
         for (sd::LongType j = 0; j < indLastDim; ++j) {
           idxRangeOut[2 * j] = indSubArr.e<sd::LongType>(j);
           idxRangeOut[2 * j + 1] = idxRangeOut[2 * j] + 1;
@@ -144,44 +150,47 @@ void scatterND(sd::LaunchContext* context, pairwise::Ops op, const NDArray& indi
         NDArray outSubArr = output(idxRangeOut);
         NDArray updSubArr = updates(i, dimsToExcludeUpd);
 
-        outSubArr.applyPairwiseTransform(op, updSubArr);
+        outSubArr.applyPairwiseTransform(op, &updSubArr);
       }
     };
 
     samediff::Threads::parallel_tad(func, 0, indLen / indLastDim, 1,
                                     lock ? 1 : sd::Environment::getInstance().maxThreads());
+
+    delete dimsToExcludeInd;
   }
 }
 
-void scatterForLoss(sd::LaunchContext* context, const NDArray& indices, NDArray& updates, NDArray& output,
+void scatterForLoss(sd::LaunchContext* context, NDArray& indices, NDArray& updates, NDArray& output,
                     const bool calcGrad) {
-  // shapes of indices and output must be the same
-  // shape of indices should be the same as updates shape with last dimension excluded
-  // for example if updates is {a,b,c} then indices should be {a,b}
-
   const sd::LongType indicesLen = indices.lengthOf();
-
-  std::vector<int> dimsToExclude = ShapeUtils::evalDimsToExclude(updates.rankOf(), {-1});
+  std::vector<sd::LongType> dim = {-1};
+  std::vector<sd::LongType > *dimsToExclude = ShapeUtils::evalDimsToExclude(updates.rankOf(), dim.size(),dim.data());
 
   if (!calcGrad) {
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        auto subArr = updates(i, dimsToExclude);
-        output.p(i, subArr.e(indices.e<sd::LongType>(i)));
+        auto subArr = updates(i, *dimsToExclude);
+        auto curr = indices.e<sd::LongType>(i);
+        output.p(i, curr);
       }
     };
 
     samediff::Threads::parallel_for(func, 0, indicesLen);
+
+    delete dimsToExclude;
   } else {
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        auto subArr = updates(i, dimsToExclude);
+        auto subArr = updates(i, *dimsToExclude);
         auto ind = indices.e<sd::LongType>(i);
-        subArr.p(ind, subArr.e(ind) - 1.);
+        auto curr = subArr.e<sd::LongType>(ind) - 1.;
+        subArr.p(ind,curr);
       }
     };
 
     samediff::Threads::parallel_for(func, 0, indicesLen);
+    delete dimsToExclude;
   }
 }
 

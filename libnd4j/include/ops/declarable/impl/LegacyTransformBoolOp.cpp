@@ -22,19 +22,21 @@
 #include <legacy/NativeOpExecutioner.h>
 #include <ops/declarable/LegacyTransformBoolOp.h>
 
+#include <ops/declarable/OpRegistrator.h>
+
 namespace sd {
 namespace ops {
-LegacyTransformBoolOp::LegacyTransformBoolOp() : LegacyOp::LegacyOp(1) {
+LegacyTransformBoolOp::LegacyTransformBoolOp() : LegacyOp(1) {
   // just a no-op
 }
 
-LegacyTransformBoolOp::LegacyTransformBoolOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyTransformBoolOp::LegacyTransformBoolOp(int opNum) : LegacyOp(1, opNum) {
   // just a no-op
 }
 
 LegacyOp *LegacyTransformBoolOp::clone() { return new LegacyTransformBoolOp(this->_opNum); }
 
-sd::Status LegacyTransformBoolOp::validateAndExecute(Context &block) {
+Status LegacyTransformBoolOp::validateAndExecute(Context &block) {
   auto input = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
@@ -48,12 +50,13 @@ sd::Status LegacyTransformBoolOp::validateAndExecute(Context &block) {
   NativeOpExecutioner::execTransformBool(block.launchContext(), opNum, input->buffer(), input->shapeInfo(),
                                          input->specialBuffer(), input->specialShapeInfo(), z->buffer(), z->shapeInfo(),
                                          z->specialBuffer(), z->specialShapeInfo(),
-                                         extras.argumentsAsT(input->dataType()), nullptr, nullptr);
+                                         extras.argumentsAsT(input->dataType()));
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 /**
@@ -61,9 +64,10 @@ sd::Status LegacyTransformBoolOp::validateAndExecute(Context &block) {
  * col2im. But these ops already have CustomOp implementations.
  *
  */
-ShapeList *LegacyTransformBoolOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyTransformBoolOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(inShape, DataType::BOOL)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().castToDataType(inShape, BOOL));
+  return ret;
 }
 }  // namespace ops
 }  // namespace sd

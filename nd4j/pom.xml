@@ -26,12 +26,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.deeplearning4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <artifactId>deeplearning4j</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.nd4j</groupId>
+    <groupId>org.eclipse.deeplearning4j</groupId>
     <artifactId>nd4j</artifactId>
     <packaging>pom</packaging>
 
@@ -43,14 +43,29 @@
         <module>nd4j-serde</module>
         <module>nd4j-common</module>
         <module>nd4j-backends</module>
-        <module>nd4j-parameter-server-parent</module>
         <module>nd4j-tensorflow</module>
         <module>nd4j-tensorflow-lite</module>
         <module>nd4j-onnxruntime</module>
         <module>nd4j-tvm</module>
-        <module>nd4j-common-tests</module>
         <module>samediff-import</module>
+        <module>nd4j-web</module>
+
     </modules>
+
+    <profiles>
+        <profile>
+            <id>profiler</id>
+            <modules>
+                <module>nd4j-profiler</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>platform-tests</id>
+            <modules>
+                <module>nd4j-common-tests</module>
+            </modules>
+        </profile>
+    </profiles>
 
     <dependencyManagement>
         <dependencies>
@@ -65,6 +80,12 @@
                 <artifactId>slf4j-api</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
+            <!-- Redirect jackson to slf4j.  -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
@@ -76,27 +97,19 @@
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.nd4j</groupId>
+                <groupId>org.eclipse.deeplearning4j</groupId>
                 <artifactId>nd4j-native-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.nd4j</groupId>
+                <groupId>org.eclipse.deeplearning4j</groupId>
                 <artifactId>nd4j-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <!-- used to alleviate licensing issues with findbugs -->
-        <dependency>
-            <groupId>com.github.stephenc.findbugs</groupId>
-            <artifactId>findbugs-annotations</artifactId>
-            <version>${findbugs-annotations.version}</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+
 
     <build>
         <extensions>

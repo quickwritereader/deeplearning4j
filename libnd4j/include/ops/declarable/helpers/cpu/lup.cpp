@@ -29,25 +29,30 @@ namespace ops {
 namespace helpers {
 
 template <typename T>
-static void swapRows_(NDArray* matrix, int theFirst, int theSecond) {
+static void swapRows_(NDArray* matrix, sd::LongType theFirst, sd::LongType theSecond) {
   if (theFirst != theSecond)
-    for (int i = 0; i < matrix->columns(); i++) {
+    for (sd::LongType i = 0; i < matrix->columns(); i++) {
       math::sd_swap(matrix->r<T>(theFirst, i), matrix->r<T>(theSecond, i));
     }
 }
-BUILD_SINGLE_TEMPLATE(template void swapRows_, (NDArray * matrix, int theFirst, int theSecond), SD_FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void swapRows_, (NDArray * matrix, sd::LongType theFirst, sd::LongType theSecond), SD_FLOAT_TYPES);
 
 template <typename T>
 static void swapRows(T* matrixBuf, sd::LongType const* matrixShape, sd::LongType theFirst, sd::LongType theSecond) {
   if (theFirst != theSecond) {
-    auto n = shape::sizeAt(matrixShape, -1);
+    auto n = shape::sizeAt(matrixShape, static_cast<sd::LongType>(-1));
 
     auto loop = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
         sd::LongType theFirstPos[] = {theFirst, i};
         sd::LongType theSecondPos[] = {theSecond, i};
-        auto theFirstIndex = shape::getOffset(matrixShape, theFirstPos, 0);
-        auto theSecondIndex = shape::getOffset(matrixShape, theSecondPos, 0);
+
+        sd::LongType theFirstIndex;
+        COORDS2INDEX(shape::rank(matrixShape), shape::stride(matrixShape), theFirstPos, theFirstIndex);
+
+        sd::LongType theSecondIndex;
+        COORDS2INDEX(shape::rank(matrixShape), shape::stride(matrixShape), theSecondPos, theSecondIndex);
+
         math::sd_swap(matrixBuf[theFirstIndex], matrixBuf[theSecondIndex]);
       }
     };
@@ -56,23 +61,23 @@ static void swapRows(T* matrixBuf, sd::LongType const* matrixShape, sd::LongType
   }
 }
 
-void swapRows(NDArray* matrix, int theFirst, int theSecond) {
+void swapRows(NDArray* matrix, sd::LongType theFirst, sd::LongType theSecond) {
   BUILD_SINGLE_SELECTOR(matrix->dataType(), swapRows_, (matrix, theFirst, theSecond), SD_FLOAT_TYPES);
 }
 
 template <typename T>
 static void invertLowerMatrix_(NDArray* inputMatrix, NDArray* invertedMatrix) {
-  int n = inputMatrix->rows();
+  sd::LongType n = inputMatrix->rows();
   invertedMatrix->setIdentity();
 
   if (inputMatrix->isIdentityMatrix()) return;
 
   auto invertDiagonals = PRAGMA_THREADS_FOR {
-    for (int i = start; i < stop; i += increment) invertedMatrix->r<T>(i, i) /= inputMatrix->t<T>(i, i);
+    for (sd::LongType i = start; i < stop; i += increment) invertedMatrix->r<T>(i, i) /= inputMatrix->t<T>(i, i);
   };
 
   auto invertSubDiagonals = PRAGMA_THREADS_FOR {
-    for (int i = start; i < stop; i += increment)
+    for (sd::LongType i = start; i < stop; i += increment)
       invertedMatrix->r<T>(i, i - 1) -=
           (inputMatrix->t<T>(i, i - 1) * invertedMatrix->t<T>(i - 1, i - 1) / inputMatrix->t<T>(i, i));
   };
@@ -80,10 +85,9 @@ static void invertLowerMatrix_(NDArray* inputMatrix, NDArray* invertedMatrix) {
   samediff::Threads::parallel_for(invertDiagonals, 0, n, 1);
   samediff::Threads::parallel_for(invertSubDiagonals, 1, n, 1);
 
-  //        PRAGMA_OMP_PARALLEL_FOR_SIMD
-  for (int i = 1; i < n; i++) {
-    for (int j = 0; j < i - 1; j++)
-      for (int k = 0; k < i; k++)
+  for (sd::LongType i = 1; i < n; i++) {
+    for (sd::LongType j = 0; j < i - 1; j++)
+      for (sd::LongType k = 0; k < i; k++)
         invertedMatrix->r<T>(i, j) -=
             ((invertedMatrix->t<T>(k, j) * inputMatrix->t<T>(i, k) / inputMatrix->t<T>(i, i)));
   }
@@ -98,7 +102,7 @@ void invertLowerMatrix(NDArray* inputMatrix, NDArray* invertedMatrix) {
 
 template <typename T>
 static void _invertUpperMatrix(NDArray* inputMatrix, NDArray* invertedMatrix) {
-  int n = inputMatrix->rows();
+  sd::LongType n = inputMatrix->rows();
   invertedMatrix->setIdentity();
 
   if (inputMatrix->isIdentityMatrix()) {  // the inverse for I is I
@@ -119,7 +123,6 @@ static void _invertUpperMatrix(NDArray* inputMatrix, NDArray* invertedMatrix) {
   samediff::Threads::parallel_for(invertDiagonals, 0, n, 1);
   samediff::Threads::parallel_for(invertUpDiagonals, 0, n - 1, 1);
 
-  //        PRAGMA_OMP_PARALLEL_FOR_SIMD
   for (auto i = n - 2; i >= 0; i--) {
     for (auto j = i + 2; j < n; j++)
       for (auto k = i; k < n; k++)
@@ -137,8 +140,8 @@ void invertUpperMatrix(NDArray* inputMatrix, NDArray* invertedMatrix) {
 
 template <typename T, typename I>
 static NDArray lup_(LaunchContext* context, NDArray* input, NDArray* compound, NDArray* permutation) {
-  const int rowNum = input->rows();
-  const int columnNum = input->columns();
+  const sd::LongType rowNum = input->rows();
+  const sd::LongType columnNum = input->columns();
 
   NDArray determinant = NDArrayFactory::create<T>(1.f, context);
   NDArray compoundMatrix = *input;                   // copy
@@ -146,16 +149,15 @@ static NDArray lup_(LaunchContext* context, NDArray* input, NDArray* compound, N
   permutationMatrix.setIdentity();
 
   T pivotValue;  // = T(0.0);
-  int pivot;     // = -1;
-  int swapCount = 0;
+  sd::LongType pivot;     // = -1;
+  sd::LongType swapCount = 0;
 
-  for (int i = 0; i < rowNum; i++) {
+  for (sd::LongType i = 0; i < rowNum; i++) {
     pivotValue = T(0.0);
     pivot = -1;
-    // PRAGMA_OMP_PARALLEL_FOR //_ARGS(firstprivate(pivot,pivotValue))
-    for (int rowCounter = i; rowCounter < rowNum; rowCounter++) {
-      if (sd::math::sd_abs(compoundMatrix.t<T>(rowCounter, i)) > pivotValue) {
-        pivotValue = sd::math::sd_abs(compoundMatrix.t<T>(rowCounter, i));
+    for (sd::LongType rowCounter = i; rowCounter < rowNum; rowCounter++) {
+      if (sd::math::sd_abs<T,T>(compoundMatrix.t<T>(rowCounter, i)) > pivotValue) {
+        pivotValue = sd::math::sd_abs<T,T>(compoundMatrix.t<T>(rowCounter, i));
         pivot = rowCounter;
       }
     }
@@ -165,22 +167,20 @@ static NDArray lup_(LaunchContext* context, NDArray* input, NDArray* compound, N
       swapRows(&permutationMatrix, pivot, i);
       if (pivot != i) swapCount++;
 
-      for (int j = i + 1; j < rowNum; j++) {
+      for (sd::LongType j = i + 1; j < rowNum; j++) {
         compoundMatrix.r<T>(j, i) /= compoundMatrix.t<T>(i, i);
-        // PRAGMA_OMP_PARALLEL_FOR
-        for (int k = i + 1; k < rowNum; k++) {
+        for (sd::LongType k = i + 1; k < rowNum; k++) {
           compoundMatrix.r<T>(j, k) -= compoundMatrix.t<T>(j, i) * compoundMatrix.t<T>(i, k);
         }
       }
     }
   }
 
-  for (int e = 0; e < rowNum; e++) {
-    // sd_printf("Compound matrix diag %i %f.\n", e, (*compoundMatrix)(e, e));
+  for (sd::LongType e = 0; e < rowNum; e++) {
     determinant *= compoundMatrix.e<T>(e, e);
   }
   if (swapCount % 2) determinant = -determinant;
-  if (compound != nullptr) compound->assign(compoundMatrix);
+  if (compound != nullptr) compound->assign(&compoundMatrix);
   if (permutation != nullptr) {
     auto permutaionVector = NDArrayFactory::create('c', {rowNum}, DataTypeUtils::fromT<I>(), input->getContext());
     for (auto i = 0; i < rowNum; i++) {
@@ -191,9 +191,9 @@ static NDArray lup_(LaunchContext* context, NDArray* input, NDArray* compound, N
       }
     }
     if (permutationMatrix.isSameShape(permutation))
-      permutation->assign(permutationMatrix);
+      permutation->assign(&permutationMatrix);
     else if (permutation->isSameShape(permutaionVector)) {
-      permutation->assign(permutaionVector);
+      permutation->assign(&permutaionVector);
     }
   }
   return determinant;
@@ -207,42 +207,45 @@ BUILD_DOUBLE_TEMPLATE(template NDArray lup_,
  * */
 template <typename T, typename I>
 static I argmaxCol(I column, T* compoundBuffer, sd::LongType const* compoundShape) {
-  auto rowNum = shape::sizeAt(compoundShape, 0);
+  auto rowNum = shape::sizeAt(compoundShape, static_cast<sd::LongType>(0));
   sd::LongType xInitial[] = {column, column};
-  auto xInitialIndex = shape::getOffset(compoundShape, xInitial, 0);
-  auto maxValue = T(0);  // sd::math::sd_abs(compoundBuffer[xInitialIndex]);
+  sd::LongType xInitialIndex;
+  COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), xInitial, xInitialIndex);
+  auto maxValue = T(0);
   auto result = -1;
-  // auto loop = PRAGMA_THREADS_FOR {
   auto start = column;
   auto stop = rowNum;
   auto increment = 1;
   for (auto rowCounter = start; rowCounter < stop; rowCounter++) {
     sd::LongType xPos[] = {rowCounter, column};
-    auto xIndex = shape::getOffset(compoundShape, xPos, 0);
-    if (sd::math::sd_abs(compoundBuffer[xIndex]) > maxValue) {
-      maxValue = sd::math::sd_max(maxValue, sd::math::sd_abs(compoundBuffer[xIndex]));
+    sd::LongType xIndex;
+    COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), xPos, xIndex);
+    if (sd::math::sd_abs<T,T>(compoundBuffer[xIndex]) > maxValue) {
+      maxValue = sd::math::sd_max(maxValue, sd::math::sd_abs<T,T>(compoundBuffer[xIndex]));
       result = rowCounter;
     }
   }
-  //};
-  // samediff::Threads::parallel_for(loop, column, rowNum, 1);
+
   return result;
 }
 
 template <typename T>
-void processColumns(int currentRow, int rowNum, T* compoundBuf, sd::LongType const* compoundShape) {
+void processColumns(sd::LongType currentRow, sd::LongType rowNum, T* compoundBuf, sd::LongType const* compoundShape) {
   sd::LongType xDiag[] = {currentRow, currentRow};
-  auto diagIndex = shape::getOffset(compoundShape, xDiag, 0);
+  sd::LongType diagIndex;
+  COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), xDiag, diagIndex);
   auto loop = PRAGMA_THREADS_FOR {
     for (auto j = start; j < stop; j++) {
       sd::LongType xRow[] = {j, currentRow};
-      auto rowIndex = shape::getOffset(compoundShape, xRow, 0);
+      sd::LongType rowIndex;
+      COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), xRow, rowIndex);
       compoundBuf[rowIndex] /= compoundBuf[diagIndex];  // output->t<T>(i, i);
-      for (int k = currentRow + 1; k < rowNum; k++) {
+      for (sd::LongType k = currentRow + 1; k < rowNum; k++) {
         sd::LongType yRow[] = {j, k};
         sd::LongType yCol[] = {currentRow, k};
-        auto rowIndexY = shape::getOffset(compoundShape, yRow, 0);
-        auto colIndex = shape::getOffset(compoundShape, yCol, 0);
+        sd::LongType rowIndexY, colIndex;
+        COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), yRow, rowIndexY);
+        COORDS2INDEX(shape::rank(compoundShape), shape::stride(compoundShape), yCol, colIndex);
         compoundBuf[rowIndexY] -= compoundBuf[rowIndex] * compoundBuf[colIndex];
       }
     }
@@ -261,18 +264,18 @@ static void doolitleLU(LaunchContext* context, NDArray* compound, sd::LongType r
     // Upper Triangular
     for (auto k = i; k < rowNum; k++) {
       // Summation of L(i, j) * U(j, k)
-      int sum = 0;
-      for (int j = 0; j < i; j++) sum += compound->t<T>(i, j) * compound->t<T>(j, k);
+      sd::LongType sum = 0;
+      for (sd::LongType j = 0; j < i; j++) sum += compound->t<T>(i, j) * compound->t<T>(j, k);
 
       // Evaluating U(i, k)
       compound->r<T>(i, k) = input.t<T>(i, k) - sum;
     }
 
     // Lower Triangular
-    for (int k = i + 1; k < rowNum; k++) {
+    for (sd::LongType k = i + 1; k < rowNum; k++) {
       // Summation of L(k, j) * U(j, i)
-      int sum = 0;
-      for (int j = 0; j < i; j++) sum += compound->t<T>(k, j) * compound->t<T>(j, i);
+      sd::LongType sum = 0;
+      for (sd::LongType j = 0; j < i; j++) sum += compound->t<T>(k, j) * compound->t<T>(j, i);
 
       // Evaluating L(k, i)
       compound->r<T>(k, i) = (input.t<T>(k, i) - sum) / compound->t<T>(i, i);
@@ -282,30 +285,52 @@ static void doolitleLU(LaunchContext* context, NDArray* compound, sd::LongType r
 
 template <typename T, typename I>
 static void luNN_(LaunchContext* context, NDArray* compound, NDArray* permutation, sd::LongType rowNum) {
-  // const int rowNum = compound->rows();
-  //        const int columnNum = output->columns();
   if (permutation) {  // LUP algorithm
+    // Initialize permutation array
     permutation->linspace(0);
-    auto permutationBuf = permutation->bufferAsT<I>();  // dataBuffer()->primaryAsT<I>();
+
+    // Cache all buffers and shape data upfront
+    auto permutationBuf = permutation->bufferAsT<I>();
     auto compoundBuf = compound->bufferAsT<T>();
     auto compoundShape = compound->shapeInfo();
     auto permutationShape = permutation->shapeInfo();
-    for (auto i = 0; i < rowNum - 1; i++) {
+
+    // Cache shape-related values outside the main loop
+    const int permRank = shape::rank(permutationShape);
+    const sd::LongType* permShape = shape::shapeOf(permutationShape);
+    const sd::LongType* permStride = shape::stride(permutationShape);
+
+    // Main LU decomposition loop
+    for (sd::LongType i = 0; i < rowNum - 1; i++) {
       auto pivotIndex = argmaxCol(i, compoundBuf, compoundShape);
       if (pivotIndex < 0) {
-        throw std::runtime_error("helpers::luNN_: input matrix is singular.");
+        THROW_EXCEPTION("helpers::luNN_: input matrix is singular.");
       }
-      math::sd_swap(permutationBuf[shape::getIndexOffset(i, permutationShape)],
-                    permutationBuf[shape::getIndexOffset(pivotIndex, permutationShape)]);
+
+      // Use cached shape values for coordinate transforms
+      sd::LongType firstIndexCoords[SD_MAX_RANK];
+      sd::LongType secondIndexCoords[SD_MAX_RANK];
+      sd::LongType firstIndex;
+      sd::LongType secondIndex;
+
+      // Transform coordinates using cached shape data
+      INDEX2COORDS(i, permRank, permShape, firstIndexCoords);
+      COORDS2INDEX(permRank, permStride, firstIndexCoords, firstIndex);
+
+      INDEX2COORDS(pivotIndex, permRank, permShape, secondIndexCoords);
+      COORDS2INDEX(permRank, permStride, secondIndexCoords, secondIndex);
+
+      // Perform the swaps
+      math::sd_swap(permutationBuf[firstIndex], permutationBuf[secondIndex]);
       swapRows(compoundBuf, compoundShape, i, pivotIndex);
 
+      // Process remaining columns
       processColumns(i, rowNum, compoundBuf, compoundShape);
     }
   } else {  // Doolitle algorithm with LU decomposition
     doolitleLU<T>(context, compound, rowNum);
   }
 }
-
 template <typename T, typename I>
 static void lu_(LaunchContext* context, NDArray* input, NDArray* output, NDArray* permutationVectors) {
   auto n = input->sizeAt(-1);
@@ -328,8 +353,7 @@ void lu(LaunchContext* context, NDArray* input, NDArray* output, NDArray* permut
                         (context, input, output, permutation), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
 }
 
-//    BUILD_DOUBLE_TEMPLATE(template NDArray lu_, (LaunchContext *context, NDArray* input, NDArray* output, NDArray*
-//    permutation), SD_FLOAT_TYPES, SD_INDEXING_TYPES);
+
 
 template <typename T>
 static sd::Status determinant_(LaunchContext* context, NDArray* input, NDArray* output) {
@@ -339,9 +363,10 @@ static sd::Status determinant_(LaunchContext* context, NDArray* input, NDArray* 
   auto matrix =
       NDArrayFactory::create(input->ordering(), {n, n}, input->dataType(), context);  //, block.getWorkspace());
 
-  for (int e = 0; e < output->lengthOf(); e++) {
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; ++k, ++row) matrix.p(row, input->e<T>(k));
-    output->p(e, lup_<T, int>(context, &matrix, (NDArray*)nullptr, (NDArray*)nullptr));
+  for (sd::LongType e = 0; e < output->lengthOf(); e++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; ++k, ++row) matrix.p(row, input->e<T>(k));
+    auto ret = lup_<T, sd::LongType>(context, &matrix, (NDArray*)nullptr, (NDArray*)nullptr);
+    output->p(e, &ret);
   }
 
   return sd::Status::OK;
@@ -358,12 +383,12 @@ sd::Status logAbsDeterminant_(LaunchContext* context, NDArray* input, NDArray* o
 
   NDArray matrix =
       NDArrayFactory::create(input->ordering(), {n, n}, input->dataType(), context);  //, block.getWorkspace());
-  for (int e = 0; e < output->lengthOf(); e++) {
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; ++k, ++row) {
+  for (sd::LongType e = 0; e < output->lengthOf(); e++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; ++k, ++row) {
       matrix.p(row, input->e<T>(k));
     }
-    NDArray det = lup_<T, int>(context, &matrix, (NDArray*)nullptr, (NDArray*)nullptr);
-    if (det.e<T>(0) != 0.f) output->p(e, sd::math::sd_log<T, T>(sd::math::sd_abs(det.t<T>(0))));
+    NDArray det = lup_<T, sd::LongType>(context, &matrix, (NDArray*)nullptr, (NDArray*)nullptr);
+    if (det.e<T>(0) != 0.f) output->p(e, sd::math::sd_log<T, T>(sd::math::sd_abs<T,T>(det.t<T>(0))));
   }
 
   return sd::Status::OK;
@@ -378,35 +403,34 @@ static sd::Status inverse_(LaunchContext* context, NDArray* input, NDArray* outp
   auto n = input->sizeAt(-1);
   auto n2 = n * n;
   auto totalCount = output->lengthOf() / n2;
-
-  output->assign(0.f);  // fill up output tensor with zeros
+  float zerof = 0.f;
+  output->assign(zerof);  // fill up output tensor with zeros
   auto matrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);    //, block.getWorkspace());
   auto compound = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);  //, block.getWorkspace());
   auto permutation = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto lowerMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto upperMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
+  float zero = 0.f;
+  for (sd::LongType e = 0; e < totalCount; e++) {
+    if (e) matrix.assign(zero);
 
-  for (int e = 0; e < totalCount; e++) {
-    if (e) matrix.assign(0.f);
-
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; k++) {
       matrix.p(row++, input->e<T>(k));
     }
-    T det = lup_<T, int>(context, &matrix, &compound, &permutation).template e<T>(0);
+    T det = lup_<T, sd::LongType>(context, &matrix, &compound, &permutation).template e<T>(0);
 
     // FIXME: and how this is going to work on float16?
-    if (sd::math::sd_abs<T>(det) < T(0.000001)) {
+    if (sd::math::sd_abs<T,T>(det) < T(0.000001)) {
       sd_printf("matrix_inverse: The matrix %i has no inverse due determinant is %lf. Quiting...\n", e, det);
-      matrix.printIndexedBuffer("Wrong matrix");
       return sd::Status::VALIDATION;
     }
     lowerMatrix.setIdentity();     // set up U to identity matrix
-    for (int k = 1; k < n; k++) {  // and then put all values under main diagonal on to it
-      for (int j = 0; j < k; j++) lowerMatrix.template r<T>(k, j) = compound.template t<T>(k, j);
+    for (sd::LongType k = 1; k < n; k++) {  // and then put all values under main diagonal on to it
+      for (sd::LongType j = 0; j < k; j++) lowerMatrix.template r<T>(k, j) = compound.template t<T>(k, j);
     }
     upperMatrix.setIdentity();     // set up U to identity matrix
-    for (int k = 0; k < n; k++) {  // and then put all values under main diagonal on to it
-      for (int j = k; j < n; j++) upperMatrix.template r<T>(k, j) = compound.template t<T>(k, j);
+    for (sd::LongType k = 0; k < n; k++) {  // and then put all values under main diagonal on to it
+      for (sd::LongType j = k; j < n; j++) upperMatrix.template r<T>(k, j) = compound.template t<T>(k, j);
     }
     invertUpperMatrix(&upperMatrix, &matrix);
 
@@ -414,7 +438,7 @@ static sd::Status inverse_(LaunchContext* context, NDArray* input, NDArray* outp
 
     sd::MmulHelper::mmul(&matrix, &upperMatrix, &compound, 1.0, 0.0);
     sd::MmulHelper::mmul(&compound, &permutation, &matrix, 1.0, 0.0);
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; k++) {
       output->r<T>(k) = matrix.template t<T>(row++);
     }
   }
@@ -427,19 +451,17 @@ static sd::Status lowerInverse_(LaunchContext* context, NDArray* input, NDArray*
   auto n = input->sizeAt(-1);
   auto n2 = n * n;
   auto totalCount = output->lengthOf() / n2;
-
-  output->assign(0.f);  // fill up output tensor with zeros
-  auto matrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);    //, block.getWorkspace());
-  auto compound = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);  //, block.getWorkspace());
+  float zero = 0.f;
+  output->assign(zero);  // fill up output tensor with zeros
+  auto matrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
+  auto compound = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto permutation = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto lowerMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto upperMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
+  for (sd::LongType e = 0; e < totalCount; e++) {
+    if (e) matrix.assign(zero);
 
-  //        auto batchLoop = PRAGMA_THREADS_FOR {
-  for (int e = 0; e < totalCount; e++) {
-    if (e) matrix.assign(0.f);
-
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; k++) {
       matrix.p(row++, input->e<T>(k));
     }
     T det = T(1.f);
@@ -448,15 +470,14 @@ static sd::Status lowerInverse_(LaunchContext* context, NDArray* input, NDArray*
     }
 
     // FIXME: and how this is going to work on float16?
-    if (sd::math::sd_abs<T>(det) < T(0.000001)) {
-      sd_printf("matrix_inverse: The matrix %i has no inverse due determinant is %lf. Quiting...\n", e, det);
-      matrix.printIndexedBuffer("Wrong matrix");
+    if (sd::math::sd_abs<T,T>(det) < T(0.000001)) {
+      sd_printf("matrix_inverse: The matrix %i has no inverse due determinant is %lf. Quitting...\n", e, det);
       return sd::Status::VALIDATION;
     }
     lowerMatrix.nullify();
     invertLowerMatrix(&matrix, &lowerMatrix);
 
-    for (int k = e * n2, row = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, row = 0; k < (e + 1) * n2; k++) {
       output->r<T>(k) = lowerMatrix.template t<T>(row++);
     }
   }
@@ -470,13 +491,10 @@ static sd::Status upperInverse_(LaunchContext* context, NDArray* input, NDArray*
   auto n2 = n * n;
 
   output->nullify();  // fill up output tensor with zeros
-  //        auto matrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context); //,
-  //        block.getWorkspace()); auto lowerMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(),
-  //        context); auto upperMatrix = NDArrayFactory::create('c', {n, n}, DataTypeUtils::fromT<T>(), context);
   auto inputPart = input->allTensorsAlongDimension({-2, -1});
   auto outputPart = output->allTensorsAlongDimension({-2, -1});
-  auto totalCount = outputPart.size();  // lengthOf() / n2;
-  for (int e = 0; e < totalCount; e++) {
+  auto totalCount = outputPart.size();
+  for (sd::LongType e = 0; e < totalCount; e++) {
     invertUpperMatrix(inputPart.at(e), outputPart.at(e));
   }
   return sd::Status::OK;
@@ -495,16 +513,14 @@ sd::Status upperInverseFunctor(sd::LaunchContext* context, NDArray* input, NDArr
 }
 
 template <typename T>
-static bool checkCholeskyInput_(sd::LaunchContext* context, NDArray const* input) {
-  // std::unique_ptr<NDArray> matrix(NDArrayFactory::create_('c', {n, n}, input->dataType())); //,
-  // block.getWorkspace());
+static bool checkCholeskyInput_(sd::LaunchContext* context, NDArray * input) {
   ResultSet lastMatrixList = input->allTensorsAlongDimension({input->rankOf() - 2, input->rankOf() - 1});
-  for (size_t i = 0; i < lastMatrixList.size(); i++) {
+  for (sd::LongType i = 0; i < lastMatrixList.size(); i++) {
     auto thisMatrix = lastMatrixList.at(i);
     // check for symmetric
     for (sd::LongType r = 0; r < thisMatrix->rows(); r++)
       for (sd::LongType c = 0; c < thisMatrix->columns(); c++)
-        if (sd::math::sd_abs(thisMatrix->e<T>(r, c) - lastMatrixList.at(i)->e<T>(c, r)) >
+        if (sd::math::sd_abs<T,T>(thisMatrix->e<T>(r, c) - lastMatrixList.at(i)->e<T>(c, r)) >
             DataTypeUtils::min_positive<T>())
           return false;
 
@@ -520,7 +536,7 @@ static bool checkCholeskyInput_(sd::LaunchContext* context, NDArray const* input
   return true;
 }
 
-bool checkCholeskyInput(sd::LaunchContext* context, NDArray const* input) {
+bool checkCholeskyInput(sd::LaunchContext* context, NDArray * input) {
   BUILD_SINGLE_SELECTOR(input->dataType(), return checkCholeskyInput_, (context, input), SD_FLOAT_TYPES);
 }
 
@@ -529,31 +545,33 @@ sd::Status cholesky_(LaunchContext* context, NDArray* input, NDArray* output, bo
   auto n = input->sizeAt(-1);
   auto n2 = n * n;
   auto totalCount = output->lengthOf() / n2;
-  if (!inplace) output->assign(0.f);  // fill up output tensor with zeros only inplace=false
+  float zero = 0.f;
+  if (!inplace) output->assign(zero);  // fill up output tensor with zeros only inplace=false
 
+  std::vector<sd::LongType> shape = {n,n};
   std::unique_ptr<NDArray> matrix(
-      NDArrayFactory::create_('c', {n, n}, input->dataType(), context));  //, block.getWorkspace());
-  std::unique_ptr<NDArray> lowerMatrix(NDArrayFactory::create_('c', {n, n}, input->dataType(), context));
+      NDArrayFactory::create_('c', shape, input->dataType(), context));  //, block.getWorkspace());
+  std::unique_ptr<NDArray> lowerMatrix(NDArrayFactory::create_('c',shape, input->dataType(), context));
 
-  for (int e = 0; e < totalCount; e++) {
+  for (sd::LongType e = 0; e < totalCount; e++) {
     // fill up matrix
-    for (int k = e * n2, l = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, l = 0; k < (e + 1) * n2; k++) {
       matrix->p(l++, input->e<T>(k));
     }
     // if (e) // from the second loop need to zero matrix
-    lowerMatrix->assign(0.f);
+    lowerMatrix->assign(zero);
 
     for (sd::LongType col = 0; col < n; col++) {
       for (sd::LongType row = 0; row < col; row++) {
         T rowSum = 0;
         for (sd::LongType k = 0; k < row; ++k) rowSum += (lowerMatrix->e<T>(col, k) * lowerMatrix->e<T>(row, k));
-        lowerMatrix->p(col, row, (matrix->e<T>(row, col) - rowSum) / lowerMatrix->e<double>(row, row));
+        lowerMatrix->p(col, row, (matrix->e<T>(row, col) - rowSum) / lowerMatrix->e<T>(row, row));
       }
       T diagonalSum = 0;
       for (sd::LongType k = 0; k < col; ++k) diagonalSum += lowerMatrix->e<T>(col, k) * lowerMatrix->e<T>(col, k);
       lowerMatrix->p(col, col, sd::math::sd_sqrt<T, T>(matrix->e<T>(col, col) - diagonalSum));
     }
-    for (int k = e * n2, l = 0; k < (e + 1) * n2; k++) {
+    for (sd::LongType k = e * n2, l = 0; k < (e + 1) * n2; k++) {
       output->p(k, lowerMatrix->e<T>(l++));
     }
   }
@@ -573,11 +591,11 @@ sd::Status logdetFunctor_(LaunchContext* context, NDArray* input, NDArray* outpu
   auto n = input->sizeAt(-1);
   auto totalCount = output->lengthOf();
   std::vector<T> d(n);
-  ResultSet matricies = tempOutput.allTensorsAlongDimension({input->rankOf() - 2, input->rankOf() - 1});
+  ResultSet matrices = tempOutput.allTensorsAlongDimension({input->rankOf() - 2, input->rankOf() - 1});
 
   for (sd::LongType e = 0; e < totalCount; e++) {
-    for (size_t i = 0; i < n; ++i)
-      output->r<T>(e) += sd::math::sd_log<T, T>(sd::math::sd_pow<T, T, T>(matricies.at(e)->t<T>(i, i), T(2)));
+    for (sd::LongType i = 0; i < n; ++i)
+      output->r<T>(e) += sd::math::sd_log<T, T>(sd::math::sd_pow<T, T, T>(matrices.at(e)->t<T>(i, i), T(2)));
   }
   return sd::Status::OK;
 }

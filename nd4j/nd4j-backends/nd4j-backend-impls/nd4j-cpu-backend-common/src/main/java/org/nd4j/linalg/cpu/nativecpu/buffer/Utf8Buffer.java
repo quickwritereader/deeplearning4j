@@ -31,10 +31,10 @@ import org.bytedeco.javacpp.indexer.Indexer;
 import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -44,7 +44,6 @@ import java.util.Collection;
  */
 public class Utf8Buffer extends BaseCpuDataBuffer {
 
-    protected Collection<Pointer> references = new ArrayList<>();
 
     @Getter
     protected long numWords = 0;
@@ -81,9 +80,7 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         numWords = length;
     }
 
-    public Utf8Buffer(ByteBuffer buffer, DataType dataType, long length, long offset) {
-        super(buffer, dataType, length, offset);
-    }
+
 
     public Utf8Buffer(int[] ints, boolean copy, MemoryWorkspace workspace) {
         super(ints, copy, workspace);
@@ -101,9 +98,6 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         super(data, copy);
     }
 
-    public Utf8Buffer(double[] data, boolean copy, long offset) {
-        super(data, copy, offset);
-    }
 
     public Utf8Buffer(float[] data, boolean copy) {
         super(data, copy);
@@ -118,25 +112,19 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
     }
 
     public Utf8Buffer(float[] data, boolean copy, long offset) {
-        super(data, copy, offset);
+        super(data, copy);
     }
 
-    public Utf8Buffer(int[] data, boolean copy, long offset) {
-        super(data, copy, offset);
-    }
 
     public Utf8Buffer(int length, int elementSize) {
         super(length, elementSize);
     }
 
     public Utf8Buffer(int length, int elementSize, long offset) {
-        super(length, elementSize, offset);
+        super(length, elementSize);
     }
 
-    public Utf8Buffer(DataBuffer underlyingBuffer, long length, long offset) {
-        super(underlyingBuffer, length, offset);
-        this.numWords = length;
-    }
+
 
     public Utf8Buffer(@NonNull Collection<String> strings) {
         super(Utf8Buffer.stringBufferRequiredLength(strings), false);
@@ -145,7 +133,6 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         val headerLength = (strings.size() + 1) * 8;
         val headerPointer = new LongPointer(getPointer());
         val dataPointer = new BytePointer(getPointer());
-        this.pointer.retainReference();
         numWords = strings.size();
 
         long cnt = 0;
@@ -167,7 +154,11 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         headerPointer.put(cnt, currentLength);
     }
 
-    
+    public Utf8Buffer(ByteBuffer underlyingBuffer, DataType dataType, long length) {
+        super(underlyingBuffer, dataType, length);
+    }
+
+
     private synchronized Pointer getPointer() {
         return this.pointer;
     }
@@ -176,8 +167,8 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         if (index > numWords)
             throw new IllegalArgumentException("Requested index [" + index + "] is above actual number of words stored: [" + numWords + "]");
 
-        val headerPointer = new LongPointer(getPointer());
-        val dataPointer = (BytePointer) (getPointer());
+        val headerPointer = new LongPointer(this.ptrDataBuffer.primaryBuffer());
+        val dataPointer = new BytePointer(this.ptrDataBuffer.primaryBuffer());
 
         val start = headerPointer.get(index);
         val end = headerPointer.get(index + 1);
@@ -232,11 +223,7 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         return size;
     }
 
-    public void put(long index, Pointer pointer) {
-        throw new UnsupportedOperationException();
-        //references.add(pointer);
-        //((LongIndexer) indexer).put(index, pointer.address());
-    }
+
 
     /**
      * Initialize the opType of this buffer
@@ -247,5 +234,11 @@ public class Utf8Buffer extends BaseCpuDataBuffer {
         type = DataType.UTF8;
     }
 
+    @Override
+    public DataBuffer dup() {
+        Utf8Buffer ret  = (Utf8Buffer) super.dup();
+        ret.numWords = numWords;
+        return ret;
+    }
 
 }

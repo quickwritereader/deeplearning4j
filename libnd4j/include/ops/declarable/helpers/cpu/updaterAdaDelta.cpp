@@ -32,9 +32,26 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMsg, const NDArray& initStateMsdx,
+static void adaDeltaUpdater_(NDArray& gradient, NDArray& initStateMsg, NDArray& initStateMsdx,
                              NDArray& update, NDArray& stateMsg, NDArray& stateMsdx, const double dRho,
                              const double dEpsilon) {
+  // Cache shape information
+  const auto gradientShapeInfo = gradient.shapeInfo();
+  const auto updateShapeInfo = update.shapeInfo();
+  const auto initStateMsgShapeInfo = initStateMsg.shapeInfo();
+  const auto stateMsgShapeInfo = stateMsg.shapeInfo();
+  const auto initStateMsdxShapeInfo = initStateMsdx.shapeInfo();
+  const auto stateMsdxShapeInfo = stateMsdx.shapeInfo();
+  
+  const auto gradRank = shape::rank(gradientShapeInfo);
+  const auto* gradShape = shape::shapeOf(gradientShapeInfo);
+  const auto* gradStride = shape::stride(gradientShapeInfo);
+  const auto* updateStride = shape::stride(updateShapeInfo);
+  const auto* initStateMsgStride = shape::stride(initStateMsgShapeInfo);
+  const auto* stateMsgStride = shape::stride(stateMsgShapeInfo);
+  const auto* initStateMsdxStride = shape::stride(initStateMsdxShapeInfo);
+  const auto* stateMsdxStride = shape::stride(stateMsdxShapeInfo);
+
   const T* grad = gradient.bufferAsT<T>();
   const T* initMsg = initStateMsg.bufferAsT<T>();
   const T* initMsdx = initStateMsdx.bufferAsT<T>();
@@ -44,7 +61,11 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
   T* stMsdx = stateMsdx.bufferAsT<T>();
 
   const T rho = static_cast<T>(dRho);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   const T rhoT = (1 - rho);
 
   bool bEws1 = 1 == gradient.ews() && 1 == update.ews() && 1 == stateMsg.ews() && 1 == initStateMsg.ews() &&
@@ -70,22 +91,54 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
     return;
   }
 
-  bool bXZsame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), update.shapeInfo());
-  bool bXInMsgSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateMsg.shapeInfo());
-  bool bXStMsgSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateMsg.shapeInfo());
-  bool bXInMsdxSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateMsdx.shapeInfo());
-  bool bXStMsdxSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateMsdx.shapeInfo());
+  bool bXZsame = shape::haveSameShapeAndStrides(gradientShapeInfo, updateShapeInfo);
+  bool bXInMsgSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateMsgShapeInfo);
+  bool bXStMsgSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateMsgShapeInfo);
+  bool bXInMsdxSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateMsdxShapeInfo);
+  bool bXStMsdxSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateMsdxShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < gradient.lengthOf(); i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initMsgOffset = bXInMsgSame ? xOffset : shape::getOffset(initStateMsg.shapeInfo(), coords);
-      const auto stMsgOffset = bXStMsgSame ? xOffset : shape::getOffset(stateMsg.shapeInfo(), coords);
-      const auto initMsdxOffset = bXInMsdxSame ? xOffset : shape::getOffset(initStateMsdx.shapeInfo(), coords);
-      const auto stMsdxOffset = bXStMsdxSame ? xOffset : shape::getOffset(stateMsdx.shapeInfo(), coords);
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
+
+      sd::LongType xOffset;
+      COORDS2INDEX(gradRank, gradStride, coords, xOffset);
+
+      sd::LongType zOffset;
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, updateStride, coords, zOffset);
+      }
+
+      sd::LongType initMsgOffset;
+      if (bXInMsgSame) {
+        initMsgOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateMsgStride, coords, initMsgOffset);
+      }
+
+      sd::LongType stMsgOffset;
+      if (bXStMsgSame) {
+        stMsgOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateMsgStride, coords, stMsgOffset);
+      }
+
+      sd::LongType initMsdxOffset;
+      if (bXInMsdxSame) {
+        initMsdxOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateMsdxStride, coords, initMsdxOffset);
+      }
+
+      sd::LongType stMsdxOffset;
+      if (bXStMsdxSame) {
+        stMsdxOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateMsdxStride, coords, stMsdxOffset);
+      }
 
       stMsg[stMsgOffset] = rho * initMsg[initMsgOffset] + grad[xOffset] * grad[xOffset] * rhoT;
 
@@ -95,13 +148,12 @@ static void adaDeltaUpdater_(const NDArray& gradient, const NDArray& initStateMs
       stMsdx[stMsdxOffset] = rho * initMsdx[initMsdxOffset] + up[zOffset] * up[zOffset] * rhoT;
     }
   };
-
   samediff::Threads::parallel_for(func, 0, gradient.lengthOf(), 1);
   return;
 }
 
-void updaterAdaDelta(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateMsg,
-                     const NDArray& initStateMsdx, NDArray& update, NDArray& stateMsg, NDArray& stateMsdx,
+void updaterAdaDelta(sd::LaunchContext* context, NDArray& gradient, NDArray& initStateMsg,
+                     NDArray& initStateMsdx, NDArray& update, NDArray& stateMsg, NDArray& stateMsdx,
                      const double dRho, const double dEpsilon) {
   BUILD_SINGLE_SELECTOR(gradient.dataType(), adaDeltaUpdater_,
                         (gradient, initStateMsg, initStateMsdx, update, stateMsg, stateMsdx, dRho, dEpsilon),

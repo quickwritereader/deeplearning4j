@@ -33,14 +33,22 @@ OP_IMPL(mergeavg, -1, 1, false) {
   REQUIRE_OK(this->validateInputDimensionsMatch(block));
 
   auto output = OUTPUT_VARIABLE(0);
+  if (output->isEmpty()) {
+    return Status::OK;
+  }
 
-  std::vector<const NDArray*> inArrs(block.width());
+  int nonEmpty = 0;
+  for (size_t i = 0; i < block.width(); i++)
+    if (!INPUT_VARIABLE(i)->isEmpty()) nonEmpty++;
 
-  for (int i = 0; i < block.width(); ++i) inArrs[i] = INPUT_VARIABLE(i);
+  std::vector<NDArray*> inArrs(nonEmpty);
+  int numNonEmptyAdded = 0;
+  if(nonEmpty > 0)
+  for (size_t i = 0; i < block.width(); ++i) if(!INPUT_VARIABLE(i)->isEmpty())inArrs[numNonEmptyAdded++] = INPUT_VARIABLE(i);
 
   helpers::mergeAvg(block.launchContext(), inArrs, *output);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(mergeavg) { getOpDescriptor()->setAllowedInputTypes({ALL_FLOATS})->setAllowedOutputTypes({ALL_FLOATS}); }
@@ -54,15 +62,15 @@ CUSTOM_OP_IMPL(mergeavg_bp, 2, 1, false, 0, 0) {
 
   const auto gradient = INPUT_VARIABLE(inSize);
 
-  for (int i = 0; i < inSize; ++i) {
+  for (size_t i = 0; i < inSize; ++i) {
     outArrs[i] = OUTPUT_VARIABLE(i);
   }
   helpers::mergeAvgBp(block.launchContext(), *gradient, outArrs);
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(mergeavg_bp) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes(sd::DataType::ANY);
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes(ANY);
 }
 DECLARE_SHAPE_FN(mergeavg_bp) {
   const int numOfInArrs = block.width() - 1;
@@ -71,8 +79,10 @@ DECLARE_SHAPE_FN(mergeavg_bp) {
 
   for (int e = 0; e < numOfInArrs; e++) {
     auto inShape = inputShape->at(e);
-    shapeList->push_back(ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(
-        ArrayOptions::dataType(inShape), shape::order(inShape), shape::shapeOf(inShape), shape::rank(inShape))));
+    shapeList->push_back(ConstantShapeHelper::getInstance().bufferForShapeInfo(ArrayOptions::dataType(inShape),
+                                                                               shape::order(inShape),
+                                                                               shape::rank(inShape),
+                                                                               shape::shapeOf(inShape))->primary());
   }
 
   return shapeList;

@@ -30,8 +30,8 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-SD_LIB_HIDDEN void percentile(sd::LaunchContext* context, const NDArray& input, NDArray& output,
-                              std::vector<int>& axises, const float q, const int interpolation);
+SD_LIB_HIDDEN void percentile(LaunchContext* context, NDArray& input, NDArray& output,
+                              std::vector<LongType>& axises, const float q, const int interpolation);
 
 }
 }  // namespace ops

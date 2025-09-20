@@ -28,8 +28,188 @@
 
 #include <bitset>
 
+#include "execution/Threads.h"
+#include "helpers/ShapeUtils.h"
+
 namespace sd {
-static SD_INLINE bool match(const uint8_t* haystack, const uint8_t* needle, uint64_t length) {
+
+void StringUtils::setValueForDifferentDataType(NDArray* arr, LongType idx, NDArray* input, DataType zType) {
+  switch(zType) {
+    case UTF8: {
+      switch(input->dataType()) {
+        case UTF8:
+          arr->p<std::string>(idx, input->e<std::string>(idx));
+          break;
+        case UTF16:
+          arr->p<std::string>(idx, std::string(input->e<std::u16string>(idx).begin(), input->e<std::u16string>(idx).end()));
+          break;
+        case UTF32:
+          arr->p<std::string>(idx, std::string(input->e<std::u32string>(idx).begin(), input->e<std::u32string>(idx).end()));
+          break;
+        default:
+         THROW_EXCEPTION("Unsupported DataType for source string.");
+      }
+      break;
+    }
+    case UTF16: {
+      switch(input->dataType()) {
+        case UTF8:
+          arr->p<std::u16string>(idx, std::u16string(input->e<std::string>(idx).begin(), input->e<std::string>(idx).end()));
+          break;
+        case UTF16:
+          arr->p<std::u16string>(idx, input->e<std::u16string>(idx));
+          break;
+        case UTF32:
+          arr->p<std::u16string>(idx, std::u16string(input->e<std::u32string>(idx).begin(), input->e<std::u32string>(idx).end()));
+          break;
+        default:
+          THROW_EXCEPTION("Unsupported DataType for source string.");
+      }
+      break;
+    }
+    case UTF32: {
+      switch(input->dataType()) {
+        case UTF8:
+          arr->p<std::u32string>(idx, std::u32string(input->e<std::string>(idx).begin(), input->e<std::string>(idx).end()));
+          break;
+        case UTF16:
+          arr->p<std::u32string>(idx, std::u32string(input->e<std::u16string>(idx).begin(), input->e<std::u16string>(idx).end()));
+          break;
+        case UTF32:
+          arr->p<std::u32string>(idx, input->e<std::u32string>(idx));
+          break;
+        default:
+          THROW_EXCEPTION("Unsupported DataType for source string.");
+      }
+      break;
+    }
+    default:
+      THROW_EXCEPTION("Unsupported DataType for destination string.");
+  }
+}
+
+void StringUtils::broadcastStringAssign(NDArray* x, NDArray* z) {
+  if (!x->isBroadcastableTo(*z)) {
+    THROW_EXCEPTION("Shapes of x and z are not broadcastable.");
+  }
+
+  auto zType = z->dataType();
+  auto xCasted = x->cast(zType);
+
+  std::vector<LongType> zeroVec = {0};
+  std::vector<LongType> *restDims = ShapeUtils::evalDimsToExclude(x->rankOf(), 1, zeroVec.data());
+
+  auto xTensors = xCasted.allTensorsAlongDimension(*restDims);
+  auto zTensors = z->allTensorsAlongDimension(*restDims);
+
+  delete restDims;
+
+  if (xCasted.isScalar()) {
+    for (int e = 0; e < zTensors.size(); e++) {
+      for (int f = 0; f < zTensors.at(e)->lengthOf(); f++) {
+        setValueForDifferentDataType(zTensors.at(e), f, &xCasted, zType);
+      }
+    }
+  } else {
+    for (int e = 0; e < xTensors.size(); e++) {
+      auto tensor = xTensors.at(e);
+      for (int f = 0; f < tensor->lengthOf(); f++) {
+        setValueForDifferentDataType(zTensors.at(e), f, tensor, zType);
+      }
+    }
+  }
+}
+
+template <typename T>
+void StringUtils::convertStringsForDifferentDataType(NDArray* sourceArray, NDArray* targetArray) {
+  if (!sourceArray->isS() || !targetArray->isS()) THROW_EXCEPTION("Source or target array is not a string array!");
+
+  int numStrings = sourceArray->isScalar() ? 1 : sourceArray->lengthOf();
+
+  auto inData = sourceArray->bufferAsT<int8_t>() + ShapeUtils::stringBufferHeaderRequirements(sourceArray->lengthOf());
+  auto outData = targetArray->bufferAsT<int8_t>() + ShapeUtils::stringBufferHeaderRequirements(targetArray->lengthOf());
+
+  const auto nInputoffsets = sourceArray->bufferAsT<LongType>();
+  const auto nOutputoffsets = targetArray->bufferAsT<LongType>();
+
+  for (int e = 0; e < numStrings; e++) {
+    auto idata = inData + nInputoffsets[e];
+    auto cdata = outData + nOutputoffsets[e];
+
+    auto start = nInputoffsets[e];
+    auto end = nInputoffsets[e + 1];
+
+    // Convert based on target type (using UTF conversions)
+    if (DataTypeUtils::fromT<T>() == UTF16) {
+      if (sourceArray->dataType() == UTF8) {
+        unicode::utf8to16(idata, cdata, end);
+      } else if(sourceArray->dataType() == UTF32) {
+        unicode::utf32to16(idata, cdata, (end / sizeof(char32_t)));
+      }
+    } else if (DataTypeUtils::fromT<T>() == UTF32) {
+      if (sourceArray->dataType() == UTF8) {
+        unicode::utf8to32(idata, cdata, end);
+      } else if(sourceArray->dataType() == UTF16) {
+        unicode::utf16to32(idata, cdata, (end / sizeof(char16_t)));
+      }
+    } else {
+      if (sourceArray->dataType() == UTF16) {
+        unicode::utf16to8(idata, cdata, (end / sizeof(char16_t)));
+      } else if(sourceArray->dataType() == UTF32) {
+        unicode::utf32to8(idata, cdata, (end / sizeof(char32_t)));
+      }
+    }
+  }
+}
+
+#define DEFINE_CONVERT(T) template void StringUtils::convertStringsForDifferentDataType<GET_SECOND(T)>(NDArray* sourceArray, NDArray* targetArray);
+ITERATE_LIST((SD_STRING_TYPES),DEFINE_CONVERT)
+
+
+template <typename T>
+std::vector<LongType> StringUtils::calculateOffsetsForTargetDataType(NDArray* sourceArray) {
+  if (!sourceArray->isS()) THROW_EXCEPTION("Source array is not a string array!");
+
+  LongType offsetsLength = ShapeUtils::stringBufferHeaderRequirements(sourceArray->lengthOf());
+
+  std::vector<LongType> offsets(sourceArray->lengthOf() + 1);
+
+  const auto nInputoffsets = sourceArray->bufferAsT<LongType>();
+
+  LongType start = 0, stop = 0;
+  LongType dataLength = 0;
+
+  int numStrings = sourceArray->isScalar() ? 1 : sourceArray->lengthOf();
+  auto data = sourceArray->bufferAsT<int8_t>() + offsetsLength;
+  for (LongType e = 0; e < numStrings; e++) {
+    offsets[e] = dataLength;
+    start = nInputoffsets[e];
+    stop = nInputoffsets[e + 1];
+
+    // Determine size difference based on the target type (using UTF conversions)
+    if (sourceArray->dataType() == UTF8) {
+      dataLength += (DataTypeUtils::fromT<T>() == UTF16)
+                        ? unicode::offsetUtf8StringInUtf16(data + start, stop)
+                        : unicode::offsetUtf8StringInUtf32(data + start, stop);
+    } else if (sourceArray->dataType() == UTF16) {
+      dataLength += (DataTypeUtils::fromT<T>() == UTF32)
+                        ? unicode::offsetUtf16StringInUtf32(data + start, (stop / sizeof(char16_t)))
+                        : unicode::offsetUtf16StringInUtf8(data + start, (stop / sizeof(char16_t)));
+    } else if (sourceArray->dataType() == UTF32) {
+      dataLength += (DataTypeUtils::fromT<T>() == UTF16)
+                        ? unicode::offsetUtf32StringInUtf16(data + start, (stop / sizeof(char32_t)))
+                        : unicode::offsetUtf32StringInUtf8(data + start, (stop / sizeof(char32_t)));
+    }
+  }
+
+  offsets[numStrings] = dataLength;
+
+  return offsets;
+}
+#define DEFINE_OFFSET(T) template std::vector<LongType> StringUtils::calculateOffsetsForTargetDataType<GET_SECOND(T)>(NDArray* sourceArray);
+ITERATE_LIST((SD_STRING_TYPES),DEFINE_OFFSET)
+
+static SD_INLINE bool match(const LongType* haystack, const LongType* needle, LongType length) {
   for (int e = 0; e < length; e++)
     if (haystack[e] != needle[e]) return false;
 
@@ -43,28 +223,28 @@ std::string StringUtils::bitsToString(T value) {
 
 template std::string StringUtils::bitsToString(int value);
 template std::string StringUtils::bitsToString(uint32_t value);
-template std::string StringUtils::bitsToString(sd::LongType value);
+template std::string StringUtils::bitsToString(LongType value);
 template std::string StringUtils::bitsToString(uint64_t value);
 
-uint64_t StringUtils::countSubarrays(const void* vhaystack, uint64_t haystackLength, const void* vneedle,
-                                     uint64_t needleLength) {
-  auto haystack = reinterpret_cast<const uint8_t*>(vhaystack);
-  auto needle = reinterpret_cast<const uint8_t*>(vneedle);
+LongType StringUtils::countSubarrays(const void* haystack, LongType haystackLength, const void* needle,
+                                     LongType needleLength) {
+  auto haystack2 = reinterpret_cast<const LongType*>(haystack);
+  auto needle2 = reinterpret_cast<const LongType*>(needle);
 
-  uint64_t number = 0;
+  LongType number = 0;
 
-  for (uint64_t e = 0; e < haystackLength - needleLength; e++) {
-    if (match(&haystack[e], needle, needleLength)) number++;
+  for (LongType e = 0; e < haystackLength - needleLength; e++) {
+    if (match(&haystack2[e], needle2, needleLength)) number++;
   }
 
   return number;
 }
 
-uint64_t StringUtils::byteLength(const NDArray& array) {
+LongType StringUtils::byteLength(NDArray& array) {
   if (!array.isS())
-    throw sd::datatype_exception::build("StringUtils::byteLength expects one of String types;", array.dataType());
+    throw datatype_exception::build("StringUtils::byteLength expects one of String types;", array.dataType());
 
-  auto buffer = array.bufferAsT<sd::LongType>();
+  auto buffer = array.bufferAsT<LongType>();
   return buffer[array.lengthOf()];
 }
 
@@ -165,7 +345,7 @@ std::string StringUtils::vectorToString(const std::vector<T>& vec) {
 }
 
 template std::string StringUtils::vectorToString(const std::vector<int>& vec);
-template std::string StringUtils::vectorToString(const std::vector<sd::LongType>& vec);
+template std::string StringUtils::vectorToString(const std::vector<LongType>& vec);
 template std::string StringUtils::vectorToString(const std::vector<int16_t>& vec);
 template std::string StringUtils::vectorToString(const std::vector<uint32_t>& vec);
 }  // namespace sd

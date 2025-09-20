@@ -22,13 +22,13 @@
 //
 #include <array/DataBuffer.h>
 #include <array/DataTypeUtils.h>
-#if defined(HAVE_VEDA)
-#include <ops/declarable/platform/vednn/veda_helper.h>
-#endif
+#include <types/types.h>
+#include <system/type_boilerplate.h>
+
 
 namespace sd {
 void DataBuffer::expand(const uint64_t size) {
-  if (size > _lenInBytes) {
+  if (static_cast<LongType>(size) > _lenInBytes) {
     // allocate new buffer
     int8_t* newBuffer = nullptr;
     ALLOCATE(newBuffer, _workspace, size, int8_t);
@@ -46,23 +46,139 @@ void DataBuffer::expand(const uint64_t size) {
   }
 }
 
+template <typename T>
+void DataBuffer::printHostBufferContent(void* buffer, sd::LongType offset, sd::LongType length) {
+  T* typedBuffer = reinterpret_cast<T*>(buffer);
+
+  sd_printf("[ ", 0);
+  for (sd::LongType i = offset; i < offset + length; i++) {
+    // For numeric types, cast to double for consistent formatting
+    if (std::is_arithmetic<T>::value) {
+      sd_printf("%g ", (double)typedBuffer[i]);
+    } else {
+      // For non-numeric types, print as hex
+      sd_printf("0x%x ", *reinterpret_cast<int*>(&typedBuffer[i]));
+    }
+  }
+  sd_printf("]", 0);
+}
+BUILD_SINGLE_TEMPLATE(template SD_LIB_EXPORT void DataBuffer::printHostBufferContent,(void* buffer, sd::LongType offset, sd::LongType length),SD_COMMON_TYPES);
+
+
+
+
+// DataBuffer implementation for .cpp file
+void DataBuffer::printBufferDebug(const char* msg, sd::LongType offset, sd::LongType limit) {
+  if (msg) sd_printf("%s:\n", msg);
+
+  // Print metadata
+  sd_printf("DataBuffer: DataType=%s, Length=%lld elements, DeviceId=%d\n",
+            DataTypeUtils::asString(_dataType).c_str(), (long long)getNumElements(), deviceId());
+
+  // Print host buffer content
+  if (_primaryBuffer != nullptr) {
+    sd_printf("Host buffer (@%p): ", _primaryBuffer);
+
+    sd::LongType len = getNumElements();
+    sd::LongType printLen = limit < 0 ? len : std::min(len - offset, limit);
+
+    // Print based on datatype
+    BUILD_SINGLE_SELECTOR(_dataType, printHostBufferContent,
+                          (_primaryBuffer, offset, printLen), SD_COMMON_TYPES);
+
+    if (offset + printLen < len) sd_printf("... ", 0);
+    sd_printf("\n", 0);
+  } else {
+    sd_printf("Host buffer: nullptr\n", 0);
+  }
+
+  // Print device info but not content (CPU version)
+  if (_specialBuffer != nullptr) {
+    sd_printf("Device buffer (@%p): [Not accessible from CPU]\n", _specialBuffer);
+  } else {
+    sd_printf("Device buffer: nullptr\n", 0);
+  }
+
+#if defined(__CUDABLAS__)
+  // Print sync state counters
+  sd_printf("Sync state: _counter=%lld, _writePrimary=%lld, _writeSpecial=%lld, _readPrimary=%lld, _readSpecial=%lld\n",
+            (long long)_counter.load(), (long long)_writePrimary.load(), (long long)_writeSpecial.load(),
+            (long long)_readPrimary.load(), (long long)_readSpecial.load());
+  sd_printf("isPrimaryActual=%d, isSpecialActual=%d\n", isPrimaryActual(), isSpecialActual());
+#endif
+}
+
+// Helper template to print host buffer content
+template <typename T>
+void printHostBufferContent(void* buffer, sd::LongType offset, sd::LongType length) {
+  T* typedBuffer = reinterpret_cast<T*>(buffer);
+
+  sd_printf("[ ", 0);
+  for (sd::LongType i = offset; i < offset + length; i++) {
+    // For numeric types, cast to double for consistent formatting
+    if (std::is_arithmetic<T>::value) {
+      sd_printf("%g ", (double)typedBuffer[i]);
+    } else {
+      // For non-numeric types, print as hex
+      sd_printf("0x%x ", *reinterpret_cast<int*>(&typedBuffer[i]));
+    }
+  }
+  sd_printf("]", 0);
+}
+
+void DataBuffer::printSpecialAllocationTraces() {
+  //no op on purpose
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::allocateBuffers(const bool allocBoth) {  // always allocate primary buffer only (cpu case)
-
   allocatePrimary();
 }
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyBufferFrom(const DataBuffer& other, size_t sizeToCopyinBytes, const sd::LongType offsetThis,
+void DataBuffer::copyBufferFrom(const DataBuffer& other,
+                                size_t sizeToCopyinBytes,
+                                const sd::LongType offsetThis,
                                 const sd::LongType offsetOther) {
-  if (sizeToCopyinBytes == 0) sizeToCopyinBytes = other.getLenInBytes();
+  if(other._dataType != _dataType) {
+    THROW_EXCEPTION("DataBuffer::copyBufferFrom: data types of buffers are different");
+  }
+  if (sizeToCopyinBytes == 0) {
+    LongType otherBytes = other.getLenInBytes() - offsetOther;
+    LongType thisBytes = getLenInBytes() - offsetThis;
+    sizeToCopyinBytes = otherBytes < thisBytes ? otherBytes : thisBytes;
+  }
   if (sizeToCopyinBytes == 0) return;
+  if(static_cast<LongType>(sizeToCopyinBytes) > other._lenInBytes - offsetOther) {
+    std::string errorMessage;
+    errorMessage = "DataBuffer::copyBufferFrom: size to copy is larger than source buffer ";
+    errorMessage += std::to_string(sizeToCopyinBytes);
+    errorMessage += " > ";
+    errorMessage += std::to_string(other._lenInBytes - offsetOther);
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
 
-  if (other._primaryBuffer != nullptr)
+  if(sizeToCopyinBytes > getLenInBytes() - offsetThis) {
+    std::string errorMessage;
+    errorMessage = "DataBuffer::copyBufferFrom: size to copy is larger than destination buffer ";
+    errorMessage += std::to_string(sizeToCopyinBytes);
+    errorMessage += " > ";
+    errorMessage += std::to_string(getLenInBytes() - offsetThis);
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
+
+  if (other._primaryBuffer != nullptr) {
+    auto sizeOfElement = DataTypeUtils::sizeOfElement(_dataType);
+    auto sizeOfOtherElement = DataTypeUtils::sizeOfElement(_dataType);
+    if(sizeOfElement != sizeOfOtherElement) {
+      THROW_EXCEPTION("DataBuffer::copyBufferFrom: size of elements in buffers are different");
+    }
     std::memcpy(
-        static_cast<int8_t*>(_primaryBuffer) + offsetThis * DataTypeUtils::sizeOfElement(_dataType),
-        static_cast<const int8_t*>(other._primaryBuffer) + offsetOther * DataTypeUtils::sizeOfElement(other._dataType),
+        static_cast<int8_t*>(_primaryBuffer) + offsetThis * sizeOfElement,
+        static_cast<const int8_t*>(other._primaryBuffer) + offsetOther * sizeOfOtherElement,
         sizeToCopyinBytes);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -78,142 +194,29 @@ void DataBuffer::copyBufferFromHost(const void* hostBuffer, size_t sizeToCopyinB
 }
 
 /////////////////////////
-void DataBuffer::memcpy(const DataBuffer& dst, const DataBuffer& src) {
-  if (src._lenInBytes > dst._lenInBytes)
-    throw std::runtime_error("DataBuffer::memcpy: Source data buffer is larger than destination");
 
-  std::memcpy(dst._primaryBuffer, src._primaryBuffer, src._lenInBytes);
-  dst.readPrimary();
-}
-
-////////////////////////////////////////////////////////////////////////
-
-#if defined(HAVE_VEDA)
-////////////////////////////////////////////////////////////////////////
-void DataBuffer::deleteSpecial() {
-  // device id for now is 0
-  if (_specialBuffer) {
-#if defined(DEBUG_VEDA_LOGS)
-    sd_debug("%s \n", "remove Veda Buffer");
-#endif
-    VEDAdeviceptr v = (VEDAdeviceptr)_specialBuffer;
-    VEDA_HANDLE& handle = VEDA::getInstance().getVEDA_HANDLE(0);
-    SCOPED_VEDA_CONTEXT scopedContext(handle.getDevice());
-    VEDA_CALL_THROW(vedaMemFreeAsync(v, 0));
-    // sync here
-    // scopedContext.sync();
-    _specialBuffer = nullptr;
+template <typename T>
+void memcpyWithT(DataBuffer* dst, DataBuffer* src, sd::LongType startingOffset, sd::LongType dstOffset) {
+  if(src->getLenInBytes() != dst->getLenInBytes()) {
+    THROW_EXCEPTION("DataBuffer::memcpy: source and destination buffers have different length in bytes");
   }
+
+  std::memcpy(dst->primaryAtOffset<T>(dstOffset), src->primaryAtOffset<T>(startingOffset), src->getLenInBytes());
+  dst->readPrimary();
 }
+
+void DataBuffer::memcpy(DataBuffer* dst, DataBuffer* src,
+                        sd::LongType startingOffset, sd::LongType dstOffset) {
+  BUILD_SINGLE_TEMPLATE(memcpyWithT,(dst, src, startingOffset, dstOffset),
+                        SD_COMMON_TYPES);
+
+  dst->readPrimary();
+}
+
+
+
 
 ////////////////////////////////////////////////////////////////////////
-void** DataBuffer::getPtrToSpecial() const { return (void**)&_specialBuffer; }
-
-void DataBuffer::showBufferLimited() {
-#if defined(DEBUG_VEDA_LOGS)
-  float* x = (float*)_primaryBuffer;
-  size_t size = getLenInBytes();
-  size = size > 80 ? 80 : 0;
-  sd_debug("cpu: %p\n", (void*)x);
-  for (int i = 0; i < size / sizeof(float); i++) sd_debug("%f, ", x[i]);
-  sd_debug("%s", "\n");
-#endif
-}
-////////////////////////////////////////////////////////////////////////
-void DataBuffer::syncToPrimary(const LaunchContext* context, const bool forceSync) {
-  if (isPrimaryActual() && !forceSync) {
-    return;
-  }
-  // do it if we have _specialBuffer otherwise escape this as no op
-  if (_specialBuffer) {
-    allocatePrimary();
-    // lets copy from _specialBuffer and sync it back
-    // we will take device 0 as usual and sync on it
-    sd_debug("%s \n", "syncToPrimary Veda Buffer");
-#if defined(DEBUG_VEDA_LOGS)
-    sd_debug("syncToPrimary--%p ---%p---{\n", _primaryBuffer, _specialBuffer);
-    showBufferLimited();
-#endif
-    VEDA_HANDLE& handle = VEDA::getInstance().getVEDA_HANDLE(0);
-    SCOPED_VEDA_CONTEXT scopedContext(handle.getDevice());
-    VEDA_CALL_THROW(vedaMemcpyDtoHAsync(_primaryBuffer, (VEDAdeviceptr)_specialBuffer, getLenInBytes(), 0));
-    // sync ops here to read completed result
-    scopedContext.sync();
-    readPrimary();
-#if defined(DEBUG_VEDA_LOGS)
-    if (sd::Environment::getInstance().isDebug() && sd::Environment::getInstance().isVerbose()) {
-      auto fshow = handle.getFunctionByConstPtrName("showBufferVe");
-      VEDA_CALL_THROW(vedaLaunchKernel(fshow, 0, (VEDAdeviceptr)_specialBuffer));
-      scopedContext.sync();
-    }
-    sd_debug("%s", "----after---\n");
-    // show buffer
-    showBufferLimited();
-    sd_debug("%s", "----}\n");
-#endif
-  }
-}
-
-////////////////////////////////////////////////////////////////////////
-void DataBuffer::setCountersToZero() {
-  _counter.store(0L);
-  _writePrimary.store(0L);
-  _writeSpecial.store(0L);
-  _readPrimary.store(0L);
-  _readSpecial.store(0L);
-}
-
-////////////////////////////////////////////////////////////////////////
-void DataBuffer::copyCounters(const DataBuffer& other) {
-  _counter.store(other._counter);
-  _writePrimary.store(other._writePrimary);
-  _writeSpecial.store(other._writeSpecial);
-  _readPrimary.store(other._readPrimary);
-  _readSpecial.store(other._readSpecial);
-}
-
-void DataBuffer::writePrimary() const { _writePrimary = ++_counter; }
-void DataBuffer::writeSpecial() const { _writeSpecial = ++_counter; }
-void DataBuffer::readPrimary() const { _readPrimary = ++_counter; }
-void DataBuffer::readSpecial() const { _readSpecial = ++_counter; }
-bool DataBuffer::isPrimaryActual() const {
-  return (_writePrimary.load() > _writeSpecial.load() || _readPrimary.load() > _writeSpecial.load());
-}
-bool DataBuffer::isSpecialActual() const {
-  return (_writeSpecial.load() > _writePrimary.load() || _readSpecial.load() > _writePrimary.load());
-}
-
-void DataBuffer::allocVeda(){
-
-        if (!isSpecialActual() && !special()) {
-          auto length = getLenInBytes();
-          if (primary() && length > 0) {
-#if defined(DEBUG_VEDA_LOGS)
-            sd_debug("allocVeda: store result in %p\n", (void *)getPtrToSpecial());
-#endif
-            VEDA_CALL_THROW(vedaMemAllocAsync((VEDAdeviceptr *)getPtrToSpecial(), length, 0));
-          } else {
-#if defined(DEBUG_VEDA_LOGS)
-            sd_debug("allocVeda: %s\n", "as the length is 0, its not important");
-#endif
-          }
-        }
-}
-
-void DataBuffer::asyncToVeda(){
-        if (!isSpecialActual()) {
-          if (special()) {
-            auto hostPtr = primary();
-            auto length = getLenInBytes();
-#if defined(DEBUG_VEDA_LOGS)
-            sd_debug("asyncCopyToVeda: primary %p to special %p\n", hostPtr, special());
-#endif
-            VEDA_CALL_THROW(vedaMemcpyHtoDAsync((VEDAdeviceptr)special(), hostPtr, length, 0));
-          }
-          readSpecial();
-        }
-}
-#else
 
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::deleteSpecial() {}
@@ -234,10 +237,25 @@ void DataBuffer::readSpecial() const {}
 bool DataBuffer::isPrimaryActual() const { return true; }
 bool DataBuffer::isSpecialActual() const { return false; }
 void DataBuffer::showBufferLimited() {}
-#endif
+
+
+
+DataBuffer DataBuffer::dup() {
+  DataBuffer result;
+  result._dataType = _dataType;
+  result._lenInBytes = _lenInBytes;
+  result._primaryBuffer = _primaryBuffer;
+  result._specialBuffer = _specialBuffer;
+  result._isOwnerPrimary = _isOwnerPrimary;
+  result._isOwnerSpecial = _isOwnerSpecial;
+  result.allocateBuffers(true);
+  result.copyCounters(*this);
+  result.copyBufferFrom(*this);
+  return result;
+}
 
 ////////////////////////////////////////////////////////////////////////
-void DataBuffer::setSpecial(void* special, const bool isOwnerSpecail) {}
+void DataBuffer::setSpecial(void* special, const bool isOwnerSpecial) {}
 
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::setToZeroBuffers(const bool both) { memset(primary(), 0, getLenInBytes()); }
@@ -251,12 +269,102 @@ void DataBuffer::allocateSpecial() {}
 ////////////////////////////////////////////////////////////////////////
 void DataBuffer::migrate() {}
 
-void DataBuffer::showCounters(const char* msg1, const char* msg2) {
-#if defined(HAVE_VEDA) && defined(DEBUG_VEDA_LOGS)
-  sd_debug("%s %s || primary %p special %p :: wP: %d wS: %d rP: %d rS: %d\n", msg1, msg2, _primaryBuffer,
-           _specialBuffer, (int)_writePrimary.load(), (int)_writeSpecial.load(), (int)_readPrimary.load(),
-           (int)_readSpecial.load());
-#endif
+
+template <typename T>
+void _printHostBuffer(DataBuffer* buffer, long offset) {
+  sd::LongType len = buffer->getNumElements();
+  auto buff = buffer->template primaryAsT<T>();
+
+
+  sd::LongType limit = len;
+  if (limit == -1 || limit >= static_cast<LongType>(buffer->getNumElements())) {
+    limit = buffer->getNumElements();
+  }
+
+  const char* msg = nullptr;
+  if (msg != nullptr) {
+    printf("%s: ", msg);
+  } else {
+    printf("[");
+  }
+
+  sd::DataType dataType = buffer->getDataType();
+  auto baseOffset = offset;
+  if (dataType == sd::DataType::DOUBLE || dataType == sd::DataType::FLOAT32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (e > offset) printf(", ");
+      if (dataType == sd::DataType::DOUBLE) {
+        double val = static_cast<double>(buff[e]);
+        printf("%.15f",val);
+      } else {
+        printf("%.15f", static_cast<float>(buff[e]));
+      }
+    }
+  } else if (dataType == sd::DataType::INT64 || dataType == sd::DataType::UINT64 ||
+             dataType == sd::DataType::INT32 || dataType == sd::DataType::UINT32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (dataType == sd::DataType::INT64 || dataType == sd::DataType::UINT64) {
+        printf("%lld", static_cast<long long>(buff[e]));
+      } else {
+        printf("%d", static_cast<int>(buff[e]));
+      }
+
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  } else if (dataType == sd::DataType::BOOL) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      if (static_cast<bool>(buff[e])) {
+        printf("true");
+      } else {
+        printf("false");
+      }
+
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  } else if (dataType == sd::DataType::UTF8 || dataType == sd::DataType::UTF16 ||
+             dataType == sd::DataType::UTF32) {
+    for (sd::LongType e = baseOffset; e < limit; e++) {
+      printf("\"%s\"", reinterpret_cast<const char*>(&buff[e]));
+      if (e < limit - 1) {
+        printf(", ");
+      }
+    }
+  }
+
+  printf("]\n");
+  fflush(stdout);
+}
+void DataBuffer::printHostDevice(long offset) {
+  auto xType = getDataType();
+  BUILD_SINGLE_SELECTOR(xType, _printHostBuffer,(this,offset),SD_COMMON_TYPES_ALL);
+
 }
 
+
+void DataBuffer::showCounters(const char* msg1, const char* msg2) {
+
+}
+template <typename T>
+void* DataBuffer::primaryAtOffset(const LongType offset) {
+  T *type = reinterpret_cast<T*>(_primaryBuffer);
+  return reinterpret_cast<void *>(type + offset);
+}
+
+#define PRIMARYOFFSET(T) template void* DataBuffer::primaryAtOffset<GET_SECOND(T)>(const LongType offset);
+ITERATE_LIST((SD_COMMON_TYPES),PRIMARYOFFSET)
+
+template <typename T>
+void* DataBuffer::specialAtOffset(const LongType offset) {
+  if(_specialBuffer == nullptr)
+    return nullptr;
+  T *type = reinterpret_cast<T*>(_specialBuffer);
+  return reinterpret_cast<void *>(type + offset);
+}
+
+#define SPECIALOFFSET(T) template void* DataBuffer::specialAtOffset<GET_SECOND(T)>(const LongType offset);
+ITERATE_LIST((SD_COMMON_TYPES),SPECIALOFFSET)
 }  // namespace sd

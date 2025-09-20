@@ -22,11 +22,10 @@
 #include <graph/RandomGenerator.h>
 #include <helpers/RandomLauncher.h>
 #include <types/float16.h>
-//#include <ops/declarable/CustomOperations.h>
 #include <helpers/PointersManager.h>
-
+#include <legacy/NativeOpExecutioner.h>
 namespace sd {
-void RandomLauncher::applyDropOut(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::applyDropOut(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                   double retainProb, NDArray* z) {
   if (z == nullptr) z = array;
 
@@ -43,7 +42,7 @@ void RandomLauncher::applyDropOut(sd::LaunchContext* context, sd::graph::RandomG
   NDArray::registerSpecialUse({z}, {array});
 }
 
-void RandomLauncher::applyInvertedDropOut(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::applyInvertedDropOut(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                           double retainProb, NDArray* z) {
   if (z == nullptr) z = array;
 
@@ -60,7 +59,7 @@ void RandomLauncher::applyInvertedDropOut(sd::LaunchContext* context, sd::graph:
   NDArray::registerSpecialUse({z}, {array});
 }
 
-void RandomLauncher::applyAlphaDropOut(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::applyAlphaDropOut(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                        double retainProb, double alpha, double beta, double alphaPrime, NDArray* z) {
   if (z == nullptr) z = array;
 
@@ -77,7 +76,7 @@ void RandomLauncher::applyAlphaDropOut(sd::LaunchContext* context, sd::graph::Ra
   NDArray::registerSpecialUse({z}, {array});
 }
 
-void RandomLauncher::fillBernoulli(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillBernoulli(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                    double prob) {
   ExtraArguments arguments({prob});
   PointersManager pm(context, "fillBernoulli");
@@ -92,7 +91,7 @@ void RandomLauncher::fillBernoulli(sd::LaunchContext* context, sd::graph::Random
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillUniform(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillUniform(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                  double from, double to) {
   ExtraArguments arguments({from, to});
   PointersManager pm(context, "fillUniform");
@@ -107,7 +106,7 @@ void RandomLauncher::fillUniform(sd::LaunchContext* context, sd::graph::RandomGe
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillGaussian(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillGaussian(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                   double mean, double stdev) {
   ExtraArguments arguments({mean, stdev});
   PointersManager pm(context, "fillGaussian");
@@ -124,7 +123,7 @@ void RandomLauncher::fillGaussian(sd::LaunchContext* context, sd::graph::RandomG
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillExponential(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillExponential(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                      double lambda) {
   ExtraArguments arguments({lambda});
   PointersManager pm(context, "fillExponential");
@@ -139,7 +138,7 @@ void RandomLauncher::fillExponential(sd::LaunchContext* context, sd::graph::Rand
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillLogNormal(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillLogNormal(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                    double mean, double stdev) {
   ExtraArguments arguments({mean, stdev});
   PointersManager pm(context, "fillLogNormal");
@@ -156,7 +155,7 @@ void RandomLauncher::fillLogNormal(sd::LaunchContext* context, sd::graph::Random
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillTruncatedNormal(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillTruncatedNormal(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                          double mean, double stdev) {
   ExtraArguments arguments({mean, stdev});
   PointersManager pm(context, "fillTruncatedNormal");
@@ -173,7 +172,7 @@ void RandomLauncher::fillTruncatedNormal(sd::LaunchContext* context, sd::graph::
   NDArray::registerSpecialUse({array}, {});
 }
 
-void RandomLauncher::fillBinomial(sd::LaunchContext* context, sd::graph::RandomGenerator& rng, NDArray* array,
+void RandomLauncher::fillBinomial(LaunchContext* context, graph::RandomGenerator& rng, NDArray* array,
                                   int trials, double prob) {
   ExtraArguments arguments({(double)trials, prob});
   PointersManager pm(context, "fillBinomial");

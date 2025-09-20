@@ -22,6 +22,7 @@
 #include <ops/declarable/helpers/axis.h>
 #include <system/op_boilerplate.h>
 
+
 namespace sd {
 namespace ops {
 namespace helpers {
@@ -29,12 +30,12 @@ template <typename T>
 void applyGradientDescent_(LaunchContext* context, NDArray* input, NDArray* step, double weight,
                                   NDArray* output) {
   // classic one
-  auto lambda = LAMBDA_TT(_x, _y, weight) { return _x - (_y * weight); };
+  auto lambda = LAMBDA_TT(_x, _y, weight) { return _x - (_y * weight); });
 
-  input->applyPairwiseLambda(*step, lambda, *output);
+  input->applyPairwiseLambda(step, lambda, output);
 }
 
-void applyGradientDescent(sd::LaunchContext* context, NDArray* input, NDArray* step, double weight, NDArray* output) {
+void applyGradientDescent(LaunchContext* context, NDArray* input, NDArray* step, double weight, NDArray* output) {
   BUILD_SINGLE_SELECTOR(input->dataType(), applyGradientDescent_, (context, input, step, weight, output),
                         SD_FLOAT_TYPES);
 }

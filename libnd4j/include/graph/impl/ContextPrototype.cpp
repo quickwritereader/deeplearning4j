@@ -25,7 +25,7 @@
 
 namespace sd {
 namespace graph {
-ContextPrototype::ContextPrototype(sd::ops::OpDescriptor* opDescriptor, int nodeId, bool inPlace) {
+ContextPrototype::ContextPrototype(ops::OpDescriptor* opDescriptor, int nodeId, bool inPlace) {
   _nodeId = nodeId;
   _isInplace = inPlace;
   _opDescriptor = opDescriptor;
@@ -45,7 +45,7 @@ void ContextPrototype::setOpNum(int opNum) { this->_opNum = opNum; }
 std::vector<std::pair<int, int>>* ContextPrototype::inputs() { return &_inputs; }
 
 void ContextPrototype::fillInputs(std::vector<int>& inputs) {
-  for (int e = 0; e < inputs.size(); e++) {
+  for (size_t e = 0; e < inputs.size(); e++) {
     auto v = inputs.at(e);
     pickInput(v);
   }
@@ -59,12 +59,13 @@ bool ContextPrototype::isInplace() { return this->_isInplace; }
 
 std::vector<double>* ContextPrototype::getTArguments() { return &(this->_tArgs); }
 
-std::vector<int>* ContextPrototype::getIArguments() { return &(this->_iArgs); }
+std::vector<LongType>* ContextPrototype::getIArguments() { return &(this->_iArgs); }
 
 std::vector<bool>* ContextPrototype::getBArguments() { return &(this->_bArgs); }
 
-std::vector<int>* ContextPrototype::getAxis() { return &(this->_axis); }
+std::vector<LongType>* ContextPrototype::getAxis() { return &(this->_axis); }
 
+std::vector<std::string> * ContextPrototype::getSArguments() {return &(this->_sArgs);}
 void ContextPrototype::pickInput(int input) {
   std::pair<int, int> pair(input, 0);
   this->_inputs.emplace_back(pair);
@@ -80,13 +81,20 @@ void ContextPrototype::fillInputs(std::initializer_list<int> inputs) {
 
 int ContextPrototype::nodeId() { return getNodeId(); }
 
-sd::DataType ContextPrototype::dataType() { return dataType(0); }
+DataType ContextPrototype::dataType() { return dataType(0); }
 
-sd::DataType ContextPrototype::dataType(int index) { return _dataType; }
+DataType ContextPrototype::dataType(int index) {
+  if(numD() < 1) {
+    THROW_EXCEPTION("No data types were set for this ContextPrototype");
+  } else {
+    return _dArgs.at(index);
+  }
 
-void ContextPrototype::setDataType(int index, sd::DataType type) {
-  // if (_outputs->size() == 0)
-  _dataType = type;
+  return DataType::UNKNOWN;
+}
+
+void ContextPrototype::setDataType(int index, DataType type) {
+  _dArgs[index] = type;
 }
 
 size_t ContextPrototype::numT() { return (int)_tArgs.size(); }
@@ -112,7 +120,7 @@ ContextPrototype* ContextPrototype::asT() {
   return clone;
 }
 
-void ContextPrototype::setOpDescriptor(sd::ops::OpDescriptor* opDescriptor) { _opDescriptor = opDescriptor; }
+void ContextPrototype::setOpDescriptor(ops::OpDescriptor* opDescriptor) { _opDescriptor = opDescriptor; }
 
 ContextPrototype* ContextPrototype::clone() {
   auto clone = new ContextPrototype(_opDescriptor, _nodeId, _isInplace);
@@ -124,10 +132,14 @@ ContextPrototype* ContextPrototype::clone() {
 
   for (auto v : _iArgs) clone->_iArgs.emplace_back(v);
 
+  for(auto v : _bArgs) clone->_bArgs.emplace_back(v);
+
+  for(auto v : _dArgs) clone->_dArgs.emplace_back(v);
+
   return clone;
 }
 
-std::vector<sd::DataType>* ContextPrototype::getDArguments() { return &_dArgs; }
+std::vector<DataType>* ContextPrototype::getDArguments() { return &_dArgs; }
 
 size_t ContextPrototype::numD() { return _dArgs.size(); }
 }  // namespace graph

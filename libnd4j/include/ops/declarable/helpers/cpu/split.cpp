@@ -28,21 +28,28 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
+
+
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, const int axis) {
-  sd::Unsigned numSplits = outArrs.size();
-
+static void split_(NDArray& input, const std::vector<NDArray*>& outArrs, const LongType axis) {
+  const sd::LongType numSplits = outArrs.size();
   const auto sizeofT = input.sizeOfT();
-
   auto xBuff = input.bufferAsT<T>();
 
-  bool luckCase1 =
-      ((axis == 0 && input.ordering() == 'c') || (axis == input.rankOf() - 1 && input.ordering() == 'f')) &&
-      input.ews() == 1;
+  // Cache input shape information
+  const sd::LongType* xShapeInfo = input.shapeInfo();
+  const sd::LongType* xShape = shape::shapeOf(xShapeInfo);
+  const sd::LongType* xStride = shape::stride(xShapeInfo);
+  const int xRank = input.rankOf();
+
+  // Fast path 1: Continuous memory case
+  bool luckCase1 = ((axis == 0 && input.ordering() == 'c') ||
+                    (axis == xRank - 1 && input.ordering() == 'f')) &&
+                   input.ews() == 1;
 
   if (luckCase1) {
-    for (sd::Unsigned i = 0; i < numSplits; ++i) {
+    for (sd::LongType i = 0; i < numSplits; ++i) {
       luckCase1 &= outArrs[i]->ordering() == input.ordering() && outArrs[i]->ews() == 1;
       if (!luckCase1) break;
     }
@@ -50,20 +57,21 @@ static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, c
 
   if (luckCase1) {
     T* x = const_cast<T*>(xBuff);
-    for (sd::Unsigned i = 0; i < numSplits; ++i) {
+    for (sd::LongType i = 0; i < numSplits; ++i) {
       const auto memAmountToCopy = outArrs[i]->lengthOf();
-      memcpy(outArrs[i]->bufferAsT<T>(), x, memAmountToCopy * sizeofT);
+      ops::safe_copy(outArrs[i]->bufferAsT<T>(), x, memAmountToCopy);
       x += memAmountToCopy;
     }
     return;
   }
 
+  // Fast path 2: Contiguous along split axis
   const bool isXcontin = input.strideAt(axis) == 1 && input.ordering() == 'c';
   bool areOutsContin = true;
   bool allSameOrder = true;
 
   if (isXcontin) {
-    for (sd::Unsigned i = 0; i < numSplits; ++i) {
+    for (sd::LongType i = 0; i < numSplits; ++i) {
       areOutsContin &= outArrs[i]->strideAt(axis) == 1;
       allSameOrder &= outArrs[i]->ordering() == input.ordering();
       if (!areOutsContin || !allSameOrder) break;
@@ -78,30 +86,32 @@ static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, c
     for (sd::LongType i = 0; i < input.lengthOf() / xDim; ++i) {
       auto x = xBuff + xDim * i;
 
-      for (sd::Unsigned j = 0; j < numSplits; ++j) {
+      for (sd::LongType j = 0; j < numSplits; ++j) {
         const auto zDim = outArrs[j]->sizeAt(axis);
         T* z = outArrs[j]->bufferAsT<T>() + zDim * i;
-        memcpy(z, x, zDim * sizeofT);
-        z += zDim;
+        ops::safe_copy(z, x, static_cast<size_t>(zDim));
+
         x += zDim;
       }
     }
-
     return;
   }
 
-  sd::Unsigned zDim = outArrs[0]->sizeAt(axis);
-  // general case
+  // General case: Cache output shape data for the first array
+  const sd::LongType zDim = outArrs[0]->sizeAt(axis);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK], temp;
+    // Pre-allocate coordinate arrays
+    sd::LongType coords[SD_MAX_RANK], temp;
 
     for (auto i = start; i < stop; i += increment) {
-      shape::index2coordsCPU(start, i, input.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(input.shapeInfo(), coords);
+      // Use cached shape data for input coordinates
+      INDEX2COORDS(i, xRank, xShape, coords);
+      sd::LongType xOffset;
+      COORDS2INDEX(xRank, xStride, coords, xOffset);
 
-      sd::Unsigned outArrIdx = 0;
-
+      // Find target output array
+      sd::LongType outArrIdx = 0;
       temp = coords[axis];
 
       while (coords[axis] >= zDim) {
@@ -109,8 +119,15 @@ static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, c
         ++outArrIdx;
       }
 
-      T* z = outArrs[outArrIdx]->bufferAsT<T>();
-      const auto zOffset = shape::getOffset(outArrs[outArrIdx]->shapeInfo(), coords);
+      // Get output array and its shape data
+      auto outArr = outArrs[outArrIdx];
+      const sd::LongType* outShape = shape::shapeOf(outArr->shapeInfo());
+      const sd::LongType* outStride = shape::stride(outArr->shapeInfo());
+      T* z = outArr->bufferAsT<T>();
+
+      // Calculate output offset using cached shape data
+      sd::LongType zOffset;
+      COORDS2INDEX(outArr->rankOf(), outStride, coords, zOffset);
       z[zOffset] = xBuff[xOffset];
 
       coords[axis] = temp;
@@ -120,7 +137,7 @@ static void split_(const NDArray& input, const std::vector<NDArray*>& outArrs, c
   samediff::Threads::parallel_for(func, 0, input.lengthOf());
 }
 
-void split(sd::LaunchContext* context, const NDArray& input, std::vector<NDArray*>& outArrs, const int axis) {
+void split(sd::LaunchContext* context, NDArray& input, std::vector<NDArray*>& outArrs, const sd::LongType axis) {
   BUILD_SINGLE_SELECTOR(input.dataType(), split_, (input, outArrs, axis), SD_COMMON_TYPES);
 }
 }  // namespace helpers

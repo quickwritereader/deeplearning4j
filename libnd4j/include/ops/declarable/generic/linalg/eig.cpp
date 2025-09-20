@@ -43,12 +43,12 @@ CUSTOM_OP_IMPL(eig, 1, 2, false, 0, 0) {
   REQUIRE_TRUE(eig_vals->rankOf() == 2 && eig_vals->sizeAt(0) == n1 && eig_vals->sizeAt(1) == 2, 0,
                "Eig: the shape of the eigenvalue results should be {%i, 2}", n1);
   REQUIRE_TRUE(eig_vectors->rankOf() == 3 && eig_vectors->sizeAt(0) == n1 && eig_vectors->sizeAt(1) == n1 &&
-                   eig_vectors->sizeAt(2) == 2,
+               eig_vectors->sizeAt(2) == 2,
                0, "Eig: the shape of the eigenvector results should be {%i, %i, 2}", n1);
 
-  sd::ops::helpers::eig(*input, *eig_vals, *eig_vectors);
+  helpers::eig(*input, *eig_vals, *eig_vectors);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(eig) { getOpDescriptor()->setAllowedInputTypes({ALL_FLOATS})->setSameMode(true); }
@@ -66,10 +66,11 @@ DECLARE_SHAPE_FN(eig) {
   auto dtype_float = ArrayOptions::dataType(inputShapeInfo);
   auto ordering = shape::order(inputShapeInfo);
 
-  auto output0 = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(dtype_float, ordering, {n1, 2}));
-  auto output1 =
-      ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(dtype_float, ordering, {n1, n1, 2}));
-  return SHAPELIST(output0, output1);
+  auto desc = ShapeBuilders::createShapeInfo(dtype_float, ordering, {n1, 2});
+  auto output0 = ConstantShapeHelper::getInstance().bufferForShapeInfo(desc);
+  auto desc2 = ShapeBuilders::createShapeInfo(dtype_float, ordering, {n1, n1, 2});
+  auto output1 =ConstantShapeHelper::getInstance().bufferForShapeInfo(desc2);
+  return SHAPELIST(output0->primary(), output1->primary());
 }
 
 }  // namespace ops

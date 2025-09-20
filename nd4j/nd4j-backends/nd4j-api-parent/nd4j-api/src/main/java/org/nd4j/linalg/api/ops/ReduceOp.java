@@ -44,6 +44,8 @@ public interface ReduceOp extends Op {
      */
     INDArray dimensions();
 
+    long[] dimensionsArr();
+
     @Deprecated
     boolean isComplexAccumulation();
 
@@ -68,5 +70,5 @@ public interface ReduceOp extends Op {
 
     Number getFinalResult();
 
-    void setDimensions(int... dimensions);
+    void setDimensions(long... dimensions);
 }

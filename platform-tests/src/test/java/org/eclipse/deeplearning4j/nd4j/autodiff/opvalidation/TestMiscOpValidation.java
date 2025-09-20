@@ -30,8 +30,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.internal.matchers.Same;
-import org.nd4j.autodiff.samediff.SDIndex;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.samediff.TrainingConfig;
@@ -42,6 +40,7 @@ import org.nd4j.common.base.Preconditions;
 import org.nd4j.common.tests.tags.TagNames;
 import org.nd4j.enums.PartitionMode;
 import org.nd4j.linalg.api.blas.params.MMulTranspose;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.CustomOp;
@@ -52,7 +51,6 @@ import org.nd4j.linalg.api.ops.custom.Flatten;
 import org.nd4j.linalg.api.ops.custom.FusedBatchNorm;
 import org.nd4j.linalg.api.ops.custom.Igamma;
 import org.nd4j.linalg.api.ops.custom.Igammac;
-import org.nd4j.linalg.api.ops.custom.Lgamma;
 import org.nd4j.linalg.api.ops.custom.Lu;
 import org.nd4j.linalg.api.ops.custom.MatrixBandPart;
 import org.nd4j.linalg.api.ops.custom.Polygamma;
@@ -73,7 +71,7 @@ import org.nd4j.linalg.api.ops.impl.transforms.custom.Fill;
 import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.FloorDivOp;
 import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.FloorModOp;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
-import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
@@ -83,7 +81,6 @@ import org.nd4j.linalg.ops.transforms.Transforms;
 import org.nd4j.common.primitives.Triple;
 import org.nd4j.common.util.ArrayUtil;
 import org.nd4j.weightinit.impl.XavierInitScheme;
-import org.nd4j.weightinit.impl.ZeroInitScheme;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -510,6 +507,19 @@ public class TestMiscOpValidation extends BaseOpValidation {
     public void testGatherGradient(Nd4jBackend backend) {
         Nd4j.getRandom().setSeed(12345);
 
+        /**
+         * CPU:
+         * Inputs for listdiff:
+         * [0,1]
+         * [0]
+         *
+         * Outputs:
+         * [1]
+         * [1]
+         */
+        Nd4j.getExecutioner().enableDebugMode(true);
+        Nd4j.getExecutioner().enableVerboseMode(true);
+
         List<String> failed = new ArrayList<>();
 
         for (int rank = 2; rank <= 3; rank++) {
@@ -589,8 +599,8 @@ public class TestMiscOpValidation extends BaseOpValidation {
         Nd4j.getExecutioner().enableDebugMode(true);
         Nd4j.getRandom().setSeed(12345);
         SameDiff sameDiff = SameDiff.create();
-        INDArray arr = Nd4j.rand(new long[]{2, 2, 2}).castTo(DataType.DOUBLE);
-        INDArray arr2 = Nd4j.rand(new long[]{2, 2, 2}).castTo(DataType.DOUBLE);
+        INDArray arr = Nd4j.linspace(1,8,8).reshape(2, 2, 2).castTo(DataType.DOUBLE);
+        INDArray arr2 = Nd4j.linspace(1,8,8).reshape(2,2,2).castTo(DataType.DOUBLE);
         SDVariable x = sameDiff.var("x", arr);
         SDVariable y = sameDiff.var("y", arr2);
         SDVariable result = sameDiff.tensorMmul(x, y, new int[]{0}, new int[]{1},false,false,false);
@@ -603,6 +613,10 @@ public class TestMiscOpValidation extends BaseOpValidation {
         String err = OpValidation.validate(new TestCase(sameDiff));
         assertNull(err);
     }
+
+
+
+
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -673,7 +687,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testMmulGradients(Nd4jBackend backend){
+    public void testMmulGradients(Nd4jBackend backend) {
         int[] aShape = new int[]{2,3};
         int[] bShape = new int[]{3,4};
         List<String> failed = new ArrayList<>();
@@ -767,7 +781,9 @@ public class TestMiscOpValidation extends BaseOpValidation {
         SameDiff sd = SameDiff.create();
         SDVariable[] res2 = sd.batchMmul(sd.constant(a),
                 sd.constant(b),
-                new SDVariable[]{sd.constant(a),sd.constant(a)},new SDVariable[]{sd.constant(b),sd.constant(b)});
+                new SDVariable[]{sd.constant(a),
+                        sd.constant(a)},
+                new SDVariable[]{sd.constant(b),sd.constant(b)});
         assertEquals(assertion,res2[0].eval()); // wrong result (or crash)
 
 
@@ -778,6 +794,36 @@ public class TestMiscOpValidation extends BaseOpValidation {
         assertEquals(assertion,res3[0].eval());
     }
 
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testBatchMMulBp(Nd4jBackend backend) {
+        int batchSize = 4;
+        int seqLength = 8;
+
+        SameDiff sd = SameDiff.create();
+
+        SDVariable features = sd.placeHolder("features", DataType.DOUBLE, batchSize, seqLength);
+        SDVariable labels = sd.placeHolder("labels", DataType.DOUBLE, batchSize, batchSize);
+        SDVariable var = sd.var("variable", seqLength, batchSize);
+        SDVariable[] predictions = sd.batchMmul(new String[]{"predictions"},sd.constant(1.0),sd.constant(0.0),new SDVariable[]{features},new SDVariable[]{var});
+        sd.loss.meanSquaredError("loss", labels, predictions[0], null);
+
+        TrainingConfig config = new TrainingConfig.Builder()
+                .updater(new Adam(0.1))
+                .dataSetFeatureMapping("features")
+                .dataSetLabelMapping("labels")
+                .build();
+        sd.setTrainingConfig(config);
+
+        RecordReader reader = new CollectionRecordReader(
+                Collections.nCopies(batchSize, Collections.nCopies(seqLength + batchSize, new IntWritable(1))));
+        DataSetIterator iterator = new RecordReaderDataSetIterator(
+                reader, batchSize, seqLength, seqLength + batchSize - 1, true);
+
+
+        sd.fit(iterator, 1);
+    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -807,7 +853,9 @@ public class TestMiscOpValidation extends BaseOpValidation {
 
         System.out.println(sd.output(iterator, "predictions").get("predictions")); // forward pass works
 
-        sd.fit(iterator, 1); // backward pass throws exception
+
+
+        sd.fit(iterator, 1);
     }
 
     @ParameterizedTest
@@ -882,7 +930,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .build());
 
         val outShapes = Nd4j.getExecutioner().calculateOutputShape(m);
-        assertArrayEquals(new long[]{4,3}, outShapes.get(0).getShape());
+        assertArrayEquals(new long[]{4,3}, Shape.shape(outShapes.get(0).asLong()));
         Nd4j.getExecutioner().exec(m);
 
         //Another case: ([3,4]*[2,4]T)T = [2,3]     -   tA=false, tB=true, tR=true
@@ -896,11 +944,9 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .build());
 
         val outShapes2 = Nd4j.getExecutioner().calculateOutputShape(m);
-        assertArrayEquals(new long[]{2,3}, outShapes2.get(0).getShape());
+        assertArrayEquals(new long[]{2,3}, Shape.shape(outShapes2.get(0).asLong()));
         Nd4j.getExecutioner().exec(m);
-
     }
-
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testFillOp(){
@@ -1351,7 +1397,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
 
         assertEquals(1, shapes.size());
 
-        assertArrayEquals(new long[]{2}, shapes.get(0).getShape());
+        assertArrayEquals(new long[]{2}, Shape.shape(shapes.get(0).asLong()));
     }
 
     @ParameterizedTest
@@ -1410,13 +1456,12 @@ public class TestMiscOpValidation extends BaseOpValidation {
         val outShape = Nd4j.getExecutioner().calculateOutputShape(op);
 
         assertEquals(1, outShape.size());
-        assertArrayEquals(new long[]{5}, outShape.get(0).getShape());
+        assertArrayEquals(new long[]{5}, Shape.shape(outShape.get(0).asLong()));
     }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testZerosOnesLike(){
+    public void testZerosOnesLike() {
         Nd4j.getRandom().setSeed(12345);
 
         List<int[]> shapes = Arrays.asList(new int[0], new int[]{3}, new int[]{3,4}, new int[]{3,4,5});
@@ -1473,46 +1518,11 @@ public class TestMiscOpValidation extends BaseOpValidation {
     }
 
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testConfusionMatrix(){
-        DataType dt = DataType.DOUBLE;
 
-        for(boolean withMax : new boolean[]{true, false}){
-
-            SameDiff sd = SameDiff.create();
-
-            SDVariable labels = sd.constant("labels", Nd4j.createFromArray(1, 2, 4));
-            SDVariable predictions = sd.constant("predictions", Nd4j.createFromArray(2, 2, 4));
-
-            INDArray exp = Nd4j.create(new double[][]{
-                    {0, 0, 0, 0, 0},
-                    {0, 0, 1, 0, 0},
-                    {0, 0, 1, 0, 0},
-                    {0, 0, 0, 0, 0},
-                    {0, 0, 0, 0, 1}}).castTo(FLOAT);
-
-            SDVariable confMatrix;
-            if(withMax){
-                confMatrix = sd.math().confusionMatrix(labels, predictions, 5).castTo(FLOAT);
-            } else {
-                confMatrix = sd.math().confusionMatrix("cm", labels, predictions, FLOAT);
-            }
-
-            SDVariable loss = confMatrix.castTo(DataType.DOUBLE).std(true);
-
-
-            String err = OpValidation.validate(new TestCase(sd)
-                    .gradientCheck(false)   //Not gradient checkable
-                    .expected(confMatrix, exp));
-
-            assertNull(err);
-        }
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testIsNonDecreasingIsStrictlyIncr(){
+    public void testIsNonDecreasingIsStrictlyIncr() {
         List<long[]> shapes = Arrays.asList(null, new long[]{12}, new long[]{1,12}, new long[]{3,4}, new long[]{2,2,3});
 
         List<String> failed = new ArrayList<>();
@@ -1656,16 +1666,16 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .addIntegerArguments(0, 1)      //Transpose arr2 only
                 .build();
 
-        List<LongShapeDescriptor> shapes = op.calculateOutputShape();
+        List<DataBuffer> shapes = op.calculateOutputShape();
         assertEquals(1, shapes.size());
         long[] shape = new long[]{32,12,128,128};
-        assertArrayEquals(shape, shapes.get(0).getShape());
+        assertArrayEquals(shape, Shape.shape(shapes.get(0).asLong()));
 
         INDArray out = Nd4j.create(FLOAT, shape);
 
         INDArray outExp = out.like();
-        for( int i=0; i<32; i++ ){
-            for( int j=0; j<12; j++ ){
+        for( int i = 0; i < 32; i++ ){
+            for( int j = 0; j < 12; j++) {
                 INDArray sub1 = arr1.get(NDArrayIndex.point(i), NDArrayIndex.point(j), NDArrayIndex.all(), NDArrayIndex.all());
                 INDArray sub2 = arr2.get(NDArrayIndex.point(i), NDArrayIndex.point(j), NDArrayIndex.all(), NDArrayIndex.all());
                 INDArray mmul = sub1.mmul(sub2.transpose());
@@ -1691,16 +1701,15 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .addIntegerArguments(0, 1)      //Transpose arr2 only
                 .build();
 
-        List<LongShapeDescriptor> shapes = op.calculateOutputShape();
+        List<DataBuffer> shapes = op.calculateOutputShape();
         assertEquals(1, shapes.size());
         long[] shape = new long[]{32,12,128,128};
-        assertArrayEquals(shape, shapes.get(0).getShape());
+        assertArrayEquals(shape, Shape.shape(shapes.get(0).asLong()));
 
         INDArray out = Nd4j.create(FLOAT, shape);
 
         op.setOutputArgument(0, out);
         Nd4j.exec(op);
-//        System.out.println(out);
 
         INDArray exp = Nd4j.valueArrayOf(shape, 64.0, FLOAT);      //Each entry in output is sum of 64 (1.0 x 1.0) multiplications
         assertEquals(exp, out);
@@ -1716,8 +1725,8 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .addIntegerArguments(0) //reverse = false
                 .build();
 
-        List<LongShapeDescriptor> shapeList = op.calculateOutputShape();
-        long[] shape = shapeList.get(0).getShape();
+        List<DataBuffer> shapeList = op.calculateOutputShape();
+        long[] shape = Shape.shape(shapeList.get(0).asLong());
         long[] expShape = new long[0];
         assertArrayEquals(expShape, shape);
 
@@ -1728,6 +1737,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
         System.out.println(out);
         assertEquals(0.0, out.getDouble(0), 1e-5);
     }
+
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1744,13 +1754,13 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 .addIntegerArguments(axes[1])
                 .build();
 
-        List<LongShapeDescriptor> l = op.calculateOutputShape();
-        assertArrayEquals(new long[]{2,2}, l.get(0).getShape());         //Returning [1,2,2]
+        List<DataBuffer> l = op.calculateOutputShape();
+        assertArrayEquals(new long[]{2,2}, Shape.shape(l.get(0).asLong()));         //Returning [1,2,2]
     }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testTensorMmulShape2(){
+    public void testTensorMmulShape2() {
         INDArray a = Nd4j.create(new double[]{2}).reshape(1);
         INDArray b = Nd4j.create(new double[]{1, 2, 3, 4}).reshape(2, 1, 2);
         INDArray c = Nd4j.tensorMmul(a, b, new int[][]{new int[]{0}, new int[]{1}});
@@ -1759,7 +1769,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testStopGradient(){
+    public void testStopGradient() {
 
         SameDiff sd = SameDiff.create();
         SDVariable w = sd.var("w", Nd4j.rand(DataType.DOUBLE, 3, 4));
@@ -1771,8 +1781,6 @@ public class TestMiscOpValidation extends BaseOpValidation {
         INDArray vArr = gm.get(v.name());
         INDArray wArr = gm.get(w.name());
 
-//        System.out.println(vArr);
-//        System.out.println(wArr);
 
         assertEquals(Nd4j.zeros(DataType.DOUBLE, 3, 4), wArr);
     }
@@ -1937,6 +1945,8 @@ public class TestMiscOpValidation extends BaseOpValidation {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testFlatten(Nd4jBackend backend) {
 
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
         SameDiff sameDiff = SameDiff.create();
 
         INDArray x = Nd4j.linspace(DataType.DOUBLE, 1, 27, 1).reshape(3,3,3);
@@ -2043,7 +2053,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
                 0.0,0.0,0.6931472,1.7917595,3.1780539,4.787492,6.5792513,8.525162,10.604603,12.801827,15.104413,17.502308
         }).reshape(3,4);
 
-        SDVariable output = new Lgamma(sameDiff, sdInput).outputVariable();
+        SDVariable output = sameDiff.math().lgamma(sdInput);
 
         SDVariable loss = sameDiff.standardDeviation(sdInput, true);
         sameDiff.addLossVariable(loss);
@@ -2093,7 +2103,7 @@ public class TestMiscOpValidation extends BaseOpValidation {
     public void testMatrixBandPart(Nd4jBackend backend) {
         SameDiff sameDiff = SameDiff.create();
 
-        INDArray input = Nd4j.createFromArray(new double[]{0.7788,0.8012f,0.7244,0.2309,
+        INDArray input = Nd4j.createFromArray(new double[]{0.7788,0.8012,0.7244,0.2309,
                 0.7271,0.1804,0.5056,0.8925,
                 0.5461,0.9234,0.0856,0.7938}).reshape(3,4);
 

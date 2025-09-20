@@ -31,7 +31,6 @@ namespace ops {
 CUSTOM_OP_IMPL(reduce_mean, -1, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
-
   auto dimensions = *block.getIArguments();
   if (block.width() > 1) {
     auto axesVector = INPUT_VARIABLE(1);
@@ -45,7 +44,7 @@ CUSTOM_OP_IMPL(reduce_mean, -1, 1, false, 0, 0) {
     keepDims = (bool)T_ARG(0);
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_MEAN OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -55,7 +54,7 @@ CUSTOM_OP_IMPL(reduce_mean, -1, 1, false, 0, 0) {
                  input->rankOf(), input->rankOf(), item);
   }
 
-  input->reduceAlongDimension(reduce::Mean, *output, dimensions, keepDims);
+  input->reduceAlongDimension(reduce::Mean, output, &dimensions, keepDims);
   return sd::Status::OK;
 }
 
@@ -74,17 +73,17 @@ DECLARE_SHAPE_FN(reduce_mean) {
     keepDims = (bool)T_ARG(0);
 
   REQUIRE_TRUE(
-      dimensions.size() <= in[0], 0,
+      dimensions.size() <= static_cast<size_t>(in[0]), 0,
       "REDUCE_MEAN OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
   for (const auto &item : dimensions)
-    REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
-                 "REDUCE_MEAN OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
-                 inputShape->at(0)[0], inputShape->at(0)[0], item);
+  REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
+               "REDUCE_MEAN OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
+               inputShape->at(0)[0], inputShape->at(0)[0], item);
 
   auto outShapeInfo =
-      ShapeUtils::evalReduceShapeInfo(shape::order(in), dimensions, in, keepDims, false, block.getWorkspace());
+      ShapeUtils::evalReduceShapeInfo(shape::order(in), &dimensions, in, keepDims, false, block.getWorkspace());
 
   return SHAPELIST(outShapeInfo);
 }
@@ -97,9 +96,7 @@ DECLARE_TYPES(reduce_mean) {
 CUSTOM_OP_IMPL(reduce_mean_bp, -2, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto gradO = INPUT_VARIABLE(1);
-
   auto gradI = OUTPUT_VARIABLE(0);
-
   auto dimensions = *block.getIArguments();
   if (block.width() > 2) {
     auto axesVector = INPUT_VARIABLE(2);
@@ -111,9 +108,8 @@ CUSTOM_OP_IMPL(reduce_mean_bp, -2, 1, false, 0, 0) {
     keepDims = B_ARG(0);
   else if (block.getTArguments()->size())
     keepDims = (bool)T_ARG(0);
-
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_MEAN_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -125,24 +121,35 @@ CUSTOM_OP_IMPL(reduce_mean_bp, -2, 1, false, 0, 0) {
         input->rankOf(), input->rankOf(), item);
     dimLength *= input->sizeAt(item);
   }
-  if (gradO->lengthOf() == 1) {
+
+  if (gradO->isScalar()) {
     if (dimensions.size() > 0) {
-      gradI->assign(gradO->e(0) / (dimLength + 0.0));
+      NDArray assign = gradO->e(0) / (static_cast<double>(dimLength));
+      gradI->assign(&assign);
     } else {
-      gradI->assign(gradO->e(0) / (input->lengthOf() + 0.0));
+      NDArray assign = gradO->e(0) / (static_cast<double>(input->lengthOf()));
+      gradI->assign(&assign);
     }
+
   } else {
-    gradI->assign((gradO->lengthOf() + 0.) / (input->lengthOf() + 0.0));
+    auto val = (static_cast<double>(gradO->lengthOf() < 1 ? 1.0 : gradO->lengthOf()) )
+               / (static_cast<double>(input->lengthOf() < 1 ? 1.0 : input->lengthOf()));
+    if(val == 0.0)
+      val = SD_EPSILON;
+    gradI->assign(val);
     if (!keepDims) {
       auto gradOShapeKeepDims =
-          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), dimensions, *input, true, false, block.getWorkspace());
-      *gradI *= gradO->reshape(gradO->ordering(),
-                               ShapeUtils::pullShapeFromShapeInfo(
-                                   gradOShapeKeepDims));  // for example could be something like [a,b] -> [1,a,1,b]
+          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), &dimensions, *input, true, false, block.getWorkspace());
+
+      std::vector<sd::LongType> shape =  ShapeUtils::pullShapeFromShapeInfo(
+          gradOShapeKeepDims);
+      NDArray reshapedGradO = gradO->reshape(gradO->ordering(), shape);
+      *gradI *= reshapedGradO;
     } else {
-      gradI->applyTrueBroadcast(sd::BroadcastOpsTuple::Multiply(), *gradO, *gradI);
+      gradI->applyTrueBroadcast(sd::BroadcastOpsTuple::Multiply(), gradO, gradI);
     }
   }
+
 
   return sd::Status::OK;
 }
@@ -157,19 +164,21 @@ DECLARE_SHAPE_FN(reduce_mean_bp) {
     helpers::adjustAxis(rank, axesVector, dimensions);
   }
   REQUIRE_TRUE(
-      dimensions.size() <= rank, 0,
+      dimensions.size() <= static_cast<size_t>(rank), 0,
       "REDUCE_MEAN_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
   for (const auto &item : dimensions)
-    REQUIRE_TRUE(
-        item >= -rank || item < rank, 0,
-        "REDUCE_MEAN_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", rank,
-        rank, item);
+  REQUIRE_TRUE(
+      item >= -rank || item < rank, 0,
+      "REDUCE_MEAN_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !", rank,
+      rank, item);
 
-  sd::LongType *gradIshapeInfo(nullptr);
-  COPY_SHAPE(inputShape->at(0), gradIshapeInfo);
-  return SHAPELIST(CONSTANT(gradIshapeInfo));
+  sd::LongType *gradIshapeInfo = new sd::LongType[shape::shapeInfoLength(rank)];
+  memcpy(gradIshapeInfo, in, shape::shapeInfoByteLength(in));
+  auto ret =  SHAPELIST(CONSTANT(gradIshapeInfo));
+  delete[] gradIshapeInfo;
+  return ret;
 }
 
 DECLARE_TYPES(reduce_mean_bp) {

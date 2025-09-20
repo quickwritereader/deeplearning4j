@@ -68,9 +68,9 @@ static void softMaxForVector_(void const* input, sd::LongType const* inShapeInfo
 }
 
 ///////////////////////////////////////////////////////////////////
-void softMaxForVector(sd::LaunchContext* context, const NDArray& input, NDArray& output) {
+void softMaxForVector(sd::LaunchContext* context, NDArray& input, NDArray& output) {
   if (!input.isVector() || !output.isVector())
-    throw std::runtime_error("ops::helpers::softMaxForVector function: input and output arrays must be vectors !");
+    THROW_EXCEPTION("ops::helpers::softMaxForVector function: input and output arrays must be vectors !");
 
   auto xType = input.dataType();
   BUILD_SINGLE_SELECTOR(xType, softMaxForVector_,
@@ -80,7 +80,7 @@ void softMaxForVector(sd::LaunchContext* context, const NDArray& input, NDArray&
 template <typename T>
 void softmax_loop(const T* input, T* output, const sd::LongType* offsets, sd::LongType numOfSubArrs, uint32_t tadLen);
 
-#if defined(_OPENMP) && !defined(__NEC__)
+#if defined(_OPENMP)
 template <>
 SD_INLINE void softmax_loop(const float* input, float* output, const sd::LongType* offsets, sd::LongType numOfSubArrs,
                             uint32_t tadLen) {
@@ -93,16 +93,16 @@ SD_INLINE void softmax_loop(const float* input, float* output, const sd::LongTyp
     float sum = 0.f;
 
 #pragma omp simd reduction(max : max)
-    for (sd::Unsigned j = 0; j < tadLen; ++j) max = sd::math::sd_max<float>(max, inBuff[j]);
+    for (sd::LongType j = 0; j < tadLen; ++j) max = sd::math::sd_max<float>(max, inBuff[j]);
 
 #pragma omp simd reduction(+ : sum)
-    for (sd::Unsigned j = 0; j < tadLen; ++j) {
+    for (sd::LongType j = 0; j < tadLen; ++j) {
       float temp = sd::math::sd_exp<float, float>(inBuff[j] - max);
       outBuff[j] = temp;
       sum += temp;
     }
 
-    for (sd::Unsigned j = 0; j < tadLen; ++j) outBuff[j] /= sum;
+    for (sd::LongType j = 0; j < tadLen; ++j) outBuff[j] /= sum;
   }
 }
 #else
@@ -117,15 +117,15 @@ SD_INLINE void softmax_loop(const float* input, float* output, const sd::LongTyp
       float max = -DataTypeUtils::max<float>();
       float sum = 0.f;
 
-      for (sd::Unsigned j = 0; j < tadLen; ++j) max = sd::math::sd_max<float>(max, inBuff[j]);
+      for (sd::LongType j = 0; j < tadLen; ++j) max = sd::math::sd_max<float>(max, inBuff[j]);
 
-      for (sd::Unsigned j = 0; j < tadLen; ++j) {
+      for (sd::LongType j = 0; j < tadLen; ++j) {
         float temp = sd::math::sd_exp<float, float>(inBuff[j] - max);
         outBuff[j] = temp;
         sum += temp;
       }
 
-      for (sd::Unsigned j = 0; j < tadLen; ++j) outBuff[j] /= sum;
+      for (sd::LongType j = 0; j < tadLen; ++j) outBuff[j] /= sum;
     }
   };
 
@@ -145,16 +145,14 @@ SD_INLINE void softmax_loop(const T* input, T* output, const sd::LongType* offse
       T max = -DataTypeUtils::max<T>();
       T sum(0.f);
 
-      PRAGMA_OMP_SIMD_MAX_2(max)
-      for (sd::Unsigned j = 0; j < tadLen; ++j) max = sd::math::sd_max<T>(max, inBuff[j]);
-      PRAGMA_OMP_SIMD_SUM(sum)
-      for (sd::Unsigned j = 0; j < tadLen; ++j) {
+      for (sd::LongType j = 0; j < tadLen; ++j) max = sd::math::sd_max<T>(max, inBuff[j]);
+      for (sd::LongType j = 0; j < tadLen; ++j) {
         T temp = sd::math::sd_exp<T, T>(inBuff[j] - max);
         outBuff[j] = temp;
         sum += temp;
       }
 
-      for (sd::Unsigned j = 0; j < tadLen; ++j) outBuff[j] /= sum;
+      for (sd::LongType j = 0; j < tadLen; ++j) outBuff[j] /= sum;
     }
   };
 
@@ -163,28 +161,29 @@ SD_INLINE void softmax_loop(const T* input, T* output, const sd::LongType* offse
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void softmax_(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimension) {
-  const int rank = input.rankOf();
+static void softmax_(sd::LaunchContext* context, NDArray* input, NDArray* output, const int dimension) {
+  const int rank = input->rankOf();
 
-  if (input.isVector()) {
-    if (rank == 1 || input.sizeAt(dimension) != 1)
-      softMaxForVector_<T>(input.buffer(), input.shapeInfo(), output.buffer(), output.shapeInfo());
+  if (input->isVector()) {
+    if (rank == 1 || input->sizeAt(dimension) != 1)
+      softMaxForVector_<T>(input->buffer(), input->shapeInfo(), output->buffer(), output->shapeInfo());
     else
-      output = 1.;
-  } else if (input.isSameShapeStrict(output)) {
-    TadPack tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), dimension);
-    auto tadShapeInfo = tadPack.primaryShapeInfo();
-    auto tadOffsets = tadPack.primaryOffsets();
-    const sd::Unsigned numOfSubArrs = tadPack.numberOfTads();
-    const sd::Unsigned tadLen = shape::length(tadShapeInfo);
+      *output = 1.;
+  } else if (input->isSameShapeStrict(*output)) {
+    TadPack *tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(input->shapeInfo(),
+                                                                             dimension);
+    auto tadShapeInfo = tadPack->primaryShapeInfo();
+    auto tadOffsets = tadPack->primaryOffsets();
+    const sd::LongType numOfSubArrs = tadPack->numberOfTads();
+    const sd::LongType tadLen = shape::length(tadShapeInfo);
 
     if (shape::elementWiseStride(tadShapeInfo) == 1) {
-      auto inBuff = input.bufferAsT<T>();
-      T* outBuff = output.bufferAsT<T>();
+      auto inBuff = input->bufferAsT<T>();
+      T* outBuff = output->bufferAsT<T>();
 
       softmax_loop(inBuff, outBuff, tadOffsets, numOfSubArrs, tadLen);
     } else {
-      sd::Unsigned inShapeInfoCast[SD_MAX_RANK];
+      sd::LongType inShapeInfoCast[SD_MAX_RANK];
       bool canCast = sd::DataTypeUtils::castShapeInfo(tadShapeInfo, inShapeInfoCast);
 
       auto offsets = new sd::LongType[tadLen];
@@ -192,21 +191,21 @@ static void softmax_(sd::LaunchContext* context, const NDArray& input, NDArray& 
 
       auto func = PRAGMA_THREADS_FOR {
         for (auto i = start; i < stop; i++) {
-          auto inBuff = input.bufferAsT<T>() + tadOffsets[i];
-          auto outBuff = output.bufferAsT<T>() + tadOffsets[i];
+          auto inBuff = input->bufferAsT<T>() + tadOffsets[i];
+          auto outBuff = output->bufferAsT<T>() + tadOffsets[i];
 
           T max = -DataTypeUtils::max<T>();
           T sum = 0.f;
 
-          for (sd::Unsigned j = 0; j < tadLen; ++j) max = sd::math::sd_max<T>(max, inBuff[offsets[j]]);
+          for (sd::LongType j = 0; j < tadLen; ++j) max = sd::math::sd_max<T>(max, inBuff[offsets[j]]);
 
-          for (sd::Unsigned j = 0; j < tadLen; ++j) {
+          for (sd::LongType j = 0; j < tadLen; ++j) {
             T temp = sd::math::sd_exp<T, T>(inBuff[offsets[j]] - max);
             outBuff[offsets[j]] = temp;
             sum += temp;
           }
 
-          for (sd::Unsigned j = 0; j < tadLen; ++j) outBuff[offsets[j]] /= sum;
+          for (sd::LongType j = 0; j < tadLen; ++j) outBuff[offsets[j]] /= sum;
         }
       };
 
@@ -215,17 +214,18 @@ static void softmax_(sd::LaunchContext* context, const NDArray& input, NDArray& 
       delete[] offsets;
     }
   } else {
-    NDArray max = input.reduceAlongDimension(sd::reduce::Max, {dimension}, true);
-    input.applyTrueBroadcast(sd::BroadcastOpsTuple::Subtract(), max, output, false);
-    output.applyTransform(sd::transform::Exp, output);
-    NDArray sum = output.reduceAlongDimension(sd::reduce::Sum, {dimension}, true);
-    output /= sum;
+    std::vector<sd::LongType> dimensionVec = {dimension};
+    NDArray max = input->reduceAlongDimension(sd::reduce::Max, &dimensionVec, true);
+    input->applyTrueBroadcast(sd::BroadcastOpsTuple::Subtract(), &max, output, false);
+    output->applyTransform(sd::transform::Exp, output);
+    NDArray sum = output->reduceAlongDimension(sd::reduce::Sum, &dimensionVec, true);
+    *output /= sum;
   }
 }
 
 ///////////////////////////////////////////////////////////////////
-void softmax(sd::LaunchContext* context, const NDArray& input, NDArray& output, const int dimension) {
-  BUILD_SINGLE_SELECTOR(input.dataType(), softmax_, (context, input, output, dimension), SD_FLOAT_TYPES);
+void softmax(LaunchContext* context, NDArray* input, NDArray* output, const int dimension) {
+  BUILD_SINGLE_SELECTOR(input->dataType(), softmax_, (context, input, output, dimension), SD_FLOAT_TYPES);
 }
 
 }  // namespace helpers

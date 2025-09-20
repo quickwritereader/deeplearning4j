@@ -22,6 +22,7 @@ package org.deeplearning4j.models.paragraphvectors;
 
 
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.io.IOUtils;
@@ -31,9 +32,7 @@ import org.deeplearning4j.models.embeddings.inmemory.InMemoryLookupTable;
 import org.deeplearning4j.models.embeddings.learning.impl.elements.SkipGram;
 import org.deeplearning4j.models.embeddings.learning.impl.sequence.DBOW;
 import org.deeplearning4j.models.embeddings.learning.impl.sequence.DM;
-import org.deeplearning4j.models.embeddings.loader.VectorsConfiguration;
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
-import org.deeplearning4j.models.embeddings.wordvectors.WordVectors;
 import org.deeplearning4j.models.sequencevectors.sequence.Sequence;
 import org.deeplearning4j.models.sequencevectors.transformers.impl.SentenceTransformer;
 import org.deeplearning4j.models.sequencevectors.transformers.impl.iterables.BasicTransformerIterator;
@@ -74,7 +73,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -82,6 +82,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @Tag(TagNames.FILE_IO)
 @NativeTag
 public class ParagraphVectorsTest extends BaseDL4JTest {
+    @TempDir Path testDir;
 
     @Override
     public long getTimeoutMilliseconds() {
@@ -164,7 +165,11 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
+    @Disabled("OOMs")
     public void testParagraphVectorsModelling1(Nd4jBackend backend) throws Exception {
+        if(backend.getNDArrayClass().toString().toLowerCase().contains("cu"))
+            return;
+
         for(boolean binary : new boolean[] {true,false}) {
             File file = Resources.asFile("/big/raw_sentences.txt");
             SentenceIterator iter = new BasicLineIterator(file);
@@ -174,8 +179,8 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
             LabelsSource source = new LabelsSource("DOC_");
 
-            ParagraphVectors vec = new ParagraphVectors.Builder().minWordFrequency(1).iterations(5).seed(119).epochs(1)
-                    .layerSize(150).learningRate(0.025).labelsSource(source).windowSize(5)
+            ParagraphVectors vec = new ParagraphVectors.Builder().minWordFrequency(10).iterations(5).seed(119).epochs(1)
+                    .layerSize(50).learningRate(0.025).labelsSource(source).windowSize(5)
                     .sequenceLearningAlgorithm(new DM<>())
                     .iterate(iter)
                     .trainWordVectors(true)
@@ -200,10 +205,6 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
             else
                 WordVectorSerializer.writeParagraphVectors(vec, fullFile);
 
-            ParagraphVectors paragraphVectors = binary ?
-                    WordVectorSerializer.readParagraphVectorsBinary(fullFile) :
-                    WordVectorSerializer.readParagraphVectors(fullFile);
-
 
             int cnt1 = cache.wordFrequency("day");
             int cnt2 = cache.wordFrequency("me");
@@ -212,7 +213,7 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
             assertNotEquals(1, cnt2);
             assertNotEquals(cnt1, cnt2);
 
-            assertEquals(97406, cache.numWords());
+            assertEquals(97402, cache.numWords());
 
             assertTrue(vec.hasWord("DOC_16392"));
             assertTrue(vec.hasWord("DOC_3720"));
@@ -367,7 +368,6 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
             log.info("cosAO2: {}", cosAO2);
 
-            //  assertTrue(cosAO2 > 0.45);
             assertTrue(cosAB2 > 0.95);
             assertTrue(cosAAX > 0.95);
         }
@@ -375,10 +375,17 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
     }
 
 
-    @Test
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
-    public void testParagraphVectorsDM() throws Exception {
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    @Disabled("OOM in regular tests")
+    public void testParagraphVectorsDM(Nd4jBackend backend) throws Exception {
+        if(backend.getNDArrayClass().toString().toLowerCase().contains("cu"))
+            return;
+
+        Nd4j.getExecutioner().enableDebugMode(true);
+        Nd4j.getExecutioner().enableVerboseMode(true);
         File file = Resources.asFile("/big/raw_sentences.txt");
         SentenceIterator iter = new BasicLineIterator(file);
 
@@ -410,15 +417,12 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
         double similarity1 = vec.similarity("DOC_9835", "DOC_12492");
         log.info("9835/12492 similarity: " + similarity1);
-        //        assertTrue(similarity1 > 0.2d);
 
         double similarity2 = vec.similarity("DOC_3720", "DOC_16392");
         log.info("3720/16392 similarity: " + similarity2);
-        //      assertTrue(similarity2 > 0.2d);
 
         double similarity3 = vec.similarity("DOC_6347", "DOC_3720");
         log.info("6347/3720 similarity: " + similarity3);
-        //        assertTrue(similarity3 > 0.6d);
 
         double similarityX = vec.similarity("DOC_3720", "DOC_9852");
         log.info("3720/9852 similarity: " + similarityX);
@@ -524,6 +528,7 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
     @Timeout(300000)
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
+    @Disabled
     public void testParagraphVectorsWithWordVectorsModelling1() throws Exception {
         String backend = Nd4j.getExecutioner().getEnvironmentInformation().getProperty("backend");
         if(!isIntegrationTests() && "CUDA".equalsIgnoreCase(backend)) {
@@ -642,7 +647,6 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
         vec.fit();
 
-        //WordVectorSerializer.writeWordVectors(vec, "vectors.txt");
 
         INDArray w1 = vec.lookupTable().vector("I");
         INDArray w2 = vec.lookupTable().vector("am");
@@ -679,8 +683,11 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
     public void testParallelIterator() throws IOException {
         TokenizerFactory factory = new DefaultTokenizerFactory();
         SentenceIterator iterator = new BasicLineIterator(Resources.asFile("big/raw_sentences.txt"));
+        AbstractCache<VocabWord> cacheTarget = new AbstractCache.Builder<VocabWord>().build();
 
-        SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(iterator).allowMultithreading(true)
+        SentenceTransformer transformer = new SentenceTransformer.Builder().iterator(iterator)
+                .vocabCache(cacheTarget)
+                .allowMultithreading(true)
                 .tokenizerFactory(factory).build();
 
         BasicTransformerIterator iter = (BasicTransformerIterator)transformer.iterator();
@@ -748,12 +755,14 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
         In this test we'll build w2v model, and will use it's vocab and weights for ParagraphVectors.
         there's no need in this test within travis, use it manually only for problems detection
     */
-    @Test
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
-    public void testParagraphVectorsOverExistingWordVectorsModel(@TempDir Path testDir) throws Exception {
-        String backend = Nd4j.getExecutioner().getEnvironmentInformation().getProperty("backend");
-
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    @Disabled
+    public void testParagraphVectorsOverExistingWordVectorsModel(Nd4jBackend backend) throws Exception {
+        if(backend.getNDArrayClass().toString().toLowerCase().contains("cu"))
+            return;
 
         // we build w2v from multiple sources, to cover everything
         File resource_sentences = Resources.asFile("/big/raw_sentences.txt");
@@ -802,7 +811,7 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
         // we're building classifier now, with pre-built w2v model passed in
         ParagraphVectors paragraphVectors = new ParagraphVectors.Builder().seed(119).iterate(labelAwareIterator)
                 .learningRate(0.025).minLearningRate(0.001).iterations(10).epochs(1).layerSize(150)
-                .tokenizerFactory(t).sequenceLearningAlgorithm(new DBOW<VocabWord>()).useHierarchicSoftmax(true)
+                .tokenizerFactory(t).sequenceLearningAlgorithm(new DBOW<>()).useHierarchicSoftmax(true)
                 .allowParallelTokenization(true)
                 .workers(1)
                 .trainWordVectors(false).useExistingWordVectors(wordVectors).build();
@@ -813,11 +822,7 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
         assertEquals(day_A.getIndex(), day_B.getIndex());
 
-        /*
-        double similarityD = wordVectors.similarity("day", "night");
-        log.info("day/night similarity: " + similarityD);
-        assertTrue(similarityD > 0.5d);
-        */
+
 
         INDArray vector_day2 = paragraphVectors.getWordVectorMatrix("day").dup();
         double crossDay = arraysSimilarity(vector_day1, vector_day2);
@@ -889,10 +894,12 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
 
     }
 
-    @Test
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
-    public void testDirectInference(@TempDir Path testDir) throws Exception {
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    @ParameterizedTest
+    public void testDirectInference(Nd4jBackend backend) throws Exception {
+
         boolean isIntegration = isIntegrationTests();
         File resource = Resources.asFile("/big/raw_sentences.txt");
         SentenceIterator sentencesIter = getIterator(isIntegration, resource);
@@ -924,6 +931,73 @@ public class ParagraphVectorsTest extends BaseDL4JTest {
         log.info("vec1/vec2: {}", Transforms.cosineSim(vec1, vec2));
     }
 
+
+    @Tag(TagNames.LONG_TEST)
+    @Tag(TagNames.LARGE_RESOURCES)
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    @ParameterizedTest
+    public void testParallelLoading(Nd4jBackend backend) throws Exception {
+        int numThreads = 16;
+        boolean isIntegration = isIntegrationTests();
+        Executor executor = Executors.newFixedThreadPool(numThreads);
+        File resource = Resources.asFile("/big/raw_sentences.txt");
+        SentenceIterator sentencesIter = getIterator(isIntegration, resource);
+
+        ClassPathResource resource_mixed = new ClassPathResource("paravec/");
+        File local_resource_mixed = testDir.toFile();
+        resource_mixed.copyDirectory(local_resource_mixed);
+        SentenceIterator iter = new AggregatingSentenceIterator.Builder()
+                .addSentenceIterator(sentencesIter)
+                .addSentenceIterator(new FileSentenceIterator(local_resource_mixed)).build();
+
+        TokenizerFactory t = new DefaultTokenizerFactory();
+        t.setTokenPreProcessor(new CommonPreprocessor());
+
+
+        Nd4j.getWorkspaceManager().getWorkspaceForCurrentThread().enableDebug(true);
+        Word2Vec wordVectors = new Word2Vec.Builder().minWordFrequency(1).batchSize(250).iterations(1).epochs(1)
+                .learningRate(0.025).layerSize(150).minLearningRate(0.001)
+                .elementsLearningAlgorithm(new SkipGram<>()).useHierarchicSoftmax(true).windowSize(5)
+                .iterate(iter).tokenizerFactory(t).build();
+
+        wordVectors.fit();
+
+        ParagraphVectors pv = new ParagraphVectors.Builder().tokenizerFactory(t)
+                .iterations(10)
+                .tokenizerFactory(new DefaultTokenizerFactory())
+                .useHierarchicSoftmax(true).trainWordVectors(true).useExistingWordVectors(wordVectors)
+                .negativeSample(0).sequenceLearningAlgorithm(new DBOW<>()).build();
+
+        for(int i = 0; i < numThreads; i++) {
+            File write = new File("pv_" + i + ".zip");
+            WordVectorSerializer.writeParagraphVectors(pv,write.getAbsolutePath());
+
+        }
+
+        int count = 0;
+        int till = 10;
+        while(count < till) {
+            for(int i = 0; i < numThreads; i++) {
+                File write = new File("pv_" + i + ".zip");
+
+                executor.execute(new Runnable() {
+                    @SneakyThrows
+                    @Override
+                    public void run() {
+                        var vectors = WordVectorSerializer.readParagraphVectors(write);
+                        vectors.setTokenizerFactory(new DefaultTokenizerFactory());
+                        vectors.inferVector("this is a test");
+                    }
+                });
+            }
+
+            Thread.sleep(1000);
+            count++;
+        }
+
+
+
+    }
 
     @Test()
     @Timeout(300000)

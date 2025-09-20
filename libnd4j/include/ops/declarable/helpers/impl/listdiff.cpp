@@ -26,7 +26,6 @@
 #include <ops/declarable/helpers/listdiff.h>
 
 #include <vector>
-//#include <memory>
 
 namespace sd {
 namespace ops {
@@ -41,6 +40,8 @@ static sd::LongType listDiffCount_(NDArray* values, NDArray* keep) {
     auto index = idx.e<sd::LongType>(0);
     if (index < 0) saved++;
   }
+
+
   return saved;
 }
 
@@ -52,6 +53,7 @@ sd::LongType listDiffCount(sd::LaunchContext* context, NDArray* values, NDArray*
   BUILD_SINGLE_SELECTOR(xType, return listDiffCount_, (values, keep), SD_COMMON_TYPES);
 
   NDArray::registerPrimaryUse({}, {values, keep});
+  return 0;
 }
 
 BUILD_SINGLE_TEMPLATE(template sd::LongType listDiffCount_, (NDArray * values, NDArray* keep);, SD_COMMON_TYPES);
@@ -60,13 +62,11 @@ template <typename T>
 static sd::Status listDiffFunctor_(NDArray* values, NDArray* keep, NDArray* output1, NDArray* output2) {
   std::vector<T> saved;
   std::vector<sd::LongType> indices;
-
   for (sd::LongType e = 0; e < values->lengthOf(); e++) {
     auto v = values->e<double>(e);
     ExtraArguments extras({v, 0.0, 10.0});
     NDArray idxScalar = keep->indexReduceNumber(indexreduce::FirstIndex, &extras);
     sd::LongType idx = idxScalar.e<sd::LongType>(0);
-
     if (idx < 0) {
       saved.emplace_back(v);
       indices.emplace_back(e);
@@ -74,27 +74,26 @@ static sd::Status listDiffFunctor_(NDArray* values, NDArray* keep, NDArray* outp
   }
 
   if (saved.size() == 0) {
-    //            if (sd::ops::conditionHelper(__FILE__, __LINE__, false, 0, "ListDiff: search returned no results") !=
-    //            0)
     sd_printf("ListDiff: search returned no results", "");
-    throw std::invalid_argument("Op validation failed");
+    THROW_EXCEPTION("Op validation failed");
   } else {
-    auto z0 = output1;  // OUTPUT_VARIABLE(0); //new NDArray<T>('c', {(int) saved.size()});
-    auto z1 = output2;  // OUTPUT_VARIABLE(1); //new NDArray<T>('c', {(int) saved.size()});
+    auto z0 = output1;
+    auto z1 = output2;
 
-    if (z0->lengthOf() != saved.size()) {
+    if (static_cast<size_t>(z0->lengthOf()) != saved.size()) {
       sd_printf("ListDiff: output/actual size mismatch", "");
-      throw std::invalid_argument("Op validation failed");
+      THROW_EXCEPTION("Op validation failed");
     }
 
-    if (z1->lengthOf() != saved.size()) {
+    if (static_cast<size_t>(z1->lengthOf()) != saved.size()) {
       sd_printf("ListDiff: output/actual indices size mismatch", "");
-      throw std::invalid_argument("Op validation failed");
+      THROW_EXCEPTION("Op validation failed");
     }
     memcpy(z0->buffer(), saved.data(), saved.size() * sizeof(T));
-    for (int e = 0; e < indices.size(); e++) {
+    for (size_t e = 0; e < indices.size(); e++) {
       z1->p(e, indices[e]);
     }
+
   }
   return sd::Status::OK;
 }
@@ -112,7 +111,7 @@ sd::Status listDiffFunctor(sd::LaunchContext* context, NDArray* values, NDArray*
   } else if (DataTypeUtils::isZ(xType)) {
     BUILD_SINGLE_SELECTOR(xType, result = listDiffFunctor_, (values, keep, output1, output2), SD_INTEGER_TYPES);
   } else {
-    throw std::runtime_error("ListDiff: Only integer and floating point data types are supported");
+   return sd::Status::KERNEL_FAILURE;
   }
 
   NDArray::registerPrimaryUse({output1, output2}, {values, keep});

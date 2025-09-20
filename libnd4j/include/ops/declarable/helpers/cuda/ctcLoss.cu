@@ -26,14 +26,16 @@
 #include <stdexcept>
 #include <type_traits>
 
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
-void ctcLoss(graph::Context &block, const NDArray &logits, const NDArray &targetLabels, const NDArray &logitsLengths,
-             const NDArray &targetLabelLengths, NDArray &logLosses, NDArray &gradients, int blankIndex) {
+void ctcLoss(graph::Context &block, NDArray&logitsInput, NDArray&targetLabels,
+                           NDArray&logitsLengths, NDArray&targetLabelLengths, NDArray &logLosses,
+                           NDArray &gradients, int blankIndex) {
   // not imeplemented
-  throw std::runtime_error("ctcLoss:: Not implemented yet");
+  THROW_EXCEPTION("ctcLoss:: Not implemented yet");
 }
 
 }  // namespace helpers

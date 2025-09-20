@@ -23,13 +23,14 @@ package org.nd4j.linalg.api.memory.deallocation;
 import lombok.Data;
 import org.nd4j.linalg.api.memory.Deallocatable;
 import org.nd4j.linalg.api.memory.Deallocator;
+import org.nd4j.linalg.factory.Nd4j;
 
+import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
 
 @Data
-public class DeallocatableReference extends WeakReference<Deallocatable> {
-    private String id;
+public class DeallocatableReference extends PhantomReference<Deallocatable> {
+    private long id;
     private Deallocator deallocator;
 
     public DeallocatableReference(Deallocatable referent, ReferenceQueue<? super Deallocatable> q) {
@@ -37,5 +38,20 @@ public class DeallocatableReference extends WeakReference<Deallocatable> {
 
         this.id = referent.getUniqueId();
         this.deallocator = referent.deallocator();
+        if(!Nd4j.getDeallocatorService().getListeners().isEmpty()) {
+          Nd4j.getDeallocatorService().registerDeallocatbleToListener(this);
+        }
     }
+
+    public void deallocate() {
+        if(deallocator.isConstant()) {
+            throw new IllegalStateException("Unable to deallocate reference. Not ready yet.");
+        }
+
+        if(!Nd4j.getDeallocatorService().getListeners().isEmpty()) {
+            Nd4j.getDeallocatorService().registerDeallocatbleToListener(this);
+        }
+        deallocator.deallocate();
+    }
+
 }

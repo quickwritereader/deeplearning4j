@@ -20,7 +20,7 @@
 #define SD_SYSTEM_COMMON_H
 
 #include <system/openmp_pragmas.h>
-#include <stdint.h>
+#include <cstdint>
 
 #define STRINGIZE2(x) #x
 #define STRINGIZE(x) STRINGIZE2(x)
@@ -62,12 +62,7 @@
 #endif
 
 
-#ifdef __NEC__
-#include <unordered_map>
-#define SD_MAP_IMPL std::unordered_map
-#define SD_LOOPS_INLINED
-#define SD_INLINE inline
-#elif __clang__
+#ifdef __clang__
 #include <unordered_map>
 #define SD_MAP_IMPL std::unordered_map
 #define SD_LOOPS_INLINED
@@ -80,7 +75,7 @@
 #include <unordered_map>
 #define SD_MAP_IMPL std::unordered_map
 #define SD_LOOPS_INLINED
-#define SD_INLINE __attribute__((always_inline)) inline
+#define SD_INLINE  inline
 #elif __CUDACC__
 #include <unordered_map>
 #define SD_MAP_IMPL std::unordered_map
@@ -158,12 +153,18 @@
 #define SD_DOUBLE_PI_T T(2.0 * 3.14159265358979323846)
 #define SD_DOUBLE_PI_X X(2.0 * 3.14159265358979323846)
 
+#include <cstdarg>
+#include <cstdio>
+#include <string>
+
 namespace sd {
 
     using Pointer = void*;
     using LongType = long long;
     using UnsignedLong = uint64_t;
     using Unsigned = unsigned int;
+
+
 
     enum class Status : int {
         OK = 0,
@@ -189,6 +190,10 @@ namespace sd {
         EQ_FALSE = 101,
         MAYBE = 119
     };
+    struct ErrorResult {
+      sd::Status status;
+      std::string message;
+    };
 
 }  // namespace sd
 
@@ -198,11 +203,6 @@ namespace sd {
 #define SD_MAX_SHAPEINFOLENGTH 2 * SD_MAX_RANK + 4
 #define SD_MAX_COORD 3
 #define SD_PREALLOC_SIZE 33554432
-
-#if defined(__NEC__)
-//This will be used in determining maximum shape list size and also maximum op input size
-#define SD_MAX_INPUT_SIZE 256
-#endif
 
 #ifdef __CUDACC__
 #include <cuda.h>

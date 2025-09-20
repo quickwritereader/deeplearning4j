@@ -46,8 +46,8 @@ namespace ops {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-void lstmCell(sd::LaunchContext* context, const NDArray* xt, const NDArray* ht_1, const NDArray* ct_1,
-              const NDArray* Wx, const NDArray* Wh, const NDArray* Wc, const NDArray* Wp, const NDArray* b, NDArray* ht,
+void lstmCell(sd::LaunchContext* context, NDArray* xt, NDArray* ht_1, NDArray* ct_1,
+              NDArray* Wx, NDArray* Wh, NDArray* Wc, NDArray* Wp, NDArray* b, NDArray* ht,
               NDArray* ct, const std::vector<double>& params) {
   // xt   input [bS x nIn]
   // ht_1 previous cell output [bS x numProj],  that is at previous time step t-1, in case of projection=false ->
@@ -89,10 +89,12 @@ void lstmCell(sd::LaunchContext* context, const NDArray* xt, const NDArray* ht_1
   }
 
   // current sell state = ft*ct_1 + it*tanh(mmul(Wxc,xt) + mmul(Whc,ht_1) + bc
-  ct->assign(sigmoid(zft + forgetBias) * (*ct_1) + sigmoid(zit) * tanh(zct));
+  NDArray zftPlusBias = zft + forgetBias;
+  NDArray sigmoidOut = sigmoid(zftPlusBias) * (*ct_1) + sigmoid(zit) * tanh(zct);
+  ct->assign(&sigmoidOut);
 
   // if clipping value is provided then cell state is clipped by this value prior to the cell output activation
-  if (clippingCellValue > 0.0) ct->applyScalar(scalar::LstmClip, clippingCellValue, *ct);
+  if (clippingCellValue > 0.0) ct->applyScalar(scalar::LstmClip, clippingCellValue, ct);
 
   if (peephole) zot += (*ct) * (*Wc)({{2 * nOut, 3 * nOut}});  // add peephole connections to output gate zot + ct*Wc
 
@@ -101,24 +103,18 @@ void lstmCell(sd::LaunchContext* context, const NDArray* xt, const NDArray* ht_1
 
   // apply projection
   if (projection) {
-    ht->assign(mmul(htNoPeepHole, *Wp));  // [bS x nOut] * [ nOut x numProj] = [bS x numProj]
+    NDArray assign = mmul(htNoPeepHole, *Wp);
+    ht->assign(&assign);  // [bS x nOut] * [ nOut x numProj] = [bS x numProj]
     // if clipping projection is provided then projected cell output state is clipped by this value
-    if (clippingProjValue != 0.) ht->applyScalar(scalar::LstmClip, clippingProjValue, *ht);
+    if (clippingProjValue != 0.) ht->applyScalar(scalar::LstmClip, clippingProjValue, ht);
   } else
     ht->assign(&htNoPeepHole);
 }
 
 template <typename T>
-static void fusedTanh(NDArray* z, NDArray* i, NDArray* c, const NDArray* cLast, NDArray* f, NDArray* h) {
+static void fusedTanh(NDArray* z, NDArray* i, NDArray* c, NDArray* cLast, NDArray* f, NDArray* h) {
   // cell state = blockInput .* inputGate + prevCellState .* forgetGate
-  /*
-  z->applyPairwiseTransform(pairwise::Multiply, i, c, nullptr);       //c = z * i
-  auto temp = (*f) * (*cLast);
-  *c += temp;                              //c = (i * z) + (zf * (*cLast))
-  c->applyTransform(transform::Tanh, h);  //h = tanh(c)
-   */
-
-  auto uLen = static_cast<sd::Unsigned>(z->lengthOf());
+  auto uLen = static_cast<sd::LongType>(z->lengthOf());
   auto c_ = c->bufferAsT<T>();
   auto z_ = z->bufferAsT<T>();
   auto i_ = i->bufferAsT<T>();
@@ -138,8 +134,8 @@ static void fusedTanh(NDArray* z, NDArray* i, NDArray* c, const NDArray* cLast, 
 
 //////////////////////////////////////////////////////////////////////////
 
-void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast, const NDArray* W, const NDArray* Wci,
-                   const NDArray* Wcf, const NDArray* Wco, const NDArray* b, NDArray* i, NDArray* c, NDArray* f,
+void lstmBlockCell(NDArray* xt, NDArray* cLast, NDArray* yLast, NDArray* W, NDArray* Wci,
+                   NDArray* Wcf, NDArray* Wco, NDArray* b, NDArray* i, NDArray* c, NDArray* f,
                    NDArray* o, NDArray* z, NDArray* h, NDArray* y, const std::vector<double>& params) {
   /* Input arrays:
    *    0: xt              - input [bS, nIn] at time t
@@ -175,10 +171,11 @@ void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast
   const int nIn = xt->sizeAt(1);
   const int nOut = cLast->sizeAt(1);
 
+  std::vector<sd::LongType> cOutShape = {xt->sizeAt(0),xt->sizeAt(1), xt->sizeAt(1) + yLast->sizeAt(1)};
   // Concat inputs: [xt, yt-1]: concat([bs,nIn],[bs,nOut]) -> [bs, (nIn+nOut)]
-  NDArray concatOut(xt->ordering(), {xt->sizeAt(0), xt->sizeAt(1) + yLast->sizeAt(1)}, xt->dataType(),
+  NDArray concatOut(xt->ordering(), cOutShape, xt->dataType(),
                     xt->getContext());
-  helpers::concat(xt->getContext(), {const_cast<NDArray*>(xt), const_cast<NDArray*>(yLast)}, concatOut, {1});
+  helpers::concat(xt->getContext(), {const_cast<NDArray*>(xt), const_cast<NDArray*>(yLast)}, concatOut, 1);
 
   auto m = mmul(concatOut, *W);  // mmul: [bs, (nIn+nOut)] * [(nIn+nOut), 4*nOut] = [bs, 4*nOut]
   m += (*b);                     // addiRowVector
@@ -201,13 +198,13 @@ void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast
   PRAGMA_OMP_PARALLEL
   PRAGMA_OMP_SINGLE {
     PRAGMA_OMP_TASK
-    zz.applyTransform(transform::Tanh, *z);  // z = tanh(zz)
+    zz.applyTransform(transform::Tanh, z);  // z = tanh(zz)
 
     PRAGMA_OMP_TASK
-    zi.applyTransform(transform::Sigmoid, *i);  // i = sigmoid(zi)
+    zi.applyTransform(transform::Sigmoid, i);  // i = sigmoid(zi)
 
     PRAGMA_OMP_TASK
-    zf.applyTransform(transform::Sigmoid, *f);  // f = sigmoid(zf);
+    zf.applyTransform(transform::Sigmoid, f);  // f = sigmoid(zf);
   }
 
   if (z->ews() == 1 && i->ews() == 1 && c->ews() == 1 && cLast->ews() == 1 && f->ews() == 1 && h->ews() == 1 &&
@@ -217,14 +214,14 @@ void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast
     BUILD_SINGLE_SELECTOR(z->dataType(), fusedTanh, (z, i, c, cLast, f, h), SD_FLOAT_TYPES);
   } else {
     // cell state = blockInput .* inputGate + prevCellState .* forgetGate
-    z->applyPairwiseTransform(pairwise::Multiply, *i, *c);  // c = z * i
+    z->applyPairwiseTransform(pairwise::Multiply, i, c);  // c = z * i
     auto temp = (*f) * (*cLast);
     *c += temp;                              // c = (i * z) + (zf * (*cLast))
-    c->applyTransform(transform::Tanh, *h);  // h = tanh(c)
+    c->applyTransform(transform::Tanh, h);  // h = tanh(c)
   }
 
   // if clipping value is provided then cell state is clipped by this value prior to the cell output activation
-  if (clippingCellValue > 0.0) c->applyScalar(scalar::LstmClip, clippingCellValue, *c);
+  if (clippingCellValue > 0.0) c->applyScalar(scalar::LstmClip, clippingCellValue, c);
 
   // add peephole connections to output gate zot + ct*Wc
   if (peephole) {
@@ -232,11 +229,11 @@ void lstmBlockCell(const NDArray* xt, const NDArray* cLast, const NDArray* yLast
     zo += prod;
   }
 
-  zo.applyTransform(transform::Sigmoid, *o);  // o = sigmoid(zo)
+  zo.applyTransform(transform::Sigmoid, o);  // o = sigmoid(zo)
 
   // current cell output = ot*tanh(ct)
-  c->applyTransform(transform::Tanh, *h);                 // h = tanh(c)
-  o->applyPairwiseTransform(pairwise::Multiply, *h, *y);  // y = o * h
+  c->applyTransform(transform::Tanh, h);                 // h = tanh(c)
+  o->applyPairwiseTransform(pairwise::Multiply, h, y);  // y = o * h
 }
 
 }  // namespace helpers

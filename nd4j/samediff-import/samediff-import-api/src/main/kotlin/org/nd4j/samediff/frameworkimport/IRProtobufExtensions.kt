@@ -33,6 +33,7 @@ import org.nd4j.ir.TensorNamespace
 import org.nd4j.linalg.api.buffer.DataType
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.nativeblas.NativeOpsHolder
 import org.nd4j.samediff.frameworkimport.opdefs.OpDescriptorLoaderHolder
 import org.nd4j.shade.protobuf.ByteString
 import java.lang.IllegalArgumentException
@@ -155,7 +156,7 @@ fun convertNameSpaceTensorDataTypeFromNd4jDataType(dataType: DataType): TensorNa
 
 fun ndarrayFromNameSpaceTensor(inputTensor: TensorNamespace.TensorProto): INDArray {
     val dtype = convertNd4jDataTypeFromNameSpaceTensorDataType(TensorNamespace.DataType.values()[inputTensor.dataType])
-    val shape = inputTensor.dimsList.filter { input -> input > 0 }.toLongArray()
+    val shape = inputTensor.dimsList.toLongArray()
     val totalLen = ArrayUtil.prod(*shape)
     //note for all cases here scalars can be either zero shape with 1 element or rank >= 1 with 1 element
     when(dtype) {
@@ -164,7 +165,8 @@ fun ndarrayFromNameSpaceTensor(inputTensor: TensorNamespace.TensorProto): INDArr
             if(floatArray.isEmpty())
                 return loadDataBufferFromRawData(inputTensor)
             else  if(totalLen <= 1 && shape.isEmpty()) {
-                return Nd4j.scalar(floatArray[0])
+                val ret = Nd4j.scalar(floatArray[0])
+                return ret
             } else if(totalLen != floatArray.size) {
                 //broadcast case
                 if(floatArray.size == 1) {
@@ -216,13 +218,11 @@ fun ndarrayFromNameSpaceTensor(inputTensor: TensorNamespace.TensorProto): INDArr
                     throw IllegalArgumentException("Shape of ${Arrays.toString(shape)} did not match length ${halfArray.size}")
             }
 
-            val dataBuffer = Nd4j.createBuffer(DataType.FLOAT,halfArray.size.toLong(),false)
+            val dataBuffer = Nd4j.createTypedBuffer(halfArray.map { input -> input.toShort() }.toShortArray(),
+                DataType.HALF)
 
-            for(i in 0 until halfArray.size) {
-                dataBuffer.put(i.toLong(),HalfIndexer.toFloat(halfArray[i]))
-            }
 
-            return Nd4j.create(dataBuffer).reshape(*shape).castTo(DataType.FLOAT16)
+            return Nd4j.create(dataBuffer).reshape(*shape)
         }
 
         DataType.BFLOAT16 -> {
@@ -242,13 +242,13 @@ fun ndarrayFromNameSpaceTensor(inputTensor: TensorNamespace.TensorProto): INDArr
                     throw IllegalArgumentException("Shape of ${Arrays.toString(shape)} did not match length ${halfArray.size}")
             }
 
-            val dataBuffer = Nd4j.createBuffer(DataType.FLOAT,halfArray.size.toLong(),false)
+            val dataBuffer = Nd4j.createTypedBuffer(halfArray.map { input -> input.toShort() }.toShortArray(),
+                DataType.BFLOAT16)
 
-            for(i in 0 until halfArray.size) {
-                dataBuffer.put(i.toLong(),Bfloat16ArrayIndexer.toFloat(halfArray[i]))
-            }
 
-            return Nd4j.create(dataBuffer).reshape(*shape).castTo(DataType.BFLOAT16)
+            val ret = Nd4j.create(dataBuffer).reshape(*shape)
+
+            return ret
         }
 
 
@@ -385,7 +385,7 @@ fun ndarrayFromNameSpaceTensor(inputTensor: TensorNamespace.TensorProto): INDArr
                     return Nd4j.create(booleanList.toBooleanArray()).reshape(*shape)
                 }
                 else
-                    throw IllegalArgumentException("Shape of ${Arrays.toString(shape)} did not match length ${intArray.size}")
+                    throw IllegalArgumentException("Shape of ${shape.contentToString()} did not match length ${intArray.size}")
             }
 
             return Nd4j.create(intArray).reshape(*shape)
@@ -432,14 +432,6 @@ fun loadDataBufferFromRawData(inputTensor: TensorNamespace.TensorProto): INDArra
     val byteArray = inputTensor.rawData.toByteArray()
     //note: scalar can be zero
     var totalLen = ArrayUtil.prod(*shape)
-    if(totalLen < 1 && byteArray.isEmpty()) {
-        if(shape.isNotEmpty()) {
-            return Nd4j.zeros(*shape).castTo(dtype)
-        }
-        else {
-            return Nd4j.empty(dtype)
-        }
-    }
 
 
     if(dtype == DataType.UTF8) {
@@ -458,11 +450,12 @@ fun loadDataBufferFromRawData(inputTensor: TensorNamespace.TensorProto): INDArra
             totalLen = 1
 
         val byteBuffer = ByteBuffer.allocateDirect(totalLen * dtype.width())
-        byteBuffer.put(byteArray)
+        if(byteArray.size > 0)
+            byteBuffer.put(byteArray)
         //See: https://github.com/apache/felix/pull/114
         val castBuffer = byteBuffer as Buffer
         castBuffer.rewind()
-        val rawDataBuffer = Nd4j.createBuffer(byteBuffer, dtype, totalLen, 0)
+        val rawDataBuffer = Nd4j.createBuffer(byteBuffer, dtype, totalLen)
         if(shape.isNotEmpty() && totalLen > 0) {
             if(rawDataBuffer.length() > 0)
                 return Nd4j.create(rawDataBuffer).reshape('c',*shape)

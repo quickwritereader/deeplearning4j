@@ -42,7 +42,7 @@ __registratorSynonym<OpName>::__registratorSynonym(const char* name, const char*
     std::string newName(name);
     std::string oldName(oname);
 
-    OpRegistrator::getInstance().updateMSVC(sd::ops::HashHelper::getInstance().getLongHash(newName), oldName);
+    OpRegistrator::getInstance().updateMSVC(HashHelper::getInstance().getLongHash(newName), oldName);
     return;
   }
   OpRegistrator::getInstance().registerOperation(name, ptr);
@@ -55,8 +55,8 @@ OpRegistrator& OpRegistrator::getInstance() {
   return instance;
 }
 
-void OpRegistrator::updateMSVC(sd::LongType newHash, std::string& oldName) {
-  std::pair<sd::LongType, std::string> pair(newHash, oldName);
+void OpRegistrator::updateMSVC(LongType newHash, std::string& oldName) {
+  std::pair<LongType, std::string> pair(newHash, oldName);
   _msvc.insert(pair);
 }
 
@@ -84,12 +84,6 @@ std::string OpRegistrator::local_to_string(int value) {
   return os.str();
 }
 
-void OpRegistrator::sigIntHandler(int sig) {}
-
-void OpRegistrator::exitHandler() {}
-
-void OpRegistrator::sigSegVHandler(int sig) {}
-
 OpRegistrator::~OpRegistrator() {
 #ifndef _RELEASE
   _msvc.clear();
@@ -105,10 +99,7 @@ OpRegistrator::~OpRegistrator() {
   _declarablesD.clear();
 
   _declarablesLD.clear();
-#if defined(HAVE_VEDA)
-  for (auto x : _uniqueHLegacy) delete x;
-  _helpersHLegacy.clear();
-#endif
+
 #endif
 }
 
@@ -116,7 +107,7 @@ const char* OpRegistrator::getAllCustomOperations() {
   _locker.lock();
 
   if (!isInit) {
-    for (SD_MAP_IMPL<std::string, sd::ops::DeclarableOp*>::iterator it = _declarablesD.begin();
+    for (SD_MAP_IMPL<std::string, DeclarableOp*>::iterator it = _declarablesD.begin();
          it != _declarablesD.end(); ++it) {
       std::string op = it->first + ":" + local_to_string(it->second->getOpDescriptor()->getHash()) + ":" +
                        local_to_string(it->second->getOpDescriptor()->getNumberOfInputs()) + ":" +
@@ -135,15 +126,35 @@ const char* OpRegistrator::getAllCustomOperations() {
   return _opsList.c_str();
 }
 
-bool OpRegistrator::registerOperation(const char* name, sd::ops::DeclarableOp* op) {
+bool OpRegistrator::registerOperation(const char* name, DeclarableOp* op) {
   std::string str(name);
-  std::pair<std::string, sd::ops::DeclarableOp*> pair(str, op);
+  std::pair<std::string, DeclarableOp*> pair(str, op);
   _declarablesD.insert(pair);
 
-  auto hash = sd::ops::HashHelper::getInstance().getLongHash(str);
-  std::pair<sd::LongType, sd::ops::DeclarableOp*> pair2(hash, op);
+  auto hash = HashHelper::getInstance().getLongHash(str);
+  std::pair<LongType, DeclarableOp*> pair2(hash, op);
   _declarablesLD.insert(pair2);
   return true;
+}
+
+void OpRegistrator::registerOpExec(OpExecTrace *opExecTrace) {
+  this->opexecTrace.push_back(opExecTrace);
+}
+
+bool OpRegistrator::traceOps() {
+  return this->isTrace;
+}
+
+void OpRegistrator::toggleTraceOps(bool traceOps) {
+  this->isTrace = traceOps;
+}
+
+void OpRegistrator::purgeOpExecs() {
+  this->opexecTrace.clear();
+}
+
+std::vector<OpExecTrace *>  * OpRegistrator::execTrace() {
+  return &(this->opexecTrace);
 }
 
 /**
@@ -151,42 +162,30 @@ bool OpRegistrator::registerOperation(const char* name, sd::ops::DeclarableOp* o
  *
  * @param op
  */
-bool OpRegistrator::registerOperation(sd::ops::DeclarableOp* op) {
+bool OpRegistrator::registerOperation(DeclarableOp* op) {
   _uniqueD.emplace_back(op);
   return registerOperation(op->getOpName()->c_str(), op);
 }
 
-void OpRegistrator::registerHelper(sd::ops::platforms::PlatformHelper* op) {
-  std::pair<sd::LongType, samediff::Engine> p = {op->hash(), op->engine()};
-  if (_helpersLH.count(p) > 0) throw std::runtime_error("Tried to double register PlatformHelper");
+void OpRegistrator::registerHelper(platforms::PlatformHelper* op) {
+  std::pair<LongType, samediff::Engine> p = {op->hash(), op->engine()};
+  if (_helpersLH.count(p) > 0) THROW_EXCEPTION("Tried to double register PlatformHelper");
 
   _uniqueH.emplace_back(op);
 
   sd_debug("Adding helper for op \"%s\": [%lld - %i]\n", op->name().c_str(), op->hash(), (int)op->engine());
 
-  std::pair<std::pair<std::string, samediff::Engine>, sd::ops::platforms::PlatformHelper*> pair(
+  std::pair<std::pair<std::string, samediff::Engine>, platforms::PlatformHelper*> pair(
       {op->name(), op->engine()}, op);
   _helpersH.insert(pair);
 
-  std::pair<std::pair<sd::LongType, samediff::Engine>, sd::ops::platforms::PlatformHelper*> pair2(p, op);
+  std::pair<std::pair<LongType, samediff::Engine>, platforms::PlatformHelper*> pair2(p, op);
   _helpersLH.insert(pair2);
 }
 
-#if defined(HAVE_VEDA)
-void OpRegistrator::registerHelperLegacy(sd::ops::platforms::PlatformHelperLegacy* op) {
-  auto entry = op->getEntry();
-  if (_helpersHLegacy.count(entry) > 0) throw std::runtime_error("Tried to double register PlatformHelper Legacy");
 
-  _uniqueHLegacy.emplace_back(op);
 
-  sd_debug("Adding legacy helper  for op prefix\"%s\" opNum: %d engine: [%i]\n", entry.prefix, entry.opNum,
-           entry.engine);
-
-  _helpersHLegacy.emplace(entry, op);
-}
-#endif
-
-sd::ops::DeclarableOp* OpRegistrator::getOperation(const char* name) {
+DeclarableOp* OpRegistrator::getOperation(const char* name) {
   std::string str(name);
   return getOperation(str);
 }
@@ -197,7 +196,7 @@ sd::ops::DeclarableOp* OpRegistrator::getOperation(const char* name) {
  * @param name
  * @return
  */
-sd::ops::DeclarableOp* OpRegistrator::getOperation(sd::LongType hash) {
+DeclarableOp* OpRegistrator::getOperation(LongType hash) {
   if (!_declarablesLD.count(hash)) {
     if (!_msvc.count(hash)) {
       sd_printf("Unknown D operation requested by hash: [%lld]\n", hash);
@@ -209,7 +208,7 @@ sd::ops::DeclarableOp* OpRegistrator::getOperation(sd::LongType hash) {
       auto op = _declarablesD.at(str);
       auto oHash = op->getOpDescriptor()->getHash();
 
-      std::pair<sd::LongType, sd::ops::DeclarableOp*> pair(oHash, op);
+      std::pair<LongType, DeclarableOp*> pair(oHash, op);
       _declarablesLD.insert(pair);
 
       _locker.unlock();
@@ -219,7 +218,7 @@ sd::ops::DeclarableOp* OpRegistrator::getOperation(sd::LongType hash) {
   return _declarablesLD.at(hash);
 }
 
-sd::ops::DeclarableOp* OpRegistrator::getOperation(std::string& name) {
+DeclarableOp* OpRegistrator::getOperation(std::string& name) {
   if (!_declarablesD.count(name)) {
     sd_debug("Unknown operation requested: [%s]\n", name.c_str());
     return nullptr;
@@ -228,9 +227,9 @@ sd::ops::DeclarableOp* OpRegistrator::getOperation(std::string& name) {
   return _declarablesD.at(name);
 }
 
-sd::ops::platforms::PlatformHelper* OpRegistrator::getPlatformHelper(sd::LongType hash, samediff::Engine engine) {
-  std::pair<sd::LongType, samediff::Engine> p = {hash, engine};
-  if (_helpersLH.count(p) == 0) throw std::runtime_error("Requested helper can't be found");
+platforms::PlatformHelper* OpRegistrator::getPlatformHelper(LongType hash, samediff::Engine engine) {
+  std::pair<LongType, samediff::Engine> p = {hash, engine};
+  if (_helpersLH.count(p) == 0) THROW_EXCEPTION("Requested helper can't be found");
 
   return _helpersLH[p];
 }
@@ -244,15 +243,15 @@ sd::ops::platforms::PlatformHelperLegacy* OpRegistrator::getPlatformHelperLegacy
 }
 #endif
 
-bool OpRegistrator::hasHelper(sd::LongType hash, samediff::Engine engine) {
-  std::pair<sd::LongType, samediff::Engine> p = {hash, engine};
+bool OpRegistrator::hasHelper(LongType hash, samediff::Engine engine) {
+  std::pair<LongType, samediff::Engine> p = {hash, engine};
   return _helpersLH.count(p) > 0;
 }
 
 int OpRegistrator::numberOfOperations() { return (int)_declarablesLD.size(); }
 
-std::vector<sd::LongType> OpRegistrator::getAllHashes() {
-  std::vector<sd::LongType> result;
+std::vector<LongType> OpRegistrator::getAllHashes() {
+  std::vector<LongType> result;
 
   for (auto& v : _declarablesLD) {
     result.emplace_back(v.first);
@@ -268,7 +267,7 @@ size_t hash<std::pair<sd::LongType, samediff::Engine>>::operator()(
     const std::pair<sd::LongType, samediff::Engine>& k) const {
   using std::hash;
   auto res = std::hash<sd::LongType>()(k.first);
-  res ^= std::hash<int>()((int)k.second) + 0x9e3779b9 + (res << 6) + (res >> 2);
+  res ^= std::hash<sd::LongType>()((sd::LongType)k.second) + 0x9e3779b9 + (res << 6) + (res >> 2);
   return res;
 }
 
@@ -276,7 +275,7 @@ size_t hash<std::pair<std::string, samediff::Engine>>::operator()(
     const std::pair<std::string, samediff::Engine>& k) const {
   using std::hash;
   auto res = std::hash<std::string>()(k.first);
-  res ^= std::hash<int>()((int)k.second) + 0x9e3779b9 + (res << 6) + (res >> 2);
+  res ^= std::hash<sd::LongType>()((sd::LongType)k.second) + 0x9e3779b9 + (res << 6) + (res >> 2);
   return res;
 }
 }  // namespace std

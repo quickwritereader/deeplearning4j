@@ -31,8 +31,12 @@ namespace ops {
 CUSTOM_OP_IMPL(reduce_stdev, -1, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
-
-  bool keepDims = false;       // block.getTArguments()->size() > 0 ? (bool)T_ARG(0) : false;
+  //numpy compat: default is 1 for 0 length arrays https://stackoverflow.com/questions/66746566/numpy-explanation-of-numpy-prod
+  if(input->lengthOf() == 0) {
+    int one = 1;
+    output->assign(one);
+    return sd::Status::OK;
+  }
   bool biasCorrected = false;  // block.getTArguments()->size() > 1 ? (bool)T_ARG(1) : false;
 
   auto dimensions = *block.getIArguments();
@@ -42,15 +46,13 @@ CUSTOM_OP_IMPL(reduce_stdev, -1, 1, false, 0, 0) {
   }
 
   if (block.getBArguments()->size()) {
-    keepDims = B_ARG(0);
     if (block.getBArguments()->size() > 1) biasCorrected = B_ARG(1);
   } else if (block.getTArguments()->size()) {
-    keepDims = (bool)T_ARG(0);
     if (block.getTArguments()->size() > 1) biasCorrected = (bool)T_ARG(1);
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_STDEV OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -83,7 +85,7 @@ DECLARE_SHAPE_FN(reduce_stdev) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= rank, 0,
+      dimensions.size() <= static_cast<size_t>(rank), 0,
       "REDUCE_STDEV OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -94,7 +96,7 @@ DECLARE_SHAPE_FN(reduce_stdev) {
         inputShape->at(0)[0], inputShape->at(0)[0], item);
 
   auto outShapeInfo =
-      ShapeUtils::evalReduceShapeInfo(shape::order(in), dimensions, in, keepDims, false, block.getWorkspace());
+      ShapeUtils::evalReduceShapeInfo(shape::order(in), &dimensions, in, keepDims, false, block.getWorkspace());
 
   return SHAPELIST(outShapeInfo);
 }
@@ -128,7 +130,7 @@ CUSTOM_OP_IMPL(reduce_stdev_bp, -1, 1, false, 0, 0) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_STDEV_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -138,28 +140,29 @@ CUSTOM_OP_IMPL(reduce_stdev_bp, -1, 1, false, 0, 0) {
         "REDUCE_STDEV_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
         input->rankOf(), input->rankOf(), item);
 
-  const sd::LongType N = input->lengthOf() / gradO->lengthOf();
+  auto gradOLen = gradO->lengthOf() < 1 ? 1 : gradO->lengthOf();
+  const sd::LongType N = input->lengthOf() / gradOLen;
   const sd::LongType NminusOne = biasCorrected ? N - 1 : N;
 
-  sd_debug("Pre mean calculation %d\n", 0);
-  auto mean = input->reduceAlongDimension(reduce::Mean, dimensions, true);
-  sd_debug("Post mean calculation %d\n", 0);
+  auto mean = input->reduceAlongDimension(reduce::Mean, &dimensions, true);
 
-  sd_debug("Pre variance calculation %d\n", 0);
   NDArray variance(mean.shapeInfo(), true,
                    block.launchContext());  // create empty array with shape matching shape of mean array
-  input->varianceAlongDimension(variance::SummaryStatsStandardDeviation, variance, biasCorrected, dimensions);
-  sd_debug("Post variance calculation %d\n", 0);
+  input->varianceAlongDimension(variance::SummaryStatsStandardDeviation, variance, biasCorrected, &dimensions);
 
-  gradI->assign((*input - mean) / (variance * NminusOne));  // automatic broadcasting happens here
+  sd::ops::divide_no_nan divideNoNan;
+  auto inputMinusMean  = (*input - mean);
+  auto varianceTimesNMinusOne = variance * NminusOne;
+  divideNoNan.execute({&inputMinusMean,&varianceTimesNMinusOne},{gradI});
 
   if (!keepDims) {
     auto gradOShapeKeepDims =
-        ShapeUtils::evalReduceShapeInfo(gradO->ordering(), dimensions, *input, true, false, block.getWorkspace());
+        ShapeUtils::evalReduceShapeInfo(gradO->ordering(), &dimensions, *input, true, false, block.getWorkspace());
     if (!gradO->isScalar()) {
+      std::vector<sd::LongType> shape =  ShapeUtils::pullShapeFromShapeInfo(
+          gradOShapeKeepDims);
       *gradI *= gradO->reshape(gradO->ordering(),
-                               ShapeUtils::pullShapeFromShapeInfo(
-                                   gradOShapeKeepDims));  // for example could be something like [a,b] -> [1,a,1,b]
+                               shape);  // for example could be something like [a,b] -> [1,a,1,b]
     } else {
       *gradI *= *gradO;  // for example could be something like [a,b] -> [1,a,1,b]
     }
@@ -179,7 +182,7 @@ DECLARE_SHAPE_FN(reduce_stdev_bp) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= rank, 0,
+      dimensions.size() <= static_cast<size_t>(rank), 0,
       "REDUCE_STDEV_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -189,11 +192,7 @@ DECLARE_SHAPE_FN(reduce_stdev_bp) {
         "REDUCE_STDEV_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
         inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-  sd::LongType* gradIshapeInfo(nullptr);
-  COPY_SHAPE(in, gradIshapeInfo);
-
-  return SHAPELIST(CONSTANT(gradIshapeInfo));
-  //    return SHAPELIST(in);
+  return SHAPELIST(CONSTANT(in));
 }
 
 DECLARE_TYPES(reduce_stdev_bp) {

@@ -41,6 +41,7 @@ import org.nd4j.linalg.convolution.OldConvolution;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
+import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.ops.transforms.Transforms;
 import org.nd4j.common.primitives.Pair;
 
@@ -75,10 +76,10 @@ public class ConvolutionTestsC extends BaseNd4jTestWithBackends {
                         0.0, 0.0, 0.0, 0.0, 11.0, 12.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 13.0, 14.0, 0.0, 0.0,
                         0.0, 0.0, 15.0, 16.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                        new long[] {2, 2, 1, 1, 6, 6});
+                new long[] {2, 2, 1, 1, 6, 6});
         assertEquals(im2colAssertion, ret);
         INDArray col2ImAssertion = Nd4j.create(new double[] {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0,
-                        12.0, 13.0, 14.0, 15.0, 16.0
+                12.0, 13.0, 14.0, 15.0, 16.0
 
         }, new int[] {2, 2, 2, 2});
 
@@ -98,103 +99,23 @@ public class ConvolutionTestsC extends BaseNd4jTestWithBackends {
         int sx = 2;
         int depth = 2;
         INDArray assertion = Nd4j.create(new double[] {1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 3, 3,
-                        3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4,
-                        4, 4, 2, 2, 2, 2, 4, 4, 4, 4}, new long[] {1, 1, 2, 2, 4, 4});
+                3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4,
+                4, 4, 2, 2, 2, 2, 4, 4, 4, 4}, new long[] {1, 1, 2, 2, 4, 4});
         INDArray ret = Nd4j.create(new double[] {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-                        4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-                        4, 4, 4, 4, 4, 4, 4, 4}, new long[] {1, 1, 8, 8});
+                4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+                4, 4, 4, 4, 4, 4, 4, 4}, new long[] {1, 1, 8, 8});
 
         INDArray test = Convolution.im2col(ret, kh, kw, sy, sx, ph, pw, 0, false);
         assertEquals(assertion, test);
 
     }
 
-    @Disabled
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testCompareIm2ColImpl(Nd4jBackend backend) {
-
-        int[] miniBatches = {1, 3, 5};
-        int[] depths = {1, 3, 5};
-        int[] inHeights = {5, 21};
-        int[] inWidths = {5, 21};
-        int[] strideH = {1, 2};
-        int[] strideW = {1, 2};
-        int[] sizeW = {1, 2, 3};
-        int[] sizeH = {1, 2, 3};
-        int[] padH = {0, 1, 2};
-        int[] padW = {0, 1, 2};
-        boolean[] coverall = {false, true};
-
-        DataType[] types = new DataType[] {DataType.FLOAT, DataType.DOUBLE,
-                        DataType.FLOAT, DataType.DOUBLE};
-        DataBuffer.AllocationMode[] modes =
-                        new DataBuffer.AllocationMode[] {DataBuffer.AllocationMode.HEAP, DataBuffer.AllocationMode.HEAP,
-                                        DataBuffer.AllocationMode.DIRECT, DataBuffer.AllocationMode.DIRECT};
-
-        String factoryClassName = Nd4j.factory().getClass().toString().toLowerCase();
-        if (factoryClassName.contains("jcublas") || factoryClassName.contains("cuda")) {
-            //Only test direct for CUDA; test all for CPU
-            types = new DataType[] {DataType.FLOAT, DataType.DOUBLE};
-            modes = new DataBuffer.AllocationMode[] {DataBuffer.AllocationMode.DIRECT,
-                            DataBuffer.AllocationMode.DIRECT};
-        }
-
-        DataType initialType = Nd4j.dataType();
-        for (int i = 0; i < types.length; i++) {
-            DataType type = types[i];
-            DataBuffer.AllocationMode mode = modes[i];
-
-            DataTypeUtil.setDTypeForContext(type);
-            Nd4j.alloc = mode;
-
-            AllocUtil.setAllocationModeForContext(mode);
-
-            for (int m : miniBatches) {
-                for (int d : depths) {
-                    for (int h : inHeights) {
-                        for (int w : inWidths) {
-                            for (int sh : strideH) {
-                                for (int sw : strideW) {
-                                    for (int kh : sizeH) {
-                                        for (int kw : sizeW) {
-                                            for (int ph : padH) {
-                                                for (int pw : padW) {
-                                                    if ((w - kw + 2 * pw) % sw != 0 || (h - kh + 2 * ph) % sh != 0)
-                                                        continue; //(w-kp+2*pW)/sw + 1 is not an integer,  i.e., number of outputs doesn't fit
-
-                                                    System.out.println("Running " + m + " " + d + " " + h + " " + w);
-                                                    for (boolean cAll : coverall) {
-
-                                                        INDArray in = Nd4j.rand(new int[] {m, d, h, w});
-                                                        //assertEquals(in.data().allocationMode(), mode);
-                                                        //assertEquals(in.data().dataType(), opType);
-
-                                                        INDArray outOrig = OldConvolution.im2col(in, kh, kw, sh, sw, ph,
-                                                                        pw, -1, cAll); //Old implementation
-                                                        INDArray outNew = Convolution.im2col(in, kh, kw, sh, sw, ph, pw,
-                                                                        cAll); //Current implementation
-
-                                                        assertEquals(outOrig, outNew);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        DataTypeUtil.setDTypeForContext(initialType);
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testPooling2D_Same(Nd4jBackend backend) {
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
         int[] miniBatches = {1, 3, 5};
         int[] depths = {1, 3, 5};
         int[] inHeights = {5, 21};
@@ -225,15 +146,13 @@ public class ConvolutionTestsC extends BaseNd4jTestWithBackends {
                                             int[] outSize = getOutputSize(in, new int[]{kh, kw}, new int[]{sh, sw}, null, true);
 
                                             //Calculate padding for same mode:
-                                            int pHTotal = (outSize[0]-1)*sh + kh - h;
-                                            int pWTotal = (outSize[1]-1)*sw + kw - w;
+                                            int pHTotal = (outSize[0] - 1)*sh + kh - h;
+                                            int pWTotal = (outSize[1] - 1)*sw + kw - w;
                                             int padTop = pHTotal / 2;
                                             int padLeft = pWTotal / 2;
 
                                             INDArray col = Nd4j.create(new int[]{m, d, outSize[0], outSize[1], kh, kw}, 'c');
                                             INDArray col2 = col.permute(0, 1, 4, 5, 2, 3);
-                                            //INDArray col = Nd4j.createUninitialized(new int[]{m, d, kH, kW, outSize[0], outSize[1]}, 'c');
-                                            //INDArray col2 = col;
 
                                             Convolution.im2col(in, kh, kw, sh, sw, padTop, padLeft, true, col2);
 
@@ -300,56 +219,42 @@ public class ConvolutionTestsC extends BaseNd4jTestWithBackends {
         int sx = 2;
 
         INDArray ret = Nd4j.create(new double[] {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-                        4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-                        4, 4, 4, 4, 4, 4, 4, 4}, new long[] {1, 1, 8, 8});
+                4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+                4, 4, 4, 4, 4, 4, 4, 4}, new long[] {1, 1, 8, 8});
 
         INDArray assertion = Nd4j.create(new double[] {1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 1, 1, 1, 3, 3,
-                        3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4,
-                        4, 4, 2, 2, 2, 2, 4, 4, 4, 4}, new long[] {1, 1, 2, 2, 4, 4});
+                3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4, 4, 4, 2, 2, 2, 2, 4, 4,
+                4, 4, 2, 2, 2, 2, 4, 4, 4, 4}, new long[] {1, 1, 2, 2, 4, 4});
         INDArray im2colTest = Convolution.im2col(ret, kh, kw, sy, sx, ph, pw, 0, false);
         assertEquals(assertion, im2colTest);
 
     }
 
 
-    @ParameterizedTest
-    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testCol2Im(Nd4jBackend backend) {
-        int kh = 1;
-        int kw = 1;
-        int sy = 1;
-        int sx = 1;
-        int ph = 1;
-        int pw = 1;
-        INDArray linspaced = Nd4j.linspace(1, 64, 64, Nd4j.defaultFloatingPointType()).reshape(2, 2, 2, 2, 2, 2);
-        INDArray newTest = Convolution.col2im(linspaced, sy, sx, ph, pw, 2, 2);
-        INDArray assertion = OldConvolution.col2im(linspaced, sy, sx, ph, pw, 2, 2);
 
-        System.out.println("Assertion dimensions: " + Arrays.toString(assertion.shape()));
-        assertEquals(assertion, newTest);
-    }
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testimcolim(Nd4jBackend backend) {
-        int nEx = 2;
-        int depth = 3;
-        int width = 7;
-        int height = 7;
-        int[] kernel = {3, 2};
-        int[] stride = {2, 3};
-        int[] padding = {1, 2};
-        int prod = nEx * depth * width * height;
+    public void testCol2Im3(Nd4jBackend backend) {
+        int n = 2;
+        int c = 2;
+        int h = 4;
+        int w = 4;
 
-        INDArray in = Nd4j.linspace(1, prod, prod, Nd4j.defaultFloatingPointType()).reshape(nEx, depth, width, height);
+        // Create an INDArray with numbers 1 through n*c*h*w
+        INDArray array = Nd4j.linspace(1, n * c * h * w, n * c * h * w).reshape(n, c, h, w);
 
-        INDArray assertim2col = OldConvolution.im2col(in, kernel, stride, padding);
-        INDArray im2col = Convolution.im2col(in, kernel, stride, padding);
-        assertEquals(assertim2col, im2col);
+        // Define the stride
+        int[] stride = new int[] {32, 16, 4, 1};
+        // Define the expected output
+        INDArray expected = Nd4j.create(new double[]{1,17,33,49}).reshape(2,2,1,1);
 
-        INDArray assertcol2im = OldConvolution.col2im(im2col, stride, padding, height, width);
-        INDArray col2im = Convolution.col2im(im2col, stride, padding, height, width);
-        assertEquals(assertcol2im, col2im);
+        // Try to access a subarray using NDArrayIndex
+        INDArray subArray = array.get(NDArrayIndex.all(), NDArrayIndex.all(), NDArrayIndex.interval(0,  stride[2],1), NDArrayIndex.interval(0, stride[3],1));
+
+        System.out.println(subArray.shapeInfoToString());
+        assertEquals(expected,subArray);
+
     }
 
 
@@ -360,7 +265,7 @@ public class ConvolutionTestsC extends BaseNd4jTestWithBackends {
     public void testMaxPoolBackprop(){
         Nd4j.getRandom().setSeed(12345);
 
-        for( int i=0; i<5; i++ ) {
+        for( int i = 0; i < 5; i++) {
 
             int[] inputShape = {1, 1, 4, 3};
 

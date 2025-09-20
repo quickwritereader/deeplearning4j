@@ -33,6 +33,87 @@
 
 namespace sd {
 namespace ops {
+class SD_LIB_EXPORT OpExecTrace {
+ public:
+  std::vector<const LongType*> *inputShapeBuffers;
+  std::vector<const LongType*> *outputShapeBuffers;
+  const std::string *opName;
+  std::vector<LongType> iArgs;
+  std::vector<double> tArgs;
+  std::vector<DataType> dArgs;
+  std::vector<bool> bArgs;
+  std::vector<std::string> sArguments;
+  int opType = -1;
+
+
+#ifndef __JAVACPP_HACK__
+  OpExecTrace(std::vector<const LongType*> *inputShapeBuffers,
+              std::vector<const LongType*> *outputShapeBuffers,
+              const std::string *opName) {
+    this->inputShapeBuffers = inputShapeBuffers;
+    this->outputShapeBuffers = outputShapeBuffers;
+    this->opName = opName;
+
+  }
+
+  OpExecTrace(std::vector<const LongType*> *inputShapeBuffers,
+              std::vector<const LongType*> *outputShapeBuffers,
+              const std::string *opName,
+              std::vector<LongType> *iArgs,
+              std::vector<double> *tArgs,
+              std::vector<bool> *bArgs,
+              std::vector<std::string> *sArgs,
+              int opType) {
+    this->inputShapeBuffers = inputShapeBuffers;
+    this->outputShapeBuffers = outputShapeBuffers;
+    this->opName = opName;
+    this->opType = opType;
+    for(size_t i = 0; i < tArgs->size(); i++) {
+      this->tArgs.push_back(tArgs->at(i));
+    }
+
+    for(size_t i = 0; i < bArgs->size(); i++) {
+      this->bArgs.push_back(bArgs->at(i));
+    }
+
+    for(size_t i = 0; i < iArgs->size(); i++) {
+      this->iArgs.push_back(iArgs->at(i));
+    }
+
+    for(size_t i = 0; i < sArgs->size(); i++) {
+      this->sArguments.push_back(sArgs->at(i));
+    }
+
+  }
+#endif
+
+  OpExecTrace() = default;
+
+  ~OpExecTrace() = default;
+
+  std::vector<const LongType*>* getInputShapeBuffers() const { return inputShapeBuffers; }
+  void setInputShapeBuffers(std::vector<const LongType*>* inputShapeBuffersIn) {
+    OpExecTrace::inputShapeBuffers = inputShapeBuffersIn;
+  }
+  std::vector<const LongType*>* getOutputShapeBuffers() const { return outputShapeBuffers; }
+  void setOutputShapeBuffers(std::vector<const LongType*>* outputShapeBuffersIn) {
+    OpExecTrace::outputShapeBuffers = outputShapeBuffersIn;
+  }
+  const std::string* getOpName() const { return opName; }
+  void setOpName(const std::string* opNameIn) { OpExecTrace::opName = opNameIn; }
+  const std::vector<LongType>& getIArgs() const { return iArgs; }
+  void setIArgs(const std::vector<LongType>& iArgsIn) { OpExecTrace::iArgs = iArgsIn; }
+  const std::vector<double>& getTArgs() const { return tArgs; }
+  void setTArgs(const std::vector<double>& tArgsIn) { OpExecTrace::tArgs = tArgsIn; }
+  const std::vector<DataType>& getDArgs() const { return dArgs; }
+  void setDArgs(const std::vector<DataType>& dArgsIn) { OpExecTrace::dArgs = dArgsIn; }
+  const std::vector<bool>& getBArgs() const { return bArgs; }
+  void setBArgs(const std::vector<bool>& bArgsIn) { OpExecTrace::bArgs = bArgsIn; }
+  const std::vector<std::string>& getSArguments() const { return sArguments; }
+  void setSArguments(const std::vector<std::string>& sArgumentsIn) { OpExecTrace::sArguments = sArgumentsIn; }
+  int getOpType() const { return opType; }
+  void setOpType(int opTypeIn) { OpExecTrace::opType = opTypeIn; }
+};
 
 /**
  *   This class is very basic info holder for ops. bean/pojo pretty much.
@@ -40,21 +121,18 @@ namespace ops {
  */
 class SD_LIB_EXPORT OpDescriptor {
  protected:
-  // opNum for legacy XYZ ops
+  // opType for legacy XYZ ops
   int _opNum = 0;
 
   // opName for CustomOp
   std::string _opName;
 
   // hash is used for ops lookup in OpRegistrator
-  sd::LongType _hash = -1;
+  LongType _hash = -1;
 
   // minimal required/expected number of inputs/outpus for this given op
   int _numInputs = 1;
   int _numOutputs = 1;
-
-  // enum for ops. deprecated. will be removed
-  sd::graph::OpClass _opClass;
 
   // special flag for divergent ops - ops that CAN and WILL modify graph behavior. Literally: IF, CASE.
   bool _divergent = false;
@@ -80,17 +158,17 @@ class SD_LIB_EXPORT OpDescriptor {
   InputType _inputType = InputType_NUMERIC;
 
   bool _sameMode = false;
-  std::vector<sd::DataType> _allowedIns;
-  std::vector<sd::DataType> _allowedOuts;
+  std::vector<DataType> _allowedIns;
+  std::vector<DataType> _allowedOuts;
 
   // optional per-input configuration
-  SD_MAP_IMPL<int, std::vector<sd::DataType>> _outputTypes;
-  SD_MAP_IMPL<int, std::vector<sd::DataType>> _inputTypes;
+  SD_MAP_IMPL<int, std::vector<DataType>> _outputTypes;
+  SD_MAP_IMPL<int, std::vector<DataType>> _inputTypes;
 
   // field for ops that allow data type override at runtime
   bool _dtypeOverride = false;
 
-  bool checkDataTypesMatch(sd::DataType needle, std::vector<sd::DataType>& haystack) const;
+  bool checkDataTypesMatch(DataType needle, std::vector<DataType>& haystack) const;
 
  public:
   // default constructor
@@ -122,7 +200,7 @@ class SD_LIB_EXPORT OpDescriptor {
   bool operator==(const OpDescriptor& other) const;
 
   // default destructor
-  ~OpDescriptor();
+  ~OpDescriptor() = default;
 
   // this method returns minimal expected number of T arguments
   int getNumberOfTArgs();
@@ -134,7 +212,7 @@ class SD_LIB_EXPORT OpDescriptor {
   int getNumberOfInputs();
 
   // this method returns hash code for this operation
-  sd::LongType getHash();
+  LongType getHash();
 
   // this method returns minimal expected number of outputs
   int getNumberOfOutputs();
@@ -151,34 +229,37 @@ class SD_LIB_EXPORT OpDescriptor {
   // this method allows you to enable/disable inplace call for a given op
   void allowInplace(bool reallyAllow);
 
-  // this method returns opNum (applicable for legacy XYZ ops only)
+  // this method returns opType (applicable for legacy XYZ ops only)
   int getOpNum();
 
-  // this method allows to set specifc opNum
+  // this method allows to set specific opNum
   void setOpNum(int opNum);
 
-  void setHash(sd::LongType hash);
+  void setHash(LongType hash);
 
   InputType inputType();
 
   OpDescriptor* setInputType(InputType type);
-  OpDescriptor* setAllowedInputTypes(const std::initializer_list<sd::DataType>& dtype);
-  OpDescriptor* setAllowedOutputTypes(const std::initializer_list<sd::DataType>& dtype);
-  OpDescriptor* setAllowedInputTypes(int index, const std::vector<sd::DataType>& dtype);
-  OpDescriptor* setAllowedOutputTypes(int index, const std::vector<sd::DataType>& dtype);
-  OpDescriptor* setAllowedInputTypes(int index, sd::DataType dtype);
-  OpDescriptor* setAllowedOutputTypes(int index, sd::DataType dtype);
-  OpDescriptor* setAllowedInputTypes(sd::DataType dtype);
-  OpDescriptor* setAllowedOutputTypes(sd::DataType dtype);
+  OpDescriptor* setAllowedInputTypes(const std::initializer_list<DataType>& dtype);
+  OpDescriptor* setAllowedOutputTypes(const std::initializer_list<DataType>& dtype);
+  OpDescriptor* setAllowedInputTypes(int index, const std::vector<DataType>& dtype);
+  OpDescriptor* setAllowedOutputTypes(int index, const std::vector<DataType>& dtype);
+  OpDescriptor* setAllowedInputTypes(int index, DataType dtype);
+  OpDescriptor* setAllowedOutputTypes(int index, DataType dtype);
+  OpDescriptor* setAllowedInputTypes(DataType dtype);
+  OpDescriptor* setAllowedOutputTypes(DataType dtype);
   OpDescriptor* allowOverride(bool reallyAllow);
   OpDescriptor* setSameMode(bool reallySame);
-  OpDescriptor* setInputType(int idx, sd::DataType dtype);
-  OpDescriptor* setOutputType(int idx, sd::DataType dtype);
+  OpDescriptor* setInputType(int idx, DataType dtype);
+  OpDescriptor* setOutputType(int idx, DataType dtype);
 
-  std::vector<sd::DataType> getOutputTypesForOutput(int index);
+  std::vector<DataType> getOutputTypesForOutput(int index);
+  std::vector<DataType> getInputTypesForInput(int index);
 
-  bool checkInputMatch(int index, sd::DataType dataType);
-  bool checkOutputMatch(int index, sd::DataType dataType);
+
+
+  bool checkInputMatch(int index, DataType dataType);
+  bool checkOutputMatch(int index, DataType dataType);
   bool isSameMode();
 
   bool isInherit(int index);

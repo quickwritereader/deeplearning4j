@@ -95,10 +95,10 @@ CUSTOM_OP_IMPL(ctc_beam, 2, 3, false, 0, -2) {
       "Ctc Beam Search: result_sequences_length output should be ews()==1 and c order: %d == ews(1) %c == order(c) ",
       result_sequences_length->ews(), result_sequences_length->ordering());
 
-  sd::ops::helpers::beamSearch(*logit, *sequence_length, *result_sequences, *result_probs, *result_sequences_length,
+  helpers::beamSearch(*logit, *sequence_length, *result_sequences, *result_probs, *result_sequences_length,
                                blank_index, beam_width, nbest_len, normalize_logits);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -129,14 +129,14 @@ DECLARE_SHAPE_FN(ctc_beam) {
 
   auto dtype_float = ArrayOptions::dataType(logitShapeInfo);
   auto dtype_index = ArrayOptions::dataType(sequenceShapeInfo);
-
-  auto output0 = ConstantShapeHelper::getInstance().createShapeInfo(
-      ShapeDescriptor(dtype_index, 'c', {batch_size, nbest_len, max_t}));
+  auto desc =  ShapeBuilders::createShapeInfo(dtype_index, 'c', {batch_size, nbest_len, max_t});
+  auto output0 = ConstantShapeHelper::getInstance().bufferForShapeInfo(desc);
+  auto desc2 = ShapeBuilders::createShapeInfo(dtype_float, 'c', {batch_size, nbest_len});
   auto output1 =
-      ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(dtype_float, 'c', {batch_size, nbest_len}));
-  auto output2 =
-      ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(dtype_index, 'c', {batch_size, nbest_len}));
-  return SHAPELIST(output0, output1, output2);
+      ConstantShapeHelper::getInstance().bufferForShapeInfo(desc2);
+  auto desc3 = ShapeBuilders::createShapeInfo(dtype_index, 'c', {batch_size, nbest_len});
+  auto output2 = ConstantShapeHelper::getInstance().bufferForShapeInfo(desc3);
+  return SHAPELIST(output0->primary(), output1->primary(), output2->primary());
 }
 
 }  // namespace ops

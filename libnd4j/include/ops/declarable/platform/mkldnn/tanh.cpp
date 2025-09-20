@@ -36,7 +36,7 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////
-static void tanhMKLDNN(const NDArray* x, NDArray* z) {
+static void tanhMKLDNN(NDArray* x, NDArray* z) {
   dnnl::memory::dims shape = x->getShapeAsFlatVector();
 
   dnnl::memory::desc x_mkl_md, x_user_md, z_mkl_md, z_user_md;
@@ -84,7 +84,7 @@ static void tanhMKLDNN(const NDArray* x, NDArray* z) {
 PLATFORM_IMPL(tanh, ENGINE_CPU) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
-  const int rank = input->rankOf();
+  const sd::LongType rank = input->rankOf();
   REQUIRE_TRUE(rank <= 6, 0, "TANH_MKLDNN OP: the rank of input must be less or qual 6, but got rank = %i instead !",
                rank);
 
@@ -110,7 +110,7 @@ PLATFORM_CHECK(tanh, ENGINE_CPU) {
 }
 
 //////////////////////////////////////////////////////////////////////
-static void tanhBpMKLDNN(const NDArray* x, const NDArray* dLdz, NDArray* dLdx) {
+static void tanhBpMKLDNN(NDArray* x, NDArray* dLdz, NDArray* dLdx) {
   dnnl::memory::dims shape = x->getShapeAsFlatVector();
 
   dnnl::memory::desc x_mkl_md, x_user_md, dLdx_mkl_md, dLdx_user_md, dLdz_mkl_md, dLdz_user_md;
@@ -170,8 +170,8 @@ PLATFORM_IMPL(tanh_bp, ENGINE_CPU) {
   auto dLdz = INPUT_VARIABLE(1);
   auto dLdx = OUTPUT_VARIABLE(0);
 
-  const int rank = input->rankOf();
-  const int dLdzRank = dLdz->rankOf();
+  const sd::LongType rank = input->rankOf();
+  const sd::LongType dLdzRank = dLdz->rankOf();
 
   REQUIRE_TRUE(rank <= 6 && dLdzRank <= 6, 0,
                "TANH_BP_MKLDNN OP: the rank of input and dLdz must be less or qual 6, but got input rank = %i and dLdz "

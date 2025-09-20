@@ -60,6 +60,10 @@ import org.deeplearning4j.text.tokenization.tokenizerfactory.TokenizerFactory;
 import org.nd4j.common.primitives.Pair;
 import org.nd4j.common.util.OneTimeLogger;
 import org.nd4j.compression.impl.NoOp;
+import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.api.buffer.DataType;
+import org.nd4j.linalg.api.memory.MemoryWorkspace;
+import org.nd4j.linalg.api.memory.conf.WorkspaceConfiguration;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
 import org.nd4j.linalg.factory.Nd4j;
@@ -204,6 +208,7 @@ public class WordVectorSerializer {
                 .learningRate(0.025)
                 .windowSize(5)
                 .workers(1)
+                .vectorCalcThreads(1)
                 .build();
 
         ret.setVocab(cache);
@@ -400,23 +405,23 @@ public class WordVectorSerializer {
 
         if(lookupTable.getSyn0() != null) {
             //get length first so we can read later
-            Pointer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn0());
-            writer.writeLong(numpyPointer.capacity());
-            long written = Nd4j.writeAsNumpy(numpyPointer,stream,false);
+            DataBuffer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn0());
+            writer.writeLong(numpyPointer.length());
+            long written = Nd4j.writeAsNumpy(numpyPointer.pointer(),stream,false);
         }
 
         writer.writeBoolean(lookupTable.getSyn1() != null);
         if(lookupTable.getSyn1() != null) {
-            Pointer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn1());
+            DataBuffer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn1());
             writer.writeLong(numpyPointer.capacity());
-            long written = Nd4j.writeAsNumpy(numpyPointer,stream,false);
+            long written = Nd4j.writeAsNumpy(numpyPointer.pointer(),stream,false);
         }
 
         writer.writeBoolean(lookupTable.getSyn1Neg() != null);
         if(lookupTable.getSyn1Neg() != null) {
-            Pointer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn1Neg());
+            DataBuffer numpyPointer = Nd4j.convertToNumpy(lookupTable.getSyn1Neg());
             writer.writeLong(numpyPointer.capacity());
-            long written = Nd4j.writeAsNumpy(numpyPointer,stream,false);
+            long written = Nd4j.writeAsNumpy(numpyPointer.pointer(),stream,false);
         }
 
     }
@@ -989,36 +994,39 @@ public class WordVectorSerializer {
      *
      * @return
      */
-    public static ParagraphVectors readParagraphVectors(File file) throws IOException {
-        Word2Vec w2v = readWord2Vec(file);
+    public static  ParagraphVectors readParagraphVectors(File file) throws IOException {
+      try(MemoryWorkspace workspace = Nd4j.getWorkspaceManager().createNewWorkspace()) {
+          Word2Vec w2v = readWord2Vec(file);
 
-        // and "convert" it to ParaVec model + optionally trying to restore labels information
-        ParagraphVectors vectors = new ParagraphVectors.Builder(w2v.getConfiguration())
-                .vocabCache(w2v.getVocab())
-                .lookupTable(w2v.getLookupTable())
-                .resetModel(false)
-                .build();
+          // and "convert" it to ParaVec model + optionally trying to restore labels information
+          ParagraphVectors vectors = new ParagraphVectors.Builder(w2v.getConfiguration())
+                  .vocabCache(w2v.getVocab())
+                  .lookupTable(w2v.getLookupTable())
+                  .resetModel(false)
+                  .build();
 
-        try (ZipFile zipFile = new ZipFile(file)) {
-            // now we try to restore labels information
-            ZipEntry labels = zipFile.getEntry("labels.txt");
-            if (labels != null) {
-                InputStream stream = zipFile.getInputStream(labels);
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        VocabWord word = vectors.getVocab().tokenFor(ReadHelper.decodeB64(line.trim()));
-                        if (word != null) {
-                            word.markAsLabel(true);
-                        }
-                    }
-                }
-            }
-        }
+          try (ZipFile zipFile = new ZipFile(file)) {
+              // now we try to restore labels information
+              ZipEntry labels = zipFile.getEntry("labels.txt");
+              if (labels != null) {
+                  InputStream stream = zipFile.getInputStream(labels);
+                  try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+                      String line;
+                      while ((line = reader.readLine()) != null) {
+                          VocabWord word = vectors.getVocab().tokenFor(ReadHelper.decodeB64(line.trim()));
+                          if (word != null) {
+                              word.markAsLabel(true);
+                          }
+                      }
+                  }
+              }
+          }
 
-        vectors.extractLabels();
+          vectors.extractLabels();
 
-        return vectors;
+          return vectors;
+      }
+
     }
 
     /**
@@ -1031,7 +1039,7 @@ public class WordVectorSerializer {
      * @deprecated Use {@link #readWord2Vec(File, boolean)}
      */
     @Deprecated
-    public static Word2Vec readWord2Vec(File file) throws IOException {
+    public static  Word2Vec readWord2Vec(File file) throws IOException {
         File tmpFileSyn0 = ND4JFileUtils.createTempFile("word2vec", "0");
         File tmpFileSyn1 = ND4JFileUtils.createTempFile("word2vec", "1");
         File tmpFileC = ND4JFileUtils.createTempFile("word2vec", "c");
@@ -1121,7 +1129,8 @@ public class WordVectorSerializer {
                         for (int i = 0; i < split.length; i++) {
                             array[i] = Double.parseDouble(split[i]);
                         }
-                        rows.add(Nd4j.create(array, new long[]{array.length},
+
+                        rows.add(Nd4j.create(array, new long[]{1,array.length},
                                 ((InMemoryLookupTable) w2v.getLookupTable()).getSyn0().dataType()));
                     }
 
@@ -1195,8 +1204,14 @@ public class WordVectorSerializer {
             for (int i = 0; i < split.length; i++) {
                 array[i] = Double.parseDouble(split[i]);
             }
-            rows.add(Nd4j.create(array, new long[]{array.length}, lookupTable.getSyn0().dataType()));
+
+            DataBuffer typedBufferDetached = Nd4j.createTypedBufferDetached(array, lookupTable.getSyn0().dataType());
+
+            INDArray arr = Nd4j.create(typedBufferDetached, new long[]{array.length}).detach();
+            arr.setCloseable(false);
+            rows.add(arr);
         }
+
         reader.close();
 
         // it's possible to have full model without syn1
@@ -1214,6 +1229,7 @@ public class WordVectorSerializer {
             for (int i = 1; i < split.length; i++) {
                 points.add(Integer.parseInt(split[i]));
             }
+
             word.setPoints(points);
         }
         reader.close();

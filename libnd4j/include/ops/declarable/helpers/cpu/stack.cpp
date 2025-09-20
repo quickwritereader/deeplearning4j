@@ -24,6 +24,8 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
 #include <ops/declarable/helpers/stack.h>
+
+#include <legacy/NativeOpExecutioner.h>
 #if NOT_EXCLUDED(OP_stack)
 namespace sd {
 namespace ops {
@@ -31,29 +33,31 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void stack_(const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
+static void stack_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output, const int dim) {
   const int numOfSubArrs = inArrs.size();
 
-  if (inArrs[0]->rankOf() == 0) {
+  //no op on empty
+  if (inArrs[0]->rankOf() == 0 && !inArrs[0]->isEmpty()) {
     auto func = PRAGMA_THREADS_FOR {
-      for (auto i = start; i < stop; i++) output.p<T>(i, inArrs[i]->t<T>(0));
+      for (auto i = start; i < stop; i++) if(!output.isEmpty() && !inArrs[i]->isEmpty()) output.p<T>(i, inArrs[i]->t<T>(0));
     };
 
     samediff::Threads::parallel_for(func, 0, numOfSubArrs);
-  } else {
+  } else if(!output.isEmpty()) {
+    std::vector<sd::LongType> dimVec = {dim};
+    auto vec = ShapeUtils::evalDimsToExclude(output.rankOf(),1,dimVec.data());
     auto zTadPack = ConstantTadHelper::getInstance().tadForDimensions(
-        output.shapeInfo(), ShapeUtils::evalDimsToExclude(output.rankOf(), {dim}));
-    auto zTadShapeInfo = zTadPack.primaryShapeInfo();
-
+        output.shapeInfo(), vec);
+    auto zTadShapeInfo = zTadPack->primaryShapeInfo();
+    delete vec;
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        void* zBuff = output.bufferWithOffset(zTadPack.primaryOffsets()[i]);
+        void* zBuff = output.bufferWithOffset(zTadPack->primaryOffsets()[i]);
 
-        NativeOpExecutioner::execTransformAny(inArrs[0]->getContext(), transform::Assign, inArrs[i]->buffer(),
-                                              inArrs[i]->shapeInfo(), nullptr /*input specialBuffer*/,
-                                              nullptr /*input special*/, zBuff, zTadShapeInfo,
-                                              nullptr /*output specialBuffer*/, nullptr /*output special*/, nullptr,
-                                              nullptr, nullptr, false /*allowParallelism*/);
+        NativeOpExecutioner::execTransformAny(
+            inArrs[0]->getContext(), transform::Assign, inArrs[i]->buffer(), inArrs[i]->shapeInfo(),
+            nullptr /*input specialBuffer*/, nullptr /*input special*/, zBuff, zTadShapeInfo,
+            nullptr /*output specialBuffer*/, nullptr /*output special*/, nullptr, false /*allowParallelism*/);
       }
     };
 
@@ -62,15 +66,16 @@ static void stack_(const std::vector<const NDArray*>& inArrs, NDArray& output, c
 }
 
 ////////////////////////////////////////////////////////////////////////
-void stack(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
-  BUILD_SINGLE_SELECTOR(output.dataType(), stack_, (inArrs, output, dim), SD_COMMON_TYPES);
+void stack(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output, const int dim) {
+  BUILD_SINGLE_SELECTOR(output.dataType(), stack_, (context, inArrs, output, dim), SD_COMMON_TYPES);
 }
-BUILD_SINGLE_TEMPLATE(template void stack_, (const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim),
+BUILD_SINGLE_TEMPLATE(template void stack_, 
+                      (LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output, const int dim),
                       SD_COMMON_TYPES);
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void unstack_(const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
+static void unstack_(LaunchContext* context, NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
   const int numOfSubArrs = outArrs.size();
 
   if (outArrs[0]->rankOf() == 0) {
@@ -80,18 +85,20 @@ static void unstack_(const NDArray& input, const std::vector<NDArray*>& outArrs,
 
     samediff::Threads::parallel_for(func, 0, numOfSubArrs);
   } else {
+    std::vector<sd::LongType> dimVec = {dim};
+    auto vec = ShapeUtils::evalDimsToExclude(input.rankOf(), 1,dimVec.data());
     auto xTadPack = ConstantTadHelper::getInstance().tadForDimensions(
-        input.shapeInfo(), ShapeUtils::evalDimsToExclude(input.rankOf(), {dim}));
-    auto xTadShapeInfo = xTadPack.primaryShapeInfo();
-
+        input.shapeInfo(), vec);
+    auto xTadShapeInfo = xTadPack->primaryShapeInfo();
+    delete vec;
     auto func = PRAGMA_THREADS_FOR {
       for (auto i = start; i < stop; i++) {
-        auto xBuff = input.bufferWithOffset(xTadPack.primaryOffsets()[i]);
+        auto xBuff = input.bufferWithOffset(xTadPack->primaryOffsets()[i]);
 
         NativeOpExecutioner::execTransformAny(
             input.getContext(), transform::Assign, xBuff, xTadShapeInfo, nullptr /*input specialBuffer*/,
             nullptr /*input special*/, outArrs[i]->buffer(), outArrs[i]->shapeInfo(), nullptr /*output specialBuffer*/,
-            nullptr /*output special*/, nullptr, nullptr, nullptr, false /*allowParallelism*/);
+            nullptr /*output special*/, nullptr, false /*allowParallelism*/);
       }
     };
 
@@ -100,11 +107,12 @@ static void unstack_(const NDArray& input, const std::vector<NDArray*>& outArrs,
 }
 
 ////////////////////////////////////////////////////////////////////////
-void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
-  BUILD_SINGLE_SELECTOR(input.dataType(), unstack_, (input, outArrs, dim), SD_COMMON_TYPES);
+void unstack(LaunchContext* context, NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
+  BUILD_SINGLE_SELECTOR(input.dataType(), unstack_, (context, input, outArrs, dim), SD_COMMON_TYPES);
 }
 BUILD_SINGLE_TEMPLATE(template void unstack_,
-                      (const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim), SD_COMMON_TYPES);
+                      (LaunchContext* context, NDArray& input, const std::vector<NDArray*>& outArrs, const int dim), 
+                      SD_COMMON_TYPES);
 
 }  // namespace helpers
 }  // namespace ops

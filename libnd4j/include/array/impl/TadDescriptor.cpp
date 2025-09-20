@@ -23,36 +23,26 @@
 #include "../TadDescriptor.h"
 
 #include <algorithm>
-
+#include <helpers/ModularHasher.h>
 namespace sd {
-#ifndef __NEC__
-// already defined for NEC compiler
 TadDescriptor::TadDescriptor(const TadDescriptor &other) {
   _originalShape = other._originalShape;
   _axis = other._axis;
   _unitiesInShape = other._unitiesInShape;
 }
-#endif
-TadDescriptor::TadDescriptor(const sd::LongType *originalShape, const int *dimensions, const int length,
+
+TadDescriptor::TadDescriptor(const LongType *originalShape, const LongType *dimensions, const LongType length,
                              const bool keepUnitiesInShape) {
-  ShapeDescriptor descriptor(originalShape);
 
   _axis.resize(length);
-  for (int e = 0; e < length; e++) _axis[e] = dimensions[e];
+  for (LongType e = 0; e < length; e++) {
+    _axis[e] = dimensions[e];
+  }
 
   if (length > 1) std::sort(_axis.begin(), _axis.end());
 
-  _originalShape = descriptor;
+  _originalShape = const_cast<sd::LongType *>(originalShape);
   _unitiesInShape = keepUnitiesInShape;
-}
-
-TadDescriptor::TadDescriptor(const ShapeDescriptor &descriptor, const std::vector<int> &dimensions,
-                             const bool keepUnitiesInShape) {
-  _originalShape = descriptor;
-  _axis = dimensions;
-  _unitiesInShape = keepUnitiesInShape;
-
-  if (_axis.size() > 1) std::sort(_axis.begin(), _axis.end());
 }
 
 bool TadDescriptor::operator==(const TadDescriptor &other) const {
@@ -65,26 +55,25 @@ bool TadDescriptor::operator<(const TadDescriptor &other) const {
          std::tie(other._originalShape, other._axis, other._unitiesInShape);
 }
 
-std::vector<int> &TadDescriptor::axis() { return _axis; }
+std::vector<LongType> &TadDescriptor::axis() { return _axis; }
 
-ShapeDescriptor &TadDescriptor::originalShape() { return _originalShape; }
-
-ShapeDescriptor const &TadDescriptor::originalShapeConst() const { return _originalShape; }
+LongType *TadDescriptor::originalShape() { return _originalShape; }
 
 bool TadDescriptor::areUnitiesinShape() const { return _unitiesInShape; }
 }  // namespace sd
 
 namespace std {
 size_t hash<sd::TadDescriptor>::operator()(const sd::TadDescriptor &k) const {
-  // Compute individual hash values for first,
-  // second and third and combine them using XOR
-  // and bit shifting:
-  auto res = std::hash<int>()((int)k.areUnitiesinShape());
-  res ^= std::hash<sd::ShapeDescriptor>()(k.originalShapeConst()) + 0x9e3779b9 + (res << 6) + (res >> 2);
-  auto axes = const_cast<sd::TadDescriptor &>(k).axis();
-  for (auto a : axes) {
-    res ^= std::hash<int>()(a) + 0x9e3779b9 + (res << 6) + (res >> 2);
+  using namespace sd::helpers::detail;
+
+  // Start with initial hash from unities flag
+  uint64_t hash = ModularHasher::hash_scalar(k.areUnitiesinShape());
+  // Hash the axis vector
+  auto& axes = const_cast<sd::TadDescriptor&>(k).axis();
+  if (!axes.empty()) {
+    hash = ModularHasher::hash_vector(axes, hash);
   }
-  return res;
+
+  return hash;
 }
 }  // namespace std

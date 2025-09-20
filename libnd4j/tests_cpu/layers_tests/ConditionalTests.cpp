@@ -29,16 +29,12 @@
 using namespace sd;
 using namespace sd::graph;
 
-class ConditionalTests : public testing::Test {
+class ConditionalTests : public NDArrayTests {
  public:
   ConditionalTests() {
-    // Environment::getInstance().setVerbose(true);
-    // Environment::getInstance().setDebug(true);
   }
 
   ~ConditionalTests() {
-    // Environment::getInstance().setVerbose(false);
-    // Environment::getInstance().setDebug(false);
   }
 };
 
@@ -75,7 +71,7 @@ TEST_F(ConditionalTests, BasicTests_1) {
   auto nodeC0 = new Node(OpType_REDUCE_SAME, reduce::Sum, 7, {-1});
   nodeC0->setScopeInfo(1, "scopeCondition");
 
-  sd::ops::eq_scalar op;
+  ops::eq_scalar op;
   auto nodeC1 = new Node(&op, 8, {7, -4});
   nodeC1->setScopeInfo(1, "scopeCondition");
 
@@ -96,7 +92,7 @@ TEST_F(ConditionalTests, BasicTests_1) {
 
   ASSERT_EQ(4, graph.totalNodes());
 
-  sd::Status status = GraphExecutioner::execute(&graph);
+  Status status = GraphExecutioner::execute(&graph);
   ASSERT_EQ(sd::Status::OK, status);
 
   ASSERT_TRUE(variableSpace->hasVariable(10, 0));
@@ -269,7 +265,6 @@ TEST_F(ConditionalTests, Flat_Test_6) {
 
   ASSERT_NE(nullptr, z);
 
-  // z->printIndexedBuffer();
 
   auto exp = NDArrayFactory::create<float>('c', {2, 2}, {-1, -1, -1, -1});
   ASSERT_TRUE(exp.equalsTo(z));
@@ -296,7 +291,6 @@ TEST_F(ConditionalTests, Flat_Test_7) {
 
   ASSERT_NE(nullptr, z);
 
-  // z->printIndexedBuffer();
 
   auto exp = NDArrayFactory::create<float>('c', {2, 2}, {-3, -3, -3, -3});
   ASSERT_TRUE(exp.equalsTo(z));

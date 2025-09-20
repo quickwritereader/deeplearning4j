@@ -46,6 +46,7 @@ CONFIGURABLE_OP_IMPL(cbow_inference, 6, 6, true, -2, -2) {
   std::vector<sd::LongType> *context = new std::vector<sd::LongType>();
   std::vector<sd::LongType> *lockedWords = new std::vector<sd::LongType>();
 
+
   int currIdx = 4;
   for(int i = 0; i < numCodes; i++) {
     codes->push_back(I_ARG(currIdx));
@@ -89,32 +90,33 @@ CONFIGURABLE_OP_IMPL(cbow_inference, 6, 6, true, -2, -2) {
   const std::vector<sd::LongType> *contextShape = contextSize;
 
   std::vector<sd::LongType> *lockedWordsSize = new std::vector<sd::LongType>();
-  contextSize->push_back(lockedWords->size());
+  lockedWordsSize->push_back(lockedWords->size());
   const std::vector<sd::LongType> *lockedWordsShape = lockedWordsSize;
 
-
-  auto indicesArrOne = NDArrayFactory::create('c',*indicesShape,*indicesVec);
+  auto indicesArrOne = indicesVec->size() > 0 ? NDArrayFactory::create<sd::LongType>('c',*indicesShape,*indicesVec) : NDArrayFactory::empty<sd::LongType>();
   auto indicesArr = new NDArray(indicesArrOne);
-
-  auto codesArrOne = NDArrayFactory::create('c',*codesShape,*codesVec);
+  auto codesArrOne = codesVec->size() > 0 ?  NDArrayFactory::create<sd::LongType>('c',*codesShape,*codesVec) :  NDArrayFactory::empty<sd::LongType>();
   auto codesArr = new NDArray(codesArrOne);
 
-  auto contextArrOne = NDArrayFactory::create('c',*contextShape,*contextVec);
+
+
+  auto contextArrOne = context->size() > 0 ? NDArrayFactory::create<sd::LongType>('c',*contextShape,*contextVec) : NDArrayFactory::empty<sd::LongType>();
   auto contextArr = new NDArray(contextArrOne);
 
 
-  auto lockedWordsOne = NDArrayFactory::create('c',*lockedWordsShape,*lockedWordsVec);
+  auto lockedWordsOne = lockedWordsVec->size() > 0 ?  NDArrayFactory::create<sd::LongType>('c',*lockedWordsShape,*lockedWordsVec) : NDArrayFactory::empty<sd::LongType>();
   auto lockedWordsArr = new NDArray(lockedWordsOne);
 
   auto target = I_ARG(currIdx++);
   auto ngStarter = I_ARG(currIdx++);
   auto numLabels = I_ARG(currIdx++);
   auto randomValue = I_ARG(currIdx++);
-  auto numWorkers = block.numI() > 0 ? INT_ARG(3) : omp_get_max_threads();
-  auto nsRounds = block.numI() > 1 ? INT_ARG(4) : 0;
+  auto iterations = I_ARG(currIdx++);
+  auto numWorkers = block.numI() > 0 ? INT_ARG(5) : omp_get_max_threads();
+  auto nsRounds = block.numI() > 1 ? INT_ARG(6) : 0;
 
   auto alpha = T_ARG(0);
-
+  auto minLearningRate = block.numT() > 1 ? T_ARG(1) : 1e-3;
 
 
 
@@ -139,25 +141,27 @@ CONFIGURABLE_OP_IMPL(cbow_inference, 6, 6, true, -2, -2) {
   REQUIRE_TRUE(syn0->dataType() == expTable->dataType(), 0,
                "CBOW: expTable must have the same data type as syn0 table");
 
+
+
   sd::ops::helpers::cbowInference(
-                                 *syn0,
-                                  *syn1,
-                                *syn1neg,
-                                   *expTable,
-                                    *negTable,
-                                    target,
-                                  ngStarter,
-                                   nsRounds,
-                                 *contextArr,
-                                *lockedWordsArr,
-                              *indicesArr,
-                              *codesArr,
-                                 alpha,
-                              randomValue,
-                              numLabels,
-                           *inferenceVector,
-                              trainWords,
-                                 numWorkers);
+      *syn0,
+      *syn1,
+      *syn1neg,
+      *expTable,
+      *negTable,
+      target,
+      ngStarter,
+      nsRounds,
+      *contextArr,
+      *lockedWordsArr,
+      *indicesArr,
+      *codesArr,
+      alpha,
+      randomValue,
+      numLabels,
+      *inferenceVector,
+      trainWords,
+      numWorkers,iterations,minLearningRate);
 
   return sd::Status::OK;
 }
@@ -200,9 +204,12 @@ CONFIGURABLE_OP_IMPL(cbow, 15, 15, true, 0, 0) {
 
   auto numWorkers = block.numI() > 0 ? INT_ARG(0) : omp_get_max_threads();
   auto nsRounds = block.numI() > 1 ? INT_ARG(1) : 0;
+  auto iterations = block.numI() > 2 ? INT_ARG(2) : 1;
 
   auto trainWords = block.numB() > 0 ? B_ARG(0) : true;
   auto isInference = block.numB() > 1 ? B_ARG(1) : false;
+
+  auto minLearningRate = block.numT() > 0 ? T_ARG(0) : 1e-3;
 
   REQUIRE_TRUE(block.isInplace(), 0, "CBOW: this operation requires inplace execution only");
 
@@ -211,9 +218,11 @@ CONFIGURABLE_OP_IMPL(cbow, 15, 15, true, 0, 0) {
   REQUIRE_TRUE(syn0->dataType() == expTable->dataType(), 0,
                "CBOW: expTable must have the same data type as syn0 table");
 
+  
+
   sd::ops::helpers::cbow(*syn0, *syn1, *syn1neg, *expTable, *negTable, *target, *ngStarter, nsRounds, *context,
                          *lockedWords, *indices, *codes, *alpha, *randomValue, *numLabels, *inferenceVector, trainWords,
-                         numWorkers);
+                         numWorkers,minLearningRate,iterations);
 
   return sd::Status::OK;
 }
@@ -224,7 +233,7 @@ DECLARE_TYPES(cbow) {
       ->setAllowedInputTypes(1, sd::DataType::INT32)
       ->setAllowedInputTypes(2, sd::DataType::INT32)
       ->setAllowedInputTypes(3, sd::DataType::INT32)
-      ->setAllowedInputTypes(4, sd::DataType::INT8)
+      ->setAllowedInputTypes(4, {ALL_INTS})
       ->setAllowedInputTypes(5, {ALL_FLOATS})
       ->setAllowedInputTypes(6, {ALL_FLOATS})
       ->setAllowedInputTypes(7, {ALL_FLOATS})

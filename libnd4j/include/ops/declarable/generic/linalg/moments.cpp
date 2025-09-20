@@ -33,9 +33,9 @@ CUSTOM_OP_IMPL(moments, 1, 2, false, 0, -2) {
   auto means = OUTPUT_VARIABLE(0);
   auto variances = OUTPUT_VARIABLE(1);
 
-  std::vector<int> axis = *block.getIArguments();
+  std::vector<LongType> axis = *block.getIArguments();
   const bool keepDims = block.getBArguments()->size() > 0 ? (bool)B_ARG(0) : false;
-  sd::ops::reduce_variance varianceOp;
+  reduce_variance varianceOp;
 
   // axis might be dynamic (i.e. tf mode)
   if (block.width() > 1) {
@@ -43,18 +43,18 @@ CUSTOM_OP_IMPL(moments, 1, 2, false, 0, -2) {
     helpers::adjustAxis(input->rankOf(), axisVector, axis);
     varianceOp.execute({input, axisVector}, {variances}, {}, {}, {keepDims}, {}, false);
   } else {
-    std::vector<int>& dims = axis;
-    std::vector<sd::LongType> axes;
-    for (int i = 0; i < dims.size(); i++) {
+    std::vector<LongType>& dims = axis;
+    std::vector<LongType> axes;
+    for (size_t i = 0; i < dims.size(); i++) {
       axes.push_back(dims[i]);
     }
 
     varianceOp.execute({input}, {variances}, {}, axes, {keepDims}, {}, false);
   }
 
-  input->reduceAlongDimension(reduce::Mean, *means, axis, keepDims);
+  input->reduceAlongDimension(reduce::Mean, means, &axis, keepDims);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(moments) {
@@ -72,16 +72,15 @@ DECLARE_SHAPE_FN(moments) {
       axis.emplace_back(ca);
     }
   }
-  // std::vector<int> dims = ShapeUtils::evalDimsToExclude(input->rankOf(), {axis});
   const bool keepDims = block.getBArguments()->size() > 0 ? (bool)B_ARG(0) : false;
 
-  auto meanShape = ShapeUtils::evalReduceShapeInfo('c', axis, *input, keepDims, false, block.workspace());
-  auto varianceShape = ShapeUtils::evalReduceShapeInfo('c', axis, *input, keepDims, false, block.workspace());
+  auto meanShape = ShapeUtils::evalReduceShapeInfo('c', &axis, *input, keepDims, false, block.workspace());
+  auto varianceShape = ShapeUtils::evalReduceShapeInfo('c', &axis, *input, keepDims, false, block.workspace());
   return SHAPELIST(meanShape, varianceShape);
 }
 
 DECLARE_TYPES(moments) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 }  // namespace ops
 

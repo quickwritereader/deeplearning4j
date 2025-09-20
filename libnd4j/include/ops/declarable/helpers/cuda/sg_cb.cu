@@ -23,6 +23,9 @@
 #include <exceptions/cuda_exception.h>
 #include <ops/declarable/helpers/sg_cb.h>
 
+#include "helpers/DebugHelper.h"
+
+
 #define HS_MAX_EXP 6.0f
 
 namespace sd {
@@ -79,6 +82,8 @@ void hSoftmax_(void *vsyn0, void *vsyn1, void *vexpTable, void *vneu1e, double a
                int expLength, bool isInference, cudaStream_t *stream) {
   hSoftmaxKernel<T>
       <<<1, 1, 128, *stream>>>(vsyn0, vsyn1, vexpTable, vneu1e, alpha, vectorLength, code, expLength, isInference);
+  sd::DebugHelper::checkErrorCode(stream, "hSoftmaxKernel failed");
+
 }
 
 template <typename T>
@@ -127,6 +132,8 @@ void nSampling_(void *vsyn0, void *vsyn1Neg, void *vexpTable, void *vneu1e, doub
                 int expLength, bool isInference, cudaStream_t *stream) {
   nSamplingKernel<T>
       <<<1, 1, 128, *stream>>>(vsyn0, vsyn1Neg, vexpTable, vneu1e, alpha, vectorLength, code, expLength, isInference);
+  sd::DebugHelper::checkErrorCode(stream, "nSamplingKernel failed");
+
 }
 
 /*
@@ -160,7 +167,7 @@ SD_KERNEL void addInfVectorKernel(T *neu1, T *infVector, int vectorLength) {
 
 template <typename T>
 void skipgram_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTableV, NDArray &negTableV, NDArray &infV,
-               int target, int ngStarter, NDArray &indices, NDArray &codes, double alpha, sd::LongType randomValue,
+               int target, int ngStarter, NDArray &indices, NDArray &codes, double alpha, LongType randomValue,
                const int hsRounds, const int nsRounds) {
   auto syn0 = reinterpret_cast<T *>(s0.specialBuffer());
   auto syn1 = reinterpret_cast<T *>(s1.specialBuffer());
@@ -204,7 +211,7 @@ void skipgram_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTableV, NDArr
         // target is known in advance
       } else {
         randomValue = randomValue * (unsigned long long)25214903917 + 11;
-        auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
+        auto idx = sd::math::sd_abs<LongType,LongType>((randomValue >> 16) % negLength);
         irow = idx >= negLength ? -1 : negTableV.e<int>(idx);
 
         if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -220,6 +227,8 @@ void skipgram_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTableV, NDArr
     addInfVectorKernel<T><<<128, 256, 256, *stream>>>(syn0row, neu1e, vectorLength);
   } else {
     addInfVectorKernel<T><<<128, 256, 256, *stream>>>(infVector, neu1e, vectorLength);
+    sd::DebugHelper::checkErrorCode(stream, "addInfVectorKernel failed");
+
   }
   err = cudaStreamSynchronize(*stream);
   if (0 != err) {
@@ -280,7 +289,7 @@ void skipgramBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTabl
 
     auto target = bTarget[t];
     auto alpha = lr.e<double>(t);
-    unsigned long long randomValue = nextRandom.e<sd::LongType>(t);
+    unsigned long long randomValue = nextRandom.e<LongType>(t);
 
     auto syn0row = reinterpret_cast<T *>(s0.specialBuffer()) + (target * vectorLength);
 
@@ -307,7 +316,7 @@ void skipgramBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTabl
           // target is known in advance
         } else {
           randomValue = randomValue * (unsigned long long)25214903917 + 11;
-          auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
+          auto idx = sd::math::sd_abs<LongType,LongType>((randomValue >> 16) % negLength);
           irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
           if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -320,6 +329,8 @@ void skipgramBatchExec_(NDArray &s0, NDArray &s1, NDArray &s1n, NDArray &expTabl
       }
     }
     addInfVectorKernel<T><<<128, 256, 256, *stream>>>(syn0row, neu1e, vectorLength);
+    sd::DebugHelper::checkErrorCode(stream, "addInfVectorKernel failed");
+
     err = cudaStreamSynchronize(*stream);
     if (0 != err) {
       throw cuda_exception::build("helpers::skipgramBatchExec_: Cannot synchronize stream after addInfVectorKernel",
@@ -340,9 +351,10 @@ BUILD_SINGLE_TEMPLATE(template void skipgramBatchExec_,
                        const int nsRounds, const bool preciseMode, const int numThreads),
                       SD_FLOAT_TYPES);
 
+
 void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target,
               NDArray &ngStarter, int nsRounds, NDArray &indices, NDArray &codes, NDArray &alpha, NDArray &randomValue,
-              NDArray &inferenceVector, const bool preciseMode, const int numWorkers) {
+              NDArray &inferenceVector, const bool preciseMode, const int numWorkers,const int iterations,double minLearningRate) {
   auto xType = syn0.dataType();
   // single round case
   if ((ngStarter.isScalar() && !ngStarter.isEmpty()) || (target.isScalar() && !target.isEmpty())) {
@@ -355,7 +367,7 @@ void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable,
     auto targetV = target.isEmpty() ? -1 : target.e<int>(0);
     auto starterV = ngStarter.isEmpty() ? -1 : ngStarter.e<int>(0);
     auto alphaV = alpha.e<double>(0);
-    auto randomV = randomValue.e<sd::LongType>(0);
+    auto randomV = randomValue.e<LongType>(0);
     BUILD_SINGLE_SELECTOR(xType, skipgram_,
                           (syn0, syn1, syn1Neg, expTable, negTable, inferenceVector, targetV, starterV, indices, codes,
                            alphaV, randomV, hsRounds, nsRounds),
@@ -366,13 +378,14 @@ void skipgram(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable,
                            randomValue, nsRounds, preciseMode, numWorkers),
                           SD_FLOAT_TYPES);
   } else
-    throw std::runtime_error("SkipGram: target must have rank 0 or 1");
+    THROW_EXCEPTION("SkipGram: target must have rank 0 or 1");
 }
 
 
 void skipgramInference(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, int target,
-                       int ngStarter, int nsRounds, NDArray &indices, NDArray &codes, double alpha, sd::LongType randomValue,
-                       NDArray &inferenceVector, const bool preciseMode, const int numWorkers) {
+                       int ngStarter, int nsRounds, NDArray &indices, NDArray &codes, double alpha,
+                       LongType randomValue,
+                       NDArray &inferenceVector, const bool preciseMode, const int numWorkers,double minLearningRate,const int iterations) {
   auto xType = syn0.dataType();
   auto hsRounds = codes.lengthOf();
 
@@ -405,7 +418,7 @@ static SD_KERNEL void checkContextKernel(int *context, T *syn0, T *neu1, int con
   auto step = blockDim.x * gridDim.x;
 
   for (int c = start; c < contextWidth; c += step) {
-    if (context[c] >= vocabSize) hasError = true;  // throw std::runtime_error("Bad context 4");
+    if (context[c] >= vocabSize) hasError = true;  // THROW_EXCEPTION("Bad context 4");
     if (!hasError) {
       T *syn0word = syn0 + (context[c] * vectorLength);
 
@@ -450,7 +463,7 @@ SD_KERNEL void fillUpSynonymsKernel(int starter, int contextWidth, int vectorLen
 template <typename T>
 void cbow_(LaunchContext *lc, void *vsyn0, void *vsyn1, void *vsyn1Neg, void *vexpTable, void *vnegTable,
            void *vinfVector, int target, int ngStarter, int *context, int *lockedWords, int *indices, int8_t *codes,
-           double alpha, sd::LongType randomValue, const int contextWidth, const int hsRounds, const int nsRounds,
+           double alpha, LongType randomValue, const int contextWidth, const int hsRounds, const int nsRounds,
            const int vocabSize, const int vectorLength, const int expLength, const int negLength, const int numLabels,
            const bool trainWords) {
   auto syn0 = reinterpret_cast<T *>(vsyn0);
@@ -471,24 +484,29 @@ void cbow_(LaunchContext *lc, void *vsyn0, void *vsyn1, void *vsyn1Neg, void *ve
 
   // building neu1 for current window
   checkContextKernel<T><<<1, 1, 128, *stream>>>(context, syn0, neu1, contextWidth, vectorLength, vocabSize);
+  sd::DebugHelper::checkErrorCode(stream, "checkContextKernel failed");
 
   T checkVal;
   err = cudaMemcpy(&checkVal, neu1, sizeof(T), cudaMemcpyDeviceToHost);
-  if (DataTypeUtils::infOrMax<T>() == checkVal) throw std::runtime_error("Bad context 4");
+  if (DataTypeUtils::infOrMax<T>() == checkVal) THROW_EXCEPTION("Bad context 4");
   // for inference we add additional inference vector
   if (infVector != nullptr) {
     addInfVectorKernel<T><<<128, 256, 128, *stream>>>(neu1, infVector, vectorLength);
+    sd::DebugHelper::checkErrorCode(stream, "addInfVectorKernel failed");
+
   }
 
   // average neu1
   if (contextWidth > 0) {
     shiftKernel<T><<<128, 256, 128, *stream>>>(neu1, infVector, contextWidth, vectorLength);
+    sd::DebugHelper::checkErrorCode(stream, "shiftKernel failed");
+
   }
 
   // softmax round
   if (hsRounds > 0) {
     for (int i = 0; i < hsRounds; i++) {
-      if (indices[i] < 0 || indices[i] >= vocabSize) throw std::runtime_error("Bad context 5");
+      if (indices[i] < 0 || indices[i] >= vocabSize) THROW_EXCEPTION("Bad context 5");
       T *syn1Shifted = syn1 + (indices[i] * vectorLength);
       hSoftmax_<T>(neu1, syn1Shifted, expTable, neu1e, alpha, vectorLength, codes[i], expLength, infVector != nullptr,
                    stream);
@@ -503,7 +521,7 @@ void cbow_(LaunchContext *lc, void *vsyn0, void *vsyn1, void *vsyn1Neg, void *ve
         // target is known in advance
       } else {
         randomValue = randomValue * (unsigned long long)25214903917 + 11;
-        auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
+        auto idx = sd::math::sd_abs<LongType,LongType>((randomValue >> 16) % negLength);
         irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
         if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -522,6 +540,8 @@ void cbow_(LaunchContext *lc, void *vsyn0, void *vsyn1, void *vsyn1Neg, void *ve
   if (infVector == nullptr) {
     fillUpSynonymsKernel<T>
         <<<1, 1, 128, *stream>>>(starter, contextWidth, vectorLength, lockedWords, context, neu1e, syn0);
+    sd::DebugHelper::checkErrorCode(stream, "fillUpSynonymsKernel failed");
+
   } else {
     for (int i = 0; i < vectorLength; i++) {
       infVector[i] += neu1e[i];
@@ -553,8 +573,8 @@ BUILD_SINGLE_TEMPLATE(template void cbow_,
 
 void cbowInference(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, int target,
                    int ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes,
-                   double alpha, sd::LongType randomValue, int numLabels, NDArray &inferenceVector, const bool trainWords,
-                   int numWorkers) {
+                   double alpha, LongType randomValue, int numLabels, NDArray &inferenceVector, const bool trainWords,
+                   int numWorkers,int iterations,double minLearningRate) {
   throw cuda_exception::build("cbow:: cbow inference not currently supported please use normal cbow",0);
 }
 
@@ -572,8 +592,7 @@ static SD_KERNEL void buildCurrentWindowKernel(int vocabSize, int contextWidth, 
     // skipping padded values
     if (cContext < 0) continue;
 
-    //                    if (cContext >= vocabSize)
-    //                        throw std::runtime_error("ContextID can't be >= vocab size");
+
 
     T *syn0word = syn0 + (cContext * vectorLength);
 
@@ -606,8 +625,6 @@ SD_KERNEL void applyShiftKernel(int *bContext, int *bLocker, T *syn0, T *neu1e, 
     // skipping padded values
     if (cContext < 0 || cLock == 1) continue;
 
-    //                    if (cContext >= vocabSize)
-    //                        throw std::runtime_error("ContextID can't be > vocab size");
 
     // one word from context
     T *syn0word = syn0 + (cContext * vectorLength);
@@ -642,16 +659,14 @@ void cbowBatchExec_(LaunchContext *lc, NDArray &s0, NDArray &s1, NDArray &s1n, v
   const auto hsRounds = codes.isEmpty() ? 0 : codes.sizeAt(1);
   const auto numTargets = context.sizeAt(0);
   const int contextWidth = context.sizeAt(1);
-  // const auto bContext = reinterpret_cast<int*>(context.buffer()); //bufferAsT<int>();
-  const auto dContext = context.dataBuffer()->specialAsT<int>();  // bufferAsT<int>();
-  //                const auto bLocker = reinterpret_cast<int*>(lockedWords.buffer()); //lockedWords.bufferAsT<int>();
+  const auto dContext = context.dataBuffer()->specialAsT<int>();
   const auto dLocker =
-      lockedWords.dataBuffer()->specialAsT<int>();                //.specialBuffer()); //lockedWords.bufferAsT<int>();
-  const auto bIndices = indices.dataBuffer()->primaryAsT<int>();  // buffer());//AsT<int>();
+      lockedWords.dataBuffer()->specialAsT<int>();
+  const auto bIndices = indices.dataBuffer()->primaryAsT<int>();
   const auto bCodes =
-      codes.dataBuffer()->primaryAsT<int8_t>();  // reinterpret_cast<int8_t*>(codes.buffer()); //bufferAsT<int8_t>();
+      codes.dataBuffer()->primaryAsT<int8_t>();
   const auto bStarters =
-      negStarters.dataBuffer()->primaryAsT<int>();  // reinterpret_cast<int*>(negStarters.buffer()); //AsT<int>();
+      negStarters.dataBuffer()->primaryAsT<int>();
   const auto numIndices = indices.isEmpty() ? 0 : indices.sizeAt(1);
   lr.syncToHost();
   nLabels.syncToHost();
@@ -670,18 +685,21 @@ void cbowBatchExec_(LaunchContext *lc, NDArray &s0, NDArray &s1, NDArray &s1n, v
     throw cuda_exception::build("Cannot allocate temp vector buffer", cerr);
   }
   int *actualContext;
-  cerr = cudaMalloc(&actualContext, sizeof(int));
+  cerr = cudaMalloc(&actualContext, sizeof(LongType));
   if (cerr) {
     throw cuda_exception::build("Cannot allocate counter buffer", cerr);
   }
 
   for (int e = 0; e < numTargets; e++) {
     auto alpha = lr.e<double>(e);
-    auto numLabels = nLabels.isEmpty() ? 0 : nLabels.e<int>(e);
+    auto numLabels = nLabels.isEmpty() ? 0 : nLabels.e<LongType>(e);
 
     buildCurrentWindowKernel<T>
         <<<1, 1, 128, *stream>>>(vocabSize, contextWidth, vectorLength, dContext, syn0, neu1, actualContext, e);
+    sd::DebugHelper::checkErrorCode(stream, "buildCurrentWindowKernel failed");
+
     arrangeNeuKernel<T><<<1, 1, 128, *stream>>>(vectorLength, neu1, infVector, actualContext);
+    sd::DebugHelper::checkErrorCode(stream, "arrangeNeuKernel failed");
 
     // hierarchic softmax step
     if (!indices.isEmpty()) {
@@ -692,7 +710,7 @@ void cbowBatchExec_(LaunchContext *lc, NDArray &s0, NDArray &s1, NDArray &s1n, v
         // we're skipping padded values
         if (cIndex < 0) continue;
 
-        if (cIndex >= vocabSize) throw std::runtime_error("Index can't be > vocab size");
+        if (cIndex >= vocabSize) THROW_EXCEPTION("Index can't be > vocab size");
 
         hSoftmax_<T>(neu1, syn1 + (cIndex * vectorLength), expTable, neu1e, alpha, vectorLength, cCode, expLength,
                      false, stream);
@@ -703,13 +721,13 @@ void cbowBatchExec_(LaunchContext *lc, NDArray &s0, NDArray &s1, NDArray &s1n, v
     if (!negStarters.isEmpty() && nsRounds > 0) {
       int irow = bStarters[e];
       const int nsStarter = irow;
-      unsigned long long randomValue = nextRandom.e<sd::LongType>(e);
+      unsigned long long randomValue = nextRandom.e<LongType>(e);
 
       for (int r = 0; r < nsRounds + 1; r++) {
         // we're skipping rng on 0 step
         if (r != 0) {
           randomValue = randomValue * (unsigned long long)25214903917 + 11;
-          auto idx = sd::math::sd_abs<sd::LongType>((randomValue >> 16) % negLength);
+          auto idx = sd::math::sd_abs<LongType,LongType>((randomValue >> 16) % negLength);
           irow = idx >= negLength ? -1 : static_cast<int>(negTable[idx]);
 
           if (irow < 0 || irow >= vocabSize) irow = randomValue % (vocabSize - 1) + 1;
@@ -731,6 +749,7 @@ void cbowBatchExec_(LaunchContext *lc, NDArray &s0, NDArray &s1, NDArray &s1n, v
     // applying previously averaged results
     applyShiftKernel<T><<<1, 1, 128, *stream>>>(dContext, dLocker, syn0, neu1e, contextWidth, vectorLength, e, starter);
 
+    sd::DebugHelper::checkErrorCode(stream, "applyShiftKernel failed");
 
   }
   cerr = cudaStreamSynchronize(*stream);
@@ -762,7 +781,7 @@ BUILD_SINGLE_TEMPLATE(template void cbowBatchExec_,
 void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDArray &negTable, NDArray &target,
           NDArray &ngStarter, int nsRounds, NDArray &context, NDArray &lockedWords, NDArray &indices, NDArray &codes,
           NDArray &alpha, NDArray &randomValue, NDArray &numLabels, NDArray &inferenceVector, const bool trainWords,
-          int numWorkers) {
+          int numWorkers,double minLearningRate,const int iterations) {
   auto xType = syn0.dataType();
   auto lc = context.getContext();
   indices.syncToHost();
@@ -799,7 +818,7 @@ void cbow(NDArray &syn0, NDArray &syn1, NDArray &syn1Neg, NDArray &expTable, NDA
          expTable.lengthOf(), negTable.isEmpty() ? 0 : negTable.lengthOf(), trainWords, numWorkers),
         SD_FLOAT_TYPES);
   } else
-    throw std::runtime_error("CBOW: context must have rank 0/1 or 2");
+    THROW_EXCEPTION("CBOW: context must have rank 0/1 or 2");
 
   NDArray::registerSpecialUse(
       {&syn0, &syn1, &syn1Neg, &expTable, &negTable, &target, &ngStarter},

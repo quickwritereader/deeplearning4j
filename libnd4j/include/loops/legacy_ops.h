@@ -23,9 +23,6 @@
 #ifndef PROJECT_LEGACY_OPS_H
 #define PROJECT_LEGACY_OPS_H
 
-#define AGGREGATE_OPS                                                                                                 \
-  (0, aggregateOps::HierarchicSoftmax), (1, aggregateOps::Dot), (2, aggregateOps::Axpy), (3, aggregateOps::SkipGram), \
-      (4, aggregateOps::CBOW), (5, aggregateOps::GEMM)
 
 #define BROADCAST_INT_OPS \
   (0, ShiftLeft), (1, ShiftRight), (2, CyclicShiftLeft), (3, CyclicShiftRight), (4, IntAnd), (5, IntOr), (6, IntXor)
@@ -87,6 +84,9 @@
       (36, LeakyRELUDerivative), (37, ReplaceNans), (38, LogX), (39, RELU), (40, RELU6), (41, Step), (42, LstmClip),   \
       (43, TruncateMod), (44, SquaredReverseSubtract), (45, ReversePow), (46, DivideNoNan), (47, IGamma),              \
       (48, IGammac), (49, RELUDerivative)
+
+#define SCALAR_STRING_OPS                                                                                                     \
+  (0, AssignString)
 
 #define REDUCE3_OPS                                                                                    \
   (0, ManhattanDistance), (1, EuclideanDistance), (2, CosineSimilarity), (3, Dot), (4, EqualsWithEps), \

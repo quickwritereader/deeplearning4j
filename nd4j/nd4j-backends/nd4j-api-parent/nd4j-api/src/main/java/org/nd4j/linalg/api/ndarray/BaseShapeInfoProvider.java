@@ -24,14 +24,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.common.primitives.Pair;
 import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.nativeblas.OpaqueConstantShapeBuffer;
 
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public abstract class BaseShapeInfoProvider implements ShapeInfoProvider {
     protected AtomicLong bytes = new AtomicLong(0);
+
+    @Override
+    public Pair<DataBuffer, long[]> createShapeInformation(long[] shapeInfo) {
+        return Pair.of(Nd4j.createBuffer(shapeInfo),shapeInfo);
+    }
 
     /**
      * This method creates shapeInformation buffer, based on shape being passed in
@@ -56,26 +63,22 @@ public abstract class BaseShapeInfoProvider implements ShapeInfoProvider {
     @Override
     public Pair<DataBuffer, long[]> createShapeInformation(long[] shape, char order, DataType dataType) {
         long[] stride = Nd4j.getStrides(shape, order);
-
-        // this won't be view, so ews is 1
-        int ews = 1;
-
-        return createShapeInformation(shape, stride, ews, order, dataType, false);
+        return createShapeInformation(shape, stride, 0, order, dataType, false);
     }
 
     @Override
     public Pair<DataBuffer, long[]> createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, DataType dataType, boolean empty) {
         DataBuffer buffer = Shape.createShapeInformation(shape, stride, elementWiseStride, order, dataType, empty);
-        buffer.setConstant(true);
         return Pair.create(buffer, buffer.asLong());
     }
 
     @Override
     public Pair<DataBuffer, long[]> createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, long extras) {
         DataBuffer buffer = Shape.createShapeInformation(shape, stride, elementWiseStride, order, extras);
-        buffer.setConstant(true);
         return Pair.create(buffer, buffer.asLong());
     }
+
+
 
 
     @Override

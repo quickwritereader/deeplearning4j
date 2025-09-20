@@ -25,17 +25,28 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-void adjustAxis(sd::LongType rank, NDArray* axisVector, std::vector<int>& output) {
+void adjustAxis(sd::LongType rank, NDArray* axisVector, std::vector<LongType>& output) {
+  if(axisVector->isScalar()) {
+    output.resize(1);
+    auto ca = axisVector->e<sd::LongType>(0);
+    if (ca < 0)  // shift values on rank for negative vals
+      ca += rank;
+    output[0] = ca;
+    return;
+  }
   output.resize(axisVector->lengthOf());
-  for (sd::LongType e = 0; e < axisVector->lengthOf(); e++) {
-    auto ca = axisVector->e<int>(e);
-    if (ca < 0) ca += rank;
+  axisVector->tickReadDevice();  // mark input as read on device
+  axisVector->syncToHost();      // sync to host
+  for (int e = 0; e < axisVector->lengthOf(); e++) {
+    auto ca = axisVector->e<sd::LongType>(e);
+    if (ca < 0)  // shift values on rank for negative vals
+      ca += rank;
 
     output[e] = ca;
   }
 }
 
-void adjustAxis(sd::LongType rank, std::vector<int>& axisVector) {
+void adjustAxis(sd::LongType rank, std::vector<LongType>& axisVector) {
   for (size_t e = 0; e < axisVector.size(); e++) {
     auto a = axisVector[e];
     if (a < 0) axisVector[e] = a + rank;

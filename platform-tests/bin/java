@@ -1,0 +1,94 @@
+#!/bin/bash
+
+#
+# /* ******************************************************************************
+#  *
+#  *
+#  * this program and the accompanying materials are made available under the
+#  * terms of the apache license, version 2.0 which is available at
+#  * https://www.apache.org/licenses/license-2.0.
+#  *
+#  *  see the notice file distributed with this work for additional
+#  *  information regarding copyright ownership.
+#  * unless required by applicable law or agreed to in writing, software
+#  * distributed under the license is distributed on an "as is" basis, without
+#  * warranties or conditions of any kind, either express or implied. see the
+#  * license for the specific language governing permissions and limitations
+#  * under the license.
+#  *
+#  * spdx-license-identifier: apache-2.0
+#  ******************************************************************************/
+#
+
+set -exo pipefail
+java_call="java "
+script_dir=$( cd -- "$( dirname -- "${bash_source[0]}" )" &> /dev/null && pwd )
+echo "RUNNING WITH CUSTOM JVM"
+echo "TEST RUNNER PREFIX: $test_runner_prefix"
+#source "${script_dir}/env.sh"
+# find libjvm.so
+if [[ -n $libjvm_so ]]; then
+    libjvm_path=$libjvm_so
+else
+    java_real_path=$(readlink -f $(which java))
+    java_home=$(dirname $(dirname $java_real_path))
+    libjvm_path=$(find $java_home -type f -name "libjvm.so" | grep "/server/" | head -n 1)
+fi
+
+# if libjvm.so not found, terminate
+if [[ -z $libjvm_path ]]; then
+    echo "libjvm.so not found"
+    exit 1
+fi
+
+# if test_runner_prefix is not empty and contains "valgrind"
+if [[ -n $TEST_RUNNER_PREFIX && TEST_RUNNER_PREFIX =~ "valgrind" ]]; then
+    # create a file to store the suppression information
+    suppression_file="valgrind_suppressions.supp"
+
+    # if suppression file exists, delete it
+    if [[ -f $suppression_file ]]; then
+        rm -f $suppression_file
+    fi
+
+    # generate the suppression file for all memcheck error types except param
+    echo "generating valgrind suppression file at $suppression_file..."
+    for error_type in addr1 addr2 addr4 addr8 value1 value2 value4 value8 jump cond
+    do
+        cat << eof >> $suppression_file
+{
+    suppresslibjvm${error_type}
+    memcheck:${error_type}
+    ...
+    obj:$libjvm_path
+}
+eof
+    done
+
+    echo "valgrind suppression file has been generated."
+
+    # check if "--suppressions" already exists in test_runner_prefix
+    if [[ $TEST_RUNNER_PREFIX != *"--suppressions"* ]]; then
+        $TEST_RUNNER_PREFIX="$TEST_RUNNER_PREFIX   --suppressions=$suppression_file --track-origins=yes --keep-stacktraces=alloc-and-free --error-limit=no"
+    fi
+
+    java_call="${java_call} -Djava.compiler=none"
+fi
+# if test_runner_prefix is not empty and contains "compute-sanitizer"
+if [[ -n $TEST_RUNNER_PREFIX && $TEST_RUNNER_PREFIX =~ "compute-sanitizer" ]]; then
+    TEST_RUNNER_PREFIX="${TEST_RUNNER_PREFIX} --tool=memcheck --report-api-errors all  --show-backtrace yes --print-limit 1000 "
+    # set default options for compute-sanitizer if none are specified
+    # add jvm option to disable jit compilation to help with debugging
+    java_call="${java_call}  -Djava.compiler=none"
+
+    echo "running with cuda compute-sanitizer"
+fi
+export CUDA_VISIBLE_DEVICES=1
+# print the final command
+echo "$TEST_RUNNER_PREFIX $java_call $@"
+$TEST_RUNNER_PREFIX $java_call "$@"
+
+# if test_runner_prefix is not empty and contains "valgrind", remove the suppression file
+if [[ -n $TEST_RUNNER_PREFIX && $TEST_RUNNER_PREFIX =~ "valgrind" ]]; then
+    rm -f $suppression_file
+fi

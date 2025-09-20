@@ -20,33 +20,35 @@
 
 package org.nd4j.linalg.api.ops.impl.shape;
 
-import org.nd4j.shade.guava.primitives.Ints;
 import lombok.val;
 import onnx.Onnx;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.samediff.VariableType;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.common.util.ArrayUtil;
 import org.nd4j.imports.descriptors.properties.PropertyMapping;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
-import org.nd4j.common.util.ArrayUtil;
+import org.nd4j.shade.guava.primitives.Longs;
 import org.tensorflow.framework.AttrValue;
 import org.tensorflow.framework.GraphDef;
 import org.tensorflow.framework.NodeDef;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Transpose extends DynamicCustomOp {
-    protected int[] permuteDims;
+    protected long[] permuteDims;
 
     public Transpose(SameDiff sameDiff, SDVariable i_v) {
         super(null, sameDiff, new SDVariable[]{i_v});
     }
 
-    public Transpose(SameDiff sameDiff, SDVariable in, int[] permuteDims){
+    public Transpose(SameDiff sameDiff, SDVariable in, long[] permuteDims){
         super(null, sameDiff, new SDVariable[]{in});
         this.permuteDims = permuteDims;
     }
@@ -56,7 +58,7 @@ public class Transpose extends DynamicCustomOp {
     }
 
     public Transpose(INDArray input, INDArray result){
-        super(null, new INDArray[]{input}, result == null ? null : new INDArray[]{result}, null, (List<Integer>) null);
+        super(null, new INDArray[]{input}, result == null ? null : new INDArray[]{result}, null, (List<Long>) null);
     }
 
     public Transpose(INDArray input){
@@ -103,42 +105,8 @@ public class Transpose extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        super.initFromTensorFlow(nodeDef, initWith, attributesForNode, graph);
-        //permute dimensions are not specified as second input
-        if (nodeDef.getInputCount() < 2)
-            return;
-        NodeDef permuteDimsNode = null;
-        for (int i = 0; i < graph.getNodeCount(); i++) {
-            if (graph.getNode(i).getName().equals(nodeDef.getInput(1))) {
-                permuteDimsNode = graph.getNode(i);
-            }
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
 
-        }
-
-        INDArray permuteArrayOp = TFGraphMapper.getNDArrayFromTensor(permuteDimsNode);
-        if (permuteArrayOp != null) {
-            this.permuteDims = permuteArrayOp.data().asInt();
-        }
-
-        //handle once properly mapped
-        if (arg().getShape() == null || arg().getVariableType() == VariableType.PLACEHOLDER || arg().getArr() == null) {
-            return;
-        }
-
-        INDArray arr = sameDiff.getArrForVarName(arg().name());
-
-        if(permuteArrayOp != null){
-            addInputArgument(arr, permuteArrayOp);
-        } else {
-            addInputArgument(arr);
-        }
-
-        if (arr != null && permuteDims == null) {
-            this.permuteDims = ArrayUtil.reverseCopy(ArrayUtil.range(0, arr.rank()));
-        }
-
-        if (permuteDims != null && permuteDims.length < arg().getShape().length)
-            throw new ND4JIllegalStateException("Illegal permute found. Not all dimensions specified");
     }
 
     @Override
@@ -146,7 +114,7 @@ public class Transpose extends DynamicCustomOp {
         if (!attributesForNode.containsKey("perm")) {
 
         } else
-            this.permuteDims = Ints.toArray(attributesForNode.get("perm").getIntsList());
+            this.permuteDims = Longs.toArray(attributesForNode.get("perm").getIntsList());
     }
 
     @Override
@@ -155,7 +123,7 @@ public class Transpose extends DynamicCustomOp {
         if(permuteDims == null) {
             ret = sameDiff.transpose(i_v.get(0));
         } else {
-            int[] reverse = ArrayUtil.invertPermutation(permuteDims);
+            long[] reverse = ArrayUtil.invertPermutation(permuteDims);
             ret = sameDiff.permute(i_v.get(0), reverse);
         }
         return Collections.singletonList(ret);

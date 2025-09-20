@@ -24,11 +24,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.gradient.Gradient;
-import org.deeplearning4j.nn.graph.ComputationGraph;
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
 import org.deeplearning4j.optimize.api.StepFunction;
 import org.deeplearning4j.optimize.api.TrainingListener;
+import org.deeplearning4j.util.NetworkUtils;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
@@ -48,16 +47,6 @@ public class StochasticGradientDescent extends BaseOptimizer {
 
     @Override
     public boolean optimize(LayerWorkspaceMgr workspaceMgr) {
-        if (accumulator != null) {
-            // before going FF, we're checking if there are any updates available
-            if (accumulator.hasAnything()) {
-                log.info("Applying external updates before FF...");
-
-                // we'll just fire off params update process
-                accumulator.applyUpdate(stepFunction, model.params(), Nd4j.createUninitialized(model.params().shape(), model.params().ordering()), false);
-            }
-        }
-
         Pair<Gradient, Double> pair = gradientAndScore(workspaceMgr);
 
         Gradient gradient = pair.getFirst();
@@ -65,47 +54,23 @@ public class StochasticGradientDescent extends BaseOptimizer {
         INDArray params = model.params();
         INDArray fullGrad = gradient.gradient();
         fullGrad = fullGrad.reshape(fullGrad.length());
-        // if optimizer has GradientsAccumulator defined - go for it
-        if (accumulator != null) {
-            // we're propagating current update
-            int epochNum = 0;
-            int iterationNum = 0;
+        stepFunction.step(params, fullGrad);
 
-            if (model instanceof MultiLayerNetwork) {
-                iterationNum = ((MultiLayerNetwork) model).getIterationCount();
-                epochNum = ((MultiLayerNetwork) model).getEpochCount();
-            } else if (model instanceof ComputationGraph) {
-                iterationNum = ((ComputationGraph) model).getIterationCount();
-                epochNum = ((ComputationGraph) model).getEpochCount();
-            }
-
-            accumulator.storeUpdate(fullGrad, iterationNum, epochNum);
-
-            // and getting (possible) pending update from accumulator
-            //INDArray pendingUpdate = accumulator.getUpdate();
-            //stepFunction.step(params, pendingUpdate);
-            accumulator.applyUpdate(stepFunction, params, fullGrad, true);
-
-            // if there's no update available - just go on then
-        } else {
-            // if accumulator isn't used - we just to for direct updates application
-            stepFunction.step(params, fullGrad);
-        }
 
         //Note: model.params() is always in-place for MultiLayerNetwork and ComputationGraph, hence no setParams is necessary there
         //However: for pretrain layers, params are NOT a view. Thus a setParams call is necessary
         //But setParams should be a no-op for MLN and CG
         model.setParams(params);
 
-        int iterationCount = BaseOptimizer.getIterationCount(model);
-        int epochCount = BaseOptimizer.getEpochCount(model);
+        int iterationCount = NetworkUtils.getIterationCount(model);
+        int epochCount = NetworkUtils.getEpochCount(model);
         try (MemoryWorkspace workspace = Nd4j.getMemoryManager().scopeOutOfWorkspaces()) {
             for (TrainingListener listener : trainingListeners)
                 listener.iterationDone(model, iterationCount, epochCount);
         }
 
-        BaseOptimizer.incrementIterationCount(model, 1);
-        applyConstraints(model);
+        NetworkUtils.incrementIterationCount(model, 1);
+        NetworkUtils.applyConstraints(model);
         return true;
     }
 

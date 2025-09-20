@@ -463,7 +463,7 @@ class Deviation {
   }
 
   template <bool LastIndexFaster = true>
-  static SD_INLINE void updateGeneralLoop1b(int rank, const X* buff, DeviationAggregate& agg, const sd::LongType* bases,
+  static SD_INLINE void updateGeneralLoop1b(LongType rank, const X* buff, DeviationAggregate& agg, const sd::LongType* bases,
                                             const sd::LongType* strides, const sd::LongType& outerLoopStart,
                                             const sd::LongType& outerLoopStop, const sd::LongType& innerLoopCount) {
     agg = {};
@@ -472,13 +472,8 @@ class Deviation {
     sd::LongType coords[SD_MAX_RANK] = {};
     sd::LongType* ptr_coords = (sd::LongType*)&coords;
     if (outerLoopStart > 0) {
-      if (LastIndexFaster) {
-        sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
-      } else {
-        // skip first base
-        sd::index2coords_F(outerLoopStart, rank - 1, &(bases[1]), ptr_coords);
-      }
-      offset = sd::offset_from_coords(strides, ptr_coords, rank);
+      INDEX2COORDS(outerLoopStart, rank - 1, bases, ptr_coords);
+      COORDS2INDEX(rank, strides, ptr_coords, offset);
     }
     if (innerLoopCount >= vectorizationThreshold) {
       LOG_CALLS(88)
@@ -522,13 +517,8 @@ class Deviation {
     sd::LongType coords[SD_MAX_RANK] = {};
     sd::LongType* ptr_coords = (sd::LongType*)&coords;
     if (outerLoopStart > 0) {
-      if (LastIndexFaster) {
-        sd::index2coords_C(outerLoopStart, rank - 1, bases, ptr_coords);
-      } else {
-        // skip first base
-        sd::index2coords_F(outerLoopStart, rank - 1, &(bases[1]), ptr_coords);
-      }
-      offset = sd::offset_from_coords(strides, ptr_coords, rank);
+      INDEX2COORDS(outerLoopStart, rank - 1, bases, ptr_coords);
+      COORDS2INDEX(rank, strides, ptr_coords, offset);
     }
     LOG_CALLS(90)
     for (sd::LongType i = 0; i < outerLoopCount; i++) {
@@ -597,7 +587,6 @@ static void reductionCase1Scalar(const int& second_rank, const sd::LongType* inn
     } else {
       auto gen = inner_total / threadingThreshold + 1;
       maxThreads = gen > maxThreads ? maxThreads : gen;
-      // sd_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold,  maxThreads, gen);
     }
   } else {
     inner_total = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
@@ -606,7 +595,6 @@ static void reductionCase1Scalar(const int& second_rank, const sd::LongType* inn
     } else {
       auto gen = inner_total * inner_last / threadingThreshold + 1;
       maxThreads = gen > maxThreads ? maxThreads : gen;
-      // sd_printf("%ld %ld  mth %d %d\n", inner_total, threadingThreshold, maxThreads, gen);
     }
   }
 #define BLOCKX4 1
@@ -742,7 +730,6 @@ static void reductionCases(Movement& movement, sd::LongType loopTotal, const int
       auto loopCount4_8th = inner_total / 8;
       auto tail = inner_total & 7;
       bool use_vector = loopCount4_8th > 16;
-      // sd_printf("++ %d %d %d \n", loopCount4, loopCount4_8th, tail);
       for (sd::LongType i = 0; i < loopTotal_K; i++) {
         AggType agg0, agg1, agg2, agg3;
         const X* buff0 = &(bufferX[movement.First()]);
@@ -781,7 +768,6 @@ static void reductionCases(Movement& movement, sd::LongType loopTotal, const int
                                                           &(buff2[loopCount4]), &(buff3[loopCount4]), tail, agg0, agg1,
                                                           agg2, agg3);
           }
-          // sd_printf("~~~ %f %f %f \n", agg0.n, agg0.mean, agg0.M2);
         } else {
           DeviationOp::updateInnerLoop4b(buff0, buff1, buff2, buff3, inner_total, agg0, agg1, agg2, agg3);
         }
@@ -817,7 +803,6 @@ static void reductionCases(Movement& movement, sd::LongType loopTotal, const int
       sd::LongType inner_loop = getLength<LastIndexFaster>(inner_bases, second_rank, 1, inner_last);
       if (second_rank == 2) {
         LOG_CALLS(11)
-        // sd_printf("%d %d %d\n", inner_loop, inner_last, inner_stride);
         for (sd::LongType i = 0; i < loopTotal_K; i++) {
           const X* buffer0 = &(bufferX[movement.First()]);
           Z* output0 = &(outputZ[movement.Second()]);
@@ -1076,8 +1061,7 @@ static void reductionCaseNonScalar(const int& first_rank, const int& output_rank
 }
 
 template <typename X, typename Z, typename DeviationOp>
-static void reduction_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions, bool biasCorrected) {
-  // sd_printf("___%s_________%d+\n", __PRETTY_FUNCTION__, 0);
+static void reduction_(NDArray& input, NDArray& output, const std::vector<sd::LongType>& dimensions, bool biasCorrected) {
   char input_order = input.ordering();
   bool try_squash_outer = (input_order == output.ordering()) && output.ews() != 0;
   auto input_shapeInfo = input.shapeInfo();
@@ -1089,7 +1073,7 @@ static void reduction_(const NDArray& input, NDArray& output, const std::vector<
   const sd::LongType* output_strides = &(output_shapeInfo[output_rank + 1]);
   sd::LongType new_bases[SD_MAX_RANK];
   sd::LongType new_strides[SD_MAX_RANK];
-  int first_begin, first_end, second_begin, second_end;
+  sd::LongType first_begin, first_end, second_begin, second_end;
   // rePartition into two parts based on the selection
   rePartition(input_order, dimensions, rank, input_bases, input_strides, new_bases, new_strides, first_begin, first_end,
               second_begin, second_end, try_squash_outer, true);
@@ -1125,13 +1109,13 @@ static void reduction_(const NDArray& input, NDArray& output, const std::vector<
 }
 
 template <typename X, typename Z>
-SD_LIB_HIDDEN void variance_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions,
+SD_LIB_HIDDEN void variance_(NDArray& input, NDArray& output, const std::vector<sd::LongType>& dimensions,
                              bool biasCorrected) {
   return reduction_<X, Z, Deviation<X, Z>>(input, output, dimensions, biasCorrected);
 }
 
 template <typename X, typename Z>
-SD_LIB_HIDDEN void standardDeviation_(const NDArray& input, NDArray& output, const std::vector<int>& dimensions,
+SD_LIB_HIDDEN void standardDeviation_(NDArray& input, NDArray& output, const std::vector<sd::LongType>& dimensions,
                                       bool biasCorrected) {
   return reduction_<X, Z, Deviation<X, Z, true>>(input, output, dimensions, biasCorrected);
 }

@@ -24,7 +24,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>nd4j</artifactId>
-        <groupId>org.nd4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -37,7 +37,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
 
-        <tensorflow-lite.version>2.10.0</tensorflow-lite.version>
+        <tensorflow-lite.version>2.18.0</tensorflow-lite.version>
         <tensorflow-lite.javacpp.version>${tensorflow-lite.version}-${javacpp.version}</tensorflow-lite.javacpp.version>
         <module.name>nd4j.tensorflow.lite</module.name>
     </properties>
@@ -56,9 +56,13 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-
+        <!-- Redirect jackson to slf4j.  -->
         <dependency>
-            <groupId>org.nd4j</groupId>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.deeplearning4j</groupId>
             <artifactId>nd4j-api</artifactId>
         </dependency>
 
@@ -82,12 +86,7 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-common-tests</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
+
 
     </dependencies>
 

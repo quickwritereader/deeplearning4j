@@ -25,9 +25,9 @@
 
 namespace sd {
 namespace graph {
-ExecutionResult::ExecutionResult(const FlatResult* flatResult) {
+ExecutionResult::ExecutionResult(const ::graph::FlatResult* flatResult) {
   if (flatResult->variables() != nullptr) {
-    for (int e = 0; e < flatResult->variables()->size(); e++) {
+    for (size_t e = 0; e < flatResult->variables()->size(); e++) {
       auto fv = flatResult->variables()->Get(e);
       auto v = new Variable(fv);
       this->emplace_back(v);
@@ -42,7 +42,7 @@ ExecutionResult::~ExecutionResult() {
     for (auto v : _variables) delete v;
 }
 
-sd::LongType ExecutionResult::size() { return _variables.size(); }
+LongType ExecutionResult::size() { return _variables.size(); }
 
 ExecutionResult::ExecutionResult(std::initializer_list<Variable*> variables) {
   for (auto v : variables) this->emplace_back(v);
@@ -58,20 +58,20 @@ void ExecutionResult::emplace_back(Variable* variable) {
 }
 
 Variable* ExecutionResult::at(int position) {
-  if (position >= _variables.size())
-    throw std::runtime_error("Position index is higher then number of variables stored");
+  if (static_cast<size_t>(position) >= _variables.size())
+    THROW_EXCEPTION("Position index is higher then number of variables stored");
 
   return _variables.at(position);
 }
 
 Variable* ExecutionResult::byId(std::string& id) {
-  if (_stringIdMap.count(id) == 0) throw std::runtime_error("Can't find specified ID");
+  if (_stringIdMap.count(id) == 0) THROW_EXCEPTION("Can't find specified ID");
 
   return _stringIdMap.at(id);
 }
 
 Variable* ExecutionResult::byId(std::pair<int, int>& id) {
-  if (_pairIdMap.count(id) == 0) throw std::runtime_error("Can't find specified ID");
+  if (_pairIdMap.count(id) == 0) THROW_EXCEPTION("Can't find specified ID");
 
   return _pairIdMap.at(id);
 }
@@ -86,8 +86,8 @@ Variable* ExecutionResult::byId(const char* str) {
   return byId(p);
 }
 
-flatbuffers::Offset<FlatResult> ExecutionResult::asFlatResult(flatbuffers::FlatBufferBuilder& builder) {
-  std::vector<flatbuffers::Offset<FlatVariable>> vec;
+flatbuffers::Offset<::graph::FlatResult> ExecutionResult::asFlatResult(flatbuffers::FlatBufferBuilder& builder) {
+  std::vector<flatbuffers::Offset<::graph::FlatVariable>> vec;
   for (Variable* v : _variables) {
     vec.emplace_back(v->asFlatVariable(builder));
   }

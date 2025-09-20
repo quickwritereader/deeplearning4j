@@ -94,9 +94,8 @@ uint8_t pack<bool>(const bool* buff, int stride, const bool& threshold) {
   res = res | buff[7 * stride];
   return res;
 }
-
 template <typename X>
-void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, NDArray& output) {
+void compareAndBitpack_(NDArray& input, NDArray& thresholdScalar, NDArray& output) {
   auto rank = input.rankOf();
   X threshold = thresholdScalar.e<X>(0);
   auto buff = input.bufferAsT<X>();
@@ -104,7 +103,6 @@ void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, ND
   if (input.ordering() == 'c' && output.ordering() == 'c' && input.ews() == 1 && output.ews() == 1) {
     FUNC_1D func = [buff, outBuff, threshold](uint64_t thread_id, int64_t start, int64_t stop,
                                               int64_t increment) -> void {
-      // sd_printf("s: %i e: %i \n", (int)start,(int)stop);
       auto outBuffPart = outBuff + start;
       auto buffPart = buff + start * 8;
       auto len = stop - start;
@@ -149,23 +147,25 @@ void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, ND
       extendedStrides[rank - 1] = 8 * inStrides[rank - 1];
       extendedStrides[rank] = inStrides[rank - 1];
       // general case. its slow. we can improve it for special case later
-      // generic case that could be further imrpoved. for now its slow
+      // generic case that could be further improved. for now its slow
       FUNC_1D func = [rank, buff, outBuff, outShapes, extendedStrides, outStrides, threshold](
                          uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
         sd::LongType coords[SD_MAX_RANK] = {};
         sd::LongType* ptr_coords = (sd::LongType*)&coords;
-        // sd_printf("generic s: %i e: %i \n", (int)start,(int)stop);
-        auto len = (stop - start);
+        sd::LongType len = (stop - start);
         // its extended as {rank+1} so extendedStrides[rank] is valid
         auto innermostStride = extendedStrides[rank];
-        sd::index2coords_C(start, rank, outShapes, ptr_coords);
+        INDEX2COORDS(start, rank, outShapes, ptr_coords);
         // here last dimension will not be in coords. this way output shape and input shapes are equal
-        auto offset = sd::offset_from_coords(extendedStrides, outStrides, ptr_coords, rank);
-        for (auto k = 0; k < len; k++) {
-          auto buffPart = &(buff[offset.first]);
-          auto outBuffPart = &(outBuff[offset.second]);
+        sd::LongType inOffset, outOffset;
+        COORDS2INDEX(rank + 1, extendedStrides, ptr_coords, inOffset);
+        COORDS2INDEX(rank, outStrides, ptr_coords, outOffset);
+        for (sd::LongType k = 0; k < len; k++) {
+          auto buffPart = &(buff[inOffset]);
+          auto outBuffPart = &(outBuff[outOffset]);
           *outBuffPart = pack<X>(buffPart, innermostStride, threshold);
-          offset = inc_coords(outShapes, extendedStrides, outStrides, ptr_coords, offset, rank);
+          inOffset += extendedStrides[rank];
+          outOffset += outStrides[rank - 1];
         }
       };
       samediff::Threads::parallel_for(func, 0, output.lengthOf(), 1);
@@ -174,12 +174,12 @@ void compareAndBitpack_(const NDArray& input, const NDArray& thresholdScalar, ND
 }
 
 /////////////////////////////////////////////////////////////
-void compareAndBitpack(sd::graph::Context& block, const NDArray& input, const NDArray& threshold, NDArray& output) {
+void compareAndBitpack(sd::graph::Context& block, NDArray& input, NDArray& threshold, NDArray& output) {
   BUILD_SINGLE_SELECTOR(input.dataType(), compareAndBitpack_, (input, threshold, output), SD_COMMON_TYPES);
 }
 
 BUILD_SINGLE_TEMPLATE(template void compareAndBitpack_,
-                      (const NDArray& input, const NDArray& threshold, NDArray& output), SD_COMMON_TYPES);
+                      (NDArray& input, NDArray& threshold, NDArray& output), SD_COMMON_TYPES);
 
 }  // namespace helpers
 }  // namespace ops

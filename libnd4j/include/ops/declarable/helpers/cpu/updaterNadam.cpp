@@ -32,9 +32,26 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, const NDArray& initStateM,
+static void nadamUpdater_(NDArray& gradient, NDArray& initStateV, NDArray& initStateM,
                           NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr, const double dBeta1,
                           const double dBeta2, const double dEpsilon, const int nIteration) {
+  // Cache shape information
+  const auto gradientShapeInfo = gradient.shapeInfo();
+  const auto updateShapeInfo = update.shapeInfo();
+  const auto initStateVShapeInfo = initStateV.shapeInfo();
+  const auto stateVShapeInfo = stateV.shapeInfo();
+  const auto initStateMShapeInfo = initStateM.shapeInfo();
+  const auto stateMShapeInfo = stateM.shapeInfo();
+  
+  const auto gradRank = shape::rank(gradientShapeInfo);
+  const auto* gradShape = shape::shapeOf(gradientShapeInfo);
+  const auto* gradStride = shape::stride(gradientShapeInfo);
+  const auto* updateStride = shape::stride(updateShapeInfo);
+  const auto* initStateVStride = shape::stride(initStateVShapeInfo);
+  const auto* stateVStride = shape::stride(stateVShapeInfo);
+  const auto* initStateMStride = shape::stride(initStateMShapeInfo);
+  const auto* stateMStride = shape::stride(stateMShapeInfo);
+
   const T* grad = gradient.bufferAsT<T>();
   const T* initV = initStateV.bufferAsT<T>();
   const T* initM = initStateM.bufferAsT<T>();
@@ -46,7 +63,11 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
   const T lr = static_cast<T>(dLr);
   const T beta1 = static_cast<T>(dBeta1);
   const T beta2 = static_cast<T>(dBeta2);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   const T iteration = static_cast<T>(nIteration);
 
   const T mbeta1T = 1.0 - sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
@@ -75,22 +96,54 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
     return;
   }
 
-  bool bXZsame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), update.shapeInfo());
-  bool bXInVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateV.shapeInfo());
-  bool bXStVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateV.shapeInfo());
-  bool bXInMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateM.shapeInfo());
-  bool bXStMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateM.shapeInfo());
+  bool bXZsame = shape::haveSameShapeAndStrides(gradientShapeInfo, updateShapeInfo);
+  bool bXInVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateVShapeInfo);
+  bool bXStVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateVShapeInfo);
+  bool bXInMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateMShapeInfo);
+  bool bXStMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateMShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initVOffset = bXInVSame ? xOffset : shape::getOffset(initStateV.shapeInfo(), coords);
-      const auto stVOffset = bXStVSame ? xOffset : shape::getOffset(stateV.shapeInfo(), coords);
-      const auto initMOffset = bXInMSame ? xOffset : shape::getOffset(initStateM.shapeInfo(), coords);
-      const auto stMOffset = bXStMSame ? xOffset : shape::getOffset(stateM.shapeInfo(), coords);
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
+
+      sd::LongType xOffset;
+      COORDS2INDEX(gradRank, gradStride, coords, xOffset);
+
+      sd::LongType zOffset;
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, updateStride, coords, zOffset);
+      }
+
+      sd::LongType initVOffset;
+      if (bXInVSame) {
+        initVOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateVStride, coords, initVOffset);
+      }
+
+      sd::LongType stVOffset;
+      if (bXStVSame) {
+        stVOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateVStride, coords, stVOffset);
+      }
+
+      sd::LongType initMOffset;
+      if (bXInMSame) {
+        initMOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateMStride, coords, initMOffset);
+      }
+
+      sd::LongType stMOffset;
+      if (bXStMSame) {
+        stMOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateMStride, coords, stMOffset);
+      }
 
       auto oneMinusBeta1Grad = grad[xOffset] * mbeta1;
 
@@ -106,8 +159,8 @@ static void nadamUpdater_(const NDArray& gradient, const NDArray& initStateV, co
   return;
 }
 
-void updaterNadam(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateV,
-                  const NDArray& initStateM, NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr,
+void updaterNadam(sd::LaunchContext* context, NDArray& gradient, NDArray& initStateV,
+                  NDArray& initStateM, NDArray& update, NDArray& stateV, NDArray& stateM, const double dLr,
                   const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
   BUILD_SINGLE_SELECTOR(
       gradient.dataType(), nadamUpdater_,

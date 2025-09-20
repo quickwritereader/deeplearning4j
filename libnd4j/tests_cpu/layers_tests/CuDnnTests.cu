@@ -35,11 +35,11 @@
 
 using namespace sd;
 
-class CuDnnTests : public testing::Test {
+class CuDnnTests : public NDArrayTests {
  public:
 };
 
-static void printer(std::initializer_list<sd::ops::platforms::PlatformHelper*> helpers) {
+static void printer(std::initializer_list<ops::platforms::PlatformHelper*> helpers) {
   for (auto v : helpers) {
     sd_printf("Initialized [%s]\n", v->name().c_str());
   }
@@ -48,22 +48,22 @@ static void printer(std::initializer_list<sd::ops::platforms::PlatformHelper*> h
 TEST_F(CuDnnTests, helpers_includer) {
   // we need this block, to make sure all helpers are still available within binary, and not optimized out by linker
 #ifdef HAVE_CUDNN
-  sd::ops::platforms::PLATFORM_conv2d_ENGINE_CUDA conv2d;
-  sd::ops::platforms::PLATFORM_conv2d_bp_ENGINE_CUDA conv2d_bp;
-  sd::ops::platforms::PLATFORM_conv3dnew_ENGINE_CUDA conv3dnew;
-  sd::ops::platforms::PLATFORM_conv3dnew_bp_ENGINE_CUDA conv3dnew_bp;
-  sd::ops::platforms::PLATFORM_depthwise_conv2d_ENGINE_CUDA depthwise_conv2d;
-  sd::ops::platforms::PLATFORM_depthwise_conv2d_bp_ENGINE_CUDA depthwise_conv2d_bp;
-  sd::ops::platforms::PLATFORM_batchnorm_ENGINE_CUDA batchnorm;
-  sd::ops::platforms::PLATFORM_batchnorm_bp_ENGINE_CUDA batchnorm_bp;
-  sd::ops::platforms::PLATFORM_avgpool2d_ENGINE_CUDA avgpool2d;
-  sd::ops::platforms::PLATFORM_avgpool2d_bp_ENGINE_CUDA avgpool2d_bp;
-  sd::ops::platforms::PLATFORM_maxpool2d_ENGINE_CUDA maxpool2d;
-  sd::ops::platforms::PLATFORM_maxpool2d_bp_ENGINE_CUDA maxpool2d_bp;
-  sd::ops::platforms::PLATFORM_avgpool3dnew_ENGINE_CUDA avgpool3dnew;
-  sd::ops::platforms::PLATFORM_avgpool3dnew_bp_ENGINE_CUDA avgpool3dnew_bp;
-  sd::ops::platforms::PLATFORM_maxpool3dnew_ENGINE_CUDA maxpool3dnew;
-  sd::ops::platforms::PLATFORM_maxpool3dnew_bp_ENGINE_CUDA maxpool3dnew_bp;
+  ops::platforms::PLATFORM_conv2d_ENGINE_CUDA conv2d;
+  ops::platforms::PLATFORM_conv2d_bp_ENGINE_CUDA conv2d_bp;
+  ops::platforms::PLATFORM_conv3dnew_ENGINE_CUDA conv3dnew;
+  ops::platforms::PLATFORM_conv3dnew_bp_ENGINE_CUDA conv3dnew_bp;
+  ops::platforms::PLATFORM_depthwise_conv2d_ENGINE_CUDA depthwise_conv2d;
+  ops::platforms::PLATFORM_depthwise_conv2d_bp_ENGINE_CUDA depthwise_conv2d_bp;
+  ops::platforms::PLATFORM_batchnorm_ENGINE_CUDA batchnorm;
+  ops::platforms::PLATFORM_batchnorm_bp_ENGINE_CUDA batchnorm_bp;
+  ops::platforms::PLATFORM_avgpool2d_ENGINE_CUDA avgpool2d;
+  ops::platforms::PLATFORM_avgpool2d_bp_ENGINE_CUDA avgpool2d_bp;
+  ops::platforms::PLATFORM_maxpool2d_ENGINE_CUDA maxpool2d;
+  ops::platforms::PLATFORM_maxpool2d_bp_ENGINE_CUDA maxpool2d_bp;
+  ops::platforms::PLATFORM_avgpool3dnew_ENGINE_CUDA avgpool3dnew;
+  ops::platforms::PLATFORM_avgpool3dnew_bp_ENGINE_CUDA avgpool3dnew_bp;
+  ops::platforms::PLATFORM_maxpool3dnew_ENGINE_CUDA maxpool3dnew;
+  ops::platforms::PLATFORM_maxpool3dnew_bp_ENGINE_CUDA maxpool3dnew_bp;
 
   printer({&conv2d});
   printer({&conv2d_bp});
@@ -86,7 +86,6 @@ TEST_F(CuDnnTests, helpers_includer) {
 
 TEST_F(CuDnnTests, mixed_helpers_test_1) {
 #if defined(HAVE_CUDNN) && defined(HAVE_ONEDNN)
-  sd_printf("Mixed platforms test\n", "");
 
   int bS = 2, iH = 4, iW = 3, iC = 4, oC = 3, kH = 3, kW = 2, sH = 1, sW = 1, pH = 0, pW = 0, dH = 1, dW = 1;
   int oH = 2, oW = 2;

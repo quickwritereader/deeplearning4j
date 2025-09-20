@@ -59,7 +59,7 @@ DECLARE_CUSTOM_OP(matmul_bp, 3, 2, false, 0, -2);
  */
 #if NOT_EXCLUDED(OP_tensormmul)
 DECLARE_CUSTOM_OP(tensormmul, 2, 1, false, 0, -1);
-DECLARE_CUSTOM_OP(tensormmul_bp, 3, 2, false, 0, -1);
+DECLARE_CUSTOM_OP(tensormmul_bp, 4, 2, false, 0, -1);
 #endif
 
 /**
@@ -85,6 +85,7 @@ DECLARE_CONFIGURABLE_OP(axpy, 2, 1, false, -2, 0);
  */
 #if NOT_EXCLUDED(OP_batched_gemm)
 DECLARE_CUSTOM_OP(batched_gemm, -1, -1, false, 0, 9);
+DECLARE_CUSTOM_OP(batched_gemm_bp, -1, -1, false, 0, 9);
 #endif
 
 /**

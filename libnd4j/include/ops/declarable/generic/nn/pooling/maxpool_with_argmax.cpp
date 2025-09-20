@@ -41,21 +41,23 @@ CUSTOM_OP_IMPL(max_pool_with_argmax, 1, 2, false, 0, 9) {
 
   helpers::maxPoolingFunctor(block.launchContext(), block, x, z, argI, indices);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(max_pool_with_argmax) {
   getOpDescriptor()
-      ->setAllowedInputTypes(sd::DataType::ANY)
+      ->setAllowedInputTypes(ANY)
       ->setAllowedOutputTypes(0, {ALL_FLOATS, ALL_INTS})
       ->setAllowedOutputTypes(1, {ALL_INDICES});
 }
 
 DECLARE_SHAPE_FN(max_pool_with_argmax) {
   auto in = inputShape->at(0);
-  auto dtype = block.numD() ? D_ARG(0) : sd::DataType::INT64;
-  auto valuesShape = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(in));
-  auto indicesShape = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(in, dtype));
+  auto dtype = block.numD() ? D_ARG(0) : INT64;
+  // First shape info uses original data type from 'in'
+  auto valuesShape = ConstantShapeHelper::getInstance().bufferForShapeInfo(in)->primary();
+  // Second one needs to be cast to dtype
+  auto indicesShape = ConstantShapeHelper::getInstance().castToDataType(valuesShape, dtype);
 
   return SHAPELIST(valuesShape, indicesShape);
 }

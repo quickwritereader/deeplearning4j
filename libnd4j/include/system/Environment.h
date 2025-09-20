@@ -30,11 +30,11 @@
 #include <vector>
 #include <config.h>
 
-#ifndef __JAVACPP_HACK__
-#if defined(HAVE_VEDA)
-#include <string>
-#include <mutex>
-#endif
+#ifdef __CUDABLAS__
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+#include "CudaLimitType.h"
 #endif
 
 namespace sd {
@@ -50,21 +50,23 @@ class SD_LIB_EXPORT Environment {
   std::atomic<bool> _precBoost;
   std::atomic<bool> _useONEDNN{true};
   std::atomic<bool> _allowHelpers{true};
-
+  std::atomic<bool> funcTracePrintDeallocate;
+  std::atomic<bool> funcTracePrintAllocate;
   std::atomic<int> _maxThreads;
   std::atomic<int> _maxMasterThreads;
-
+  std::atomic<bool> deleteSpecial{true};
+  std::atomic<bool> deletePrimary{true};
+  std::atomic<bool> deleteShapeInfo{true};
+  std::atomic<bool> _checkInputChange{false};
+  std::atomic<bool> _checkOutputChange{false};
+  std::atomic<bool> _logNDArrayEvenuts{false};
+  std::atomic<bool> _logNativeNDArrayCreation{false};
   // these fields hold defaults
   std::atomic<int64_t> _maxTotalPrimaryMemory{-1};
   std::atomic<int64_t> _maxTotalSpecialMemory{-1};
   std::atomic<int64_t> _maxDeviceMemory{-1};
-#ifndef __JAVACPP_HACK__
-#if defined(HAVE_VEDA)
-  std::mutex path_mutex;
-  std::string veda_device_dir;
-#endif
-#endif
   bool _blasFallback = false;
+  std::atomic<bool> _enableBlasFall{true};
 
 #ifdef SD_EXPERIMENTAL_ENABLED
   const bool _experimental = true;
@@ -74,6 +76,37 @@ class SD_LIB_EXPORT Environment {
 
   // device compute capability for CUDA
   std::vector<Pair> _capabilities;
+
+  // CUDA specific environment configurations
+  std::atomic<int> _cudaDeviceCount{0};
+  std::atomic<int> _cudaCurrentDevice{0};
+  std::atomic<bool> _cudaMemoryPinned{false};
+  std::atomic<bool> _cudaUseManagedMemory{false};
+  std::atomic<int> _cudaMemoryPoolSize{0};  // in MB
+  std::atomic<bool> _cudaForceP2P{false};
+  std::atomic<bool> _cudaAllocatorEnabled{true};
+  std::atomic<int> _cudaMaxBlocks{0};
+  std::atomic<int> _cudaMaxThreadsPerBlock{0};
+  std::atomic<bool> _cudaAsyncExecution{true};
+  std::atomic<int> _cudaStreamLimit{4};
+  std::atomic<bool> _cudaUseDeviceHost{false};
+  std::atomic<int> _cudaEventLimit{4};
+  std::atomic<int> _cudaCachingAllocatorLimit{0}; // in MB
+  std::atomic<bool> _cudaUseUnifiedMemory{false};
+  std::atomic<int> _cudaPrefetchSize{0}; // in MB
+  std::atomic<bool> _cudaGraphOptimization{false};
+  std::atomic<bool> _cudaTensorCoreEnabled{true};
+  std::atomic<int> _cudaBlockingSync{0};
+  std::atomic<int> _cudaDeviceSchedule{0}; // 0: default, 1: spin, 2: yield, 3: block
+
+  // CUDA Device Limit configurations
+  std::atomic<size_t> _cudaStackSize{0};            // cudaLimitStackSize
+  std::atomic<size_t> _cudaMallocHeapSize{0};       // cudaLimitMallocHeapSize
+  std::atomic<size_t> _cudaPrintfFifoSize{0};       // cudaLimitPrintfFifoSize
+  std::atomic<size_t> _cudaDevRuntimeSyncDepth{0};  // cudaLimitDevRuntimeSyncDepth
+  std::atomic<size_t> _cudaDevRuntimePendingLaunchCount{0}; // cudaLimitDevRuntimePendingLaunchCount
+  std::atomic<size_t> _cudaMaxL2FetchGranularity{0}; // cudaLimitMaxL2FetchGranularity
+  std::atomic<size_t> _cudaPersistingL2CacheSize{0}; // cudaLimitPersistingL2CacheSize
 
   Environment();
 
@@ -87,6 +120,69 @@ class SD_LIB_EXPORT Environment {
   int _blasPatchVersion = 0;
 
   static Environment& getInstance();
+
+  bool isEnableBlas() {
+    return _enableBlasFall.load();
+  }
+
+  void setEnableBlas(bool reallyEnable) {
+    _enableBlasFall.store(reallyEnable);
+  }
+
+  /**
+   * When log ndarray evens is true in c++
+   * certain features of ndarray logging will trigger such as what ndarray constructors are being called.
+   *  A great use case for this is for detecting subtle changes in ndarrays like move constructor calls
+   *  which  can cause the underlying data to change.
+   * @return
+   */
+  bool isLogNativeNDArrayCreation();
+  void setLogNativeNDArrayCreation(bool logNativeNDArrayCreation);
+
+  /**
+   * This is mostly a java feature. We can use this to build a framework
+   * for logging ndarray events from c++ later.
+   * @return
+   */
+  bool isLogNDArrayEvents();
+
+  void setLogNDArrayEvents(bool logNDArrayEvents);
+
+  /**
+   * This is mainly for debugging. This toggles
+   * deletion of shape info descriptors.
+   * This can be used to isolate potential issues with shape info
+   * memory management.
+   * The next concern is why have this at all?
+   * Historically, we had issues with shape descriptors and shape info
+   * buffers being deallocated when they shouldn't be due to stack based deallocation.
+   * By controlling everything with normal heap allocation, manual deletes and configurable behavior
+   * we can keep memory management consistent and predictable.
+   */
+
+  bool isDeleteSpecial();
+  void setDeleteSpecial(bool reallyDelete);
+  bool isDeletePrimary();
+  void setDeletePrimary(bool reallyDelete);
+
+
+  /**
+   * Checks whether the outputs of the op have changed
+   * by duplicating them before and after the op runs
+   * if it doesn't change it throws an exception.
+   * @return
+   */
+  bool isCheckOutputChange();
+
+  void setCheckOutputChange(bool reallyCheck);
+
+  /**
+   * Checks whether immutable ops changed their inputs by
+   * duplicating each input and ensuring they're still equal after the op runs.
+   * @return
+   */
+  bool isCheckInputChange();
+  void setCheckInputChange(bool reallyCheck);
 
   bool isVerbose();
   void setVerbose(bool reallyVerbose);
@@ -157,9 +253,80 @@ class SD_LIB_EXPORT Environment {
 
   std::vector<Pair>& capabilities();
 
-  const char* getVedaDeviceDir();
 
-  void setVedaDeviceDir(const std::string &dir);
+  bool isFuncTracePrintDeallocate();
+  void setFuncTracePrintDeallocate(bool reallyPrint);
+  bool isFuncTracePrintAllocate();
+  void setFuncTracePrintAllocate(bool reallyPrint);
+
+  bool isDeleteShapeInfo();
+  void setDeleteShapeInfo(bool deleteShapeInfo);
+
+  // CUDA specific getters/setters
+  int cudaDeviceCount() { return _cudaDeviceCount.load(); }
+  int cudaCurrentDevice() { return _cudaCurrentDevice.load(); }
+  void setCudaCurrentDevice(int device);
+  bool cudaMemoryPinned() { return _cudaMemoryPinned.load(); }
+  void setCudaMemoryPinned(bool pinned);
+  bool cudaUseManagedMemory() { return _cudaUseManagedMemory.load(); }
+  void setCudaUseManagedMemory(bool managed);
+  int cudaMemoryPoolSize() { return _cudaMemoryPoolSize.load(); }
+  void setCudaMemoryPoolSize(int sizeInMB);
+  bool cudaForceP2P() { return _cudaForceP2P.load(); }
+  void setCudaForceP2P(bool forceP2P);
+  bool cudaAllocatorEnabled() { return _cudaAllocatorEnabled.load(); }
+  void setCudaAllocatorEnabled(bool enabled);
+  int cudaMaxBlocks() { return _cudaMaxBlocks.load(); }
+  void setCudaMaxBlocks(int blocks);
+  int cudaMaxThreadsPerBlock() { return _cudaMaxThreadsPerBlock.load(); }
+  void setCudaMaxThreadsPerBlock(int threads);
+  bool cudaAsyncExecution() { return _cudaAsyncExecution.load(); }
+  void setCudaAsyncExecution(bool async);
+  int cudaStreamLimit() { return _cudaStreamLimit.load(); }
+  void setCudaStreamLimit(int limit);
+  bool cudaUseDeviceHost() { return _cudaUseDeviceHost.load(); }
+  void setCudaUseDeviceHost(bool useDeviceHost);
+  int cudaEventLimit() { return _cudaEventLimit.load(); }
+  void setCudaEventLimit(int limit);
+  int cudaCachingAllocatorLimit() { return _cudaCachingAllocatorLimit.load(); }
+  void setCudaCachingAllocatorLimit(int limitInMB);
+  bool cudaUseUnifiedMemory() { return _cudaUseUnifiedMemory.load(); }
+  void setCudaUseUnifiedMemory(bool unified);
+  int cudaPrefetchSize() { return _cudaPrefetchSize.load(); }
+  void setCudaPrefetchSize(int sizeInMB);
+  bool cudaGraphOptimization() { return _cudaGraphOptimization.load(); }
+  void setCudaGraphOptimization(bool enabled);
+  bool cudaTensorCoreEnabled() { return _cudaTensorCoreEnabled.load(); }
+  void setCudaTensorCoreEnabled(bool enabled);
+  int cudaBlockingSync() { return _cudaBlockingSync.load(); }
+  void setCudaBlockingSync(int mode);
+  int cudaDeviceSchedule() { return _cudaDeviceSchedule.load(); }
+  void setCudaDeviceSchedule(int schedule);
+
+  // CUDA Device Limit getters/setters
+  size_t cudaStackSize() { return _cudaStackSize.load(); }
+  void setCudaStackSize(size_t size);
+  size_t cudaMallocHeapSize() { return _cudaMallocHeapSize.load(); }
+  void setCudaMallocHeapSize(size_t size);
+  size_t cudaPrintfFifoSize() { return _cudaPrintfFifoSize.load(); }
+  void setCudaPrintfFifoSize(size_t size);
+  size_t cudaDevRuntimeSyncDepth() { return _cudaDevRuntimeSyncDepth.load(); }
+  void setCudaDevRuntimeSyncDepth(size_t depth);
+  size_t cudaDevRuntimePendingLaunchCount() { return _cudaDevRuntimePendingLaunchCount.load(); }
+  void setCudaDevRuntimePendingLaunchCount(size_t count);
+  size_t cudaMaxL2FetchGranularity() { return _cudaMaxL2FetchGranularity.load(); }
+  void setCudaMaxL2FetchGranularity(size_t size);
+  size_t cudaPersistingL2CacheSize() { return _cudaPersistingL2CacheSize.load(); }
+  void setCudaPersistingL2CacheSize(size_t size);
+
+  bool setCudaDeviceLimit(int limitType, size_t value);
+
+
+  // Initialize CUDA environment settings from environment variables
+  void initCudaEnvironment();
+
+  // Initialize CUDA device limits from environment variables
+  void initCudaDeviceLimits();
 };
 }  // namespace sd
 

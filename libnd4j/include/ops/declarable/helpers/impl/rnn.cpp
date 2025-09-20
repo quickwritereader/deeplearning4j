@@ -33,8 +33,8 @@ namespace ops {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-void rnnCell(sd::LaunchContext* context, const NDArray* xt, const NDArray* Wx, const NDArray* Wh, const NDArray* b,
-             const NDArray* hPrev, NDArray* ht) {
+void rnnCell(sd::LaunchContext* context, NDArray* xt, NDArray* Wx, NDArray* Wh, NDArray* b,
+             NDArray* hPrev, NDArray* ht) {
   // xt    input [bS x iS]
   // Wx    input-to-hidden weights, [iS  x nU]
   // Wh    hidden-to-hidden weights, [nU x nU]
@@ -44,14 +44,15 @@ void rnnCell(sd::LaunchContext* context, const NDArray* xt, const NDArray* Wx, c
   const int nU = hPrev->sizeAt(1);
 
   // ht is current cell output [bS x nU], that is at current time step t
-  ht->assign(mmul(*xt, *Wx) + (*b)({{0, nU}}) + mmul(*hPrev, *Wh) +
-             (*b)({{nU, 2 * nU}}));  // [bS x nU] + [nU]  +  [bS x nU] + [nU] = [bS x nU]
-  ht->applyTransform(transform::Tanh, *ht);
+  NDArray htAssign = mmul(*xt, *Wx) + (*b)({{0, nU}}) + mmul(*hPrev, *Wh) +
+                     (*b)({{nU, 2 * nU}});
+  ht->assign(&htAssign);  // [bS x nU] + [nU]  +  [bS x nU] + [nU] = [bS x nU]
+  ht->applyTransform(transform::Tanh, ht);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void rnnTimeLoop(sd::LaunchContext* context, const NDArray* x, const NDArray* Wx, const NDArray* Wh, const NDArray* b,
-                 const NDArray* h0, const NDArray* maxTimeStep, NDArray* h, NDArray* hFinal) {
+void rnnTimeLoop(sd::LaunchContext* context, NDArray* x, NDArray* Wx, NDArray* Wh, NDArray* b,
+                 NDArray* h0, NDArray* maxTimeStep, NDArray* h, NDArray* hFinal) {
   // x   input [time x bS x iS]
   // Wx  input-to-hidden  weights, [iS  x nU]
   // Wh  hidden-to-hidden weights, [nU x nU]
@@ -83,10 +84,11 @@ void rnnTimeLoop(sd::LaunchContext* context, const NDArray* x, const NDArray* Wx
 
       if (t >= maxStep) {
         ht = 0.;
-        if (maxStep != 0) hPrev.assign((*h)({maxStep - 1, maxStep, e, e + 1, 0, 0}));
+        NDArray hPrevAssign = (*h)({maxStep - 1, maxStep, e, e + 1, 0, 0});
+        if (maxStep != 0) hPrev.assign(&hPrevAssign);
       } else {
         helpers::rnnCell(context, &xt, Wx, Wh, b, &hPrev, &ht);
-        hPrev.assign(ht);
+        hPrev.assign(&ht);
       }
     }
   }

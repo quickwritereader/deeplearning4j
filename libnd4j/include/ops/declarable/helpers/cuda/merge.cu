@@ -26,10 +26,13 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/helpers/transforms.h>
 
 #include <numeric>
+
+#include "execution/cuda/LaunchDims.h"
+
 
 namespace sd {
 namespace ops {
@@ -37,33 +40,71 @@ namespace helpers {
 //////////////////////////////////////////////////////////////////////////
 template <typename T, typename Z>
 static SD_KERNEL void mergeMaxIndexCudaLauncher(void** inArrs, void** inShapes, const int numArrays, void* voutput,
-                                                const sd::LongType* outputShape, sd::LongType length) {
+                                                const LongType* outputShape, LongType length) {
   auto output = reinterpret_cast<Z*>(voutput);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  for (sd::LongType e = tid; e < length; e += step) {
+  __shared__ int rankOutput;
+  __shared__ const LongType *shapeOutput, *strideOutput;
+
+  if (threadIdx.x == 0) {
+    rankOutput = shape::rank(outputShape);
+    shapeOutput = shape::shapeOf(outputShape);
+    strideOutput = shape::stride(outputShape);
+  }
+  __syncthreads();
+
+  LongType outputCoords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
     T mVal = -DataTypeUtils::max<T>();
     Z mIdx(0);
 
-    for (int i = 0; i < numArrays; i++) {
-      auto x = reinterpret_cast<T*>(inArrs[i]);
-      auto xShape = reinterpret_cast<sd::LongType*>(inShapes[i]);
-      auto val = x[shape::getIndexOffset(e, xShape)];
-      ;
+    // Iterate through all input arrays to find the maximum value and its index
+    for (int i = 0; i < numArrays; ++i) {
+      auto x = reinterpret_cast<const T*>(inArrs[i]);
+      auto xShape = reinterpret_cast<const LongType*>(inShapes[i]);
+
+      __shared__ int rankInput;
+      __shared__ const LongType *shapeInput, *strideInput;
+
+      if (threadIdx.x == 0) {
+        rankInput = shape::rank(xShape);
+        shapeInput = shape::shapeOf(xShape);
+        strideInput = shape::stride(xShape);
+      }
+      __syncthreads();
+
+      LongType xCoords[SD_MAX_RANK];
+      LongType xOffset;
+
+      // Compute input coordinates and offset
+      INDEX2COORDS(e, rankInput, shapeInput, xCoords);
+      COORDS2INDEX(rankInput, strideInput, xCoords, xOffset);
+
+      // Update maximum value and index
+      const auto val = x[xOffset];
       if (mVal < val) {
         mIdx = static_cast<Z>(i);
         mVal = val;
       }
     }
 
-    output[shape::getIndexOffset(e, outputShape)] = mIdx;
+    // Compute output coordinates and offset
+    LongType outputOffset;
+    INDEX2COORDS(e, rankOutput, shapeOutput, outputCoords);
+    COORDS2INDEX(rankOutput, strideOutput, outputCoords, outputOffset);
+
+    // Store the index of the maximum value in the output
+    output[outputOffset] = mIdx;
   }
 }
 
+
 template <typename T, typename Z>
-static void mergeMaxIndex_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeMaxIndex_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   int nArrSize = static_cast<int>(inArrs.size());
   std::vector<const void*> inBuffers(nArrSize), inShapes(nArrSize);
 
@@ -79,16 +120,15 @@ static void mergeMaxIndex_(sd::LaunchContext* context, const std::vector<const N
   auto pInShapes = reinterpret_cast<void**>(manager.replicatePointer(inShapes.data(), inShapes.size() * sizeof(void*)));
   auto length = output.lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
-
-  mergeMaxIndexCudaLauncher<T, Z><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  dim3 mergeLaunchDims = mergeDims(length);
+  mergeMaxIndexCudaLauncher<T, Z><<<mergeLaunchDims.y, mergeLaunchDims.x, mergeLaunchDims.z, *context->getCudaStream()>>>(
       pInBuffers, pInShapes, nArrSize, output.specialBuffer(), output.specialShapeInfo(), length);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeMaxIndexCudaLauncher failed");
 
   manager.synchronize();
 }
 
-void mergeMaxIndex(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+void mergeMaxIndex(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   NDArray::prepareSpecialUse({&output}, inArrs);
 
   BUILD_DOUBLE_SELECTOR(inArrs[0]->dataType(), output.dataType(), mergeMaxIndex_, (context, inArrs, output),
@@ -100,29 +140,68 @@ void mergeMaxIndex(sd::LaunchContext* context, const std::vector<const NDArray*>
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static SD_KERNEL void mergeMaxCudaLauncher(void** inArrs, void** inShapes, const int numArrays, void* voutput,
-                                           const sd::LongType* outputShape, sd::LongType length) {
+                                           const LongType* outputShape, LongType length) {
   auto output = reinterpret_cast<T*>(voutput);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  for (sd::LongType e = tid; e < length; e += step) {
+  __shared__ int rankOutput;
+  __shared__ const LongType *shapeOutput, *strideOutput;
+
+  if (threadIdx.x == 0) {
+    rankOutput = shape::rank(outputShape);
+    shapeOutput = shape::shapeOf(outputShape);
+    strideOutput = shape::stride(outputShape);
+  }
+  __syncthreads();
+
+  LongType outputCoords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
     T mVal = -DataTypeUtils::max<T>();
 
-    for (int i = 0; i < numArrays; i++) {
+    // Iterate through all input arrays to find the maximum value
+    for (int i = 0; i < numArrays; ++i) {
       auto x = reinterpret_cast<const T*>(inArrs[i]);
-      auto xShape = reinterpret_cast<const sd::LongType*>(inShapes[i]);
-      auto val = x[shape::getIndexOffset(e, xShape)];
-      ;
-      if (mVal < val) mVal = val;
+      auto xShape = reinterpret_cast<const LongType*>(inShapes[i]);
+
+      __shared__ int rankInput;
+      __shared__ const LongType *shapeInput, *strideInput;
+
+      if (threadIdx.x == 0) {
+        rankInput = shape::rank(xShape);
+        shapeInput = shape::shapeOf(xShape);
+        strideInput = shape::stride(xShape);
+      }
+      __syncthreads();
+
+      LongType xCoords[SD_MAX_RANK];
+      LongType xOffset;
+
+      // Compute input coordinates and offset
+      INDEX2COORDS(e, rankInput, shapeInput, xCoords);
+      COORDS2INDEX(rankInput, strideInput, xCoords, xOffset);
+
+      // Update maximum value
+      const auto val = x[xOffset];
+      if (mVal < val) {
+        mVal = val;
+      }
     }
 
-    output[shape::getIndexOffset(e, outputShape)] = mVal;
+    // Compute output coordinates and offset
+    LongType outputOffset;
+    INDEX2COORDS(e, rankOutput, shapeOutput, outputCoords);
+    COORDS2INDEX(rankOutput, strideOutput, outputCoords, outputOffset);
+
+    // Store the maximum value in the output
+    output[outputOffset] = mVal;
   }
 }
 
 template <typename T>
-static void mergeMax_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeMax_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   int nArrsSize = static_cast<int>(inArrs.size());
 
   std::vector<const void*> inBuffers(nArrsSize), inShapes(nArrsSize);
@@ -139,16 +218,14 @@ static void mergeMax_(sd::LaunchContext* context, const std::vector<const NDArra
   auto pInShapes = reinterpret_cast<void**>(manager.replicatePointer(inShapes.data(), inShapes.size() * sizeof(void*)));
   auto length = output.lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
-
-  mergeMaxCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  dim3 mergeLaunchDims = mergeDims(length);
+  mergeMaxCudaLauncher<T><<<mergeLaunchDims.y, mergeLaunchDims.x, mergeLaunchDims.z, *context->getCudaStream()>>>(
       pInBuffers, pInShapes, nArrsSize, output.specialBuffer(), output.specialShapeInfo(), length);
-
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeMaxCudaLauncher failed");
   manager.synchronize();
 }
 
-void mergeMax(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+void mergeMax(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   NDArray::prepareSpecialUse({&output}, inArrs);
 
   BUILD_SINGLE_SELECTOR(output.dataType(), mergeMax_, (context, inArrs, output), SD_COMMON_TYPES);
@@ -159,54 +236,69 @@ void mergeMax(sd::LaunchContext* context, const std::vector<const NDArray*>& inA
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static SD_KERNEL void mergeMaxBpCudaLauncher(void** inArrs, void** inShapes, const void* vgradient,
-                                             const sd::LongType* gradientShape, const int numArrays, void** outArrs,
-                                             void** outShapes, sd::LongType length, bool bSameOrderAndEws1) {
-  auto grad = reinterpret_cast<const T*>(vgradient);
+                                             const LongType* gradientShape, const int numArrays, void** outArrs,
+                                             void** outShapes, LongType length, bool bSameOrderAndEws1) {
+  const auto grad = reinterpret_cast<const T*>(vgradient);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  int coords[SD_MAX_RANK];
+  __shared__ int gradRank;
+  __shared__ const LongType *gradShape, *gradStride;
 
-  for (sd::LongType e = tid; e < length; e += step) {
+  if (threadIdx.x == 0) {
+    gradRank = shape::rank(gradientShape);
+    gradShape = shape::shapeOf(gradientShape);
+    gradStride = shape::stride(gradientShape);
+  }
+  __syncthreads();
+
+  LongType coords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
     T mVal = -DataTypeUtils::max<T>();
     int nMaxIndex = 0;
-    auto xOffset = e, zOffset = e, gradOffset = e;
+    LongType gradOffset = bSameOrderAndEws1 ? e : 0;
 
+    // Compute gradient offset if not same order and EWS=1
     if (!bSameOrderAndEws1) {
-      shape::index2coords(e, gradientShape, coords);
-      gradOffset = shape::getOffset(gradientShape, coords);
+      INDEX2COORDS(e, gradRank, gradShape, coords);
+      COORDS2INDEX(gradRank, gradStride, coords, gradOffset);
     }
 
-    for (int i = 0; i < numArrays; i++) {
+    // Find the maximum value and its index across all input arrays
+    for (int i = 0; i < numArrays; ++i) {
       auto x = reinterpret_cast<T*>(inArrs[i]);
+      LongType xOffset = bSameOrderAndEws1 ? e : 0;
 
       if (!bSameOrderAndEws1) {
-        auto xShape = reinterpret_cast<sd::LongType*>(inShapes[i]);
-        xOffset = shape::getOffset(xShape, coords);
+        auto xShape = reinterpret_cast<const LongType*>(inShapes[i]);
+        COORDS2INDEX(shape::rank(xShape), shape::stride(xShape), coords, xOffset);
       }
 
-      auto val = x[xOffset];
+      const auto val = x[xOffset];
       if (mVal < val) {
         mVal = val;
         nMaxIndex = i;
       }
     }
 
-    // outputs have to be pre-nullify
-    if (!bSameOrderAndEws1) {
-      auto outShape = reinterpret_cast<sd::LongType*>(outShapes[nMaxIndex]);
-      zOffset = shape::getOffset(outShape, coords);
-    }
-
+    // Assign gradient to the corresponding output array at the max index
     auto output = reinterpret_cast<T*>(outArrs[nMaxIndex]);
+    LongType zOffset = bSameOrderAndEws1 ? e : 0;
+
+    if (!bSameOrderAndEws1) {
+      auto outShape = reinterpret_cast<const LongType*>(outShapes[nMaxIndex]);
+      COORDS2INDEX(shape::rank(outShape), shape::stride(outShape), coords, zOffset);
+    }
 
     output[zOffset] = grad[gradOffset];
   }
 }
 
+
 template <typename T>
-static void mergeMaxBp_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs,
+static void mergeMaxBp_(LaunchContext* context, const std::vector<NDArray*>& inArrs,
                         std::vector<NDArray*>& outArrs, int nArrSize, bool bSameOrderAndEws1) {
   std::vector<const void*> inBuffers(nArrSize), inShapes(nArrSize), outBuffers(nArrSize), outShapes(nArrSize);
 
@@ -230,34 +322,27 @@ static void mergeMaxBp_(sd::LaunchContext* context, const std::vector<const NDAr
 
   auto length = inArrs[nArrSize]->lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
+  dim3 mergeLaunchDims = mergeDims(length);
 
-  mergeMaxBpCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  mergeMaxBpCudaLauncher<T><<<mergeLaunchDims.y, mergeLaunchDims.x, mergeLaunchDims.z, *context->getCudaStream()>>>(
       pInBuffers, pInShapes, inArrs[nArrSize]->specialBuffer(), inArrs[nArrSize]->specialShapeInfo(), nArrSize,
       pOutBuffers, pOutShapes, length, bSameOrderAndEws1);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeMaxBpCudaLauncher failed");
 
   manager.synchronize();
 }
 
-void mergeMaxBp(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
+void mergeMaxBp(LaunchContext* context, const std::vector<NDArray*>& inArrs, std::vector<NDArray*>& outArrs) {
   // not use gradient
   int nArrSize = static_cast<int>(inArrs.size() - 1);
 
-  const std::vector<const NDArray*>& out = reinterpret_cast<const std::vector<const NDArray*>&>(outArrs);
+  const std::vector<NDArray*>& out = reinterpret_cast<const std::vector<NDArray*>&>(outArrs);
 
   NDArray::prepareSpecialUse(out, inArrs);
 
-  bool bSameOrderAndEws1 = (1 == inArrs[nArrSize]->ews());
+  bool bSameOrderAndEws1 = false;
   auto ordering = inArrs[nArrSize]->ordering();
 
-  for (int i = 0; i < nArrSize; ++i) {
-    bSameOrderAndEws1 &= (ordering == inArrs[i]->ordering());
-    bSameOrderAndEws1 &= (1 == inArrs[i]->ews());
-
-    bSameOrderAndEws1 &= (ordering == outArrs[i]->ordering());
-    bSameOrderAndEws1 &= (1 == outArrs[i]->ews());
-  }
 
   BUILD_SINGLE_SELECTOR(inArrs[nArrSize]->dataType(), mergeMaxBp_,
                         (context, inArrs, outArrs, nArrSize, bSameOrderAndEws1), SD_COMMON_TYPES);
@@ -268,28 +353,64 @@ void mergeMaxBp(sd::LaunchContext* context, const std::vector<const NDArray*>& i
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static SD_KERNEL void mergeAvgCudaLauncher(void** inArrs, void** inShapes, const int numArrays, void* voutput,
-                                           const sd::LongType* outputShape, sd::LongType length) {
+                                           const LongType* outputShape, LongType length) {
   auto output = reinterpret_cast<T*>(voutput);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  for (sd::LongType e = tid; e < length; e += step) {
-    T sum(0.0f);
+  __shared__ int rankOutput;
+  __shared__ const LongType *shapeOutput, *strideOutput;
 
-    for (int i = 0; i < numArrays; i++) {
+  if (threadIdx.x == 0) {
+    rankOutput = shape::rank(outputShape);
+    shapeOutput = shape::shapeOf(outputShape);
+    strideOutput = shape::stride(outputShape);
+  }
+  __syncthreads();
+
+  LongType outputCoords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
+    T sum = static_cast<T>(0.0);
+
+    // Sum values from all input arrays
+    for (int i = 0; i < numArrays; ++i) {
       auto x = reinterpret_cast<T*>(inArrs[i]);
-      auto xShape = reinterpret_cast<sd::LongType*>(inShapes[i]);
+      auto xShape = reinterpret_cast<const LongType*>(inShapes[i]);
 
-      sum += x[shape::getIndexOffset(e, xShape)];
+      __shared__ int rankInput;
+      __shared__ const LongType *shapeInput, *strideInput;
+
+      if (threadIdx.x == 0) {
+        rankInput = shape::rank(xShape);
+        shapeInput = shape::shapeOf(xShape);
+        strideInput = shape::stride(xShape);
+      }
+      __syncthreads();
+
+      LongType xCoords[SD_MAX_RANK];
+      LongType xOffset;
+
+      // Compute input coordinates and offset
+      INDEX2COORDS(e, rankInput, shapeInput, xCoords);
+      COORDS2INDEX(rankInput, strideInput, xCoords, xOffset);
+
+      sum += x[xOffset];
     }
 
-    output[shape::getIndexOffset(e, outputShape)] = sum / numArrays;
+    // Compute output coordinates and offset
+    LongType outputOffset;
+    INDEX2COORDS(e, rankOutput, shapeOutput, outputCoords);
+    COORDS2INDEX(rankOutput, strideOutput, outputCoords, outputOffset);
+
+    // Store the averaged value in the output
+    output[outputOffset] = sum / static_cast<T>(numArrays);
   }
 }
 
 template <typename T>
-static void mergeAvg_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeAvg_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   std::vector<const void*> inBuffers(inArrs.size()), inShapes(inArrs.size());
 
   for (int e = 0; e < inArrs.size(); e++) {
@@ -304,16 +425,16 @@ static void mergeAvg_(sd::LaunchContext* context, const std::vector<const NDArra
   auto pInShapes = reinterpret_cast<void**>(manager.replicatePointer(inShapes.data(), inShapes.size() * sizeof(void*)));
   auto length = output.lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
+  dim3 mergeLaunchDims = mergeDims(length);
 
-  mergeAvgCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  mergeAvgCudaLauncher<T><<<mergeLaunchDims.y, mergeLaunchDims.x, mergeLaunchDims.z, *context->getCudaStream()>>>(
       pInBuffers, pInShapes, (int)inArrs.size(), output.specialBuffer(), output.specialShapeInfo(), length);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeAvgCudaLauncher failed");
 
   manager.synchronize();
 }
 
-void mergeAvg(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+void mergeAvg(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   NDArray::prepareSpecialUse({&output}, inArrs);
 
   BUILD_SINGLE_SELECTOR(output.dataType(), mergeAvg_, (context, inArrs, output), SD_FLOAT_TYPES);
@@ -322,38 +443,54 @@ void mergeAvg(sd::LaunchContext* context, const std::vector<const NDArray*>& inA
 }
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_KERNEL void mergeAvgBpCudaLauncher(const void* vgradient, const sd::LongType* gradientShape, void** outArrs,
-                                             void** outShapes, const int numArrays, sd::LongType length,
+static SD_KERNEL void mergeAvgBpCudaLauncher(const void* vgradient, const LongType* gradientShape, void** outArrs,
+                                             void** outShapes, const int numArrays, LongType length,
                                              bool bSameOrderAndEws1) {
-  auto grad = reinterpret_cast<const T*>(vgradient);
+  const auto grad = reinterpret_cast<const T*>(vgradient);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  int coords[SD_MAX_RANK];
+  __shared__ int gradRank;
+  __shared__ const LongType *gradShape, *gradStride;
 
-  for (sd::LongType e = tid; e < length; e += step) {
-    auto zOffset = e, gradOffset = e;
+  if (threadIdx.x == 0) {
+    gradRank = shape::rank(gradientShape);
+    gradShape = shape::shapeOf(gradientShape);
+    gradStride = shape::stride(gradientShape);
+  }
+  __syncthreads();
+
+  LongType coords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
+    LongType gradOffset = bSameOrderAndEws1 ? e : 0;
+
+    // Compute gradient offset if not using the same order and EWS=1
     if (!bSameOrderAndEws1) {
-      shape::index2coords(e, gradientShape, coords);
-      gradOffset = shape::getOffset(gradientShape, coords);
+      INDEX2COORDS(e, gradRank, gradShape, coords);
+      COORDS2INDEX(gradRank, gradStride, coords, gradOffset);
     }
 
-    for (int i = 0; i < numArrays; i++) {
+    // Iterate through each output array and compute the average gradient
+    for (int i = 0; i < numArrays; ++i) {
+      auto output = reinterpret_cast<T*>(outArrs[i]);
+      LongType zOffset = bSameOrderAndEws1 ? e : 0;
+
       if (!bSameOrderAndEws1) {
-        auto outShape = reinterpret_cast<sd::LongType*>(outShapes[i]);
-        zOffset = shape::getOffset(outShape, coords);
+        auto outShape = reinterpret_cast<const LongType*>(outShapes[i]);
+        COORDS2INDEX(shape::rank(outShape), shape::stride(outShape), coords, zOffset);
       }
 
-      auto output = reinterpret_cast<T*>(outArrs[i]);
-
-      output[zOffset] = grad[gradOffset] / numArrays;
+      // Assign averaged gradient value to output
+      output[zOffset] = grad[gradOffset] / static_cast<T>(numArrays);
     }
   }
 }
 
+
 template <typename T>
-static void mergeAvgBp_(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs,
+static void mergeAvgBp_(LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs,
                         bool bSameOrderAndEws1) {
   int nArrSize = static_cast<int>(outArrs.size());
 
@@ -373,27 +510,26 @@ static void mergeAvgBp_(sd::LaunchContext* context, const NDArray& gradient, std
 
   auto length = gradient.lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
+  dim3 mergeLaunchDims = mergeDims(length);
 
-  mergeAvgBpCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  mergeAvgBpCudaLauncher<T><<<mergeLaunchDims.y, mergeLaunchDims.x,mergeLaunchDims.z, *context->getCudaStream()>>>(
       gradient.specialBuffer(), gradient.specialShapeInfo(), pOutBuffers, pOutShapes, nArrSize, length,
       bSameOrderAndEws1);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeAvgBpCudaLauncher failed");
 
   manager.synchronize();
 }
 
-void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-  const std::vector<const NDArray*>& out = reinterpret_cast<const std::vector<const NDArray*>&>(outArrs);
+void mergeAvgBp(LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs) {
+  const std::vector<NDArray*>& out = reinterpret_cast<const std::vector<NDArray*>&>(outArrs);
 
   NDArray::prepareSpecialUse(out, {&gradient});
 
-  bool bSameOrderAndEws1 = (1 == gradient.ews());
+  bool bSameOrderAndEws1 = false;
   auto ordering = gradient.ordering();
 
   for (const auto& v : outArrs) {
     bSameOrderAndEws1 &= (ordering == v->ordering());
-    bSameOrderAndEws1 &= (1 == v->ews());
   }
 
   BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAvgBp_, (context, gradient, outArrs, bSameOrderAndEws1),
@@ -405,28 +541,64 @@ void mergeAvgBp(sd::LaunchContext* context, const NDArray& gradient, std::vector
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 static SD_KERNEL void mergeAddCudaLauncher(void** inArrs, void** inShapes, const int numArrays, void* voutput,
-                                           const sd::LongType* outputShape, sd::LongType length) {
+                                           const LongType* outputShape, LongType length) {
   auto output = reinterpret_cast<T*>(voutput);
 
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  for (sd::LongType e = tid; e < length; e += step) {
+  __shared__ int rankOutput;
+  __shared__ const LongType *shapeOutput, *strideOutput;
+
+  if (threadIdx.x == 0) {
+    rankOutput = shape::rank(outputShape);
+    shapeOutput = shape::shapeOf(outputShape);
+    strideOutput = shape::stride(outputShape);
+  }
+  __syncthreads();
+
+  LongType outputCoords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
     T sum(0.0f);
 
-    for (int i = 0; i < numArrays; i++) {
+    // Compute the sum across all input arrays
+    for (int i = 0; i < numArrays; ++i) {
       auto x = reinterpret_cast<T*>(inArrs[i]);
-      auto xShape = reinterpret_cast<sd::LongType*>(inShapes[i]);
+      auto xShape = reinterpret_cast<const LongType*>(inShapes[i]);
 
-      sum += x[shape::getIndexOffset(e, xShape)];
+      __shared__ int rankInput;
+      __shared__ const LongType *shapeInput, *strideInput;
+
+      if (threadIdx.x == 0) {
+        rankInput = shape::rank(xShape);
+        shapeInput = shape::shapeOf(xShape);
+        strideInput = shape::stride(xShape);
+      }
+      __syncthreads();
+
+      LongType xCoords[SD_MAX_RANK];
+      LongType xOffset;
+
+      // Compute input coordinates and offset
+      INDEX2COORDS(e, rankInput, shapeInput, xCoords);
+      COORDS2INDEX(rankInput, strideInput, xCoords, xOffset);
+
+      sum += x[xOffset];
     }
 
-    output[shape::getIndexOffset(e, outputShape)] = sum;
+    // Compute output coordinates and offset
+    LongType outputOffset;
+    INDEX2COORDS(e, rankOutput, shapeOutput, outputCoords);
+    COORDS2INDEX(rankOutput, strideOutput, outputCoords, outputOffset);
+
+    // Store the computed sum in the output
+    output[outputOffset] = sum;
   }
 }
 
 template <typename T>
-static void mergeAdd_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+static void mergeAdd_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   int nArrSize = static_cast<int>(inArrs.size());
   std::vector<const void*> inBuffers(nArrSize), inShapes(nArrSize);
 
@@ -442,19 +614,19 @@ static void mergeAdd_(sd::LaunchContext* context, const std::vector<const NDArra
   auto pInShapes = reinterpret_cast<void**>(manager.replicatePointer(inShapes.data(), inShapes.size() * sizeof(void*)));
   auto length = output.lengthOf();
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-  const int blocksPerGrid = (length + threadsPerBlock - 1) / threadsPerBlock;
+  dim3 mergeLaunchDims = mergeDims(length);
 
-  mergeAddCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
+  mergeAddCudaLauncher<T><<<mergeLaunchDims.x, mergeLaunchDims.y, mergeLaunchDims.z, *context->getCudaStream()>>>(
       pInBuffers, pInShapes, nArrSize, output.specialBuffer(), output.specialShapeInfo(), length);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeAddCudaLauncher failed");
 
   manager.synchronize();
 }
 BUILD_SINGLE_TEMPLATE(template void mergeAdd_,
-                      (sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output),
+                      (sd::LaunchContext * context, const std::vector<NDArray*>& inArrs, NDArray& output),
                       SD_NUMERIC_TYPES);
 
-void mergeAdd(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output) {
+void mergeAdd(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output) {
   NDArray::prepareSpecialUse({&output}, inArrs);
 
   BUILD_SINGLE_SELECTOR(output.dataType(), mergeAdd_, (context, inArrs, output), SD_NUMERIC_TYPES);
@@ -464,38 +636,53 @@ void mergeAdd(sd::LaunchContext* context, const std::vector<const NDArray*>& inA
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_KERNEL void mergeAddBpCudaLauncher(const void* vgradient, const sd::LongType* gradientShape, void** outArrs,
-                                             void** outShapes, const int numArrays, sd::LongType length,
+static SD_KERNEL void mergeAddBpCudaLauncher(const void* vgradient, const LongType* gradientShape, void** outArrs,
+                                             void** outShapes, const int numArrays, LongType length,
                                              bool bSameOrderAndEws1) {
-  auto grad = reinterpret_cast<const T*>(vgradient);
-
+  const auto grad = reinterpret_cast<const T*>(vgradient);
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
   const auto step = gridDim.x * blockDim.x;
 
-  int coords[SD_MAX_RANK];
+  __shared__ int gradRank;
+  __shared__ const LongType *gradShape, *gradStride;
 
-  for (sd::LongType e = tid; e < length; e += step) {
-    auto zOffset = e, gradOffset = e;
+  if (threadIdx.x == 0) {
+    gradRank = shape::rank(gradientShape);
+    gradShape = shape::shapeOf(gradientShape);
+    gradStride = shape::stride(gradientShape);
+  }
+  __syncthreads();
+
+  LongType coords[SD_MAX_RANK];
+
+  for (LongType e = tid; e < length; e += step) {
+    LongType gradOffset = bSameOrderAndEws1 ? e : 0;
+
+    // Compute gradient offset if not using same order and EWS=1
     if (!bSameOrderAndEws1) {
-      shape::index2coords(e, gradientShape, coords);
-      gradOffset = shape::getOffset(gradientShape, coords);
+      INDEX2COORDS(e, gradRank, gradShape, coords);
+      COORDS2INDEX(gradRank, gradStride, coords, gradOffset);
     }
 
-    for (int i = 0; i < numArrays; i++) {
+    for (int i = 0; i < numArrays; ++i) {
+      auto output = reinterpret_cast<T*>(outArrs[i]);
+      LongType zOffset = bSameOrderAndEws1 ? e : 0;
+
+      // Compute output offset if not using same order and EWS=1
       if (!bSameOrderAndEws1) {
-        auto outShape = reinterpret_cast<sd::LongType*>(outShapes[i]);
-        zOffset = shape::getOffset(outShape, coords);
+        auto outShape = reinterpret_cast<const LongType*>(outShapes[i]);
+        COORDS2INDEX(shape::rank(outShape), shape::stride(outShape), coords, zOffset);
       }
 
-      auto output = reinterpret_cast<T*>(outArrs[i]);
-
+      // Assign gradient value to output
       output[zOffset] = grad[gradOffset];
     }
   }
 }
 
+
 template <typename T>
-static void mergeAddBp_(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs,
+static void mergeAddBp_(LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs,
                         bool bSameOrderAndEws1) {
   int nArrSize = static_cast<int>(outArrs.size());
 
@@ -521,20 +708,20 @@ static void mergeAddBp_(sd::LaunchContext* context, const NDArray& gradient, std
   mergeAddBpCudaLauncher<T><<<blocksPerGrid, threadsPerBlock, 512, *context->getCudaStream()>>>(
       gradient.specialBuffer(), gradient.specialShapeInfo(), pOutBuffers, pOutShapes, nArrSize, length,
       bSameOrderAndEws1);
+  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeAddBpCudaLauncher failed");
 
   manager.synchronize();
 }
 
-void mergeAddBp(sd::LaunchContext* context, const NDArray& gradient, std::vector<NDArray*>& outArrs) {
-  const std::vector<const NDArray*>& out = reinterpret_cast<const std::vector<const NDArray*>&>(outArrs);
+void mergeAddBp(LaunchContext* context, NDArray& gradient, std::vector<NDArray*>& outArrs) {
+  const std::vector<NDArray*>& out = reinterpret_cast<const std::vector<NDArray*>&>(outArrs);
   NDArray::prepareSpecialUse(out, {&gradient});
 
-  bool bSameOrderAndEws1 = (1 == gradient.ews());
+  bool bSameOrderAndEws1 = false;
   auto ordering = gradient.ordering();
 
   for (const auto& v : outArrs) {
     bSameOrderAndEws1 &= (ordering == v->ordering());
-    bSameOrderAndEws1 &= (1 == v->ews());
   }
 
   BUILD_SINGLE_SELECTOR(gradient.dataType(), mergeAddBp_, (context, gradient, outArrs, bSameOrderAndEws1),

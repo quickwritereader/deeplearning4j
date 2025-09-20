@@ -26,6 +26,10 @@
 
 namespace sd {
 namespace ops {
+
+#define RESHAPE_NO_COPY_F_ORDER_MARKER -102
+#define RESHAPE_NO_COPY_C_ORDER_MARKER -99
+
 #if NOT_EXCLUDED(OP_permute)
 DECLARE_CUSTOM_OP(permute, 1, 1, false, 0, -2);
 #endif
@@ -34,9 +38,17 @@ DECLARE_CUSTOM_OP(permute, 1, 1, false, 0, -2);
 DECLARE_CUSTOM_OP(reshapeas, 2, 1, false, 0, 0);
 #endif
 
+#if NOT_EXCLUDED(OP_linear_copy)
+DECLARE_CUSTOM_OP(linear_copy, 2, 1, false, 0, 0);
+#endif
+
+
 #if NOT_EXCLUDED(OP_transpose)
 DECLARE_CUSTOM_OP(transpose, 1, 1, false, 0, 0);
 #endif
+
+
+
 
 #if NOT_EXCLUDED(OP_shape_of)
 DECLARE_CUSTOM_OP(shape_of, 1, 1, false, 0, 0);
@@ -64,6 +76,10 @@ DECLARE_CUSTOM_OP(flatten_2d, 1, 1, false, 0, 1);
 
 #if NOT_EXCLUDED(OP_reshape)
 DECLARE_CUSTOM_OP(reshape, 1, 1, false, 0, -2);
+#endif
+
+#if NOT_EXCLUDED(OP_reshape_no_copy)
+DECLARE_CUSTOM_OP(reshape_no_copy, -2, 1, false, 0, -2);
 #endif
 
 #if NOT_EXCLUDED(OP_size_at)

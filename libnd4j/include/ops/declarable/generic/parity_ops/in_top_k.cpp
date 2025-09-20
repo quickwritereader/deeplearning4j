@@ -23,7 +23,6 @@
 #include <system/op_boilerplate.h>
 #if NOT_EXCLUDED(OP_in_top_k)
 
-//#include <ops/declarable/headers/parity_ops.h>
 #include <ops/declarable/CustomOperations.h>
 #include <ops/declarable/helpers/top_k.h>
 
@@ -53,7 +52,7 @@ DECLARE_SHAPE_FN(in_top_k) {
   int shapeRank = shape::rank(in);
 
   auto aShape = ConstantShapeHelper::getInstance().createShapeInfo(sd::DataType::BOOL, shape::order(in),
-                                                                   shape::rank(in), shape::shapeOf(in));
+                                                                   shape::rank(in), shape::shapeOf(in),0);
   shapeList->push_back(aShape);
   return shapeList;
 }

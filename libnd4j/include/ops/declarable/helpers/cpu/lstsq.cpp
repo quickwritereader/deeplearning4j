@@ -36,10 +36,9 @@ namespace ops {
 namespace helpers {
 
 template <typename T>
-static void fillRegularizer(NDArray& ioMatrix, double const value) {
-  auto lastDims = ioMatrix.allTensorsAlongDimension({-2, -1});
-  auto rows = ioMatrix.sizeAt(-2);
-  // auto cols = ioMatrix.sizeAt(-1);
+static void fillRegularizer(NDArray* ioMatrix, double const value) {
+  auto lastDims = ioMatrix->allTensorsAlongDimension({-2, -1});
+  auto rows = ioMatrix->sizeAt(-2);
 
   for (auto x = 0; x < lastDims.size(); x++) {
     for (auto r = 0; r < rows; r++) {
@@ -49,7 +48,7 @@ static void fillRegularizer(NDArray& ioMatrix, double const value) {
 }
 
 template <typename T>
-sd::Status leastSquaresSolveFunctor_(sd::LaunchContext* context, NDArray const* leftInput, NDArray const* rightInput,
+sd::Status leastSquaresSolveFunctor_(sd::LaunchContext* context, NDArray* leftInput, NDArray* rightInput,
                                      double const l2Regularizer, bool const fast, NDArray* output) {
   NDArray::preparePrimaryUse({output}, {leftInput, rightInput});
   if (fast) {  // Cholesky decomposition approach
@@ -58,17 +57,15 @@ sd::Status leastSquaresSolveFunctor_(sd::LaunchContext* context, NDArray const* 
     auto tAtShape = ShapeUtils::evalShapeForMatmul(leftInput->shapeInfo(), leftInput->shapeInfo(), true, false);
     // tAtShape[tAtShape.size() - 2] = output->sizeAt(-2);
     NDArray leftOutput('c', tAtShape, output->dataType(), context);
-    MmulHelper::matmul(leftInput, leftInput, &leftOutput, true, false);  // Computing A2 = A^T * A
+    MmulHelper::matmul(leftInput, leftInput, &leftOutput, true, false, 0, 0, &leftOutput);  // Computing A2 = A^T * A
     // 2. Computing B' = A^T * b
     auto rightOutput = output->ulike();
 
-    MmulHelper::matmul(leftInput, rightInput, &rightOutput, true, false);  // Computing B' = A^T * b
+    MmulHelper::matmul(leftInput, rightInput, rightOutput, true, false, 0, 0, rightOutput);  // Computing B' = A^T * b
     // 3. due l2Regularizer = 0, skip regularization ( indeed A' = A2 - l2Regularizer * I)
     auto regularizer = leftOutput.ulike();
     fillRegularizer<T>(regularizer, l2Regularizer);
-  https:  // mangapark.net/
-    //            regularizer *= l2Regularizer;
-    leftOutput += regularizer;
+    leftOutput += *regularizer;
     // 4. Cholesky decomposition -- output matrix is square and lower triangular
     //            auto leftOutputT = leftOutput.ulike();
     auto status = helpers::cholesky(context, &leftOutput, &leftOutput, true);  // inplace decomposition
@@ -77,10 +74,10 @@ sd::Status leastSquaresSolveFunctor_(sd::LaunchContext* context, NDArray const* 
     // solve one upper triangular system (to avoid float problems)
 
     // 5. Solve two triangular systems:
-    auto rightB = rightOutput.ulike();
-    helpers::triangularSolveFunctor(context, &leftOutput, &rightOutput, true, false, &rightB);
-    helpers::adjointMatrix(context, &leftOutput, true, &leftOutput);  //.transposei();
-    helpers::triangularSolveFunctor(context, &leftOutput, &rightB, false, false, output);
+    auto rightB = rightOutput->ulike();
+    helpers::triangularSolveFunctor(context, &leftOutput, rightOutput, true, false, rightB);
+    helpers::adjointMatrix(context, &leftOutput, true, &leftOutput);
+    helpers::triangularSolveFunctor(context, &leftOutput, rightB, false, false, output);
     // All done
   } else {  // QR decomposition approach
     // Equation for solve Rx = Q^T * b, where A = Q * R, where Q - orthogonal matrix, and R - upper triangular
@@ -94,15 +91,15 @@ sd::Status leastSquaresSolveFunctor_(sd::LaunchContext* context, NDArray const* 
     helpers::qr(context, leftInput, &Q, &R, true);
     // 2. b` = Q^t * b:
     auto rightOutput = rightInput->ulike();
-    MmulHelper::matmul(&Q, rightInput, &rightOutput, true, false);
+    MmulHelper::matmul(&Q, rightInput, rightOutput, true, false, 0, 0, rightOutput);
     // 3. Solve triangular system
-    helpers::triangularSolveFunctor(context, &R, &rightOutput, false, false, output);
+    helpers::triangularSolveFunctor(context, &R, rightOutput, false, false, output);
   }
   NDArray::registerPrimaryUse({output}, {leftInput, rightInput});
   return sd::Status::OK;
 }
 
-sd::Status leastSquaresSolveFunctor(sd::LaunchContext* context, NDArray const* leftInput, NDArray const* rightInput,
+sd::Status leastSquaresSolveFunctor(sd::LaunchContext* context, NDArray* leftInput, NDArray* rightInput,
                                     double const l2Regularizer, bool const fast, NDArray* output) {
   BUILD_SINGLE_SELECTOR(leftInput->dataType(), return leastSquaresSolveFunctor_,
                         (context, leftInput, rightInput, l2Regularizer, fast, output), SD_FLOAT_TYPES);

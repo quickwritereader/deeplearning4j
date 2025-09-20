@@ -30,44 +30,40 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////////
-static void conv3dCUDNN(const LaunchContext* context, const NDArray* input, const NDArray* weights, const NDArray* bias,
-                        NDArray* output, const int kD, const int kH, const int kW, const int sD, const int sH,
-                        const int sW, const int pD, const int pH, const int pW, const int dD, const int dH,
-                        const int dW, const int paddingMode, const bool isNCDHW, const int wFormat) {
+static void conv3dCUDNN(const LaunchContext* context, NDArray* input, NDArray* weights, NDArray* bias,
+                        NDArray* output, const LongType kD, const LongType kH, const LongType kW, const LongType sD, const LongType sH,
+                        const LongType sW, const LongType pD, const LongType pH, const LongType pW, const LongType dD, const LongType dH,
+                        const LongType dW, const int paddingMode, const bool isNCDHW, const int wFormat) {
   // cudnn support only one format for weights {oC,iC,kD,kH,kW}
 
   const int numDims = 5;
 
-  int bS, iC, iD, iH, iW, oC, oD, oH,
+  LongType bS, iC, iD, iH, iW, oC, oD, oH,
       oW;  // batch size, input channels, input depth/height/width, output channels, output depth/height/width;
-  int indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
+  LongType indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, wFormat, *input, *output, bS, iC, iD, iH, iW, oC, oD, oH, oW,
                                              indIOioC, indIOioD, indWiC, indWoC, indWkD);
 
   auto handle = reinterpret_cast<cudnnHandle_t*>(context->getCuDnnHandle());
   CHECK_CUDNN_FAILURE_MSG(STRINGIZE(cudnnSetStream), cudnnSetStream(*handle, *context->getCudaStream()));
 
-  const std::vector<int> pads = {pD, pH, pW};
-  const std::vector<int> filtStrides = {sD, sH, sW};
-  const std::vector<int> dilations = {dD, dH, dW};
+  const std::vector<int> pads = {static_cast<int>(pD), static_cast<int>(pH), static_cast<int>(pW)};
+  const std::vector<int> filtStrides = {static_cast<int>(sD), static_cast<int>(sH), static_cast<int>(sW)};
+  const std::vector<int> dilations = {static_cast<int>(dD), static_cast<int>(dH), static_cast<int>(dW)};
 
-  const std::vector<int> xShape = {bS, iC, iD, iH, iW};
-  const std::vector<int> zShape = {bS, oC, oD, oH, oW};
-  const std::vector<int> wShape = {oC, iC, kD, kH, kW};
-  const std::vector<int> bShape = {1, oC, 1, 1, 1};  // {1, (isNCDHW ? oC : 1), 1, 1, (isNCDHW ? 1 : oC)};
+  const std::vector<int> xShape = {static_cast<int>(bS), static_cast<int>(iC), static_cast<int>(iD), static_cast<int>(iH), static_cast<int>(iW)};
+  const std::vector<int> zShape = {static_cast<int>(bS), static_cast<int>(oC), static_cast<int>(oD), static_cast<int>(oH), static_cast<int>(oW)};
+  const std::vector<int> wShape = {static_cast<int>(oC), static_cast<int>(iC), static_cast<int>(kD), static_cast<int>(kH), static_cast<int>(kW)};
+  const std::vector<int> bShape = {1, static_cast<int>(oC), 1, 1, 1};
 
-  const std::vector<int> xStrides = {(int)input->strideAt(0), (int)input->strideAt(1), (int)input->strideAt(2),
-                                     (int)input->strideAt(3), (int)input->strideAt(4)};
-  const std::vector<int> zStrides = {(int)output->strideAt(0), (int)output->strideAt(1), (int)output->strideAt(2),
-                                     (int)output->strideAt(3), (int)output->strideAt(4)};
-
+  const std::vector<int> xStrides = {static_cast<int>(input->strideAt(0)), static_cast<int>(input->strideAt(1)), static_cast<int>(input->strideAt(2)),
+                                     static_cast<int>(input->strideAt(3)), static_cast<int>(input->strideAt(4))};
+  const std::vector<int> zStrides = {static_cast<int>(output->strideAt(0)), static_cast<int>(output->strideAt(1)), static_cast<int>(output->strideAt(2)),
+                                     static_cast<int>(output->strideAt(3)), static_cast<int>(output->strideAt(4))};
   cudnnTensorFormat_t format = isNCDHW ? CUDNN_TENSOR_NCHW : CUDNN_TENSOR_NHWC;
   PointersManager manager(context, __func__);
   // input descriptor
   CudnnTensor x;
-  if (input->ews() == 1)
-    x.setEx(format, cudnnDataType(input->dataType()), numDims, xShape.data());
-  else
     x.set(cudnnDataType(input->dataType()), numDims, xShape.data(), xStrides.data());
 
   // weights descriptor
@@ -76,9 +72,6 @@ static void conv3dCUDNN(const LaunchContext* context, const NDArray* input, cons
 
   // output descriptor
   CudnnTensor z;
-  if (output->ews() == 1)
-    z.setEx(format, cudnnDataType(output->dataType()), numDims, zShape.data());
-  else
     z.set(cudnnDataType(output->dataType()), numDims, zShape.data(), zStrides.data());
 
   // description of convolution
@@ -90,12 +83,11 @@ static void conv3dCUDNN(const LaunchContext* context, const NDArray* input, cons
   cudnnConvolutionFwdAlgo_t algo;
   cudnnConvolutionFwdAlgoPerf_t algoPerf;
   int count = 0;
-  // CHECK_CUDNN_FAILURE_MSG(STRINGIZE(cudnnGetConvolutionForwardAlgorithm), cudnnGetConvolutionForwardAlgorithm(
-  // *handle, x, w, conv, z, CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &algo));
+
   CHECK_CUDNN_FAILURE_MSG(STRINGIZE(cudnnFindConvolutionForwardAlgorithm),
                           cudnnFindConvolutionForwardAlgorithm(*handle, x, w, conv, z, 1, &count, &algoPerf));
   if (count == 0)
-    throw sd::cuda_exception::build("conv3dCUDNN: cudnnGetConvolutionForwardAlgorithm failed as the count is 0", 0);
+    throw cuda_exception::build("conv3dCUDNN: cudnnGetConvolutionForwardAlgorithm failed as the count is 0", 0);
   algo = algoPerf.algo;
 
   // allocate auxiliary device memory, abbreviation ws means workspace
@@ -129,66 +121,52 @@ static void conv3dCUDNN(const LaunchContext* context, const NDArray* input, cons
                                                                       z, output->specialBuffer()));
   }
 
-  // cudaErr = cudaStreamSynchronize(*context->getCudaStream());
-  // if (cudaErr != 0)
-  //     throw cuda_exception::build("conv3dCUDNN: cudaStreamSynchronize failed !", cudaErr);
 
   NDArray::registerSpecialUse({output}, {input, weights, bias});
 }
 
 //////////////////////////////////////////////////////////////////////////
-static void conv3dBpCUDNN(const LaunchContext* context, const NDArray* input, const NDArray* weights,
-                          const NDArray* gradO, NDArray* gradI, NDArray* gradW, NDArray* gradB, const int kD,
-                          const int kH, const int kW, const int sD, const int sH, const int sW, const int pD,
-                          const int pH, const int pW, const int dD, const int dH, const int dW, const int paddingMode,
+static void conv3dBpCUDNN(const LaunchContext* context, NDArray* input, NDArray* weights,
+                          NDArray* gradO, NDArray* gradI, NDArray* gradW, NDArray* gradB, const int kD,
+                          const LongType kH, const LongType kW, const LongType sD, const LongType sH, const LongType sW, const LongType pD,
+                          const LongType pH, const LongType pW, const LongType dD, const LongType dH, const LongType dW, const int paddingMode,
                           const bool isNCDHW, const int wFormat) {
   // cudnn supports only two formats {oC,iC,kD,kH,kW} and {oC,kD,kH,kW,iC} for weights/gradW
 
   const int numDims = 5;
 
-  int bS, iC, iD, iH, iW, oC, oD, oH,
+  LongType bS, iC, iD, iH, iW, oC, oD, oH,
       oW;  // batch size, input channels, input depth/height/width, output channels, output depth/height/width;
-  int indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
+  LongType indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, wFormat, *input, *gradO, bS, iC, iD, iH, iW, oC, oD, oH, oW,
                                              indIOioC, indIOioD, indWiC, indWoC, indWkD);
 
   auto handle = reinterpret_cast<cudnnHandle_t*>(context->getCuDnnHandle());
   CHECK_CUDNN_FAILURE_MSG(STRINGIZE(cudnnSetStream), cudnnSetStream(*handle, *context->getCudaStream()));
+  const std::vector<int> pads = {static_cast<int>(pD), static_cast<int>(pH), static_cast<int>(pW)};
+  const std::vector<int> filtStrides = {static_cast<int>(sD), static_cast<int>(sH), static_cast<int>(sW)};
+  const std::vector<int> dilations = {static_cast<int>(dD), static_cast<int>(dH), static_cast<int>(dW)};
 
-  const std::vector<int> pads = {pD, pH, pW};
-  const std::vector<int> filtStrides = {sD, sH, sW};
-  const std::vector<int> dilations = {dD, dH, dW};
+  const std::vector<int> xShape = {static_cast<int>(bS), static_cast<int>(iC), static_cast<int>(iD), static_cast<int>(iH), static_cast<int>(iW)};
+  const std::vector<int> dzShape = {static_cast<int>(bS), static_cast<int>(oC), static_cast<int>(oD), static_cast<int>(oH), static_cast<int>(oW)};
+  const std::vector<int> wShape = {static_cast<int>(oC), static_cast<int>(iC), static_cast<int>(kD), static_cast<int>(kH), static_cast<int>(kW)};
+  const std::vector<int> dbShape = {1, static_cast<int>(isNCDHW ? oC : 1), 1, 1, (int)(isNCDHW ? 1 : oC)};
 
-  const std::vector<int> xShape = {bS, iC, iD, iH, iW};
-  const std::vector<int> dzShape = {bS, oC, oD, oH, oW};
-  const std::vector<int> wShape = {oC, iC, kD, kH, kW};
-  const std::vector<int> dbShape = {1, (int)(isNCDHW ? oC : 1), 1, 1, (int)(isNCDHW ? 1 : oC)};
-
-  const std::vector<int> xStrides = {(int)input->strideAt(0), (int)input->strideAt(1), (int)input->strideAt(2),
-                                     (int)input->strideAt(3), (int)input->strideAt(4)};
-  const std::vector<int> dxStrides = {(int)gradI->strideAt(0), (int)gradI->strideAt(1), (int)gradI->strideAt(2),
-                                      (int)gradI->strideAt(3), (int)gradI->strideAt(4)};
-  const std::vector<int> dzStrides = {(int)gradO->strideAt(0), (int)gradO->strideAt(1), (int)gradO->strideAt(2),
-                                      (int)gradO->strideAt(3), (int)gradO->strideAt(4)};
-
+  const std::vector<int> xStrides = {static_cast<int>(input->strideAt(0)), static_cast<int>(input->strideAt(1)), static_cast<int>(input->strideAt(2)),
+                                     static_cast<int>(input->strideAt(3)), static_cast<int>(input->strideAt(4))};
+  const std::vector<int> dxStrides = {static_cast<int>(gradI->strideAt(0)), static_cast<int>(gradI->strideAt(1)), static_cast<int>(gradI->strideAt(2)),
+                                      static_cast<int>(gradI->strideAt(3)), static_cast<int>(gradI->strideAt(4))};
+  const std::vector<int> dzStrides = {static_cast<int>(gradO->strideAt(0)), static_cast<int>(gradO->strideAt(1)), static_cast<int>(gradO->strideAt(2)),
+                                      static_cast<int>(gradO->strideAt(3)), static_cast<int>(gradO->strideAt(4))};
   cudnnTensorFormat_t format = isNCDHW ? CUDNN_TENSOR_NCHW : CUDNN_TENSOR_NHWC;
   cudnnTensorFormat_t formatW = 0 == wFormat ? format : (1 == wFormat ? CUDNN_TENSOR_NCHW : CUDNN_TENSOR_NHWC);
   PointersManager manager(context, __func__);
   // input descriptor, gradO descriptor, gradI descriptor
   CudnnTensor x, dz, dx;
-  if (input->ews() == 1)
-    x.setEx(format, cudnnDataType(input->dataType()), numDims, xShape.data());
-  else
     x.set(cudnnDataType(input->dataType()), numDims, xShape.data(), xStrides.data());
 
-  if (gradO->ews() == 1)
-    dz.setEx(format, cudnnDataType(gradO->dataType()), numDims, dzShape.data());
-  else
     dz.set(cudnnDataType(gradO->dataType()), numDims, dzShape.data(), dzStrides.data());
 
-  if (gradI->ews() == 1)
-    dx.setEx(format, cudnnDataType(gradI->dataType()), numDims, xShape.data());
-  else
     dx.set(cudnnDataType(gradI->dataType()), numDims, xShape.data(), dxStrides.data());
 
   // gradW descriptor
@@ -204,14 +182,11 @@ static void conv3dBpCUDNN(const LaunchContext* context, const NDArray* input, co
   cudnnConvolutionBwdFilterAlgo_t algoGradW;
   cudnnConvolutionBwdFilterAlgoPerf_t algoGradWPerf;
   int count = 0;
-  // CHECK_CUDNN_FAILURE_MSG(STRINGIZE(cudnnGetConvolutionBackwardFilterAlgorithm),
-  // cudnnGetConvolutionBackwardFilterAlgorithm( *handle, x, dz, conv, dw, CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST,
-  // 0, &algoGradW));
   CHECK_CUDNN_FAILURE_MSG(
       STRINGIZE(cudnnFindConvolutionBackwardFilterAlgorithm),
       cudnnFindConvolutionBackwardFilterAlgorithm(*handle, x, dz, conv, dw, 1, &count, &algoGradWPerf));
   if (count == 0)
-    throw sd::cuda_exception::build(
+    throw cuda_exception::build(
         "conv3dBpCUDNN: cudnnGetConvolutionBackwardFilterAlgorithm failed as the count is 0", 0);
   algoGradW = algoGradWPerf.algo;
 
@@ -225,7 +200,7 @@ static void conv3dBpCUDNN(const LaunchContext* context, const NDArray* input, co
       STRINGIZE(cudnnFindConvolutionBackwardDataAlgorithm),
       cudnnFindConvolutionBackwardDataAlgorithm(*handle, dw, dz, conv, x, 1, &count, &algoGradIPerf));
   if (count == 0)
-    throw sd::cuda_exception::build("conv3dBpCUDNN: cudnnGetConvolutionBackwardDataAlgorithm failed  as the count is 0",
+    throw cuda_exception::build("conv3dBpCUDNN: cudnnGetConvolutionBackwardDataAlgorithm failed  as the count is 0",
                                     0);
   algoGradI = algoGradIPerf.algo;
 
@@ -275,9 +250,6 @@ static void conv3dBpCUDNN(const LaunchContext* context, const NDArray* input, co
       cudnnConvolutionBackwardData(*handle, alpha, dw, weights->specialBuffer(), dz, gradO->specialBuffer(), conv,
                                    algoGradI, wsGradIData, wsGradISize, beta, dx, gradI->specialBuffer()));
 
-  // cudaErr = cudaStreamSynchronize(*context->getCudaStream());
-  // if (cudaErr != 0)
-  //     throw cuda_exception::build("conv3dBpCUDNN: cudaStreamSynchronize failed !", cudaErr);
 
   NDArray::registerSpecialUse({gradI, gradW, gradB}, {input, weights, gradO});
 }
@@ -294,18 +266,18 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
   REQUIRE_TRUE(weights->rankOf() == 5, 0,
                "CONV3D CUDNN OP: rank of weights array must be equal to 5, but got %i instead !", weights->rankOf());
 
-  int kD = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<int>(weights->sizeAt(0));  // filter(kernel) depth
-  int kH = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<int>(weights->sizeAt(1));  // filter(kernel) height
-  int kW = INT_ARG(2) > 0 ? INT_ARG(2) : static_cast<int>(weights->sizeAt(2));  // filter(kernel) width
-  int sD = INT_ARG(3);                                                          // strides depth
-  int sH = INT_ARG(4);                                                          // strides height
-  int sW = INT_ARG(5);                                                          // strides width
-  int pD = INT_ARG(6);                                                          // paddings depth
-  int pH = INT_ARG(7);                                                          // paddings height
-  int pW = INT_ARG(8);                                                          // paddings width
-  int dD = INT_ARG(9);                                                          // dilations depth
-  int dH = INT_ARG(10);                                                         // dilations height
-  int dW = INT_ARG(11);                                                         // dilations width
+  LongType kD = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<LongType>(weights->sizeAt(0));  // filter(kernel) depth
+  LongType kH = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<LongType>(weights->sizeAt(1));  // filter(kernel) height
+  LongType kW = INT_ARG(2) > 0 ? INT_ARG(2) : static_cast<LongType>(weights->sizeAt(2));  // filter(kernel) width
+  LongType sD = INT_ARG(3);                                                          // strides depth
+  LongType sH = INT_ARG(4);                                                          // strides height
+  LongType sW = INT_ARG(5);                                                          // strides width
+  LongType pD = INT_ARG(6);                                                          // paddings depth
+  LongType pH = INT_ARG(7);                                                          // paddings height
+  LongType pW = INT_ARG(8);                                                          // paddings width
+  LongType dD = INT_ARG(9);                                                          // dilations depth
+  LongType dH = INT_ARG(10);                                                         // dilations height
+  LongType dW = INT_ARG(11);                                                         // dilations width
   int paddingMode = INT_ARG(12);                                                // 0-SAME,  1-VALID
   int isNCDHW = block.getIArguments()->size() > 13 ? !INT_ARG(13) : 1;          // INT_ARG(13): 1-NDHWC, 0-NCDHW
   int wFormat = block.getIArguments()->size() > 14
@@ -315,15 +287,15 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
   REQUIRE_TRUE(paddingMode < 2, 0,
                "CONV3D CUDNN OP: causal padding mode (paddingMode = 2) is not allowed for this operation !");
 
-  int bS, iC, iD, iH, iW, oC, oD, oH,
+  LongType bS, iC, iD, iH, iW, oC, oD, oH,
       oW;  // batch size, input channels, input depth/height/width, output channels, output depth/height/width;
-  int indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
+  LongType indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, wFormat, *input, *output, bS, iC, iD, iH, iW, oC, oD, oH, oW,
                                              indIOioC, indIOioD, indWiC, indWoC, indWkD);
 
   ConvolutionUtils::calcPadding3D(pD, pH, pW, oD, oH, oW, iD, iH, iW, kD, kH, kW, sD, sH, sW, dD, dH, dW, paddingMode);
 
-  std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
+  std::vector<LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
   REQUIRE_TRUE(weights->isSameShape(expectedWeightsShape), 0,
                "CONV3D CUDNN OP: wrong shape of weights array, expected is %s, but got %s instead !",
                ShapeUtils::shapeAsString(expectedWeightsShape).c_str(), ShapeUtils::shapeAsString(weights).c_str());
@@ -336,14 +308,23 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
   std::unique_ptr<NDArray> tmpWeight = {}, tmpInput = {};
   NDArray* newWeights = weights;  // cudnn support only one format {oC,iC,kD,kH,kW}
   if (1 != wFormat) {
-    tmpWeight.reset(new NDArray(weights->ordering(), {oC, iC, kD, kH, kW}, weights->dataType(), weights->getContext()));
+    // Create the tmpWeight object - this syntax is already valid
+    std::vector<LongType> weightShape = {oC, iC, kD, kH, kW};
+
+    // Use the vector for the NDArray constructor
+    tmpWeight.reset(new NDArray(weights->ordering(), weightShape, weights->dataType(), weights->getContext()));
     newWeights = tmpWeight.get();
-    newWeights->assign(weights->permute(
-        0 == wFormat
-            ? std::vector<int>({4, 3, 0, 1, 2})
-            : std::vector<int>(
-                  {0, 4, 1, 2,
-                   3})));  // kD, kH, kW, iC, oC  --> oC, iC, kD, kH, kW   or oC, kD, kH, kW, iC  --> oC, iC, kD, kH, kW
+
+    // Create named vectors as lvalues for the permute call
+    std::vector<LongType> format0Permute = {4, 3, 0, 1, 2};
+    std::vector<LongType> format1Permute = {0, 4, 1, 2, 3};
+
+    NDArray assign = weights->permute(
+                                0 == wFormat ? format0Permute : format1Permute,
+                                true,   // copyToNewBuff
+                                true);
+    // Use the appropriate one in the permute call
+    newWeights->assign(&assign); // resetStrides
   }
 
   if (paddingMode == 1) {  // in same paddingMode cudnn doesn't support asymmetric left/right top/bottopm paddings
@@ -355,7 +336,7 @@ PLATFORM_IMPL(conv3dnew, ENGINE_CUDA) {
   conv3dCUDNN(block.launchContext(), input, newWeights, bias, output, kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW,
               paddingMode, isNCDHW, wFormat);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -369,12 +350,12 @@ PLATFORM_CHECK(conv3dnew, ENGINE_CUDA) {
   Requirements req("CUDNN CONV3d OP");
   req.expectNotEq(makeInfoVariable(paddingMode, "paddingMode"), 2) &&
       req.expectIn(makeInfoVariable(input->dataType(), TYPE_MSG_INPUT0),
-                   {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE}) &&
+                   {HALF, FLOAT32, DOUBLE}) &&
       req.expectIn(makeInfoVariable(weights->dataType(), TYPE_MSG_INPUT1),
-                   {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE});
+                   {HALF, FLOAT32, DOUBLE});
   if (bias) {
     req.expectIn(makeInfoVariable(bias->dataType(), TYPE_MSG_INPUT_ "#bias"),
-                 {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE});
+                 {HALF, FLOAT32, DOUBLE});
   }
   req.logTheSuccess();
   return req;
@@ -402,40 +383,40 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
       "CONV3D_BP CUDNN OP: rank of output gradients (next epsilon) array must be equal to 5, but got %i instead !",
       gradO->rankOf());
 
-  int kD = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<int>(weights->sizeAt(0));  // filter(kernel) depth
-  int kH = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<int>(weights->sizeAt(1));  // filter(kernel) height
-  int kW = INT_ARG(2) > 0 ? INT_ARG(2) : static_cast<int>(weights->sizeAt(2));  // filter(kernel) width
-  int sD = INT_ARG(3);                                                          // strides depth
-  int sH = INT_ARG(4);                                                          // strides height
-  int sW = INT_ARG(5);                                                          // strides width
-  int pD = INT_ARG(6);                                                          // paddings depth
-  int pH = INT_ARG(7);                                                          // paddings height
-  int pW = INT_ARG(8);                                                          // paddings width
-  int dD = INT_ARG(9);                                                          // dilations depth
-  int dH = INT_ARG(10);                                                         // dilations height
-  int dW = INT_ARG(11);                                                         // dilations width
+  LongType kD = INT_ARG(0) > 0 ? INT_ARG(0) : static_cast<LongType>(weights->sizeAt(0));  // filter(kernel) depth
+  LongType kH = INT_ARG(1) > 0 ? INT_ARG(1) : static_cast<LongType>(weights->sizeAt(1));  // filter(kernel) height
+  LongType kW = INT_ARG(2) > 0 ? INT_ARG(2) : static_cast<LongType>(weights->sizeAt(2));  // filter(kernel) width
+  LongType sD = INT_ARG(3);                                                          // strides depth
+  LongType sH = INT_ARG(4);                                                          // strides height
+  LongType sW = INT_ARG(5);                                                          // strides width
+  LongType pD = INT_ARG(6);                                                          // paddings depth
+  LongType pH = INT_ARG(7);                                                          // paddings height
+  LongType pW = INT_ARG(8);                                                          // paddings width
+  LongType dD = INT_ARG(9);                                                          // dilations depth
+  LongType dH = INT_ARG(10);                                                         // dilations height
+  LongType dW = INT_ARG(11);                                                         // dilations width
   int paddingMode = INT_ARG(12);                                                // 1-SAME,  0-VALID
   int isNCDHW = block.getIArguments()->size() > 13 ? !INT_ARG(13) : 1;          // INT_ARG(13): 1-NDHWC, 0-NCDHW
   int wFormat = block.getIArguments()->size() > 14
                     ? INT_ARG(14)
                     : 0;  // 0-[kD, kH, kW, iC, oC], 1-[oC, iC, kD, kH, kW], 2-[oC, kD, kH, kW, iC]
 
-  int bS, iC, iD, iH, iW, oC, oD, oH,
+  LongType bS, iC, iD, iH, iW, oC, oD, oH,
       oW;  // batch size, input channels, input depth/height/width, output channels, output depth/height/width;
-  int indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
+  LongType indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, wFormat, *input, *gradO, bS, iC, iD, iH, iW, oC, oD, oH, oW,
                                              indIOioC, indIOioD, indWiC, indWoC, indWkD);
 
-  int trueoD, trueoH, trueoW;  // true output depth/height/width
+  LongType trueoD, trueoH, trueoW;  // true output depth/height/width
   ConvolutionUtils::calcOutSizePool3D(trueoD, trueoH, trueoW, kD, kH, kW, sD, sH, sW, pD, pH, pW, dD, dH, dW, iD, iH,
                                       iW, paddingMode);
 
   REQUIRE_TRUE(paddingMode < 2, 0,
                "CONV3D_BP CUDNN OP: causal padding mode (paddingMode = 2) is not allowed for this operation !");
 
-  std::vector<sd::LongType> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx(
+  std::vector<LongType> expectedGradOShape = ShapeUtils::composeShapeUsingDimsAndIdx(
       {bS, oC, trueoD, trueoH, trueoW, 0, indIOioC, indIOioD, indIOioD + 1, indIOioD + 2});
-  std::vector<sd::LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
+  std::vector<LongType> expectedWeightsShape = ConvolutionUtils::expectWeightsShape(wFormat, kD, kH, kW, iC, oC);
   REQUIRE_TRUE(
       gradO->isSameShape(expectedGradOShape), 0,
       "CONV3D_BP CUDNN OP: wrong shape of output gradients (next epsilon) array, expected is %s, but got %s instead !",
@@ -455,19 +436,39 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
   NDArray *newWeights = weights,
           *newGradW = gradW;  // cudnn support only two formats {oC,iC,kD,kH,kW} and {oC,kD,kH,kW,iC}
   if (0 == wFormat) {
+    // Create named vectors as lvalues for the NDArray constructor
+    std::vector<LongType> ncdhwGradShape = {oC, iC, kD, kH, kW};
+    std::vector<LongType> ndhwcGradShape = {oC, kD, kH, kW, iC};
+
+    // Use the appropriate one for the gradW reset
     tmpGradW.reset(new NDArray(
         gradW->ordering(),
-        isNCDHW ? std::vector<sd::LongType>({oC, iC, kD, kH, kW}) : std::vector<sd::LongType>({oC, kD, kH, kW, iC}),
+        isNCDHW ? ncdhwGradShape : ndhwcGradShape,
         gradW->dataType(), gradW->getContext()));
+    // Create named vectors as lvalues for the NDArray constructor
+    std::vector<LongType> ncdhwShape = {oC, iC, kD, kH, kW};
+    std::vector<LongType> ndhwcShape = {oC, kD, kH, kW, iC};
+
+    // Use the appropriate one for the weights reset
     tmpWeights.reset(new NDArray(
         weights->ordering(),
-        isNCDHW ? std::vector<sd::LongType>({oC, iC, kD, kH, kW}) : std::vector<sd::LongType>({oC, kD, kH, kW, iC}),
+        isNCDHW ? ncdhwShape : ndhwcShape,
         weights->dataType(), weights->getContext()));
+
+    // Create named vectors as lvalues for the permute call
+    std::vector<LongType> ncdhwPermute = {4, 3, 0, 1, 2};
+    std::vector<LongType> ndhwcPermute = {4, 0, 1, 2, 3};
+
+    // Set the pointer variables
     newGradW = tmpGradW.get();
     newWeights = tmpWeights.get();
-    newWeights->assign(weights->permute(
-        isNCDHW ? std::vector<int>({4, 3, 0, 1, 2})
-                : std::vector<int>({4, 0, 1, 2, 3})));  // (kD, kH, kW, iC, oC  --> oC, iC, kD, kH, kW) or (kD, kH, kW,
+
+    NDArray assign = weights->permute(
+                                isNCDHW ? ncdhwPermute : ndhwcPermute,
+                                true,   // copyToNewBuff
+                                true);
+    // Use the appropriate one in the permute call
+    newWeights->assign(&assign); // resetStrides (kD, kH, kW, iC, oC  --> oC, iC, kD, kH, kW) or (kD, kH, kW,
                                                         // iC, oC  --> oC, kD, kH, kW, iC)
   }
 
@@ -485,20 +486,25 @@ PLATFORM_IMPL(conv3dnew_bp, ENGINE_CUDA) {
                 pD, pH, pW, dD, dH, dW, paddingMode, isNCDHW, wFormat);
 
   if (0 == wFormat) {
-    newGradW->permutei(isNCDHW ? std::vector<int>({2, 3, 4, 1, 0})
-                               : std::vector<int>({1, 2, 3, 4, 0}));  // (oC, iC, kD, kH, kW --> kD, kH, kW, iC, oC) or
-                                                                      // (oC, kD, kH, kW, iC --> kD, kH, kW, iC, oC)
-    gradW->assign(newGradW);
+    // Create named vectors as lvalues for the permutei call
+    std::vector<LongType> ncdhwPermutei = {2, 3, 4, 1, 0};
+    std::vector<LongType> ndhwcPermutei = {1, 2, 3, 4, 0};
+
+    // Use the appropriate one in the permutei call
+    newGradW->permutei(
+        isNCDHW ? ncdhwPermutei : ndhwcPermutei,false,false);  // (oC, iC, kD, kH, kW --> kD, kH, kW, iC, oC) or (oC, kD, kH, kW, iC --> kD, kH, kW, iC, oC)    gradW->assign(newGradW);
   }
 
   if (newInput != input) {
-    if (isNCDHW)
-      gradI->assign((*newGradI)({0, 0, 0, 0, 0, gradI->sizeAt(2), 0, gradI->sizeAt(3), 0, gradI->sizeAt(4)}));
-    else
-      gradI->assign((*newGradI)({0, 0, 0, gradI->sizeAt(1), 0, gradI->sizeAt(2), 0, gradI->sizeAt(3), 0, 0}));
+    if (isNCDHW) {
+      NDArray assign = (*newGradI)({0, 0, 0, 0, 0, gradI->sizeAt(2), 0, gradI->sizeAt(3), 0, gradI->sizeAt(4)});
+      gradI->assign(&assign);
+    } else {
+      NDArray assign = (*newGradI)({0, 0, 0, gradI->sizeAt(1), 0, gradI->sizeAt(2), 0, gradI->sizeAt(3), 0, 0});
+      gradI->assign(&assign);
+    }
   }
-
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 PLATFORM_CHECK(conv3dnew_bp, ENGINE_CUDA) {
@@ -509,24 +515,24 @@ PLATFORM_CHECK(conv3dnew_bp, ENGINE_CUDA) {
                    ? INPUT_VARIABLE(3)
                    : INPUT_VARIABLE(2);  // [bS, oD, oH, oW, oC] (NDHWC) or [bS, oC, oD, oH, oW] (NCDHW), epsilon_next
 
-  int paddingMode = INT_ARG(12);                                        // 1-SAME,  0-VALID
+  LongType paddingMode = INT_ARG(12);                                        // 1-SAME,  0-VALID
   int isNCDHW = block.getIArguments()->size() > 13 ? !INT_ARG(13) : 1;  // INT_ARG(13): 1-NDHWC, 0-NCDHW
 
   Requirements req("CUDNN CONV3d_BP OP");
   req.expectNotEq(makeInfoVariable(paddingMode, "paddingMode"), 2) &&
       req.expectTrue(makeInfoVariable(isNCDHW, "isNCDHW")) &&
       req.expectIn(makeInfoVariable(input->dataType(), TYPE_MSG_INPUT0),
-                   {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE}) &&
+                   {HALF, FLOAT32, DOUBLE}) &&
       req.expectIn(makeInfoVariable(weights->dataType(), TYPE_MSG_INPUT1),
-                   {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE});
+                   {HALF, FLOAT32, DOUBLE});
   if (bias) {
     req.expectIn(makeInfoVariable(bias->dataType(), TYPE_MSG_INPUT_ "#bias"),
-                 {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE}) &&
+                 {HALF, FLOAT32, DOUBLE}) &&
         req.expectIn(makeInfoVariable(gradO->dataType(), TYPE_MSG_INPUT3),
-                     {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE});
+                     {HALF, FLOAT32, DOUBLE});
   } else {
     req.expectIn(makeInfoVariable(gradO->dataType(), TYPE_MSG_INPUT2),
-                 {DataType::HALF, DataType::FLOAT32, DataType::DOUBLE});
+                 {HALF, FLOAT32, DOUBLE});
   }
   req.logTheSuccess();
   return req;

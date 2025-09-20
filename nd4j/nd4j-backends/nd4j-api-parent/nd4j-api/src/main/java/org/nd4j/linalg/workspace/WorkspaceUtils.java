@@ -22,10 +22,13 @@ package org.nd4j.linalg.workspace;
 
 import lombok.NonNull;
 import lombok.val;
+import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
+import org.nd4j.linalg.api.memory.abstracts.Nd4jWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.api.memory.abstracts.DummyWorkspace;
+import org.nd4j.linalg.factory.Nd4jBackend;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +47,7 @@ public class WorkspaceUtils {
         assertNoWorkspacesOpen(msg, false);
     }
 
+
     /**
      * Assert that no workspaces are currently open
      *
@@ -61,7 +65,7 @@ public class WorkspaceUtils {
             List<String> workspaces = new ArrayList<>(l.size());
             for (MemoryWorkspace ws : l) {
                 if(ws.isScopeActive()) {
-                    workspaces.add(ws.getId());
+                    workspaces.add(String.valueOf(ws.getAssociatedEnumType()));
                 }
             }
             throw new ND4JWorkspaceException(msg + " - Open/active workspaces: " + workspaces);
@@ -103,8 +107,8 @@ public class WorkspaceUtils {
      * @param array Array to check
      * @param msg   Message (prefix) to include in the exception, if required. May be null
      */
-    public static void assertValidArray(INDArray array, String msg){
-        if(array == null || !array.isAttached()){
+    public static void assertValidArray(INDArray array, String msg) {
+        if(array == null || !array.isAttached()) {
             return;
         }
 
@@ -116,7 +120,6 @@ public class WorkspaceUtils {
                 throw new ND4JWorkspaceException( (msg == null ? "" : msg + ": ") + "Array uses leaked workspace pointer " +
                         "from workspace " + ws.getId() + "\nAll open workspaces: " + allOpenWorkspaces());
             }
-
             if (ws.getGenerationId() != array.data().getGenerationId()) {
                 throw new ND4JWorkspaceException( (msg == null ? "" : msg + ": ") + "Array outdated workspace pointer " +
                         "from workspace " + ws.getId() + " (array generation " + array.data().getGenerationId() +
@@ -125,14 +128,56 @@ public class WorkspaceUtils {
         }
     }
 
-    private static List<String> allOpenWorkspaces(){
+    public static List<String> allOpenWorkspaces() {
         List<MemoryWorkspace> l = Nd4j.getWorkspaceManager().getAllWorkspacesForCurrentThread();
         List<String> workspaces = new ArrayList<>(l.size());
-        for( MemoryWorkspace ws : l){
+        for( MemoryWorkspace ws : l) {
             if(ws.isScopeActive()) {
-                workspaces.add(ws.getId());
+                workspaces.add(String.valueOf(ws.getAssociatedEnumType()));
             }
         }
         return workspaces;
+    }
+
+    public static int getAligned(int requiredMemory) {
+        long div = requiredMemory % Nd4jWorkspace.alignmentBase;
+        if (div != 0) requiredMemory += (Nd4jWorkspace.alignmentBase - div);
+        return requiredMemory;
+    }
+
+    public static int getAligned(long requiredMemory) {
+        return  getAligned((int) requiredMemory);
+    }
+
+    public static int getShapeBufferRequireMemoryForWorkspace(INDArray arr) {
+        return  getAligned(arr.shapeInfoJava().length * DataType.INT64.width());
+    }
+
+
+
+
+    /**
+     * Returns the total amount of memory required per array for workspaces.
+     * Typically for CPU it will be shape buffer + size of data type array
+     * following:
+     * getAligned(arr.length() * arr.dataType().width()) + getAligned(arr.shapeInfoJava().length * DataType.INT64.width())
+     * where getAligned is {@link #getAligned(int)}
+     * GPUS will only be:
+     * etAligned(arr.length() * arr.dataType().width())
+     *
+     * This is due to shape buffers from cuda only being allocated
+     * from a cache rather than workspaces itself.
+     * @param arr the array to get the required memory for.
+     * @return
+     */
+    public static int getTotalRequiredMemoryForWorkspace(INDArray arr) {
+        if(!Nd4j.getBackend().getNDArrayClass().getName().toLowerCase().contains("cu")) {
+            long ret =  getAligned(arr.length() * arr.dataType().width());
+            return (int) ret;
+        } else {
+            long ret = getAligned(arr.length() * arr.dataType().width());
+            return (int) ret;
+        }
+
     }
 }

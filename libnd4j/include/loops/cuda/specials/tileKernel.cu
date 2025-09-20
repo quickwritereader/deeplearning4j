@@ -8,9 +8,9 @@
  *  See the NOTICE file distributed with this work for additional
  *  information regarding copyright ownership.
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
+ * the License for the specific language governing permissions and limitations
  * under the License.
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -20,108 +20,232 @@
 // @author GS <sgazeos@gmail.com>, created on 16.01.2019
 //
 #include <loops/special_kernels.h>
+#include <execution/cuda/LaunchDims.h>
 
-namespace sd {
-static sd::LongType SD_DEVICE __noinline__ getIndexOffset_(sd::LongType index, sd::LongType const* shapeInfo) {
-  return shape::getIndexOffset(index, shapeInfo);
-}
+    namespace sd {
 
-static sd::LongType SD_DEVICE __noinline__ subArrayOffset(sd::LongType index, sd::LongType const* shapeInfoA,
-                                                          sd::LongType const* shapeInfoB) {
-  return shape::subArrayOffset(index, shapeInfoA, shapeInfoB);
-}
+  template <typename T>
+  SD_KERNEL void tileKernel(void const* inputBuffer,
+                            LongType const* inputShape,
+                            void* outputBuffer,
+                            LongType const* outputShape,
+                            LongType resultLength) {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//  tileKernel:
-//  input: (inputBuffer and inputShape) - NDArray buffer and shape to tile
-//  output: (outputBuffer and outputShape) - NDArray to tile input
-//  resultLength - length for output array
-template <typename T>
-static SD_KERNEL void tileKernel(void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                                 sd::LongType const* outputShape, sd::LongType resultLength) {
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  //        Original code to transform in cuda-based
-  auto tid = blockIdx.x * blockDim.x + threadIdx.x;  // copy linear sequence of elements, so one-level threading
-  int totalThreads = gridDim.x * blockDim.x;
-  if (shape::order(outputShape) == 'c') {  //  ews == 1 always here
-    for (int i = tid; i < resultLength; i += totalThreads) {
-      auto yOffset = subArrayOffset(i, outputShape, inputShape);
-      *(reinterpret_cast<T*>(outputBuffer) + i) = *(reinterpret_cast<T const*>(inputBuffer) + yOffset);
+    const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const int totalThreads = gridDim.x * blockDim.x;
+
+    // Cache shape info to avoid repeated calls
+    __shared__ sd::LongType inRank;
+    __shared__ const sd::LongType* inShapePtr;
+    __shared__ const sd::LongType* inStridePtr;
+
+    __shared__ sd::LongType outRank;
+    __shared__ const sd::LongType* outShapePtr;
+    __shared__ const sd::LongType* outStridePtr;
+    __shared__ char outOrder;
+
+    if (threadIdx.x == 0) {
+      inRank      = shape::rank(inputShape);
+      inShapePtr  = shape::shapeOf(inputShape);
+      inStridePtr = shape::stride(inputShape);
+
+      outRank     = shape::rank(outputShape);
+      outShapePtr = shape::shapeOf(outputShape);
+      outStridePtr= shape::stride(outputShape);
+
+      outOrder    = shape::order(outputShape);
     }
-  } else {
-    for (int i = tid; i < resultLength; i += totalThreads) {
-      auto xOffset = getIndexOffset_(i, outputShape);
-      auto yOffset = subArrayOffset(i, outputShape, inputShape);
-      *(reinterpret_cast<T*>(outputBuffer) + xOffset) = *(reinterpret_cast<T const*>(inputBuffer) + yOffset);
+    __syncthreads();
+
+    const auto inData  = reinterpret_cast<const T*>(inputBuffer);
+    auto outData       = reinterpret_cast<T*>(outputBuffer);
+
+    if (outOrder == 'c') {
+      // If the output is in 'c' order, we do direct linear indexing in output
+      for (LongType i = tid; i < resultLength; i += totalThreads) {
+        // We compute the input offset by using the output coordinate
+        // to index into the input shape/stride
+        sd::LongType coords[SD_MAX_RANK];
+        sd::LongType inOffset;
+
+        INDEX2COORDS(i, outRank, outShapePtr, coords);
+        COORDS2INDEX(outRank, inStridePtr, coords, inOffset);
+
+        // outData[i] = inData[inOffset]
+        // The linear output index is i, so the input is
+        // determined by the coords from the output shape
+        outData[i] = inData[inOffset];
+      }
     }
-  }
-}
+    else {
+      // If the output has some other order, we do a more general coordinate transform
+      for (LongType i = tid; i < resultLength; i += totalThreads) {
+        // We map the linear index i into coordinates for the output shape
+        sd::LongType outCoords[SD_MAX_RANK];
+        sd::LongType outOffset;
 
-BUILD_SINGLE_TEMPLATE(template SD_KERNEL void tileKernel,
-                      (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                       sd::LongType const* outputShape, sd::LongType resultLength),
-                      SD_COMMON_TYPES);
+        INDEX2COORDS(i, outRank, outShapePtr, outCoords);
+        COORDS2INDEX(outRank, outStridePtr, outCoords, outOffset);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename T>
-void tileKernelH(void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                 sd::LongType const* outputShape, sd::LongType resultLength, cudaStream_t* stream) {
-  dim3 launchDims(256, 512, 8192);
-  tileKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(inputBuffer, inputShape, outputBuffer,
-                                                                       outputShape, resultLength);
-}
+        // Then we interpret i as an index for the input as well, or use outCoords
+        // Actually, the kernel code as written uses the same index i for input coords,
+        // but let's remain consistent with the original logic:
+        sd::LongType inCoords[SD_MAX_RANK];
+        sd::LongType inOffset;
 
-BUILD_SINGLE_TEMPLATE(template void tileKernelH,
-                      (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                       sd::LongType const* outputShape, sd::LongType resultLength, cudaStream_t* stream),
-                      SD_COMMON_TYPES);
+        INDEX2COORDS(i, inRank, inShapePtr, inCoords);
+        COORDS2INDEX(inRank, inStridePtr, inCoords, inOffset);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// enhancement for tileKernel to different input and output data types: X - output type, Y - input type
-template <typename X, typename Y>
-static SD_KERNEL void tileKernelDouble(void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                                       sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews) {
-  char ordering = shape::order(outputShape);
-  auto tid = blockIdx.x * blockDim.x + threadIdx.x;
-  int totalThreads = gridDim.x * blockDim.x;
-
-  if (ordering == 'c' && ews == 1) {  //  ews == 1 always here
-    for (int i = tid; i < resultLength; i += totalThreads) {
-      auto yOffset = subArrayOffset(i, outputShape, inputShape);
-      *(reinterpret_cast<X*>(outputBuffer) + i) = static_cast<X>(*(reinterpret_cast<Y const*>(inputBuffer) + yOffset));
-    }
-  } else if (ordering == 'c' && ews > 1) {
-    for (int i = tid; i < resultLength; i += totalThreads) {
-      auto yOffset = subArrayOffset(i, outputShape, inputShape);
-      *(reinterpret_cast<X*>(outputBuffer) + i * ews) =
-          static_cast<X>(*(reinterpret_cast<Y const*>(inputBuffer) + yOffset));
-    }
-  } else {
-    for (int i = tid; i < resultLength; i += totalThreads) {
-      auto xOffset = getIndexOffset_(i, outputShape);
-      auto yOffset = subArrayOffset(i, outputShape, inputShape);
-      *(reinterpret_cast<X*>(outputBuffer) + xOffset) =
-          static_cast<X>(*(reinterpret_cast<Y const*>(inputBuffer) + yOffset));
+        outData[outOffset] = inData[inOffset];
+      }
     }
   }
-}
 
-BUILD_SINGLE_TEMPLATE_TWICE(template SD_KERNEL void tileKernelDouble,
-                            (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                             sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews),
-                            SD_COMMON_TYPES);
+  // We build specialized versions of tileKernel for all SD_COMMON_TYPES
+  BUILD_SINGLE_TEMPLATE(
+      template SD_KERNEL void tileKernel,
+      (void const* inputBuffer,
+       sd::LongType const* inputShape,
+       void* outputBuffer,
+       sd::LongType const* outputShape,
+       sd::LongType resultLength),
+      SD_COMMON_TYPES);
 
-template <typename X, typename Y>
-void tileKernelHH(void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                  sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews, cudaStream_t* stream) {
-  dim3 launchDims(256, 512, 8192);
-  tileKernelDouble<X, Y><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(inputBuffer, inputShape, outputBuffer,
-                                                                                outputShape, resultLength, ews);
-}
+  template <typename T>
+  void tileKernelH(void const* inputBuffer,
+                   LongType const* inputShape,
+                   void* outputBuffer,
+                   LongType const* outputShape,
+                   LongType resultLength,
+                   cudaStream_t* stream) {
 
-BUILD_SINGLE_TEMPLATE_TWICE(template void tileKernelHH,
-                            (void const* inputBuffer, sd::LongType const* inputShape, void* outputBuffer,
-                             sd::LongType const* outputShape, sd::LongType resultLength, sd::LongType ews,
-                             cudaStream_t* stream),
-                            SD_COMMON_TYPES);
+    dim3 launchDims = getLaunchDims("tile");
+    tileKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(
+        inputBuffer, inputShape, outputBuffer, outputShape, resultLength);
+
+    sd::DebugHelper::checkErrorCode(stream, "tileKernel failed");
+  }
+
+  BUILD_SINGLE_TEMPLATE(
+      template void tileKernelH,
+      (void const* inputBuffer,
+       sd::LongType const* inputShape,
+       void* outputBuffer,
+       sd::LongType const* outputShape,
+       sd::LongType resultLength,
+       cudaStream_t* stream),
+      SD_COMMON_TYPES);
+
+  // Enhancement for different input (Y) and output (X) data types
+  template <typename X, typename Y>
+  SD_KERNEL void tileKernelDouble(
+      void const* inputBuffer,
+      LongType const* inputShape,
+      void* outputBuffer,
+      LongType const* outputShape,
+      LongType resultLength) {
+
+    const int tid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const int totalThreads = gridDim.x * blockDim.x;
+
+    __shared__ sd::LongType inRank;
+    __shared__ const sd::LongType* inShapePtr;
+    __shared__ const sd::LongType* inStridePtr;
+
+    __shared__ sd::LongType outRank;
+    __shared__ const sd::LongType* outShapePtr;
+    __shared__ const sd::LongType* outStridePtr;
+    __shared__ char outOrder;
+
+    if (threadIdx.x == 0) {
+      inRank      = shape::rank(inputShape);
+      inShapePtr  = shape::shapeOf(inputShape);
+      inStridePtr = shape::stride(inputShape);
+
+      outRank     = shape::rank(outputShape);
+      outShapePtr = shape::shapeOf(outputShape);
+      outStridePtr= shape::stride(outputShape);
+
+      outOrder    = shape::order(outputShape);
+    }
+    __syncthreads();
+
+    const auto inData  = reinterpret_cast<const Y*>(inputBuffer);
+    auto outData       = reinterpret_cast<X*>(outputBuffer);
+
+    if (outOrder == 'c') {
+      for (LongType i = tid; i < resultLength; i += totalThreads) {
+        sd::LongType outCoords[SD_MAX_RANK];
+        sd::LongType inCoords[SD_MAX_RANK];
+        sd::LongType inOffset;
+
+        // Get output coordinates
+        INDEX2COORDS(i, outRank, outShapePtr, outCoords);
+
+        // Map to input coordinates (using modulo for tiling)
+        for (int d = 0; d < inRank; d++) {
+          inCoords[d] = outCoords[d] % inShapePtr[d];
+        }
+
+        // Get input offset from input coordinates
+        COORDS2INDEX(inRank, inStridePtr, inCoords, inOffset);
+
+        outData[i] = inData[inOffset];
+      }
+    }
+    else {
+      for (LongType i = tid; i < resultLength; i += totalThreads) {
+        sd::LongType outCoords[SD_MAX_RANK];
+        sd::LongType outOffset;
+        sd::LongType inCoords[SD_MAX_RANK];
+        sd::LongType inOffset;
+
+        INDEX2COORDS(i, outRank, outShapePtr, outCoords);
+        COORDS2INDEX(outRank, outStridePtr, outCoords, outOffset);
+
+        // The original logic does a symmetrical approach for input.
+        // We'll maintain that for consistency:
+        INDEX2COORDS(i, inRank, inShapePtr, inCoords);
+        COORDS2INDEX(inRank, inStridePtr, inCoords, inOffset);
+
+        outData[outOffset] = static_cast<X>(inData[inOffset]);
+      }
+    }
+  }
+
+  BUILD_SINGLE_TEMPLATE_TWICE(
+      template SD_KERNEL void tileKernelDouble,
+      (void const* inputBuffer,
+       sd::LongType const* inputShape,
+       void* outputBuffer,
+       sd::LongType const* outputShape,
+       sd::LongType resultLength),
+      SD_COMMON_TYPES);
+
+  // The host wrapper for tileKernelDouble
+  template <typename X, typename Y>
+  void tileKernelHH(void const* inputBuffer,
+                    LongType const* inputShape,
+                    void* outputBuffer,
+                    LongType const* outputShape,
+                    LongType resultLength,
+                    cudaStream_t* stream) {
+
+    dim3 launchDims = getLaunchDims("tile");
+    tileKernelDouble<X, Y><<<launchDims.x, launchDims.y, launchDims.z, *stream>>>(
+        inputBuffer, inputShape, outputBuffer, outputShape, resultLength);
+
+    DebugHelper::checkErrorCode(stream, "tileKernelDouble(...) failed");
+  }
+
+  BUILD_SINGLE_TEMPLATE_TWICE(
+      template void tileKernelHH,
+      (void const* inputBuffer,
+       sd::LongType const* inputShape,
+       void* outputBuffer,
+       sd::LongType const* outputShape,
+       sd::LongType resultLength,
+       cudaStream_t* stream),
+      SD_COMMON_TYPES);
+
 }  // namespace sd

@@ -22,11 +22,11 @@ package org.nd4j.linalg.api.ops.random.impl;
 
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
 import org.nd4j.linalg.api.ops.OpContext;
-import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 
 import java.util.Arrays;
 import java.util.List;
@@ -72,26 +72,44 @@ public class CustomDropOut extends DynamicCustomOp {
         addIArgument(seed);
     }
 
+    @Override
+    public int getNumOutputs() {
+        return 2;
+    }
 
     @Override
     public String opName() {
         return "dropout";
     }
 
+    @Override
+    public void configureFromArguments() {
+        if(!tArguments.isEmpty()) {
+            this.probabilityValue = tArguments.get(0);
+        }
+
+        if(!bArguments.isEmpty()) {
+            this.inverted = bArguments.get(0);
+        }
+
+        if(!iArguments.isEmpty()) {
+            this.seed = iArguments.get(0);
+        }
+    }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc) {
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray input = oc.getInputArray(0);
-        return Arrays.asList(input.shapeDescriptor());
+        return Arrays.asList(input.shapeInfoDataBuffer());
     }
 
     @Override
     public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes) {
-        return Arrays.asList(dataTypes.get(0));
+        return Arrays.asList(dataTypes.get(0),dataTypes.get(0));
     }
 
     @Override
     public List<SDVariable> doDiff(List<SDVariable> f1) {
-        return Arrays.asList(new CustomDropOut(sameDiff, new SDVariable[]{arg(0), f1.get(0)}, inverted, seed, probabilityValue).outputVariables());
+        return Arrays.asList(new DropOutBp(sameDiff, new SDVariable[]{arg(0),outputVariables()[1], f1.get(0)}, inverted, seed, probabilityValue).outputVariables());
     }
 }

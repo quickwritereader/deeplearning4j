@@ -26,7 +26,6 @@ import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.imports.NoOpNameFoundException;
 import org.nd4j.imports.descriptors.properties.PropertyMapping;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
@@ -78,17 +77,8 @@ public class ExpandDims extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        val targetNode = TFGraphMapper.getNodeWithNameFromGraph(graph, nodeDef.getInput(1));
-        val dimArr = TFGraphMapper.getNDArrayFromTensor(targetNode);
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
 
-        if (dimArr != null) {
-            int axis = dimArr.data().asInt()[0];
-            this.jaxis = axis;
-            addIArgument(this.jaxis);
-        } else {
-            this.jaxis = Integer.MAX_VALUE;
-            addIArgument(this.jaxis);
-        }
     }
 
     @Override
@@ -172,7 +162,7 @@ public class ExpandDims extends DynamicCustomOp {
     }
 
     @Override
-    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes){
+    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes) {
         //Axis may be defined either as integer or as an array
         Preconditions.checkState(dataTypes != null && (dataTypes.size() == 1 || dataTypes.size() == 2), "Expected list with 1 or 2 datatype for %s, got %s", getClass(), dataTypes);
         //Output type is same as input type

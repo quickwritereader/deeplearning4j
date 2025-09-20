@@ -40,9 +40,9 @@ BROADCASTABLE_OP_IMPL(cyclic_rshift_bits, 0, 0) {
 
   x->applyTrueBroadcast(
       BroadcastIntOpsTuple::custom(scalar::CyclicShiftRight, pairwise::CyclicShiftRight, broadcast::CyclicShiftRight),
-      *y, *z, false);
+      y, z, false);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(cyclic_rshift_bits) { getOpDescriptor()->setAllowedInputTypes({ALL_INTS})->setSameMode(true); }

@@ -20,8 +20,10 @@
 
 package org.eclipse.deeplearning4j.nd4j.autodiff.samediff;
 
+import static org.deeplearning4j.datasets.iterator.RandomDataSetIterator.Values.INTEGER_0_10;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.nd4j.linalg.api.buffer.DataType.FLOAT;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.deeplearning4j.datasets.iterator.RandomDataSetIterator;
 import org.deeplearning4j.datasets.iterator.utilty.ListDataSetIterator;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
@@ -49,6 +52,7 @@ import org.nd4j.evaluation.IEvaluation;
 import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.BaseNd4jTestWithBackends;
 import org.nd4j.linalg.api.buffer.DataType;
+import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.eclipse.deeplearning4j.nd4j.linalg.dataset.IrisDataSetIterator;
@@ -69,6 +73,7 @@ import org.nd4j.linalg.learning.config.Sgd;
 import org.nd4j.shade.guava.collect.Lists;
 import org.nd4j.weightinit.impl.OneInitScheme;
 import org.nd4j.weightinit.impl.XavierInitScheme;
+import org.nd4j.weightinit.impl.ZeroInitScheme;
 
 @Slf4j
 @NativeTag
@@ -93,11 +98,11 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
         SameDiff sd = SameDiff.create();
 
         //First: Let's create our placeholders. Shape: [minibatch, in/out]
-        SDVariable input = sd.placeHolder("input", DataType.FLOAT, -1, nIn);
-        SDVariable labels = sd.placeHolder("labels", DataType.FLOAT, -1, nOut);
+        SDVariable input = sd.placeHolder("input", FLOAT, -1, nIn);
+        SDVariable labels = sd.placeHolder("labels", FLOAT, -1, nOut);
 
         //Second: let's create our variables
-        SDVariable weights = sd.var("weights", new XavierInitScheme('c', nIn, nOut), DataType.FLOAT, nIn, nOut);
+        SDVariable weights = sd.var("weights", new XavierInitScheme('c', nIn, nOut), FLOAT, nIn, nOut);
         SDVariable bias = sd.var("bias");
 
         //And define our forward pass:
@@ -105,6 +110,7 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
 
         //And our loss function
         SDVariable mse = sd.loss.meanSquaredError("mse", labels, out, null);
+        mse.markAsLoss();
         //Let's create some mock data for this example:
         Nd4j.getRandom().setSeed(12345);
         INDArray inputArr = Nd4j.rand(minibatch, nIn);
@@ -138,19 +144,49 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
                 .updater(new Sgd(learningRate))
                 .dataSetFeatureMapping("input")
                 .dataSetLabelMapping("labels")
-                .minimize("mse")
-                .minimize(true)
                 .build();
         sd.setTrainingConfig(config);
         sd.setListeners(new ScoreListener(1));
         History hist = sd.fit(trainIter, epoches);
-        assertTrue(hist.getLossCurve().getLossValues().sumNumber().doubleValue() > 0.0);
+        INDArray lossValues = hist.getLossCurve().getLossValues();
+        assertTrue(lossValues.sumNumber().doubleValue() > 0.0);
     }
+
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     @Tag(TagNames.LONG_TEST)
     @Tag(TagNames.LARGE_RESOURCES)
+    public void testTrainSmall() {
+
+        int batchSize = 4;
+        int modelDim = 8;
+
+        SameDiff sd = SameDiff.create();
+
+        SDVariable features = sd.placeHolder("features", FLOAT, batchSize, modelDim);
+        SDVariable labels = sd.placeHolder("labels", FLOAT, batchSize, modelDim);
+        SDVariable weights = sd.var("weights", new XavierInitScheme('c', modelDim, modelDim), FLOAT, modelDim, modelDim);
+        SDVariable bias = sd.var("bias", new ZeroInitScheme('c'), FLOAT, modelDim);
+        SDVariable predictions = sd.nn.linear("predictions", features, weights, bias);
+        SDVariable loss = sd.loss.meanSquaredError("loss", labels, predictions, null);
+        loss.markAsLoss();
+        TrainingConfig config = new TrainingConfig.Builder()
+                .updater(new Adam(0.1))
+                .dataSetFeatureMapping("features")
+                .dataSetLabelMapping("labels")
+                .build();
+        sd.setTrainingConfig(config);
+
+        DataSetIterator iterator = new RandomDataSetIterator(1, new long[]{batchSize, modelDim}, new long[]{batchSize, modelDim}, INTEGER_0_10, INTEGER_0_10);
+
+        sd.fit(iterator, 10);
+
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void irisTrainingSanityCheck(Nd4jBackend backend) {
 
         DataSetIterator iter = new IrisDataSetIterator(150, 150);
@@ -165,14 +201,14 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
             log.info("Starting: " + u);
             SameDiff sd = SameDiff.create();
 
-            SDVariable in = sd.placeHolder("input", DataType.FLOAT,  -1, 4);
-            SDVariable label = sd.placeHolder("label", DataType.FLOAT, -1, 3);
+            SDVariable in = sd.placeHolder("input", FLOAT,  -1, 4);
+            SDVariable label = sd.placeHolder("label", FLOAT, -1, 3);
 
-            SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), DataType.FLOAT, 4, 10);
-            SDVariable b0 = sd.zero("b0", DataType.FLOAT, 1, 10);
+            SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), FLOAT, 4, 10);
+            SDVariable b0 = sd.zero("b0", FLOAT, 1, 10);
 
-            SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), DataType.FLOAT, 10, 3);
-            SDVariable b1 = sd.zero("b1", DataType.FLOAT, 1, 3);
+            SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), FLOAT, 10, 3);
+            SDVariable b1 = sd.zero("b1", FLOAT, 1, 3);
 
             SDVariable z0 = in.mmul(w0).add(b0);
             SDVariable a0 = sd.math().tanh(z0);
@@ -226,21 +262,24 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testGradients() {
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        Nd4j.getExecutioner().enableDebugMode(true);
         SameDiff sd = SameDiff.create();
 
-        SDVariable i0 = sd.placeHolder("i0", DataType.FLOAT, 2,5);
-        SDVariable w0 = sd.var("w0", new OneInitScheme('c'), DataType.FLOAT, 5, 3);
-        SDVariable b0 = sd.var("b0", new OneInitScheme('c'), DataType.FLOAT,3);
+        SDVariable i0 = sd.placeHolder("i0", FLOAT, 2,5);
+        SDVariable w0 = sd.var("w0", new OneInitScheme('c'), FLOAT, 5, 3);
+        SDVariable b0 = sd.var("b0", new OneInitScheme('c'), FLOAT,3);
 
-        SDVariable w1 = sd.var("w1", new OneInitScheme('c'), DataType.FLOAT, 3,3);
-        SDVariable b1 = sd.var("b1", new OneInitScheme('c'), DataType.FLOAT,3);
+        SDVariable w1 = sd.var("w1", new OneInitScheme('c'), FLOAT, 3,3);
+        SDVariable b1 = sd.var("b1", new OneInitScheme('c'), FLOAT,3);
 
         SDVariable i1 = i0.mmul(w0).add(b0);
         SDVariable i2 = i1.mmul(w1).add(b1).add(i1);
         SDVariable l = i2.sum();
 
         sd.setLossVariables(l);
-        INDArray gd = sd.calculateGradients(Collections.singletonMap("i0",Nd4j.rand(2,5)),"w0").get("w0");
+        INDArray value = Nd4j.rand(2,5);
+        INDArray gd = sd.calculateGradients(Collections.singletonMap("i0",value),"w0").get("w0");
         assertTrue(gd.sumNumber().doubleValue() > 0.0);
     }
 
@@ -249,13 +288,13 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testLossReducePersist(Nd4jBackend backend) {
         SameDiff sd = SameDiff.create();
-        SDVariable in = sd.placeHolder("in", DataType.FLOAT, -1, 784);
-        SDVariable labels = sd.placeHolder("labels", DataType.FLOAT,-1,10);
-        SDVariable w1 = sd.var("w1", Nd4j.rand(DataType.FLOAT, 784, 100));
-        SDVariable b1 = sd.var("b1", Nd4j.rand(DataType.FLOAT, 100));
+        SDVariable in = sd.placeHolder("in", FLOAT, -1, 784);
+        SDVariable labels = sd.placeHolder("labels", FLOAT,-1,10);
+        SDVariable w1 = sd.var("w1", Nd4j.rand(FLOAT, 784, 100));
+        SDVariable b1 = sd.var("b1", Nd4j.rand(FLOAT, 100));
         SDVariable a1 = sd.nn.tanh(in.mmul(w1).add(b1));
-        SDVariable w2 = sd.var("w2", Nd4j.rand(DataType.FLOAT, 100, 10));
-        SDVariable b2 = sd.var("b2", Nd4j.rand(DataType.FLOAT, 10));
+        SDVariable w2 = sd.var("w2", Nd4j.rand(FLOAT, 100, 10));
+        SDVariable b2 = sd.var("b2", Nd4j.rand(FLOAT, 10));
         SDVariable out = sd.nn.softmax("out", a1.mmul(w2).add(b2));
         sd.loss().logLoss("loss",labels,out,null, LossReduce.SUM,1e-3);
         File tmpDir = testDir.resolve("path.fb").toFile();
@@ -278,14 +317,14 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
         Nd4j.getRandom().setSeed(12345);
         SameDiff sd = SameDiff.create();
 
-        SDVariable in = sd.placeHolder("input", DataType.FLOAT, -1, 4);
-        SDVariable label = sd.placeHolder("label", DataType.FLOAT, -1, 3);
+        SDVariable in = sd.placeHolder("input", FLOAT, -1, 4);
+        SDVariable label = sd.placeHolder("label", FLOAT, -1, 3);
 
-        SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), DataType.FLOAT, 4, 10);
-        SDVariable b0 = sd.zero("b0", DataType.FLOAT, 1, 10);
+        SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), FLOAT, 4, 10);
+        SDVariable b0 = sd.zero("b0", FLOAT, 1, 10);
 
-        SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), DataType.FLOAT, 10, 3);
-        SDVariable b1 = sd.zero("b1", DataType.FLOAT, 1, 3);
+        SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), FLOAT, 10, 3);
+        SDVariable b1 = sd.zero("b1", FLOAT, 1, 3);
 
         SDVariable z0 = in.mmul(w0).add(b0);
         SDVariable a0 = sd.math().tanh(z0);
@@ -320,56 +359,60 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void irisTrainingValidationTest(Nd4jBackend backend) {
+        Nd4j.getExecutioner().enableDebugMode(true);
+        Nd4j.getExecutioner().enableVerboseMode(true);
+        try(MemoryWorkspace ws = Nd4j.getWorkspaceManager().scopeOutOfWorkspaces()) {
+            DataSetIterator iter = new IrisDataSetIterator(150, 150);
+            NormalizerStandardize std = new NormalizerStandardize();
+            std.fit(iter);
+            iter.setPreProcessor(std);
 
-        DataSetIterator iter = new IrisDataSetIterator(150, 150);
-        NormalizerStandardize std = new NormalizerStandardize();
-        std.fit(iter);
-        iter.setPreProcessor(std);
+            DataSetIterator valIter = new IrisDataSetIterator(30, 60);
+            NormalizerStandardize valStd = new NormalizerStandardize();
+            valStd.fit(valIter);
+            valIter.setPreProcessor(std);
 
-        DataSetIterator valIter = new IrisDataSetIterator(30, 60);
-        NormalizerStandardize valStd = new NormalizerStandardize();
-        valStd.fit(valIter);
-        valIter.setPreProcessor(std);
+            Nd4j.getRandom().setSeed(12345);
+            SameDiff sd = SameDiff.create();
 
-        Nd4j.getRandom().setSeed(12345);
-        SameDiff sd = SameDiff.create();
+            SDVariable in = sd.placeHolder("input", FLOAT, -1, 4);
+            SDVariable label = sd.placeHolder("label", FLOAT, -1, 3);
 
-        SDVariable in = sd.placeHolder("input", DataType.FLOAT, -1, 4);
-        SDVariable label = sd.placeHolder("label", DataType.FLOAT, -1, 3);
+            SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), FLOAT, 4, 10);
+            SDVariable b0 = sd.zero("b0", FLOAT, 1, 10);
 
-        SDVariable w0 = sd.var("w0", new XavierInitScheme('c', 4, 10), DataType.FLOAT, 4, 10);
-        SDVariable b0 = sd.zero("b0", DataType.FLOAT, 1, 10);
+            SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), FLOAT, 10, 3);
+            SDVariable b1 = sd.zero("b1", FLOAT, 1, 3);
 
-        SDVariable w1 = sd.var("w1", new XavierInitScheme('c', 10, 3), DataType.FLOAT, 10, 3);
-        SDVariable b1 = sd.zero("b1", DataType.FLOAT, 1, 3);
+            SDVariable z0 = in.mmul(w0).add(b0);
+            SDVariable a0 = sd.math().tanh(z0);
+            SDVariable z1 = a0.mmul(w1).add("prediction", b1);
+            SDVariable a1 = sd.nn().softmax(z1);
 
-        SDVariable z0 = in.mmul(w0).add(b0);
-        SDVariable a0 = sd.math().tanh(z0);
-        SDVariable z1 = a0.mmul(w1).add("prediction", b1);
-        SDVariable a1 = sd.nn().softmax(z1);
+            SDVariable diff = sd.math().squaredDifference(a1, label);
+            SDVariable lossMse = diff.mul(diff).mean();
 
-        SDVariable diff = sd.math().squaredDifference(a1, label);
-        SDVariable lossMse = diff.mul(diff).mean();
+            TrainingConfig conf = new TrainingConfig.Builder()
+                    .l2(1e-4)
+                    .updater(new Adam(1e-2))
+                    .dataSetFeatureMapping("input")
+                    .dataSetLabelMapping("label")
+                    .validationEvaluation("prediction", 0, new Evaluation())
+                    .build();
 
-        TrainingConfig conf = new TrainingConfig.Builder()
-                .l2(1e-4)
-                .updater(new Adam(1e-2))
-                .dataSetFeatureMapping("input")
-                .dataSetLabelMapping("label")
-                .validationEvaluation("prediction", 0, new Evaluation())
-                .build();
+            sd.setTrainingConfig(conf);
 
-        sd.setTrainingConfig(conf);
+            History hist = sd.fit().train(iter, 50).validate(valIter, 5).exec();
 
-        History hist = sd.fit().train(iter, 50).validate(valIter, 5).exec();
+            Evaluation e = hist.finalValidationEvaluations().evaluation("prediction");
 
-        Evaluation e = hist.finalValidationEvaluations().evaluation("prediction");
+            System.out.println(e.stats());
 
-        System.out.println(e.stats());
+            double acc = e.accuracy();
 
-        double acc = e.accuracy();
+            assertTrue(acc >= 0.75,"Accuracy bad: " + acc);
+        }
 
-        assertTrue(acc >= 0.75,"Accuracy bad: " + acc);
     }
 
 
@@ -380,12 +423,12 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
         for (String u : new String[]{"adam", "nesterov", "adamax", "amsgrad"}) {
 
             SameDiff sd = SameDiff.create();
-            SDVariable in = sd.placeHolder("in", DataType.FLOAT, -1, 4);
+            SDVariable in = sd.placeHolder("in", FLOAT, -1, 4);
 
             SDVariable inHalf = in.castTo(DataType.HALF);
             SDVariable inDouble = in.castTo(DataType.DOUBLE);
 
-            SDVariable wFloat = sd.var("wFloat", Nd4j.rand(DataType.FLOAT, 4, 3));
+            SDVariable wFloat = sd.var("wFloat", Nd4j.rand(FLOAT, 4, 3));
             SDVariable wDouble = sd.var("wDouble", Nd4j.rand(DataType.DOUBLE, 4, 3));
             SDVariable wHalf = sd.var("wHalf", Nd4j.rand(DataType.HALF, 4, 3));
 
@@ -393,7 +436,7 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
             SDVariable outDouble = inDouble.mmul(wDouble);
             SDVariable outHalf = inHalf.mmul(wHalf);
 
-            SDVariable sum = outFloat.add(outDouble.castTo(DataType.FLOAT)).add(outHalf.castTo(DataType.FLOAT));
+            SDVariable sum = outFloat.add(outDouble.castTo(FLOAT)).add(outHalf.castTo(FLOAT));
 
             SDVariable loss = sum.std(true);
 
@@ -427,7 +470,7 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
 
             sd.setTrainingConfig(conf);
 
-            DataSet ds = new DataSet(Nd4j.rand(DataType.FLOAT, 3, 4), null);
+            DataSet ds = new DataSet(Nd4j.rand(FLOAT, 3, 4), null);
 
             for( int i=0; i<10; i++ ){
                 sd.fit(ds);
@@ -473,7 +516,6 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
         sd.createGradFunction();
         val conf = new TrainingConfig.Builder()
                 .updater(updater)
-                .minimize("loss")
                 .dataSetFeatureMapping("x1", "x2", "y")
                 .markLabelsUnused()
                 .build();
@@ -486,14 +528,14 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testTrainingEvalVarNotReqForLoss(){
+    public void testTrainingEvalVarNotReqForLoss() {
         //If a variable is not required for the loss - normally it won't be calculated
         //But we want to make sure it IS calculated here - so we can perform evaluation on it
 
         SameDiff sd = SameDiff.create();
-        SDVariable in = sd.placeHolder("in", DataType.FLOAT, -1, 4);
-        SDVariable label = sd.placeHolder("label", DataType.FLOAT, -1, 3);
-        SDVariable w = sd.var("w", Nd4j.rand(DataType.FLOAT, 4, 3));
+        SDVariable in = sd.placeHolder("in", FLOAT, -1, 4);
+        SDVariable label = sd.placeHolder("label", FLOAT, -1, 3);
+        SDVariable w = sd.var("w", Nd4j.rand(FLOAT, 4, 3));
         SDVariable z = in.mmul(w);
         SDVariable out = sd.nn.softmax("softmax", z);
         SDVariable loss = sd.loss.logLoss("loss", label, out);
@@ -508,7 +550,7 @@ public class SameDiffTrainingTest extends BaseNd4jTestWithBackends {
 
 //        sd.setListeners(new ScoreListener(1));
 
-        DataSet ds = new DataSet(Nd4j.rand(DataType.FLOAT, 3, 4), Nd4j.createFromArray(new float[][]{{1,0,0}, {0,1,0}, {0,0,1}}));
+        DataSet ds = new DataSet(Nd4j.rand(FLOAT, 3, 4), Nd4j.createFromArray(new float[][]{{1,0,0}, {0,1,0}, {0,0,1}}));
 
         History h = sd.fit()
                 .train(new SingletonDataSetIterator(ds), 4)

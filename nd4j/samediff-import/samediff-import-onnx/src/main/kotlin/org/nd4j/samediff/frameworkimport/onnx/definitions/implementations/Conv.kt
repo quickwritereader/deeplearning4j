@@ -70,7 +70,7 @@ class Conv : PreImportHook  {
         val computeIndex = storageComputeFormat.second.indexOf('C')
         val spatialFormat = StringUtils.join(storageComputeFormat.second.filter { input -> input == 'C' || input == 'W' })
 
-        val perm = (2 to weightsRank - 1).toList() + listOf(1,0)
+        val perm = ((2 to weightsRank - 1).toList() + listOf(1,0)).map { input -> input.toLong() }.toLongArray()
         val kernelShape = if(attributes.containsKey("kernel_shape")) {
             val kernelShapeList = attributes["kernel_shape"] as List<Int>
             kernelShapeList.map { input -> input }.toIntArray()
@@ -79,8 +79,8 @@ class Conv : PreImportHook  {
             weightsShape.map { input -> input.toInt() }.toIntArray()
         }
 
-        var weights = sd.permute(inWeights,*perm.toIntArray())
-        var inWeightsShape = ArrayUtil.permute(ArrayUtil.copy(inWeights.shape),perm.toIntArray())
+        var weights = sd.permute(inWeights,*perm)
+        var inWeightsShape = ArrayUtil.permute(ArrayUtil.copy(inWeights.shape),perm)
         val dilations = if(attributes.containsKey("dilations")) {
             val dilationsList = attributes["dilations"] as List<Int>
             val dilationsArr = dilationsList
@@ -391,7 +391,9 @@ class Conv : PreImportHook  {
         val adaptedPads = adaptPads(pads)
         val numDim = adaptedPads.size / 2
         val newPads = Nd4j.create(Nd4j.createBuffer(adaptedPads.toLongArray())).transpose().reshape('c',2,numDim)
-        val newPads2 = Nd4j.concat(0,Nd4j.create(Nd4j.createBuffer(longArrayOf(0,0,0,0))).reshape(4),newPads.ravel().reshape(newPads.length()))
+        val firstConcat = Nd4j.create(Nd4j.createBuffer(longArrayOf(0,0,0,0))).reshape(4)
+        val secondConcat = newPads.ravel()
+        val newPads2 = Nd4j.concat(0,firstConcat,secondConcat)
         val inputPadding = sd.constant(newPads2.reshape('c',numDim + 2,2).castTo(DataType.INT32))
         return sd.image().pad(x,inputPadding,Mode.CONSTANT,0.0)
     }

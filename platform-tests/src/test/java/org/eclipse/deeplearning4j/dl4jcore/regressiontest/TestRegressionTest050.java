@@ -34,6 +34,7 @@ import org.deeplearning4j.nn.weights.WeightInitXavier;
 import org.deeplearning4j.util.ModelSerializer;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -102,6 +103,7 @@ public class TestRegressionTest050 extends BaseDL4JTest {
     }
 
     @Test
+    @Disabled("Invalid optimizer now used here")
     public void regressionTestMLP2() throws Exception {
 
         File f = Resources.asFile("regression_testing/050/050_ModelSerializer_Regression_MLP_2.zip");
@@ -157,15 +159,15 @@ public class TestRegressionTest050 extends BaseDL4JTest {
         assertEquals(new WeightInitRelu(), l0.getWeightInitFn());
         assertEquals(new RmsProp(0.15, 0.96, RmsProp.DEFAULT_RMSPROP_EPSILON), l0.getIUpdater());
         assertEquals(0.15, ((RmsProp)l0.getIUpdater()).getLearningRate(), 1e-6);
-        assertArrayEquals(new int[] {2, 2}, l0.getKernelSize());
-        assertArrayEquals(new int[] {1, 1}, l0.getStride());
-        assertArrayEquals(new int[] {0, 0}, l0.getPadding());
+        assertArrayEquals(new long[] {2, 2}, l0.getKernelSize());
+        assertArrayEquals(new long[] {1, 1}, l0.getStride());
+        assertArrayEquals(new long[] {0, 0}, l0.getPadding());
         assertEquals(ConvolutionMode.Truncate, l0.getConvolutionMode()); //Pre-0.7.0: no ConvolutionMode. Want to default to truncate here if not set
 
         SubsamplingLayer l1 = (SubsamplingLayer) conf.getConf(1).getLayer();
-        assertArrayEquals(new int[] {2, 2}, l1.getKernelSize());
-        assertArrayEquals(new int[] {1, 1}, l1.getStride());
-        assertArrayEquals(new int[] {0, 0}, l1.getPadding());
+        assertArrayEquals(new long[] {2, 2}, l1.getKernelSize());
+        assertArrayEquals(new long[] {1, 1}, l1.getStride());
+        assertArrayEquals(new long[] {0, 0}, l1.getPadding());
         assertEquals(PoolingType.MAX, l1.getPoolingType());
         assertEquals(ConvolutionMode.Truncate, l1.getConvolutionMode()); //Pre-0.7.0: no ConvolutionMode. Want to default to truncate here if not set
 

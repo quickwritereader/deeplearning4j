@@ -20,8 +20,10 @@
 // Created by raver119 on 16.10.2017.
 //
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/LegacyReduceOp.h>
+#include <ops/declarable/OpRegistrator.h>
+
 #ifdef LEGACY_REDUCE_SAME_ONLY
 namespace sd {
 namespace ops {
@@ -29,8 +31,7 @@ LegacyReduceOp::LegacyReduceOp() : LegacyOp::LegacyOp(1) {
   //
 }
 
-LegacyReduceOp::LegacyReduceOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
-  // this->_opNum = opNum;
+LegacyReduceOp::LegacyReduceOp(int opType) : LegacyOp::LegacyOp(1, opType) {
 }
 
 LegacyOp *LegacyReduceOp::clone() { return new LegacyReduceOp(this->_opNum); }
@@ -38,8 +39,8 @@ LegacyOp *LegacyReduceOp::clone() { return new LegacyReduceOp(this->_opNum); }
 sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
   auto x = INPUT_VARIABLE(0);
 
-  int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
-  sd_debug("Executing LegacyReduceOp: [%i]\n", opNum);
+  int opType = block.opType() < 0 ? this->_opNum : block.opType();
+  sd_debug("Executing LegacyReduceOp: [%i]\n", opType);
 
   bool allAxes = false;
 
@@ -51,7 +52,7 @@ sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
     if ((block.getIArguments()->size() == 0) || (block.getIArguments()->size() == 1 && INT_ARG(0) == SD_MAX_INT) ||
         allAxes) {
       // scalar
-      NativeOpExcutioner::execReduceFloatScalar(opNum, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
+      NativeOpExcutioner::execReduceFloatScalar(opType, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
                                                 z->buffer(), z->shapeInfo());
     } else {
       // TAD
@@ -68,7 +69,7 @@ sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
       tad.createTadOnlyShapeInfo();
       tad.createOffsets();
 
-      NativeOpExcutioner::execReduceFloat(opNum, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
+      NativeOpExcutioner::execReduceFloat(opType, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
                                           z->buffer(), z->shapeInfo(), dims.data(), (int)dims.size(),
                                           tad.tadOnlyShapeInfo, tad.tadOffsets);
     }
@@ -94,7 +95,7 @@ sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
 
 
       // scalar
-      NativeOpExcutioner::execReduceFloatScalar(opNum, b, s, e, z->buffer(), z->shapeInfo());
+      NativeOpExcutioner::execReduceFloatScalar(opType, b, s, e, z->buffer(), z->shapeInfo());
     } else {
       // TAD
       if (indices->lengthOf() > 1) std::sort(axis.begin(), axis.end());
@@ -108,25 +109,25 @@ sd::Status LegacyReduceOp::validateAndExecute(Context &block) {
       auto newShape = ShapeUtils::evalReduceShapeInfo(x->ordering(), axis, *x);
       auto z = new NDArray(newShape, x->getWorkspace());
 
-      NativeOpExcutioner::execReduceFloat(opNum, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
+      NativeOpExcutioner::execReduceFloat(opType, x->buffer(), x->shapeInfo(), block.getTArguments()->data(),
                                           z->buffer(), z->shapeInfo(), axis.data(), (int)axis.size(),
                                           tad.tadOnlyShapeInfo, tad.tadOffsets);
 
       // keepDims processing, for TF compatibility
       if (block.getIArguments()->size() > 0 && block.getIArguments()->at(0) == 1) {
-        // z->printShapeInfo("z shape before");
         std::vector<sd::LongType> newshape(z->getShapeAsVector());
         for (int e = 0; e < axis.size(); e++) {
           auto a = axis.at(e);
           newshape.insert(newshape.begin() + a, 1);
         }
         z->reshapei(z->ordering(), newshape);
-        // z->printShapeInfo("z shape after");
       }
 
       OVERWRITE_RESULT(z);
     }
   }
+
+  traceExecIfNeeded(block);
 
   return sd::Status::OK;
 }
@@ -157,16 +158,12 @@ ShapeList *LegacyReduceOp::calculateOutputShape(ShapeList *inputShape, sd::graph
       newShape[5] = 0;
       newShape[6] = 1;
       newShape[7] = 99;
-      // ArrayOptions::setDataType(newShape, block.dataType() ==
-      // DataType::BOOL?block.dataType():ArrayOptions::dataType(inShape));
     } else {
       ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(0), sd::LongType);
       newShape[0] = 0;
       newShape[1] = 0;
       newShape[2] = 1;
       newShape[3] = 99;
-      // ArrayOptions::setDataType(newShape, block.dataType() ==
-      // DataType::BOOL?block.dataType():ArrayOptions::dataType(inShape));
     }
   } else {
     // in this case we're building proper shape for reduction

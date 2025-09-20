@@ -41,14 +41,12 @@ std::vector<Variable *> *Graph::getPlaceholders() { return _variableSpace->getPl
 
 int Graph::numberOfPlaceholders() { return _variableSpace->numberOfPlaceholders(); };
 
-sd::LongType Graph::estimateRequiredMemory() {
-  sd::LongType result = 0L;
-  sd::LongType lastStep = 0L;
+LongType Graph::estimateRequiredMemory() {
+  LongType result = 0L;
+  LongType lastStep = 0L;
 
-  std::vector<sd::LongType const *> shapes;
-  SD_MAP_IMPL<std::pair<int, int>, sd::LongType const *> shapesMap;
-
-  int cntFD = 0;
+  std::vector<LongType const *> shapes;
+  SD_MAP_IMPL<std::pair<int, int>, LongType  *> shapesMap;
 
   // we loop in similar way to execution
   for (int l = 0; l < (int)_onion->size(); l++) {
@@ -66,17 +64,12 @@ sd::LongType Graph::estimateRequiredMemory() {
        * 4) Op is multiplicator (i.e. im2col)
        */
       if (node->hasCustomOp()) {
-        // if (node->isInplace()) {
-        //    continue;
-        //}
-
         sd_debug("Trying estimation [%i] on [%s]\n", node->id(), node->getCustomOp()->getOpName()->c_str());
 
         auto op = node->getCustomOp();
-        auto in = node->input()->at(0);
 
         auto block = node->getContextPrototype();
-        std::vector<sd::LongType const *> inputShapes;
+        std::vector<LongType *> inputShapes;
         int *oldShape;
         for (auto v : *node->input()) {
           sd_debug("     inputs for estimation are: %i:%i\n", v.first, v.second);
@@ -96,7 +89,7 @@ sd::LongType Graph::estimateRequiredMemory() {
         for (int jj = 0; jj < outSha->size(); jj++) {
           auto newShape = outSha->at(jj);
           std::pair<int, int> pairAddr(node->id(), cnt++);
-          std::pair<std::pair<int, int>, sd::LongType const *> pairShape(pairAddr, newShape);
+          std::pair<std::pair<int, int>, LongType  *> pairShape(pairAddr, newShape);
 
           shapesMap.insert(pairShape);
 
@@ -107,7 +100,7 @@ sd::LongType Graph::estimateRequiredMemory() {
         }
 
         delete outSha;
-      } else if (node->getOpClass() == OpClass_TRANSFORM) {
+      } else if (node->getOpClass() == ::graph::OpClass_TRANSFORM) {
         auto vec = node->input();
 
         auto in = node->input()->at(0);
@@ -115,11 +108,11 @@ sd::LongType Graph::estimateRequiredMemory() {
           auto x = _variableSpace->getVariable(in);
           auto z = _variableSpace->getVariable(node->id());
 
-          auto newShape = new sd::LongType[shape::shapeInfoLength(x->getNDArray()->shapeInfo())];
+          auto newShape = new LongType[shape::shapeInfoLength(x->getNDArray()->shapeInfo())];
           memcpy(newShape, x->getNDArray()->shapeInfo(), shape::shapeInfoByteLength(x->getNDArray()->shapeInfo()));
 
           std::pair<int, int> pairAddr(node->id(), 0);
-          std::pair<std::pair<int, int>, sd::LongType const *> pairShape(pairAddr, newShape);
+          std::pair<std::pair<int, int>, LongType  *> pairShape(pairAddr, newShape);
 
           shapesMap.insert(pairShape);
 
@@ -129,11 +122,11 @@ sd::LongType Graph::estimateRequiredMemory() {
         } else {
           auto prevShape = shapesMap.at(in);
 
-          auto newShape = new sd::LongType[shape::shapeInfoLength(prevShape)];
+          auto newShape = new LongType[shape::shapeInfoLength(prevShape)];
           memcpy(newShape, prevShape, shape::shapeInfoByteLength(prevShape));
 
           std::pair<int, int> pairAddr(node->id(), 0);
-          std::pair<std::pair<int, int>, sd::LongType const *> pairShape(pairAddr, newShape);
+          std::pair<std::pair<int, int>, LongType  *> pairShape(pairAddr, newShape);
 
           shapesMap.insert(pairShape);
 
@@ -142,27 +135,17 @@ sd::LongType Graph::estimateRequiredMemory() {
           shapes.push_back(newShape);
         }
 
-      } else if (node->getOpClass() == OpClass_REDUCTION) {
-        sd::LongType const *newShape = nullptr;
+      } else if (node->getOpClass() == ::graph::OpClass_REDUCTION) {
+        LongType  *newShape = nullptr;
 
         // if that's scalar output - we don't care about previous node
         if (node->getDimensions()->size() == 0 ||
-            (node->getDimensions()->size() == 1 && node->getDimensions()->at(0) == sd::DataTypeUtils::max<int>())) {
-          //                            auto aNewShape = new sd::LongType[8];
-          //
-          //                            aNewShape[0] = 2;
-          //                            aNewShape[1] = 1;
-          //                            aNewShape[2] = 1;
-          //                            aNewShape[3] = 1;
-          //                            aNewShape[4] = 1;
-          //                            aNewShape[5] = 8192; // set type as FLOAT32 by default
-          //                            aNewShape[6] = 1;
-          //                            aNewShape[7] = 99;
-          newShape = ConstantShapeHelper::getInstance().createShapeInfo(DataType::FLOAT32, 'c', {1, 1});
+            (node->getDimensions()->size() == 1 && node->getDimensions()->at(0) == DataTypeUtils::max<int>())) {
+          newShape = ConstantShapeHelper::getInstance().createShapeInfo(FLOAT32, 'c', {1, 1});
         } else {
           auto in = node->input()->at(0);
 
-          sd::LongType const *oldShape = nullptr;
+          LongType const *oldShape = nullptr;
           // calculate tads here
           if (in.first < 0) {
             auto x = _variableSpace->getVariable(in)->getNDArray();
@@ -172,45 +155,33 @@ sd::LongType Graph::estimateRequiredMemory() {
             oldShape = shapesMap.at(in);
           }
 
-          // shape::TAD tad(oldShape, node->getDimensions()->data(), node->getDimensions()->size());
-          auto numTads = shape::tadLength(oldShape, node->getDimensions()->data(), node->getDimensions()->size());
-          sd::LongType shape[2] = {1, (int)numTads};
+          auto numTads = shape::tadLength(oldShape,node->getDimensions()->data(),
+                                          node->getDimensions()->size());
+          LongType shape[2] = {1, (int)numTads};
           newShape =
-              ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(oldShape), 'c', 2, shape);
+              ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(oldShape), 'c', 2, shape, -1);
         }
 
         std::pair<int, int> pairAddr(node->id(), 0);
-        std::pair<std::pair<int, int>, sd::LongType const *> pairShape(pairAddr, newShape);
+        std::pair<std::pair<int, int>, LongType  *> pairShape(pairAddr, newShape);
 
         shapesMap.insert(pairShape);
 
         result += shape::length(newShape) * DataTypeUtils::sizeOfElement(node->dataType());
 
         shapes.push_back(newShape);
-      } else if (node->getOpClass() == OpClass_MULTIPLICATOR) {
+      } else if (node->getOpClass() == ::graph::OpClass_MULTIPLICATOR) {
         // can't be in non-special op
       }
 
-      cntFD++;
     }
   }
-
-  // this is the only place where we deallocate shapes.
-  // if (_variableSpace->launchContext()->getWorkspace() == nullptr)
-  //    for (auto v: shapes)
-  //        delete[] v;
 
   return result;
 }
 
 void Graph::pushToOutputOnce(int id) {
   if (std::find(_output.begin(), _output.end(), id) == _output.end()) _output.emplace_back(id);
-}
-
-void Graph::addOutput(int id) {
-  if (_configuration->_outputMode == OutputMode_EXPLICIT ||
-      _configuration->_outputMode == OutputMode_EXPLICIT_AND_IMPLICIT)
-    pushToOutputOnce(id);
 }
 
 ExecutorConfiguration *Graph::getExecutorConfiguration() { return _configuration; }
@@ -223,9 +194,9 @@ std::vector<Variable *> *Graph::fetchOutputs() {
     auto nodeId = _output.at(e);
     sd_debug("Output node: %i\n", nodeId);
 
-    for (int e = 0; e < DataTypeUtils::max<int>(); e++) {
-      if (_variableSpace->hasVariable(nodeId, e)) {
-        res->push_back(_variableSpace->getVariable(nodeId, e));
+    for (int e1 = 0; e1 < DataTypeUtils::max<int>(); e1++) {
+      if (_variableSpace->hasVariable(nodeId, e1)) {
+        res->push_back(_variableSpace->getVariable(nodeId, e1));
       } else {
         if (e == 0) {
           throw unresolved_output_exception::build("Can't find output variable", nodeId, e);
@@ -243,7 +214,7 @@ SD_MAP_IMPL<int, Node *> *Graph::getMapped() { return _mapped; }
 SD_MAP_IMPL<int, std::vector<Node *> *> *Graph::getOnion() { return _onion; }
 
 void Graph::injectNode(Node *node) {
-  if (node->getLayer() < 0) throw std::runtime_error("Only nodes with non-negative layer defined can be inserted");
+  if (node->getLayer() < 0) THROW_EXCEPTION("Only nodes with non-negative layer defined can be inserted");
 
   std::pair<int, Node *> pair(node->id(), node);
   if (_mapped->count(pair.first) > 0) return;
@@ -283,8 +254,7 @@ Graph::~Graph() {
 void Graph::addNode(Node *node) {
   _built.store(false);
 
-  if (node->opType() == OpType_LOGIC) {
-    // sd_debug("Adding LogicOp [%i]\n", node->opNum());
+  if (node->opType() == ::graph::OpType_LOGIC) {
     // SCOPE
     if (node->opNum() == logic::Scope) {
       auto scope = new Scope(node->id(), node->getName() != nullptr ? node->getName()->c_str() : "");
@@ -308,7 +278,7 @@ void Graph::addNode(Node *node) {
   _variableSpace->putVariable(node->id(), nodeState);
 
   // here we're filling our blocks with future variables
-  if (node->opType() == OpType_LOGIC && node->opNum() == logic::While) {
+  if (node->opType() == ::graph::OpType_LOGIC && node->opNum() == logic::While) {
     // filling while
     int inputs = node->input()->size();
     for (int e = 0; e < inputs - 2; e++) {
@@ -351,7 +321,7 @@ void Graph::addNode(Node *node) {
       }
     } else {
       // we need to check, if we should propagate output of this variable somewhere
-      for (int e = 0; e < node->output()->size(); e++) {
+      for (size_t e = 0; e < node->output()->size(); e++) {
         auto out = node->output()->at(e);
         if (out.first < 0) {
           sd_debug("Node [%i] will be propagating its output to Variable [%i]\n", node->id(), out.first);
@@ -366,7 +336,7 @@ void Graph::addNode(Node *node) {
   }
 
   // we're saving only ops that have internal outpus here
-  if (_configuration->_outputMode == OutputMode_VARIABLE_SPACE)
+  if (_configuration->_outputMode == ::graph::OutputMode_VARIABLE_SPACE)
     if (node->hasInternalOutputs()) pushToOutputOnce(node->id());
 
   // if outputs are undefined, we have to auto-create variable
@@ -393,8 +363,8 @@ void Graph::addNode(Node *node) {
               node->hasInternalOutputs());
 
     // we're pushing this node to output only
-    if ((!node->hasInternalOutputs() && (_configuration->_outputMode == OutputMode_IMPLICIT ||
-                                         _configuration->_outputMode == OutputMode_EXPLICIT_AND_IMPLICIT))) {
+    if ((!node->hasInternalOutputs() && (_configuration->_outputMode == ::graph::OutputMode_IMPLICIT ||
+                                         _configuration->_outputMode == ::graph::OutputMode_EXPLICIT_AND_IMPLICIT))) {
       for (int e = 0; e < (int)node->output()->size(); e++) {
         if (node->output()->at(e).first < 0) pushToOutputOnce(node->output()->at(e).first);
       }
@@ -407,7 +377,7 @@ void Graph::addNode(Node *node) {
   if (node->isScoped()) {
     if (_mappedScopes.count(node->scopeId()) < 1) {
       sd_printf("Requested scope [%i/%s] wasn't created yet\n", node->scopeId(), node->scopeName()->c_str());
-      throw std::invalid_argument("Unknown scope requested");
+      THROW_EXCEPTION("Unknown scope requested");
     }
 
     Scope *scope = _mappedScopes.at(node->scopeId());
@@ -424,14 +394,13 @@ void Graph::addNode(Node *node) {
 
     injectNode(node);
 
-    // sd_logger("A Node_%i mapped to layer_%i; Output: %i;\n", node->id(), node->getLayer(), node->output()->at(0));
 
     return;
   } else {
     // in some cases we're able to put stuff immediately
     if (node->hasInternalInputs() && !node->hasExternalInputs() && node->input()->size() == 1) {
       bool automapAllowed = true;
-      for (int e = 0; e < node->input()->size(); e++) {
+      for (size_t e = 0; e < node->input()->size(); e++) {
         auto cInput = node->input()->at(e);
         int cFirst = cInput.first;
         if (_mapped->count(cFirst) == 0) {
@@ -441,8 +410,6 @@ void Graph::addNode(Node *node) {
       }
 
       // we only can put single input nodes, whose outputs were not mapped yet
-      // if (_mapped->count(node->input()->at(0).first) == 1 && (node->output()->size() == 0 ||
-      // _mapped->count(node->output()->at(0).first) == 0)) {
       if (automapAllowed) {
         auto parent = _mapped->at(node->input()->at(0).first);
         int nLayer = parent->getLayer() + 1;
@@ -459,21 +426,7 @@ void Graph::addNode(Node *node) {
 
         return;
       }
-    } /*else if (node->opType() == OpType_LOGIC && node->opNum() == 10) {
-        // Scopes are just being added. They won't be executed on their own anyway.
-
-        int nLayer = _onion->size();
-
-        expandOnion(nLayer);
-        node->setLayer(nLayer);
-        injectNode(node);
-
-        sd_logger("Node_%i mapped Scope to layer_%i; Output: %i;\n", node->id(), node->getLayer(),
-    node->output()->at(0));
-
-        return;
     }
-*/
     // otherwise we're putting it to unmapped space for further sorting
     _unmapped.insert(pair);
     _unmappedMap.emplace_back(pair.first);
@@ -481,10 +434,10 @@ void Graph::addNode(Node *node) {
   }
 }
 
-sd::Status Graph::buildGraph() {
+Status Graph::buildGraph() {
   if (_built.load()) {
     prepareOutputs();
-    return sd::Status::OK;
+    return Status::OK;
   }
 
   typename SD_MAP_IMPL<int, Node *>::iterator fit;
@@ -510,10 +463,6 @@ sd::Status Graph::buildGraph() {
       auto node = it->second;
       int tK = it->first;
       int tF = _unmappedMap.at(cntf++);
-
-      // sd_printf("tK: %i; tF: %i\n", tK, tF);
-      // for (int f = 0; f < sz; f++) {
-      //    auto node = _unmapped.at(_unmappedMap.at(f));
 
       // single-input node
       if (node->input()->size() == 1) {
@@ -542,7 +491,7 @@ sd::Status Graph::buildGraph() {
               block = node->getContextPrototype();
 
             if (!block->hasVariablesFilled()) {
-              for (int e = 0; e < node->input()->size(); e++) {
+              for (size_t e = 0; e < node->input()->size(); e++) {
                 auto p = node->input()->at(e);
 
                 block->pickInput(p);
@@ -599,10 +548,10 @@ sd::Status Graph::buildGraph() {
             auto iNode = _mapped->at(nodeId);
 
             if (maxLayer < iNode->getLayer()) maxLayer = iNode->getLayer();
-          } else if (node->opType() == OpType_LOGIC) {
+          } else if (node->opType() == ::graph::OpType_LOGIC) {
             // just allow it?
           } else  // checking if that's static variable
-              if (nodeId > 0 && !_variableSpace->hasExternalVariable(nodeId)) {
+          if (nodeId > 0 && !_variableSpace->hasExternalVariable(nodeId)) {
             breaker = true;
             break;
           }
@@ -648,7 +597,7 @@ sd::Status Graph::buildGraph() {
         sd_printf("Unmapped node: [%i]\n", node->id());
       }
 
-      throw std::runtime_error("Unable to build graph");
+      THROW_EXCEPTION("Unable to build graph");
     }
   }
 
@@ -656,7 +605,7 @@ sd::Status Graph::buildGraph() {
 
   prepareOutputs();
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 void Graph::tagInplaceNodes() {
@@ -731,7 +680,7 @@ void Graph::tagInplaceNodes() {
 
 void Graph::prepareOutputs() {
   // if we're dumping everything out there - we'll add external variables as well
-  if (_configuration->_outputMode == OutputMode_VARIABLE_SPACE) {
+  if (_configuration->_outputMode == ::graph::OutputMode_VARIABLE_SPACE) {
     auto ext = _variableSpace->getExternalVariables();
     sd_verbose("Number of external variables: %i\n", ext->size()) for (unsigned int e = 0; e < ext->size(); e++) {
       pushToOutputOnce(ext->at(e)->id());
@@ -745,7 +694,7 @@ void Graph::prepareOutputs() {
       if (std::find(_output.begin(), _output.end(), node->id()) == _output.end()) _output.emplace_back(node->id());
     }
 
-  } else if (_configuration->_outputMode == OutputMode_IMPLICIT) {
+  } else if (_configuration->_outputMode == ::graph::OutputMode_IMPLICIT) {
     // we're adding final nodes of the graph. those, not used as input anywhere
     sd_debug("Paring nodes... \n", "");
 
@@ -766,7 +715,7 @@ void Graph::prepareOutputs() {
       }
 
       // updating outputs now
-      for (int e = 0; e < node->input()->size(); e++) {
+      for (size_t e = 0; e < node->input()->size(); e++) {
         auto inP = node->input()->at(e);
 
         // input can be variable, or node. we only care about nodes
@@ -806,7 +755,7 @@ void Graph::prepareOutputs() {
   }
 }
 
-Graph::Graph(const FlatGraph *flatGraph, VariableSpace *variableSpace) {
+Graph::Graph(const ::graph::FlatGraph *flatGraph, VariableSpace *variableSpace) {
   this->_onion = new SD_MAP_IMPL<int, std::vector<Node *> *>();
   this->_mapped = new SD_MAP_IMPL<int, Node *>();
   this->_nodes = new std::vector<int>();
@@ -824,7 +773,7 @@ Graph::Graph(const FlatGraph *flatGraph, VariableSpace *variableSpace) {
 
   // if memory reqs were set - initialize workspace
   if (_configuration->_footprintForward > 0) {
-    sd::memory::Workspace *workspace = this->_variableSpace->launchContext()->getWorkspace();
+    memory::Workspace *workspace = this->_variableSpace->launchContext()->getWorkspace();
     workspace->expandBy(_configuration->_footprintForward);
   }
 
@@ -838,21 +787,21 @@ Graph::Graph(const FlatGraph *flatGraph, VariableSpace *variableSpace) {
       _variableSpace->putVariable(pair, var);
 
       // if that's VariableSpace mode - we're pushing it to _output
-      if (_configuration->_outputMode == OutputMode_VARIABLE_SPACE) pushToOutputOnce(var->id());
+      if (_configuration->_outputMode == ::graph::OutputMode_VARIABLE_SPACE) pushToOutputOnce(var->id());
     }
   }
 
   // at this point we expect all variables are already registered
   // we're saving outputs only if explicit mode is set
-  if (_configuration->_outputMode == OutputMode_EXPLICIT ||
-      _configuration->_outputMode == OutputMode_EXPLICIT_AND_IMPLICIT) {
+  if (_configuration->_outputMode == ::graph::OutputMode_EXPLICIT ||
+      _configuration->_outputMode == ::graph::OutputMode_EXPLICIT_AND_IMPLICIT) {
     if (flatGraph != nullptr && flatGraph->outputs() != nullptr) {
       for (unsigned int e = 0; e < flatGraph->outputs()->size(); e++) {
         auto out = flatGraph->outputs()->Get(e);
         std::pair<int, int> vp(out->first(), out->second());
         if (!_variableSpace->hasVariable(vp)) {
           sd_verbose("Non-existent variable requested: %i\n", out);
-          throw std::runtime_error("Non-existent variable requested");
+          THROW_EXCEPTION("Non-existent variable requested");
         }
 
         // TODO: fix this .first
@@ -893,7 +842,7 @@ Graph::Graph(const FlatGraph *flatGraph, VariableSpace *variableSpace) {
    *  1) this is FeedForward pass ONLY
    *  2) OPTIMIZED mode is set, so no intermediate results are going to be used
    */
-  if (_configuration->_direction == Direction_FORWARD_ONLY && _configuration->_outputMode == OutputMode_OPTIMIZED)
+  if (_configuration->_direction == ::graph::Direction_FORWARD_ONLY && _configuration->_outputMode == ::graph::OutputMode_OPTIMIZED)
     this->tagInplaceNodes();
 }
 
@@ -936,10 +885,10 @@ void Graph::toposortNodes() {
           // can't map this node yet, due to non-resolved dependencies
           canMap = false;
         } else if (_variableSpace->hasVariable(
-                       in.first)) {  // that's probably variable. if not - we'll throw exception later
-                                     // do nothing, maxDepLayer is -1 here, because it's a variable input
+            in.first)) {  // that's probably variable. if not - we'll throw exception later
+          // do nothing, maxDepLayer is -1 here, because it's a variable input
         } else {
-          throw graph::unresolved_input_exception::build("Unknown input specified", id, in);
+          throw unresolved_input_exception::build("Unknown input specified", id, in);
         }
       }
 
@@ -980,7 +929,7 @@ int Graph::totalNodes() {
   return _mapped->size();
 }
 
-sd::Status Graph::validate() {
+Status Graph::validate() {
   if (!_built) {
     _mutexPreprocessing.lock();
     if (!_built) {
@@ -989,18 +938,18 @@ sd::Status Graph::validate() {
     _mutexPreprocessing.unlock();
   }
 
-  if (_built.load() != true) return sd::Status::BAD_GRAPH;
+  if (_built.load() != true) return Status::BAD_GRAPH;
 
-  return sd::Status::OK;
+  return Status::OK;
 };
 
 void Graph::printOutNode(Node *node) {
   sd_printf("%i. ", node->id());
   switch (node->opType()) {
-    case OpType_CUSTOM: {
+    case ::graph::OpType_CUSTOM: {
       printf("%s; ", node->getCustomOp()->getOpName()->c_str());
     } break;
-    case OpType_LOGIC: {
+    case ::graph::OpType_LOGIC: {
       printf("%s; ", EnumUtils::_LogicOpToString(node->opNum()));
     } break;
     default: {
@@ -1010,27 +959,25 @@ void Graph::printOutNode(Node *node) {
 
   sd_printf("Inputs: [", "");
   // auto block = node->getBlock();
-  for (int e = 0; e < node->input()->size(); e++) {
+  for (size_t e = 0; e < node->input()->size(); e++) {
     auto in = node->input()->at(e);
     printf("{%i:%i}", in.first, in.second);
     if (e < node->input()->size() - 1) sd_printf(", ", "");
   }
 
-  if (node->opType() == OpType_CUSTOM) {
+  if (node->opType() == ::graph::OpType_CUSTOM) {
     auto ctx = node->protoContext();
     if (ctx->getIArguments()->size() > 0) {
       printf("]; iArgs: [");
 
-      for (int e = 0; e < ctx->getIArguments()->size(); e++) {
-        printf("%i", ctx->getIArguments()->at(e));
+      for (size_t e = 0; e < ctx->getIArguments()->size(); e++) {
+        printf("%lli", ctx->getIArguments()->at(e));
         if (e < ctx->getIArguments()->size() - 1) sd_printf(", ", "");
       }
     }
   }
 
   sd_printf("]; \n", "");
-
-  //            printf("\n");
   fflush(stdout);
 }
 
@@ -1050,10 +997,10 @@ void Graph::printOut() {
 
         if (v->getName() != nullptr && !v->getName()->empty()) {
           sd_printf("<%s> <%i:%i> dtype: %s; shape: %s; values: %s;\n", v->getName()->c_str(), v->id(), v->index(),
-                    dtype.c_str(), shape.c_str(), values.c_str());
+                    dtype.c_str(), shape.c_str(), values->c_str());
         } else {
           sd_printf("<%i:%i> dtype: %s; shape: %s; values: %s;\n", v->id(), v->index(), dtype.c_str(), shape.c_str(),
-                    values.c_str());
+                    values->c_str());
         }
       } else if (v->hasNDArrayList()) {
         // TODO: add better NDArrayList printout
@@ -1065,14 +1012,14 @@ void Graph::printOut() {
   if (_onion->size() > 0) sd_printf("\nPrinting out Graph...\n", "");
 
   int opCnt = 0;
-  for (int l = 0; l < _onion->size(); l++) {
+  for (size_t l = 0; l < _onion->size(); l++) {
     int layerSize = _onion->count(l) == 1 ? _onion->at(l)->size() : 0;
 
     for (int n = 0; n < layerSize; n++) {
       Node *node = _onion->at(l)->at(n);
 
       // we're skipping Scopes here
-      if (node->opType() == OpType_LOGIC && node->opNum() == logic::Scope) continue;
+      if (node->opType() == ::graph::OpType_LOGIC && node->opNum() == logic::Scope) continue;
 
       printOutNode(node);
     }
@@ -1080,11 +1027,11 @@ void Graph::printOut() {
 
   if (_scopes.size() > 0) sd_printf("\nPrinting out Scopes...\n", "");
 
-  for (int s = 0; s < _scopes.size(); s++) {
+  for (size_t s = 0; s < _scopes.size(); s++) {
     Scope *scope = _scopes.at(s);
-    sd_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
+    sd_printf("OpScope %i:<%s>:\n", scope->id(), scope->name()->c_str());
 
-    for (int n = 0; n < scope->nodes()->size(); n++) {
+    for (size_t n = 0; n < scope->nodes()->size(); n++) {
       Node *node = scope->nodes()->at(n);
       printOutNode(node);
     }
@@ -1093,103 +1040,10 @@ void Graph::printOut() {
   fflush(stdout);
 }
 
-sd::Status Graph::validateNode(Node *node) {
-  // TODO: to be implemented
-  return sd::Status::OK;
-}
-
-std::vector<sd::ops::OpDescriptor> Graph::getOperations() {
-  buildGraph();
-  // sd_printf("\nRetrieving ops from the Graph and collect them...\n", "");
-  std::vector<sd::ops::OpDescriptor> res;
-
-  int opCnt = 0;
-  for (int l = 0; l < _onion->size(); l++) {
-    int layerSize = _onion->count(l) == 1 ? _onion->at(l)->size() : 0;
-
-    for (int n = 0; n < layerSize; n++) {
-      Node *node = _onion->at(l)->at(n);
-      if (node->name() == nullptr) continue;
-      sd::ops::OpDescriptor *pOpDescriptor = nullptr;
-      std::string opNameStr;  // node->name();
-      int numInputs = 0;
-      int numOutputs = 0;
-
-      switch (node->opType()) {
-        case OpType_CUSTOM: {
-          pOpDescriptor = node->getCustomOp()->getOpDescriptor();
-        } break;
-        case OpType_LOGIC: {
-          opNameStr = std::string(EnumUtils::_LogicOpToString(node->opNum()));
-        } break;
-        default: {
-          opNameStr = std::string(EnumUtils::_OpTypeToString(node->opType())) + "{" +
-                      ops::OpRegistrator::getInstance().local_to_string<int>((int)node->opNum()) + "}";
-        }
-      }
-
-      if (node->input()) numInputs = node->input()->size();
-
-      if (node->output()) numOutputs = node->output()->size();
-      bool inplace = node->isInplace();
-
-      // OpDescriptor opDescriptor(numInputs, numOutputs, opNameStr, inplace);
-
-      // we're skipping Scopes here
-      if (node->opType() == OpType_LOGIC && node->opNum() == logic::Scope) continue;
-      if (pOpDescriptor)
-        res.emplace_back(*pOpDescriptor);
-      else
-        res.emplace_back(sd::ops::OpDescriptor(numInputs, numOutputs, opNameStr, inplace));
-    }
-  }
-
-  // sd_printf("\nCollecting out Scopes...\n","");
-  for (int s = 0; s < _scopes.size(); s++) {
-    Scope *scope = _scopes.at(s);
-    // sd_printf("Scope %i:<%s>:\n", scope->id(), scope->name()->c_str());
-
-    for (int n = 0; n < scope->nodes()->size(); n++) {
-      Node *node = scope->nodes()->at(n);
-      // printOutNode(node);
-      if (node->name() == nullptr) continue;
-      std::string opNameStr;  // node->name();
-      sd::ops::OpDescriptor *pOpDescriptor = nullptr;
-      int numInputs = 0;
-      int numOutputs = 0;
-
-      switch (node->opType()) {
-        case OpType_CUSTOM: {
-          pOpDescriptor = node->getCustomOp()->getOpDescriptor();
-        } break;
-        case OpType_LOGIC: {
-          opNameStr = std::string(EnumUtils::_LogicOpToString(node->opNum()));
-        } break;
-        default: {
-          opNameStr = std::string(EnumUtils::_OpTypeToString(node->opType())) + "{" +
-                      ops::OpRegistrator::getInstance().local_to_string<int>((int)node->opNum()) + "}";
-        }
-      }
-
-      if (node->input()) numInputs = node->input()->size();
-
-      if (node->output()) numOutputs = node->output()->size();
-      bool inplace = node->isInplace();
-
-      if (pOpDescriptor != nullptr)
-        res.emplace_back(*pOpDescriptor);
-      else
-        res.emplace_back(sd::ops::OpDescriptor(numInputs, numOutputs, opNameStr, inplace));
-    }
-  }
-
-  return res;
-}
-
 Scope *Graph::scopeById(int id) {
   if (_mappedScopes.count(id) == 0) {
-    sd_printf("Requested Scope [%i] doesn't exist\n", id);
-    throw std::runtime_error("Non-existent Scope was requested");
+    sd_printf("Requested OpScope [%i] doesn't exist\n", id);
+    THROW_EXCEPTION("Non-existent OpScope was requested");
   }
 
   return _mappedScopes.at(id);
@@ -1211,7 +1065,7 @@ Graph *Graph::cloneWithProxy() {
   clone->replaceState(new VariableProxy(this->_variableSpace), this->_configuration->clone());
 
   // transfer nodes
-  for (int e = 0; e < _nodes->size(); e++) clone->_nodes->emplace_back(_nodes->at(e));
+  for (size_t e = 0; e < _nodes->size(); e++) clone->_nodes->emplace_back(_nodes->at(e));
 
   // transfer outputs
   for (auto v : _output) clone->_output.emplace_back(v);
@@ -1256,7 +1110,7 @@ Graph *Graph::clone() {
   clone->replaceState(this->_variableSpace->clone(), this->_configuration->clone());
 
   // transfer nodes
-  for (int e = 0; e < _nodes->size(); e++) clone->_nodes->emplace_back(_nodes->at(e));
+  for (size_t e = 0; e < _nodes->size(); e++) clone->_nodes->emplace_back(_nodes->at(e));
 
   // transfer outputs
   for (auto v : _output) clone->_output.emplace_back(v);
@@ -1301,10 +1155,10 @@ Node *Graph::nodeById(int id) { return _mapped->at(id); }
 
 bool Graph::hasScope(int id) { return _mappedScopes.count(id) > 0; }
 
-sd::LongType Graph::hashCode() {
+LongType Graph::hashCode() {
   if (!_built.load()) this->buildGraph();
 
-  sd::LongType hash = 0L;
+  LongType hash = 0L;
   std::string localStamp;
   /**
    * Plan is:

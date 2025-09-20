@@ -42,7 +42,7 @@ OpArgsHolder::OpArgsHolder() {
 ////////////////////////////////////////////////////////////////////////
 // copy constructor
 OpArgsHolder::OpArgsHolder(const OpArgsHolder& other) {
-  throw std::runtime_error("OpArgsHolder::OpArgsHolder copy constructor: don't use me !");
+  THROW_EXCEPTION("OpArgsHolder::OpArgsHolder copy constructor: don't use me !");
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -81,7 +81,7 @@ OpArgsHolder::OpArgsHolder(OpArgsHolder&& other) noexcept
 ////////////////////////////////////////////////////////////////////////
 // assignment operator
 OpArgsHolder& OpArgsHolder::operator=(const OpArgsHolder& other) {
-  throw std::runtime_error("OpArgsHolder::OpArgsHolder assignment operator: don't use me !");
+  return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -89,7 +89,7 @@ OpArgsHolder& OpArgsHolder::operator=(const OpArgsHolder& other) {
 OpArgsHolder& OpArgsHolder::operator=(OpArgsHolder&& other) noexcept {
   if (this == &other) return *this;
 
-  for (int i = 0; i < _isArrAlloc.size(); ++i)  // delete arrays if necessary
+  for (size_t i = 0; i < _isArrAlloc.size(); ++i)  // delete arrays if necessary
     if (_isArrAlloc[i]) delete _inArrs[i];
 
   _inArrs = std::move(other._inArrs);
@@ -118,7 +118,8 @@ OpArgsHolder OpArgsHolder::createArgsHolderForBP(const std::vector<NDArray*>& in
 
   for (int i = 0; i < _numInArrs; ++i) {
     if (isInPlace) {
-      result._inArrs[i] = new NDArray(*_inArrs[i]);  // make copy
+      NDArray &arr2 = *_inArrs[i];
+      result._inArrs[i] = new NDArray(arr2);  // make copy
       result._isArrAlloc[i] = true;
     } else
       result._inArrs[i] = _inArrs[i];
@@ -133,7 +134,7 @@ OpArgsHolder OpArgsHolder::createArgsHolderForBP(const std::vector<NDArray*>& in
 ////////////////////////////////////////////////////////////////////////
 // default destructor
 OpArgsHolder::~OpArgsHolder() noexcept {
-  for (int i = 0; i < _isArrAlloc.size(); ++i)
+  for (size_t i = 0; i < _isArrAlloc.size(); ++i)
     if (_isArrAlloc[i]) delete _inArrs[i];
 }
 

@@ -21,11 +21,21 @@
 package org.nd4j.linalg.api.memory;
 
 public interface Deallocatable {
+
     /**
-     * This method returns unique ID for this instance
+     * Whether the reference should be deallocated or not.
      * @return
      */
-    String getUniqueId();
+    default boolean shouldDeAllocate() {
+        return false;
+    }
+
+    /**
+     * This method returns unique ID for this instance
+     *
+     * @return
+     */
+    long getUniqueId();
 
     /**
      * This method returns deallocator associated with this instance

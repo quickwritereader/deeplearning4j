@@ -23,7 +23,6 @@ package org.nd4j.linalg.api.ops.performance;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.nd4j.linalg.api.ops.executioner.OpExecutioner;
 import org.nd4j.linalg.api.ops.performance.primitives.AveragingTransactionsHolder;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.api.memory.MemcpyDirection;
@@ -57,7 +56,7 @@ public class PerformanceTracker {
      * PLEASE NOTE: Bandwidth is stored in per millisecond value.
      *
      * @param deviceId device used for this transaction
-     * @param timeSpent time spent on this transaction in nanoseconds
+     * @param timeSpentNanos time spent on this transaction in nanoseconds
      * @param numberOfBytes number of bytes
      */
     public long addMemoryTransaction(int deviceId, long timeSpentNanos, long numberOfBytes) {
@@ -71,7 +70,7 @@ public class PerformanceTracker {
      * PLEASE NOTE: Bandwidth is stored in per millisecond value.
      *
      * @param deviceId device used for this transaction
-     * @param timeSpent time spent on this transaction in nanoseconds
+     * @param timeSpentNanos time spent on this transaction in nanoseconds
      * @param numberOfBytes number of bytes
      * @param direction direction for the given memory transaction
      */
@@ -93,18 +92,12 @@ public class PerformanceTracker {
 
 
     public long helperStartTransaction() {
-        if (Nd4j.getExecutioner().getProfilingMode() == OpExecutioner.ProfilingMode.BANDWIDTH)
-            return System.nanoTime();
-        else
             return 0L;
     }
 
 
     public void helperRegisterTransaction(int deviceId, long timeSpentNanos, long numberOfBytes, @NonNull MemcpyDirection direction) {
         // only do something if profiling is enabled
-        if (Nd4j.getExecutioner().getProfilingMode() == OpExecutioner.ProfilingMode.BANDWIDTH) {
-            addMemoryTransaction(deviceId, System.nanoTime() - timeSpentNanos, numberOfBytes, direction);
-        }
     }
 
     public Map<Integer, Map<MemcpyDirection, Long>> getCurrentBandwidth() {
@@ -112,7 +105,7 @@ public class PerformanceTracker {
         val keys = bandwidth.keySet();
         for (val d: keys) {
 
-            result.put(d, new HashMap<MemcpyDirection, Long>());
+            result.put(d, new HashMap<>());
 
             // get average for each MemcpyDirection and store it
             for (val m: MemcpyDirection.values())

@@ -380,21 +380,7 @@ fun NN() = Namespace("NN") {
         }
     }
 
-    Op("softmaxDerivative") {
-        javaPackage = "org.nd4j.linalg.api.ops.impl.transforms.gradient"
-        javaOpClass = "SoftmaxBp"
-        Input(NUMERIC, "x") { description = "Softmax input" }
-        Input(NUMERIC, "wrt") { description = "Gradient at output, dL/dx" }
-        Arg(INT, "dimension"){description = "Softmax dimension"}
 
-        Output(NUMERIC, "output") { description = "" }
-
-        Doc(Language.ANY, DocScope.ALL) {
-            """
-                Softmax derivative function
-            """.trimIndent()
-        }
-    }
 
     Op("softplus", transformStrict) {
         javaOpClass = "SoftPlus"
@@ -443,7 +429,7 @@ fun NN() = Namespace("NN") {
         val g = Input(NUMERIC, "gain") { description = "Gain" }
         Input(NUMERIC, "bias") { description = "Bias"; defaultValue = null}
         val ch = Arg(BOOL, "channelsFirst") { description = "For 2D input - unused. True for NCHW (minibatch, channels, height, width), false for NHWC data" }
-        val dim = Arg(INT, "dimensions") { count = AtLeast(1); description = "Dimensions to perform layer norm over - dimension=1 for 2d/MLP data, dimension=1,2,3 for CNNs" }
+        val dim = Arg(LONG, "dimensions") { count = AtLeast(1); description = "Dimensions to perform layer norm over - dimension=1 for 2d/MLP data, dimension=1,2,3 for CNNs" }
 
         Output(NUMERIC, "output") { description = "Output variable" }
 
@@ -455,6 +441,49 @@ fun NN() = Namespace("NN") {
              Apply Layer Normalization
             
              y = gain * standardize(x) + bias
+            """.trimIndent()
+        }
+    }
+
+
+    Op("dotProductAttentionV2") {
+        javaPackage = "org.nd4j.linalg.api.ops.impl.transforms.custom"
+        val q = Input(NUMERIC, "queries") { description = "A {@link SDVariable} representing the query tensor. Shape: [batchSize, numQueries, queryDim]" }
+        val v = Input(NUMERIC, "values") { description = "A {@link SDVariable} representing the value tensor. Shape: [batchSize, numValues, valueDim]" }
+
+        val k = Input(NUMERIC, "keys") { description = "A {@link SDVariable} representing the key tensor. Shape: [batchSize, numValues, keyDim]" }
+        val queryMask = Input(NUMERIC, "queryMask") { description = "A {@link SDVariable} representing the query mask tensor. Shape: [batchSize, numQueries]" }
+        val valueMask = Input(NUMERIC, "valueMask") { description = "@param valueMask          A {@link SDVariable} representing the value mask tensor. Shape: [batchSize, numValues]" }
+
+        val s = Arg(FLOATING_POINT, "scaleFactor") { defaultValue = 1.0; description = "@param scaleFactor        A {@code double} scaling factor applied to the dot product between queries and keys." }
+        val dropout = Arg(FLOATING_POINT, "dropoutProbability") { defaultValue = 0.0; description = "A {@code double} specifying the dropout probability to be applied to attention weights." }
+        val useCausalMask = Arg(BOOL, "useCausalMask") { defaultValue = false; description = " A {@code boolean} flag to indicate whether to apply a causal mask to the attention scores, for autoregressive tasks." }
+        val training = Arg(BOOL, "training") { defaultValue = false; description = " A {@code boolean} flag to indicate whether the layer is in training mode or inference mode, affecting dropout." }
+
+        Output(NUMERIC, "output") { description = " A {@link SDVariable} representing the output tensor of the dot product attention operation. Shape: [batchSize, numQueries, valueDim]"}
+
+        Signature(q,v,k,queryMask,valueMask, s,dropout,useCausalMask,training)
+
+        Doc(Language.ANY, DocScope.ALL) {
+            """
+             This operation performs dot product attention on the given timeseries input with the given queries
+             out = sum(similarity(k_i, q) * v_i)
+            
+             similarity(k, q) = softmax(k * q) where x * q is the dot product of x and q
+            
+             Optionally with normalization step:
+             similarity(k, q) = softmax(k * q / sqrt(size(q))
+            
+             See also "Attention is all you need" (https://arxiv.org/abs/1706.03762, p. 4, eq. 1)
+            
+             Note: This supports multiple queries at once, if only one query is available the queries vector still has to
+             be 3D but can have queryCount = 1
+            
+             Note: keys and values usually is the same array. If you want to use it as the same array, simply pass it for
+             both.
+            
+             Note: Queries, keys and values must either be all rank 3 or all rank 4 arrays. Mixing them doesn't work. The
+             output rank will depend on the input rank.
             """.trimIndent()
         }
     }
@@ -499,6 +528,8 @@ fun NN() = Namespace("NN") {
             """.trimIndent()
         }
     }
+
+
 
     Op("multiHeadDotProductAttention") {
         javaPackage = "org.nd4j.linalg.api.ops.impl.transforms.custom"

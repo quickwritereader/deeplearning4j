@@ -47,7 +47,6 @@ import org.slf4j.LoggerFactory;
  * @author raver119@gmail.com
  */
 public class SynchronousFlowController implements FlowController {
-    private static Logger log = LoggerFactory.getLogger(SynchronousFlowController.class);
     private volatile Allocator allocator;
     protected NativeOps nativeOps = NativeOpsHolder.getInstance().getDeviceNativeOps();
     protected Configuration configuration = CudaEnvironment.getInstance().getConfiguration();
@@ -99,8 +98,7 @@ public class SynchronousFlowController implements FlowController {
 
 
             if (pointData.getDeviceId() != cId && pointData.getDeviceId() >= 0) {
-                DataBuffer buffer = operand.data().originalDataBuffer() == null ? operand.data()
-                                : operand.data().originalDataBuffer();
+                DataBuffer buffer = operand.data();
                 allocator.getMemoryHandler().relocateObject(buffer);
             }
 
@@ -128,8 +126,7 @@ public class SynchronousFlowController implements FlowController {
             val pointShape = allocator.getAllocationPoint(result.shapeInfoDataBuffer());
 
             if (pointData.getDeviceId() != cId && pointData.getDeviceId() >= 0 && (!CudaEnvironment.getInstance().getConfiguration().isCrossDeviceAccessAllowed() || !NativeOpsHolder.getInstance().getDeviceNativeOps().isP2PAvailable())) {
-                DataBuffer buffer = result.data().originalDataBuffer() == null ? result.data()
-                                : result.data().originalDataBuffer();
+                DataBuffer buffer = result.data();
                 allocator.getMemoryHandler().relocateObject(buffer);
             }
 
@@ -155,8 +152,7 @@ public class SynchronousFlowController implements FlowController {
             Nd4j.getAffinityManager().ensureLocation(operand, AffinityManager.Location.DEVICE);
 
             if (pointData.getDeviceId() != cId && pointData.getDeviceId() >= 0 && (!CudaEnvironment.getInstance().getConfiguration().isCrossDeviceAccessAllowed() || !NativeOpsHolder.getInstance().getDeviceNativeOps().isP2PAvailable())) {
-                DataBuffer buffer = operand.data().originalDataBuffer() == null ? operand.data()
-                                : operand.data().originalDataBuffer();
+                DataBuffer buffer = operand.data();
                 allocator.getMemoryHandler().relocateObject(buffer);
             }
 
@@ -180,20 +176,6 @@ public class SynchronousFlowController implements FlowController {
 
     @Override
     public void registerAction(CudaContext context, AllocationPoint result, AllocationPoint... operands) {
-        // this method is irrelevant now, everything happens in C++ now
-        /*
-        eventsProvider.storeEvent(result.getLastWriteEvent());
-        result.setLastWriteEvent(eventsProvider.getEvent());
-        result.getLastWriteEvent().register(context.getOldStream());
-
-
-        for (AllocationPoint operand : operands) {
-            eventsProvider.storeEvent(operand.getLastReadEvent());
-            operand.setLastReadEvent(eventsProvider.getEvent());
-            operand.getLastReadEvent().register(context.getOldStream());
-        }
-        //   context.syncOldStream();
-        */
     }
 
     @Override
@@ -257,9 +239,6 @@ public class SynchronousFlowController implements FlowController {
             if (pointShape.getAllocationStatus() == AllocationStatus.HOST) {
                 val oShape = array.shapeInfoDataBuffer();
                 val nShape = Nd4j.getConstantHandler().relocateConstantSpace(oShape);
-
-                if (nShape == oShape)
-                    Nd4j.getConstantHandler().moveToConstantSpace(nShape);
                 ((JCublasNDArray) array).setShapeInfoDataBuffer(nShape);
             }
         }

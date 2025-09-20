@@ -26,6 +26,10 @@ import org.nd4j.linalg.api.memory.Deallocator;
 import org.nd4j.linalg.api.memory.enums.MemoryKind;
 import org.nd4j.linalg.api.memory.pointers.PointersPair;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.profiler.data.eventlogger.EventLogger;
+import org.nd4j.linalg.profiler.data.eventlogger.EventType;
+import org.nd4j.linalg.profiler.data.eventlogger.LogEvent;
+import org.nd4j.linalg.profiler.data.eventlogger.ObjectAllocationType;
 
 import java.util.List;
 import java.util.Queue;
@@ -39,11 +43,23 @@ public class CudaWorkspaceDeallocator implements Deallocator {
     private PointersPair pointersPair;
     private Queue<PointersPair> pinnedPointers;
     private List<PointersPair> externalPointers;
+    private LogEvent logEvent;
+    private boolean isConstant;
 
     public CudaWorkspaceDeallocator(@NonNull CudaWorkspace workspace) {
         this.pointersPair = workspace.workspace();
         this.pinnedPointers = workspace.pinnedPointers();
         this.externalPointers = workspace.externalPointers();
+        isConstant = false;
+        if(EventLogger.getInstance().isEnabled()) {
+            logEvent = LogEvent.builder()
+                    .objectId(workspace.getUniqueId())
+                    .eventType(EventType.DEALLOCATION)
+                    .objectAllocationType(ObjectAllocationType.WORKSPACE)
+                    .associatedWorkspace(Nd4j.getWorkspaceManager().getWorkspaceForCurrentThread().getId())
+                    .build();
+
+        }
     }
 
     @Override
@@ -53,12 +69,10 @@ public class CudaWorkspaceDeallocator implements Deallocator {
         // purging workspace planes
         if (pointersPair != null) {
             if (pointersPair.getDevicePointer() != null) {
-                //log.info("Deallocating device...");
                 Nd4j.getMemoryManager().release(pointersPair.getDevicePointer(), MemoryKind.DEVICE);
             }
 
             if (pointersPair.getHostPointer() != null) {
-                //                                log.info("Deallocating host...");
                 Nd4j.getMemoryManager().release(pointersPair.getHostPointer(), MemoryKind.HOST);
             }
         }
@@ -96,5 +110,11 @@ public class CudaWorkspaceDeallocator implements Deallocator {
                 Nd4j.getMemoryManager().release(pair.getDevicePointer(), MemoryKind.DEVICE);
         }
 
+    }
+
+
+    @Override
+    public boolean isConstant() {
+        return isConstant;
     }
 }

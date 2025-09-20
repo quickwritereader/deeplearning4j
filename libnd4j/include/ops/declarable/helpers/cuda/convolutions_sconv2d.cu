@@ -23,14 +23,15 @@
 //
 #include <ops/declarable/helpers/convolutions.h>
 
+
 namespace sd {
 namespace ops {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename X, typename Y>
-static void sconv2d_(sd::graph::Context& block, const NDArray* input, const NDArray* weightsDepth,
-                     const NDArray* weightsPoint, const NDArray* bias, NDArray* output, const int kH, const int kW,
-                     const int sH, const int sW, int pH, int pW, const int dH, const int dW, const int paddingMode,
+static void sconv2d_(graph::Context& block, NDArray* input, NDArray* weightsDepth,
+                     NDArray* weightsPoint, NDArray* bias, NDArray* output, const LongType kH, const LongType kW,
+                     const LongType sH, const LongType sW, LongType pH, LongType pW, const LongType dH, const LongType dW, const int paddingMode,
                      const int isNCHW, const int wFormat) {
   // input         [bS, iH, iW, iC]  (NHWC) or [bS, iC, iH, iW]  (NCHW)
   // weightsDepth  [kH, kW, iC, mC], [mC, iC, kH, kW], [mC, kH, kW, iC]
@@ -49,20 +50,19 @@ static void sconv2d_(sd::graph::Context& block, const NDArray* input, const NDAr
   //  paddingMode 0-VALID, 1-SAME
   //  isNCHW     1-NCHW,  0-NHWC
 
-  int bS, iC, iH, iW, mC, oC, oH,
+  LongType bS, iC, iH, iW, mC, oC, oH,
       oW;  // batch size, input channels, input height/width, channels multiplier, output channels, output height/width
-  int indIOioC, indIiH, indWmC, indWiC, indWkH, indOoH;  // corresponding indexes
+  LongType indIOioC, indIiH, indWmC, indWiC, indWkH, indOoH;  // corresponding indexes
   ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, wFormat, *input, *output, bS, iC, iH, iW, oC, oH, oW, indIOioC,
                                              indIiH, indWiC, indWmC, indWkH, indOoH);
   mC = weightsDepth->sizeAt(indWmC);  // channels multiplier
 
   NDArray* outputDepth = output;
-  if (weightsPoint)  // if pointwise convolution is expected
-    outputDepth = new NDArray(
-        output->ordering(),
-        !isNCHW ? std::vector<sd::LongType>({bS, oH, oW, iC * mC}) : std::vector<sd::LongType>({bS, iC * mC, oH, oW}),
-        input->dataType(), input->getContext());
-
+  if (weightsPoint) {  // if pointwise convolution is expected
+    std::vector<sd::LongType> shape1 = {bS, oH, oW, iC * mC};
+    std::vector<sd::LongType> shape2 = {bS, iC * mC, oH, oW};
+    outputDepth = new NDArray(output->ordering(), !isNCHW ? shape1 : shape2, input->dataType(), input->getContext());
+  }
   // ----- perform depthwise convolution (if weightsPoint is absent then oC = iC*mC) ----- //
   ConvolutionUtils::depthwiseConv2d(block, input, weightsDepth, weightsPoint ? nullptr : bias, outputDepth, kH, kW, sH,
                                     sW, pH, pW, dH, dW, paddingMode, isNCHW, wFormat);
@@ -76,13 +76,13 @@ static void sconv2d_(sd::graph::Context& block, const NDArray* input, const NDAr
 }
 
 //////////////////////////////////////////////////////////////////////////
-void ConvolutionUtils::sconv2d(sd::graph::Context& block, const NDArray* input, const NDArray* weightsDepth,
-                               const NDArray* weightsPoint, const NDArray* bias, NDArray* output, const int kH,
-                               const int kW, const int sH, const int sW, int pH, int pW, const int dH, const int dW,
+void ConvolutionUtils::sconv2d(graph::Context& block, NDArray* input, NDArray* weightsDepth,
+                               NDArray* weightsPoint, NDArray* bias, NDArray* output, const LongType kH,
+                               const LongType kW, const LongType sH, const LongType sW, LongType pH, LongType pW, const LongType dH, const LongType dW,
                                const int paddingMode, const int isNCHW, const int wFormat) {
   BUILD_SINGLE_SELECTOR_TWICE(input->dataType(), sconv2d_,
                               (block, input, weightsDepth, weightsPoint, bias, output, kH, kW, sH, sW, pH, pW, dH, dW,
-                               paddingMode, isNCHW, wFormat),
+                                  paddingMode, isNCHW, wFormat),
                               SD_FLOAT_TYPES);
 }
 

@@ -529,8 +529,8 @@ val tensorArrayV3 = TensorflowMappingProcess(
         variableResolutionType = MapperNamespace.VariableResolutionType.OVERRIDE,
         inputFrameworkOpName = "TensorArrayV3",
         tensorMappingRules = listOf(mappingListNDArrays(mutableMapOf("input" to "size"))),
-        attributeMappingRules = listOf(valueMapping(mutableMapOf("importDataType" to "dtype","clearOnRead" to "clear_after_read")),
-                listNumberToNDarray(mutableMapOf("setShape" to "element_shape")))
+        attributeMappingRules = listOf(valueMapping(mutableMapOf("importDataType" to "dtype")),
+               )
 )
 
 
@@ -1483,7 +1483,7 @@ val nonMaxSuppressionV1 = multipleNameMapping(inputFrameworkOpNames = listOf("No
 val nonMaxSuppressionV2 = multipleNameMapping(inputFrameworkOpNames = listOf("NonMaxSuppressionV2"),
         opName = "non_max_suppression",
         tensorNames = mutableMapOf("boxes" to "boxes","scales" to "scores",
-                "overlayThreshold" to "iou_threshold","maxOutputSize" to "max_output_size"),
+                "iouThreshold" to "iou_threshold","maxOutputSize" to "max_output_size"),
         attributeMappingRules = listOf(
                 argDescriptorConstant(listOf(
                         ArgDescriptor {
@@ -1789,7 +1789,7 @@ val resizeBiCubic = multipleNameMapping(inputFrameworkOpNames = listOf("ResizeBi
         tensorNames = mutableMapOf("image" to "images","newImageSize" to "size"),tensorflowOpRegistry = tensorflowOpRegistry)
 
 val resizeBiLinear = multipleNameMapping(inputFrameworkOpNames = listOf("ResizeBilinear"),opName = "resize_bilinear",
-        attributeMappingRules = listOf(valueMapping(mutableMapOf("alignCorners" to "align_corners","halfPixelCenters" to "half_pixel_centers"))),
+        attributeMappingRules = listOf(valueMapping(mutableMapOf("alignCorners" to "align_corners","halfPixelCenter" to "half_pixel_centers"))),
         tensorNames = mutableMapOf("image" to "images","newImageSize" to "size"),tensorflowOpRegistry = tensorflowOpRegistry)
 
 val resizeNearestNeighbor = multipleNameMapping(inputFrameworkOpNames = listOf("ResizeNearestNeighbor"),opName = "resize_nearest_neighbor",
@@ -1853,13 +1853,17 @@ val scatterNd = multipleNameMapping(inputFrameworkOpNames = listOf("ScatterNd"),
                 booleanConstant(inputName = "checkIndices",constantValue = false,argumentIndex = 1)[0])
         ,tensorflowOpRegistry = tensorflowOpRegistry)
 
-val scatterNdAdd = multipleNameMapping(inputFrameworkOpNames = listOf("ScatterNdAdd"),opName = "scatter_nd_add",
+val scatterNdAdd = multipleNameMapping(inputFrameworkOpNames = listOf("ScatterNdAdd"),
+        attributeMappingRules = listOf(valueMapping(mutableMapOf("lock" to "use_locking"))),
+        opName = "scatter_nd_add",
         tensorNames = mutableMapOf("indices" to "indices","updates" to "updates","input" to "ref"),tensorflowOpRegistry = tensorflowOpRegistry)
 
 val scatterNdSub = multipleNameMapping(inputFrameworkOpNames = listOf("ScatterNdSub"),opName = "scatter_nd_sub",
+        attributeMappingRules = listOf(valueMapping(mutableMapOf("lock" to "use_locking"))),
         tensorNames = mutableMapOf("indices" to "indices","updates" to "updates","input" to "ref"),tensorflowOpRegistry = tensorflowOpRegistry)
 
 val scatterNdUpdate = multipleNameMapping(inputFrameworkOpNames = listOf("ScatterNdUpdate"),opName = "scatter_nd_update",
+        attributeMappingRules = listOf(valueMapping(mutableMapOf("lock" to "use_locking"))),
         tensorNames = mutableMapOf("indices" to "indices","updates" to "updates","input" to "ref"),tensorflowOpRegistry = tensorflowOpRegistry)
 
 
@@ -2287,7 +2291,7 @@ val topkV2 = multipleNameMapping(inputFrameworkOpNames = listOf("TopKV2"),opName
 val transpose = mapTensorNamesWithOp(
         inputFrameworkOpName = "Transpose",
         opName = "transpose",
-        tensorNames = mutableMapOf("input" to "x","permutationVector" to "perm"),
+        tensorNames = mutableMapOf("input" to "x","permuteDims" to "perm"),
         attributeMappingRules = listOf(valueMapping(mutableMapOf("dtype" to "T")))
         ,tensorflowOpRegistry = tensorflowOpRegistry)
 
@@ -2321,7 +2325,7 @@ val unpack = multipleNameMapping(inputFrameworkOpNames = listOf("Unpack"),
 val unsortedSegmentMax = mapTensorNamesWithOp(inputFrameworkOpName = "UnsortedSegmentMax",
         opName = "unsorted_segment_max",
         attributeMappingRules = listOf(
-                convertNDArrayInputToNumericalAttr(mutableMapOf("numOfClasses" to "num_segments"))),
+                convertNDArrayInputToNumericalAttr(mutableMapOf("numSegments" to "num_segments"))),
         tensorNames = mutableMapOf("input" to "data","idxSegments" to "segment_ids","numSegments" to "num_segments")
         ,tensorflowOpRegistry = tensorflowOpRegistry)
 
@@ -2340,7 +2344,6 @@ val unsortedSegmentProd = mapTensorNamesWithOp(inputFrameworkOpName = "UnsortedS
 
 val unsortedSegmentSum = mapTensorNamesWithOp(inputFrameworkOpName = "UnsortedSegmentSum",
         opName = "unsorted_segment_sum",
-        attributeMappingRules = listOf(convertNDArrayInputToNumericalAttr(mutableMapOf("numSegments" to "num_segments"))),
         tensorNames = mutableMapOf("input" to "data","idxSegments" to "segment_ids","numSegments" to "num_segments")
         ,tensorflowOpRegistry = tensorflowOpRegistry)
 

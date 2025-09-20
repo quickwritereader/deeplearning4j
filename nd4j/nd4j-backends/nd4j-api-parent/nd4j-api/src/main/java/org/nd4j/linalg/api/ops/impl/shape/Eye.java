@@ -23,6 +23,7 @@ package org.nd4j.linalg.api.ops.impl.shape;
 import lombok.NonNull;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
@@ -38,7 +39,7 @@ public class Eye extends DynamicCustomOp {
 
     private int numRows;
     private int numCols;
-    private int[] batchDimension = new int[] {};
+    private long[] batchDimension = new long[] {};
     private DataType dataType = DEFAULT_DTYPE;
 
     public Eye() {
@@ -83,7 +84,7 @@ public class Eye extends DynamicCustomOp {
         this(sameDiff, numRows, numCols, dataType, null);
     }
 
-    public Eye(int numRows, int numCols, DataType dataType, int[] batchDimension) {
+    public Eye(int numRows, int numCols, DataType dataType, long[] batchDimension) {
         this.numRows = numRows;
         this.numCols = numCols;
         this.batchDimension = batchDimension;
@@ -99,19 +100,14 @@ public class Eye extends DynamicCustomOp {
         this(numRows, numCols, dataType, null);
     }
 
-    public Eye(SameDiff sameDiff,  int numRows, int numCols, DataType dataType, int[] batchDimension) {
-        super(null, sameDiff, new SDVariable[] {}, false);
+
+
+    public Eye(SameDiff sameDiff, int numRows, int numCols, DataType dataType, long[] batchDimension) {
+        super(null, sameDiff, new SDVariable[] {});
+        this.batchDimension = batchDimension;
+        this.dataType = dataType;
         this.numRows = numRows;
         this.numCols = numCols;
-        this.batchDimension = batchDimension;
-        this.dataType = dataType;
-        addArgs();
-    }
-
-    public Eye(SameDiff sameDiff,  SDVariable numRows, SDVariable numCols, DataType dataType, int[] batchDimension) {
-        super(null, sameDiff, new SDVariable[] {numRows, numCols}, false);
-        this.batchDimension = batchDimension;
-        this.dataType = dataType;
         addArgs();
     }
 
@@ -122,7 +118,7 @@ public class Eye extends DynamicCustomOp {
         addIArgument(numRows);
         addIArgument(numCols);
         if(batchDimension != null) {
-            for (int dim : batchDimension) {
+            for (long dim : batchDimension) {
                 addIArgument(dim);
             }
         }
@@ -136,11 +132,8 @@ public class Eye extends DynamicCustomOp {
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(){
-        List<LongShapeDescriptor> l = super.calculateOutputShape();
-        if(dataType != null && l != null && l.size() > 0){
-            l.set(0, l.get(0).asDataType(dataType));
-        }
+    public List<DataBuffer> calculateOutputShape() {
+        List<DataBuffer> l = super.calculateOutputShape();
         return l;
     }
 

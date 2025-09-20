@@ -29,7 +29,7 @@
 using namespace sd;
 using namespace sd::graph;
 
-class NodeTests : public testing::Test {
+class NodeTests : public NDArrayTests {
  public:
 };
 
@@ -51,7 +51,7 @@ TEST_F(NodeTests, Test_Dtype_Conversion_1) {
 }
 
 TEST_F(NodeTests, Test_Dtype_Conversion_2) {
-  sd::ops::add opA;
+  ops::add opA;
 
   // auto nodeA = new Node(OpType_CUSTOM, 0, 1, {-1}, {2});
   auto nodeA = new Node(&opA, 1, {-1}, {2});

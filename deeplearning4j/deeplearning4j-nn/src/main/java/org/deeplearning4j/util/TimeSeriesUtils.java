@@ -29,7 +29,9 @@ import org.deeplearning4j.nn.conf.layers.recurrent.LastTimeStep;
 import org.deeplearning4j.nn.conf.layers.recurrent.TimeDistributed;
 import org.deeplearning4j.nn.conf.layers.util.MaskZeroLayer;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.api.ops.impl.transforms.custom.Reverse;
 import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.exception.ND4JArraySizeException;
 import org.nd4j.linalg.factory.Nd4j;
@@ -132,7 +134,7 @@ public class TimeSeriesUtils {
      */
     public static INDArray reshapeCnnMaskToTimeSeriesMask(INDArray timeSeriesMaskAsCnnMask, int minibatchSize) {
         Preconditions.checkArgument(timeSeriesMaskAsCnnMask.rank() == 4 || timeSeriesMaskAsCnnMask.size(1) != 1 ||
-                timeSeriesMaskAsCnnMask.size(2) != 1 || timeSeriesMaskAsCnnMask.size(3) != 1,
+                        timeSeriesMaskAsCnnMask.size(2) != 1 || timeSeriesMaskAsCnnMask.size(3) != 1,
                 "Expected rank 4 mask with shape [mb*seqLength, 1, 1, 1]. Got rank %s mask array with shape %s",
                 timeSeriesMaskAsCnnMask.rank(), timeSeriesMaskAsCnnMask.shape());
 
@@ -154,8 +156,8 @@ public class TimeSeriesUtils {
     public static INDArray reshapePerOutputTimeSeriesMaskTo2d(INDArray perOutputTimeSeriesMask, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType) {
         if (perOutputTimeSeriesMask.rank() != 3) {
             throw new IllegalArgumentException(
-                            "Cannot reshape per output mask: rank is not 3 (is: " + perOutputTimeSeriesMask.rank()
-                                            + ", shape = " + Arrays.toString(perOutputTimeSeriesMask.shape()) + ")");
+                    "Cannot reshape per output mask: rank is not 3 (is: " + perOutputTimeSeriesMask.rank()
+                            + ", shape = " + Arrays.toString(perOutputTimeSeriesMask.shape()) + ")");
         }
 
         return reshape3dTo2d(perOutputTimeSeriesMask, workspaceMgr, arrayType);
@@ -210,7 +212,8 @@ public class TimeSeriesUtils {
             in = workspaceMgr.dup(arrayType, in, 'f');
         }
         INDArray reshaped = in.reshape('f', miniBatchSize, shape[0] / miniBatchSize, shape[1]);
-        return workspaceMgr.leverageTo(arrayType, reshaped.permute(0, 2, 1));
+        INDArray permuted = reshaped.permute(0, 2, 1);
+        return workspaceMgr.leverageTo(arrayType,permuted);
     }
 
     /**
@@ -219,29 +222,29 @@ public class TimeSeriesUtils {
      * @param in Input activations to reverse, with shape [minibatch, size, timeSeriesLength]
      * @return Reversed activations
      */
-    public static INDArray reverseTimeSeries(INDArray in){
-        if(in == null){
+    public static INDArray reverseTimeSeries(INDArray in) {
+        if(in == null) {
             return null;
         }
 
-        if(in.ordering() != 'f' || in.isView() || !Shape.strideDescendingCAscendingF(in)){
+        if(in.ordering() != 'f' || in.isView() || !Shape.strideDescendingCAscendingF(in)) {
             in = in.dup('f');
         }
 
         int[] idxs = new int[(int) in.size(2)];
-        int j=0;
-        for( int i=idxs.length-1; i>=0; i--){
+        int j = 0;
+        for( int i = idxs.length - 1; i >= 0; i--) {
             idxs[j++] = i;
         }
 
-        INDArray inReshape = in.reshape('f', in.size(0)*in.size(1), in.size(2));
+        INDArray inReshape = in.reshape('f', in.size(0) * in.size(1), in.size(2));
 
         INDArray outReshape = Nd4j.pullRows(inReshape, 0, idxs, 'f');
         return outReshape.reshape('f', in.size(0), in.size(1), in.size(2));
     }
 
-    public static INDArray reverseTimeSeries(INDArray in, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType, RNNFormat dataFormat){
-        if (dataFormat == RNNFormat.NCW){
+    public static INDArray reverseTimeSeries(INDArray in, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType, RNNFormat dataFormat) {
+        if (dataFormat == RNNFormat.NCW) {
             return reverseTimeSeries(in, workspaceMgr, arrayType);
         }
         return reverseTimeSeries(in.permute(0, 2, 1), workspaceMgr, arrayType).permute(0, 2, 1);
@@ -253,7 +256,7 @@ public class TimeSeriesUtils {
      * @return Reversed activations
      */
     public static INDArray reverseTimeSeries(INDArray in, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType) {
-        if(in == null){
+        if(in == null) {
             return null;
         }
 
@@ -264,28 +267,22 @@ public class TimeSeriesUtils {
         if (in.size(2) > Integer.MAX_VALUE)
             throw new ND4JArraySizeException();
         int[] idxs = new int[(int) in.size(2)];
-        int j=0;
-        for( int i = idxs.length-1; i >= 0; i--) {
+        int j = 0;
+        for (int i = idxs.length - 1; i >= 0; i--) {
             idxs[j++] = i;
         }
+        try(MemoryWorkspace ws = workspaceMgr.notifyScopeEntered(arrayType)) {
+            INDArray inReshape = in.reshape('f', in.size(0) * in.size(1), in.size(2));
 
-        INDArray inReshape = in.reshape('f', in.size(0)*in.size(1), in.size(2));
+            INDArray outReshape = workspaceMgr.create(arrayType, in.dataType(), new long[]{inReshape.size(0), idxs.length}, 'f');
+            Nd4j.pullRows(inReshape, outReshape, 0, idxs);
+            INDArray ret =  outReshape.reshape('f', in.size(0), in.size(1), in.size(2));
+            return ret;
+        }
 
-        INDArray outReshape = workspaceMgr.create(arrayType, in.dataType(), new long[]{inReshape.size(0), idxs.length}, 'f');
-        Nd4j.pullRows(inReshape, outReshape, 0, idxs);
-        return workspaceMgr.leverageTo(arrayType, outReshape.reshape('f', in.size(0), in.size(1), in.size(2)));
 
-        /*
-        INDArray out = Nd4j.createUninitialized(in.shape(), 'f');
-        CustomOp op = DynamicCustomOp.builder("reverse")
-                .addIntegerArguments(new int[]{0,1})
-                .addInputs(in)
-                .addOutputs(out)
-                .callInplace(false)
-                .build();
-        Nd4j.getExecutioner().exec(op);
-        return out;
-        */
+
+
     }
 
     /**
@@ -293,11 +290,11 @@ public class TimeSeriesUtils {
      * @param mask Mask to reverse along time dimension
      * @return Mask after reversing
      */
-    public static INDArray reverseTimeSeriesMask(INDArray mask){
+    public static INDArray reverseTimeSeriesMask(INDArray mask) {
         if(mask == null){
             return null;
         }
-        if(mask.rank() == 3){
+        if(mask.rank() == 3) {
             //Should normally not be used - but handle the per-output masking case
             return reverseTimeSeries(mask);
         } else if(mask.rank() != 2){
@@ -309,7 +306,7 @@ public class TimeSeriesUtils {
             throw new ND4JArraySizeException();
         int[] idxs = new int[(int) mask.size(1)];
         int j=0;
-        for( int i=idxs.length-1; i>=0; i--){
+        for( int i=idxs.length-1; i >= 0; i--) {
             idxs[j++] = i;
         }
 
@@ -322,42 +319,26 @@ public class TimeSeriesUtils {
      * @param mask Mask to reverse along time dimension
      * @return Mask after reversing
      */
-    public static INDArray reverseTimeSeriesMask(INDArray mask, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType){
-        if(mask == null){
+    public static INDArray reverseTimeSeriesMask(INDArray mask, LayerWorkspaceMgr workspaceMgr, ArrayType arrayType) {
+        if(mask == null) {
             return null;
         }
-        if(mask.rank() == 3){
+
+
+
+        if(mask.rank() == 3) {
             //Should normally not be used - but handle the per-output masking case
             return reverseTimeSeries(mask, workspaceMgr, arrayType);
-        } else if(mask.rank() != 2){
+        } else if(mask.rank() != 2) {
             throw new IllegalArgumentException("Invalid mask rank: must be rank 2 or 3. Got rank " + mask.rank()
                     + " with shape " + Arrays.toString(mask.shape()));
         }
 
-        if (mask.size(1) > Integer.MAX_VALUE)
-            throw new ND4JArraySizeException();
-        int[] idxs = new int[(int) mask.size(1)];
-        int j=0;
-        for( int i=idxs.length-1; i>=0; i--){
-            idxs[j++] = i;
-        }
 
-        INDArray ret = workspaceMgr.createUninitialized(arrayType, mask.dataType(), new long[]{mask.size(0), idxs.length}, 'f');
+        Reverse reverse = new Reverse(mask,workspaceMgr.create(arrayType, mask.dataType(), mask.shape(), 'f'), 1);
+        INDArray result2 = Nd4j.getExecutioner().exec(reverse)[0];
+        return result2;
 
-        return Nd4j.pullRows(mask, ret, 0, idxs);
-
-        /*
-        //Assume input mask is 2d: [minibatch, tsLength]
-        INDArray out = Nd4j.createUninitialized(mask.shape(), 'f');
-        CustomOp op = DynamicCustomOp.builder("reverse")
-                .addIntegerArguments(new int[]{1})
-                .addInputs(mask)
-                .addOutputs(out)
-                .callInplace(false)
-                .build();
-        Nd4j.getExecutioner().exec(op);
-        return out;
-        */
     }
 
     /**
@@ -442,7 +423,7 @@ public class TimeSeriesUtils {
      * LastTimeStep, etc
      * @param layer Layer to get the RNNFormat from
      */
-    public static RNNFormat getFormatFromRnnLayer(Layer layer){
+    public static RNNFormat getFormatFromRnnLayer(Layer layer) {
         if(layer instanceof BaseRecurrentLayer){
             return ((BaseRecurrentLayer) layer).getRnnDataFormat();
         } else if(layer instanceof MaskZeroLayer){

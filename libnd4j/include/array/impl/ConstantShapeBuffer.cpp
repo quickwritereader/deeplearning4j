@@ -24,26 +24,55 @@
 #include <array/ConstantShapeBuffer.h>
 
 namespace sd {
-ConstantShapeBuffer::ConstantShapeBuffer(const std::shared_ptr<PointerWrapper> &primary)
-    : ConstantShapeBuffer(primary, std::shared_ptr<PointerWrapper>(nullptr)) {
-  //
+ConstantShapeBuffer::ConstantShapeBuffer( PointerWrapper* primary)
+    : ConstantShapeBuffer(primary, nullptr) {
+#if defined(SD_GCC_FUNCTRACE)
+  st = backward::StackTrace();
+  st.load_here(32);
+#endif
+
+}
+ConstantShapeBuffer::ConstantShapeBuffer() {
+  _primaryShapeInfo = nullptr;
+  _specialShapeInfo = nullptr;
+}
+ConstantShapeBuffer::~ConstantShapeBuffer() {
+  if(_primaryShapeInfo != nullptr)
+    delete _primaryShapeInfo;
+  _primaryShapeInfo = nullptr;
+
+  if(_specialShapeInfo != nullptr)
+    delete _specialShapeInfo;
+  _specialShapeInfo = nullptr;
 }
 
-ConstantShapeBuffer::ConstantShapeBuffer(const std::shared_ptr<PointerWrapper> &primary,
-                                         const std::shared_ptr<PointerWrapper> &special) {
+ConstantShapeBuffer::ConstantShapeBuffer( PointerWrapper* primary,
+                                          PointerWrapper* special) {
   _primaryShapeInfo = primary;
   _specialShapeInfo = special;
+#if defined(SD_GCC_FUNCTRACE)
+  st = backward::StackTrace();
+  st.load_here(32);
+#endif
 }
 
-const sd::LongType *ConstantShapeBuffer::primary() const {
-  return reinterpret_cast<sd::LongType *>(_primaryShapeInfo->pointer());
+LongType *ConstantShapeBuffer::primary()  {
+  if(_primaryShapeInfo != nullptr) {
+    return reinterpret_cast<LongType *>(_primaryShapeInfo->pointer());
+  }
+
+  return nullptr;
 }
 
-const sd::LongType *ConstantShapeBuffer::special() const {
-  return _specialShapeInfo ? reinterpret_cast<sd::LongType *>(_specialShapeInfo->pointer()) : nullptr;
+LongType *ConstantShapeBuffer::special()  {
+  if(_specialShapeInfo != nullptr) {
+    return reinterpret_cast<LongType *>(_specialShapeInfo->pointer());
+  }
+
+  return nullptr;
 }
 
-const sd::LongType *ConstantShapeBuffer::platform() const {
+LongType *ConstantShapeBuffer::platform()  {
 #ifdef __CUDABLAS__
   return special();
 #else

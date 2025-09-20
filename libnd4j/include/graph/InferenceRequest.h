@@ -26,12 +26,13 @@
 #include <system/op_boilerplate.h>
 
 #include "ExecutorConfiguration.h"
+#include "graph/generated/request_generated.h"
 
 namespace sd {
 namespace graph {
 class SD_LIB_EXPORT InferenceRequest {
  private:
-  sd::LongType _id;
+  LongType _id;
   std::vector<Variable *> _variables;
   std::vector<Variable *> _deletables;
 
@@ -40,7 +41,7 @@ class SD_LIB_EXPORT InferenceRequest {
   void insertVariable(Variable *variable);
 
  public:
-  InferenceRequest(sd::LongType graphId, ExecutorConfiguration *configuration = nullptr);
+  InferenceRequest(LongType graphId, ExecutorConfiguration *configuration = nullptr);
   ~InferenceRequest();
 
   void appendVariable(int id, NDArray *array);
@@ -50,7 +51,7 @@ class SD_LIB_EXPORT InferenceRequest {
   void appendVariable(Variable *variable);
 
 #ifndef __JAVACPP_HACK__
-  flatbuffers::Offset<FlatInferenceRequest> asFlatInferenceRequest(flatbuffers::FlatBufferBuilder &builder);
+  flatbuffers::Offset<::graph::FlatInferenceRequest> asFlatInferenceRequest(flatbuffers::FlatBufferBuilder &builder);
 #endif
 };
 }  // namespace graph

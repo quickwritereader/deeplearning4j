@@ -22,7 +22,6 @@
 #include <graph/Graph.h>
 #include <graph/Node.h>
 #include <graph/profiling/GraphProfilingHelper.h>
-#include <helpers/BenchmarkHelper.h>
 #include <helpers/ConstantShapeHelper.h>
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/GradCheck.h>
@@ -52,7 +51,7 @@
 using namespace sd;
 using namespace sd::graph;
 
-class PrimitivesTests : public testing::Test {
+class PrimitivesTests : public NDArrayTests {
  public:
   PrimitivesTests() {}
 };

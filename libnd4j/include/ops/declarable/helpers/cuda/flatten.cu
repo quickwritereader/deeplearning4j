@@ -22,36 +22,58 @@
 #include <helpers/PointersManager.h>
 #include <ops/declarable/helpers/flatten.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 template <typename T>
-static void SD_KERNEL flattenKernel(void **xBuffers, sd::LongType **xShapeInfos, sd::LongType *offsets,
-                                    sd::LongType numInputs, void *zBuffer, const sd::LongType *zShapeInfo, char order) {
+static void SD_KERNEL flattenKernel(void **xBuffers, LongType **xShapeInfos, LongType *offsets, LongType numInputs, void *zBuffer, const LongType *zShapeInfo, char order) {
+  __shared__ LongType xRank, xLength;
+  __shared__ const LongType *xShapePtr, *xStridePtr;
+
   int xCoord[SD_MAX_RANK];
 
-  // each block of threads works on 1 input array
-  for (sd::LongType e = blockIdx.x; e < numInputs; e += gridDim.x) {
+  // Each block of threads works on one input array
+  for (LongType e = blockIdx.x; e < numInputs; e += gridDim.x) {
     auto z = reinterpret_cast<T *>(zBuffer) + offsets[e];
 
     auto xBuffer = reinterpret_cast<T *>(xBuffers[e]);
     auto xShapeInfo = xShapeInfos[e];
-    auto xLength = shape::length(xShapeInfo);
 
-    // each element of this input array has own place within common output array
-    for (sd::Unsigned i = threadIdx.x; i < xLength; i += blockDim.x)
-      z[i] = xBuffer[getIndexOffsetOrdered(i, xShapeInfo, order)];
+    if (threadIdx.x == 0) {
+      xRank = shape::rank(xShapeInfo);
+      xLength = shape::length(xShapeInfo);
+      xShapePtr = shape::shapeOf(xShapeInfo);
+      xStridePtr = shape::stride(xShapeInfo);
+    }
+    __syncthreads();
+
+    // Each element of this input array has its own place within the common output array
+    for (LongType i = threadIdx.x; i < xLength; i += blockDim.x) {
+      LongType xOffset;
+      LongType xCoords[SD_MAX_RANK];
+
+      // Compute x coordinates and offset
+      INDEX2COORDS(i, xRank, xShapePtr, xCoords);
+      COORDS2INDEX(xRank, xStridePtr, xCoords, xOffset);
+
+      // Write the value from xBuffer to the flattened zBuffer
+      z[i] = xBuffer[xOffset];
+    }
   }
 }
 
 template <typename T>
-static void flatten_(sd::LaunchContext *context, std::vector<NDArray *> &inputs, NDArray *output, char order) {
+static void flatten_(LaunchContext *context, std::vector<NDArray *> &inputs, NDArray *output, char order) {
   PointersManager pm(context, "flatten");
 
   std::vector<const void *> hdBuffers(inputs.size());
-  std::vector<sd::LongType> hOffsets(inputs.size());
-  std::vector<const sd::LongType *> hdShapes(inputs.size());
-  sd::LongType cOffset = 0;
+  std::vector<LongType> hOffsets(inputs.size());
+  std::vector<const LongType *> hdShapes(inputs.size());
+  LongType cOffset = 0;
 
   // calculating offsets in output
   for (int e = 0; e < inputs.size(); e++) {
@@ -64,19 +86,21 @@ static void flatten_(sd::LaunchContext *context, std::vector<NDArray *> &inputs,
 
   // copying pointers to device
   auto dBuffers = (void **)pm.replicatePointer(hdBuffers.data(), inputs.size() * sizeof(void *));
-  auto dShapes = (sd::LongType **)pm.replicatePointer(hdShapes.data(), inputs.size() * sizeof(sd::LongType *));
-  auto dOffsets = (sd::LongType *)pm.replicatePointer(hOffsets.data(), inputs.size() * sizeof(sd::LongType));
-
-  flattenKernel<T><<<256, 512, 8192, *context->getCudaStream()>>>(
+  auto dShapes = (LongType **)pm.replicatePointer(hdShapes.data(), inputs.size() * sizeof(LongType *));
+  auto dOffsets = (LongType *)pm.replicatePointer(hOffsets.data(), inputs.size() * sizeof(LongType));
+  dim3 launchDims = getLaunchDims("flatten");
+  flattenKernel<T><<<launchDims.x, launchDims.y, launchDims.z, *context->getCudaStream()>>>(
       dBuffers, dShapes, dOffsets, inputs.size(), output->specialBuffer(), output->specialShapeInfo(), order);
+  DebugHelper::checkErrorCode(context->getCudaStream(),"flattenKernel failed");
 
   pm.synchronize();
 }
 
-void flatten(sd::LaunchContext *context, std::vector<NDArray *> &inputs, NDArray *output, char order) {
+void flatten(LaunchContext *context, std::vector<NDArray *> &inputs, NDArray *output, char order) {
   // FIXME: we want NDArrayFactory::prepareSpecialUse here eventually
-  for (auto v : inputs) v->syncToDevice();
-
+  const std::vector<NDArray *> v(inputs.begin(), inputs.end());
+  //prepareSpecialUse requires const
+  NDArray::prepareSpecialUse({output}, v, {});
   BUILD_SINGLE_SELECTOR(output->dataType(), flatten_, (context, inputs, output, order), SD_COMMON_TYPES);
   NDArray::registerSpecialUse({output}, {});
 }

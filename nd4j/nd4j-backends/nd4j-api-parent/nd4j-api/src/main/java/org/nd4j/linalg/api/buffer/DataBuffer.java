@@ -22,13 +22,17 @@ package org.nd4j.linalg.api.buffer;
 
 import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.indexer.Indexer;
+import org.nd4j.linalg.api.memory.Deallocatable;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
+import org.nd4j.nativeblas.OpaqueDataBuffer;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-public interface DataBuffer extends Serializable, AutoCloseable {
+public interface DataBuffer extends Serializable, AutoCloseable, Deallocatable {
+
+
     enum TypeEx {
 
     }
@@ -53,6 +57,14 @@ public interface DataBuffer extends Serializable, AutoCloseable {
 
         MIXED_DATA_TYPES, // latest generation of INDArrays support multiple data types, with information stored within shapeInfo "offset" field.
     }
+
+    StackTraceElement[] allocationTrace();
+
+    /**
+     * Returns the underlying opaque buffer for this data buffer
+     * @return
+     */
+    OpaqueDataBuffer opaqueBuffer();
 
     /**
      * Returns an underlying pointer if one exists
@@ -138,6 +150,23 @@ public interface DataBuffer extends Serializable, AutoCloseable {
      */
     ByteBuffer asNio();
 
+    boolean[] asBoolean();
+
+
+    void put(float[] element);
+
+    void put(double[] element);
+
+    void put(int[] element);
+
+    void put(boolean[] element);
+
+    void put(short[] element);
+
+    void put(byte[] element);
+
+    void put(long[] element);
+
     /**
      * Whether the buffer is dirty:
      * aka has been updated
@@ -146,21 +175,6 @@ public interface DataBuffer extends Serializable, AutoCloseable {
      */
     boolean dirty();
 
-
-    /**
-     * Underlying buffer:
-     * This is meant for a data buffer
-     * to be a view of another data buffer
-     * @return
-     */
-    DataBuffer underlyingDataBuffer();
-
-
-    /**
-     *  Original DataBuffer.
-     *  In case if we have a view derived from another view, derived from some other view, original DataBuffer will point to the originating DataBuffer, where all views come from.
-     */
-    DataBuffer originalDataBuffer();
 
     /**
      * Copies from
@@ -199,6 +213,7 @@ public interface DataBuffer extends Serializable, AutoCloseable {
      * Un persist the buffer
      */
     void unPersist();
+
 
     /**
      * The number of bytes for each individual element
@@ -506,6 +521,15 @@ public interface DataBuffer extends Serializable, AutoCloseable {
      */
     void put(long i, int element);
 
+
+    /**
+     * Assign an element in the buffer to the specified index
+     *
+     * @param i       the index
+     * @param element the element to assign
+     */
+    void put(long i, short element);
+
     void put(long i, long element);
 
     void put(long i, boolean element);
@@ -524,20 +548,6 @@ public interface DataBuffer extends Serializable, AutoCloseable {
      * @return the length of the buffer
      */
     long underlyingLength();
-
-    /**
-     * Returns the offset of the buffer
-     *
-     * @return the offset of the buffer
-     */
-    long offset();
-
-    /**
-     * Returns the offset of the buffer relative to originalDataBuffer
-     *
-     * @return
-     */
-    long originalOffset();
 
     /**
      * Get the int at the specified index

@@ -33,7 +33,13 @@ CUSTOM_OP_IMPL(reduce_prod, -1, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
 
-  std::vector<int> dimensions;
+  //numpy compat: default is 1 for 0 length arrays https://stackoverflow.com/questions/66746566/numpy-explanation-of-numpy-prod
+  if(input->lengthOf() == 0) {
+    int one = 1;
+    output->assign(one);
+    return sd::Status::OK;
+  }
+  std::vector<sd::LongType> dimensions;
   if (block.width() > 1) {
     auto axesVector = INPUT_VARIABLE(1);
     helpers::adjustAxis(input->rankOf(), axesVector, dimensions);
@@ -41,14 +47,14 @@ CUSTOM_OP_IMPL(reduce_prod, -1, 1, false, 0, 0) {
     dimensions = *block.getIArguments();
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_PROD OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
   for (const auto& item : dimensions)
-    REQUIRE_TRUE(item >= -input->shapeInfo()[0] && item < input->shapeInfo()[0], 0,
-                 "REDUCE_PROD OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
-                 input->rankOf(), input->rankOf(), item);
+  REQUIRE_TRUE(item >= -input->shapeInfo()[0] && item < input->shapeInfo()[0], 0,
+               "REDUCE_PROD OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
+               input->rankOf(), input->rankOf(), item);
 
   bool keepDims = false;
   if (block.getBArguments()->size())
@@ -56,7 +62,7 @@ CUSTOM_OP_IMPL(reduce_prod, -1, 1, false, 0, 0) {
   else if (block.getTArguments()->size())
     keepDims = (bool)T_ARG(0);
 
-  input->reduceAlongDimension(reduce::Prod, *output, dimensions, keepDims);
+  input->reduceAlongDimension(reduce::Prod, output, &dimensions, keepDims);
 
   return sd::Status::OK;
 }
@@ -68,7 +74,7 @@ DECLARE_SHAPE_FN(reduce_prod) {
   else if (block.getTArguments()->size())
     keepDims = (bool)T_ARG(0);
 
-  std::vector<int> dimensions;
+  std::vector<sd::LongType> dimensions;
   if (block.width() > 1) {
     auto axesVector = INPUT_VARIABLE(1);
     helpers::adjustAxis(INPUT_VARIABLE(0)->rankOf(), axesVector, dimensions);
@@ -76,16 +82,16 @@ DECLARE_SHAPE_FN(reduce_prod) {
     dimensions = *block.getIArguments();
 
   REQUIRE_TRUE(
-      dimensions.size() <= inputShape->at(0)[0], 0,
+      dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
       "REDUCE_PROD OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
   for (const auto& item : dimensions)
-    REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
-                 "REDUCE_PROD OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
-                 inputShape->at(0)[0], inputShape->at(0)[0], item);
+  REQUIRE_TRUE(item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
+               "REDUCE_PROD OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
+               inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-  return SHAPELIST(ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), dimensions, inputShape->at(0),
+  return SHAPELIST(ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), &dimensions, inputShape->at(0),
                                                    keepDims, false, block.getWorkspace()));
 }
 
@@ -101,7 +107,8 @@ CUSTOM_OP_IMPL(reduce_prod_bp, -1, 1, false, 0, 0) {
   auto gradI = OUTPUT_VARIABLE(0);
 
   if (gradO->lengthOf() == 1) {
-    gradI->assign(input->reduceNumber(sd::reduce::Prod));
+    NDArray assign = input->reduceNumber(sd::reduce::Prod);
+    gradI->assign(&assign);
     *gradI /= *input;
     *gradI *= gradO->e(0);
   } else {
@@ -119,28 +126,29 @@ CUSTOM_OP_IMPL(reduce_prod_bp, -1, 1, false, 0, 0) {
       keepDims = (bool)T_ARG(0);
 
     REQUIRE_TRUE(
-        dimensions.size() <= input->rankOf(), 0,
+        dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
         "REDUCE_NORM1_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
         dimensions.size());
 
     for (const auto& item : dimensions)
-      REQUIRE_TRUE(
-          item >= -input->rankOf() && item < input->rankOf(), 0,
-          "REDUCE_NORM1_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
-          input->rankOf(), input->rankOf(), item);
+    REQUIRE_TRUE(
+        item >= -input->rankOf() && item < input->rankOf(), 0,
+        "REDUCE_NORM1_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
+        input->rankOf(), input->rankOf(), item);
 
     // *** calculations *** //
 
-    auto products = input->reduceAlongDimension(reduce::Prod, dimensions, true);
-    gradI->applyTrueBroadcast(sd::BroadcastOpsTuple::Assign(), products, *gradI);
+    auto products = input->reduceAlongDimension(reduce::Prod, &dimensions, true);
+    gradI->applyTrueBroadcast(sd::BroadcastOpsTuple::Assign(), &products, gradI);
     *gradI /= *input;
 
     if (!keepDims) {
       auto gradOShapeKeepDims =
-          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), dimensions, *input, true, false, block.getWorkspace());
+          ShapeUtils::evalReduceShapeInfo(gradO->ordering(), &dimensions, *input, true, false, block.getWorkspace());
+      std::vector<sd::LongType> shape =  ShapeUtils::pullShapeFromShapeInfo(
+          gradOShapeKeepDims);
       *gradI *= gradO->reshape(gradO->ordering(),
-                               ShapeUtils::pullShapeFromShapeInfo(
-                                   gradOShapeKeepDims));  // for example could be something like [a,b] -> [1,a,1,b]
+                               shape);  // for example could be something like [a,b] -> [1,a,1,b]
     } else
       *gradI *= *gradO;
   }
@@ -156,20 +164,17 @@ DECLARE_SHAPE_FN(reduce_prod_bp) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= inputShape->at(0)[0], 0,
+      dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
       "REDUCE_PROD_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
   for (const auto& item : dimensions)
-    REQUIRE_TRUE(
-        item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
-        "REDUCE_PROD_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
-        inputShape->at(0)[0], inputShape->at(0)[0], item);
+  REQUIRE_TRUE(
+      item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
+      "REDUCE_PROD_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
+      inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-  sd::LongType* outShapeInfo;
-  COPY_SHAPE(inputShape->at(0), outShapeInfo);
-
-  return SHAPELIST(CONSTANT(outShapeInfo));
+  return SHAPELIST(CONSTANT(inputShape->at(0)));
 }
 
 DECLARE_TYPES(reduce_prod_bp) {

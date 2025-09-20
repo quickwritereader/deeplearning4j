@@ -53,22 +53,33 @@ LIST_OP_IMPL(scatter_list, 1, 1, 0, -2) {
                "ScatterList: Indices length should be equal number of TADs along dim0, but got %i instead",
                indices->lengthOf());
 
-  std::vector<int> axis = ShapeUtils::evalDimsToExclude(array->rankOf(), {0});
-  auto tads = array->allTensorsAlongDimension(axis);
-  for (int e = 0; e < tads.size(); e++) {
-    auto idx = indices->e<int>(e);
-    if (idx >= tads.size()) return sd::Status::BAD_ARGUMENTS;
+  std::vector<LongType> zero;
+  zero.push_back(0);
+  std::vector<LongType> *axis = ShapeUtils::evalDimsToExclude(array->rankOf(),1,zero.data());
+  auto tads = array->allTensorsAlongDimension(*axis);
+  for (LongType e = 0; e < tads.size(); e++) {
+    auto idx = indices->e<LongType>(e);
+    if (idx >= tads.size()) return Status::BAD_ARGUMENTS;
 
-    auto arr = new NDArray(tads.at(e)->dup(array->ordering()));
+    auto arr = new NDArray(tads.at(e)->dup(array->ordering(), false));
     auto res = list->write(idx, arr);
-    if (res != sd::Status::OK) return res;
+
+
+    if (res != Status::OK) {
+      delete axis;
+      return res;
+    }
   }
 
+
+
   if (!hasList)
-    // OVERWRITE_RESULT(list);
     setupResultList(list, block);
 
-  return sd::Status::OK;
+  delete axis;
+
+
+  return Status::OK;
 }
 DECLARE_SYN(TensorArrayScatterV3, scatter_list);
 DECLARE_SYN(tensorarrayscatterv3, scatter_list);

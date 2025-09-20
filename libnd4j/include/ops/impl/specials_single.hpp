@@ -23,109 +23,13 @@
 
 #include <array/NDArray.h>
 #include <helpers/Loops.h>
-#include <helpers/TAD.h>
+
 #include <helpers/shape.h>
 #include <ops/declarable/CustomOperations.h>
 #include <ops/specials.h>
 #include <types/types.h>
 
 namespace sd {
-/**
- * Concatneate multi array of the same shape together
- * along a particular dimension
- */
-// template <typename T>
-// void SpecialMethods<T>::concatCpuGeneric(const std::vector<NDArray*>& inArrs, NDArray& output, const int axis) {
-//         const sd::Unsigned numOfArrs = inArrs.size();
-
-//         int outDim;
-//         const bool isOutputVector = output.isCommonVector(outDim);
-
-//         if(isOutputVector || (axis == 0 && output.ordering() == 'c')) {
-
-//             bool allVectorsOrScalars = true;
-//             const sd::Unsigned outEws = isOutputVector ? output.stridesOf()[outDim] : output.ews();
-
-//             std::vector<int> nonUnityDim(numOfArrs);
-//             std::vector<sd::LongType> zOffset(numOfArrs);
-
-//             for(int i = 0; i < numOfArrs; i++) {
-//                 allVectorsOrScalars &= (inArrs[i]->lengthOf() == 1 || inArrs[i]->isCommonVector(nonUnityDim[i]));
-//                 if(!allVectorsOrScalars)
-//                     break;
-//                 if(i == 0)  zOffset[0] = 0;
-//                 else        zOffset[i] = zOffset[i - 1] + outEws * inArrs[i - 1]->lengthOf();
-//             }
-
-//             if(allVectorsOrScalars) {
-
-//                 T* outBuff = output.bufferAsT<T>();
-
-//                 auto func = PRAGMA_THREADS_FOR {
-//                     for (auto r = start; r < stop; r += increment) {
-//                         const sd::LongType arrLen = inArrs[r]->lengthOf();
-//                         const sd::Unsigned xEws = (arrLen == 1) ? 1 : inArrs[r]->stridesOf()[nonUnityDim[r]];
-
-//                         T *z = outBuff + zOffset[r];
-//                         T *x = inArrs[r]->bufferAsT<T>();
-
-//                         if (outEws == 1 && xEws == 1)
-//                             for (sd::LongType e = 0; e < arrLen; e++)
-//                                 z[e] = x[e];
-//                         else
-//                             for (sd::LongType e = 0; e < arrLen; e++)
-//                                 z[e * outEws] = x[e * xEws];
-//                     }
-//                 };
-
-//                 samediff::Threads::parallel_tad(func, 0, numOfArrs);
-//                 return;
-//             }
-//         }
-
-//         const int rank  = inArrs[0]->rankOf();
-//         const int rank2 = 2*rank;
-//         std::vector<std::vector<sd::LongType>> indices(numOfArrs, std::vector<sd::LongType>(rank2,0));
-
-//         // take into account indices for first array
-//         indices[0][2 * axis + 1] = inArrs[0]->sizeAt(axis);
-
-//         // loop through the rest of input arrays
-//         for(int i = 1; i < numOfArrs; ++i) {
-//             indices[i][2 * axis]     = indices[i-1][2 * axis + 1];                                // index start from
-//             indices[i][2 * axis + 1] = indices[i-1][2 * axis + 1] + inArrs[i]->sizeAt(axis);      // index end with
-//             (excluding)
-//         }
-
-//         auto func = PRAGMA_THREADS_FOR {
-//             for (auto i = start; i < stop; i += increment) {
-//                 auto temp = output(indices[i], true);
-//                 sd::TransformLoops<T, T, T>::template loopTransform<simdOps::Assign<T, T>>(
-//                 inArrs[i]->bufferAsT<T>(), inArrs[i]->shapeInfo(), temp.bufferAsT<T>(), temp.shapeInfo(), nullptr, 0,
-//                 1);
-//             }
-//         };
-
-//         samediff::Threads::parallel_tad(func, 0, numOfArrs);
-// }
-
-// static sd::LongType strideOverContigAxis(const int axis, const sd::LongType* inShapeInfo) {
-
-//     sd::LongType result = 9223372036854775807LL;
-
-//     for(sd::Unsigned i = 0; i < shape::rank(inShapeInfo); ++i) {
-
-//         const auto currentStride = shape::stride(inShapeInfo)[i];
-
-//         if(i == axis || shape::shapeOf(inShapeInfo)[i] == 1)
-//             continue;
-
-//         if(result > currentStride)
-//             result = currentStride;
-//     }
-
-//     return result == 9223372036854775807LL ? 1 : result;
-// }
 
 /**
  * @brief Checks if the shape of NDArray contains 1 before(order c) or after(order f) the specified axis
@@ -134,14 +38,14 @@ namespace sd {
  * @param axis
  * @return int
  */
-SD_INLINE int isShapeExtendedWithOnes(const NDArray &input, int axis) {
+SD_INLINE int isShapeExtendedWithOnes(NDArray&input, LongType axis) {
   bool isAllOne = true;
   auto shapes = shape::shapeOf(input.shapeInfo());
   auto rank = input.rankOf();
   if (rank > axis) {
     if (input.ordering() == 'c') {
       // check before the axis
-      for (int i = 0; i < axis; i++) {
+      for (sd::LongType i = 0; i < axis; i++) {
         isAllOne = isAllOne && (shapes[i] == 1);
       }
     } else {
@@ -163,18 +67,18 @@ struct InputArgsCase2 {
 };
 
 template <typename T>
-void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inArrs, NDArray &output, const int axis) {
-  const int numOfInArrs = inArrs.size();
+void SpecialMethods<T>::concatCpuGeneric(const std::vector<NDArray *> &inArrs, NDArray &output,
+                                         const LongType axis) {
+  const sd::LongType numOfInArrs = inArrs.size();
   const auto sizeofT = output.sizeOfT();
 
   T *zBuff = output.bufferAsT<T>();
 
   bool shapeExtendedWithOnes = isShapeExtendedWithOnes(output, axis);
-  bool followEws1 = output.ews() == 1;
+  bool followEws1 = false;
   bool matchesOutputOrdering = true;
   for (int i = 0; i < numOfInArrs; ++i) {
     shapeExtendedWithOnes = shapeExtendedWithOnes && isShapeExtendedWithOnes(*inArrs[i], axis);
-    followEws1 = followEws1 && inArrs[i]->ews() == 1;
     matchesOutputOrdering = matchesOutputOrdering && inArrs[i]->ordering() == output.ordering();
   }
 
@@ -183,30 +87,27 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
 
   if (copyCase1) {
     // copyCase1:
-    // in this case:
     // When NdArrays follow the same order and unit elementwise stride and
-    // the concantenation axis is 0th or has only 1 before it {1, 1, ..., axis} for "c"
+    // the concantneation axis is 0th or has only 1 before it {1, 1, ..., axis} for "c"
     // or axis is (rank-1)th or has only 1 after it {axis, 1, 1, ..., 1} for "f"
     // we will concatenate them by sequential copying of the whole buffers
 
     std::vector<T *> zPtrList;
     T *z = output.bufferAsT<T>();
-    for (int i = 0; i < numOfInArrs; i++) {
+    for (sd::LongType i = 0; i < numOfInArrs; i++) {
       zPtrList.push_back(z);
       z += inArrs[i]->lengthOf();
     }
-    auto func = [&inArrs, &zPtrList](uint64_t thread_id, int64_t start, int64_t stop, int64_t increment) -> void {
-      for (int i = start; i < stop; ++i) {
+    auto func = [&inArrs, &zPtrList](sd::LongType thread_id, sd::LongType start, sd::LongType stop,
+                                     sd::LongType increment) -> void {
+      for (sd::LongType i = start; i < stop; ++i) {
         const auto memAmountToCopy = inArrs[i]->lengthOf();
         const auto inputPtr = inArrs[i]->bufferAsT<T>();
-#if defined(__NEC__)
+
         auto zPtr = zPtrList[i];
         for (int j = 0; j < memAmountToCopy; j++) {
           zPtr[j] = inputPtr[j];
         }
-#else
-        memcpy(zPtrList[i], inputPtr, memAmountToCopy * sizeof(T));
-#endif
       }
     };
 
@@ -221,15 +122,6 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
   }
   bool copyCase2 = copyCaseEws1 && output.ordering() == 'c';
   if (copyCase2) {
-    // copyCase2:
-    // in this case:
-    // when NDArrays follow the same order (here it is done for the "c" "the last index is fast" order)
-    // and unit elementwise stride.
-    // we will just concatenate by iterating over t=shape[0]*...*shape[axis-1] times
-    // and copying all buffers with {offset: t * copy_size_i, size: copy_size_i} into output buffer with { offset: t*
-    // total_copy_size, total copy size} where: copy_size_i = shape[axis] * .. * shape[rank-1] of the iTh input array
-    // total copy size is sum of all {copy_size_i}
-
     sd::LongType times = 1;
     auto shapes = shape::shapeOf(output.shapeInfo());
 
@@ -242,7 +134,8 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
 
     std::vector<InputArgsCase2<T>> inputArgs;
     for (sd::LongType i = 0; i < numOfInArrs; i++) {
-      InputArgsCase2<T> input = {inArrs[i]->bufferAsT<T>(), static_cast<int>(inArrs[i]->lengthOf()) / static_cast<int>(times)};
+      InputArgsCase2<T> input = {inArrs[i]->bufferAsT<T>(),
+                                 static_cast<int>(inArrs[i]->lengthOf()) / static_cast<int>(times)};
       inputArgs.push_back(input);
     }
 
@@ -251,7 +144,7 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
       auto outPtr = &(z[start * totalCopySize]);
       auto numOfInArrs = inputArgs.size();
       for (int i = start; i < stop; i++) {
-        for (int j = 0; j < numOfInArrs; j++) {
+        for (size_t j = 0; j < numOfInArrs; j++) {
           auto inputCopySize = inputArgs[j].size;
           const T *inputBasePtr = inputArgs[j].ptr;
           auto inputPtr = &(inputBasePtr[i * inputCopySize]);
@@ -268,18 +161,34 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
     return;
   }
 
-  // TODO: optimize the other cases to be NEC friendly as well
+  // Cache shape and stride information for output
+  const sd::LongType zRank = shape::rank(output.shapeInfo());
+  const sd::LongType* zShape = shape::shapeOf(output.shapeInfo());
+  const sd::LongType* zStride = shape::stride(output.shapeInfo());
+
+  // Pre-cache input arrays' shape information
+  std::vector<const sd::LongType*> inShapes(numOfInArrs);
+  std::vector<const sd::LongType*> inStrides(numOfInArrs);
+  std::vector<sd::LongType> inRanks(numOfInArrs);
+
+  for (sd::LongType i = 0; i < numOfInArrs; i++) {
+    inRanks[i] = shape::rank(inArrs[i]->shapeInfo());
+    inShapes[i] = shape::shapeOf(inArrs[i]->shapeInfo());
+    inStrides[i] = shape::stride(inArrs[i]->shapeInfo());
+  }
+
   // general case
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK], temp;
+    sd::LongType coords[SD_MAX_RANK], temp;
 
-    for (auto i = start; i < stop; i += increment) {
-      shape::index2coordsCPU(start, i, output.shapeInfo(), coords);
+    for (sd::LongType i = start; i < stop; i += increment) {
+      INDEX2COORDS(i, zRank, zShape, coords);
 
-      const auto zOffset = shape::getOffset(output.shapeInfo(), coords);
+      sd::LongType zOffset;
+      COORDS2INDEX(zRank, zStride, coords, zOffset);
 
-      sd::Unsigned inArrIdx = 0;
-      sd::Unsigned xDim = inArrs[inArrIdx]->sizeAt(axis);
+      sd::LongType inArrIdx = 0;
+      sd::LongType xDim = inArrs[inArrIdx]->sizeAt(axis);
 
       temp = coords[axis];
       while (coords[axis] >= xDim) {
@@ -288,7 +197,8 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
       }
 
       const T *x = inArrs[inArrIdx]->bufferAsT<T>();
-      const auto xOffset = shape::getOffset(inArrs[inArrIdx]->shapeInfo(), coords);
+      sd::LongType xOffset;
+      COORDS2INDEX(inRanks[inArrIdx], inStrides[inArrIdx], coords, xOffset);
 
       zBuff[zOffset] = x[xOffset];
 
@@ -298,106 +208,73 @@ void SpecialMethods<T>::concatCpuGeneric(const std::vector<const NDArray *> &inA
 
   samediff::Threads::parallel_for(func, 0, output.lengthOf());
 }
-
 /**
  * Concatneate multi array of the same shape together
  * along a particular dimension
  */
 template <typename T>
-void SpecialMethods<T>::concatCpuGeneric(int dimension, int numArrays, sd::Pointer *data, sd::Pointer *inputShapeInfo,
-                                         void *vresult, sd::LongType const *resultShapeInfo) {
+void SpecialMethods<T>::concatCpuGeneric(LongType dimension, int numArrays,NDArray **data,
+                                         NDArray *vresult) {
   auto result = reinterpret_cast<T *>(vresult);
-  std::vector<const NDArray *> inputs(numArrays);
+  std::vector<NDArray *> inputs(numArrays);
 
-  NDArray output(static_cast<void *>(result), resultShapeInfo);
 
-  for (int i = 0; i < numArrays; ++i)
-    inputs[i] = new NDArray(static_cast<void *>(data[i]), static_cast<sd::LongType *>(inputShapeInfo[i]));
+  for (sd::LongType i = 0; i < numArrays; ++i)
+    inputs[i] =
+        new NDArray(static_cast<void *>(data[i]), data[i]->shapeInfo(), nullptr, false, 0);
 
-  sd::SpecialMethods<T>::concatCpuGeneric(inputs, output, dimension);
+  sd::SpecialMethods<T>::concatCpuGeneric(inputs, *vresult, dimension);
 
-  for (int i = 0; i < numArrays; ++i) delete inputs[i];
+  for (sd::LongType i = 0; i < numArrays; ++i) {
+    delete inputs[i];
+  }
 }
 
 template <typename T>
-void SpecialMethods<T>::splitCpuGeneric(const NDArray &input, const std::vector<NDArray *> &outArrs, const int axis) {
+void SpecialMethods<T>::splitCpuGeneric(NDArray& input, const std::vector<NDArray*>& outArrs, const LongType axis) {
   int numSplits = outArrs.size();
-
   const auto sizeofT = input.sizeOfT();
-
   auto xBuff = input.bufferAsT<T>();
 
-  bool luckCase1 =
-      ((axis == 0 && input.ordering() == 'c') || (axis == input.rankOf() - 1 && input.ordering() == 'f')) &&
-      input.ews() == 1;
+  bool luckCase1 = ((axis == 0 && input.ordering() == 'c') || (axis == input.rankOf() - 1 && input.ordering() == 'f'));
 
   if (luckCase1) {
-    for (sd::Unsigned i = 0; i < numSplits; ++i) {
-      luckCase1 &= outArrs[i]->ordering() == input.ordering() && outArrs[i]->ews() == 1;
-      if (!luckCase1) break;
-    }
-  }
-
-  if (luckCase1) {
-    T *x = const_cast<T *>(xBuff);
-    for (sd::Unsigned i = 0; i < numSplits; ++i) {
+    T* x = const_cast<T*>(xBuff);
+    for (sd::LongType i = 0; i < numSplits; ++i) {
       const auto memAmountToCopy = outArrs[i]->lengthOf();
-      memcpy(outArrs[i]->bufferAsT<T>(), x, memAmountToCopy * sizeofT);
+      ops::safe_copy(x, static_cast<const T*>(outArrs[i]->buffer()), static_cast<size_t>(memAmountToCopy));
       x += memAmountToCopy;
     }
     return;
   }
 
-  // const bool isXcontin = input.strideAt(axis) == 1;
-  // bool areOutsContin = true;
-  // bool allSameOrder = true;
-  // std::vector<sd::LongType> strideOfContigStride(numSplits);
+  // Cache shape and stride information
+  const sd::LongType xRank = shape::rank(input.shapeInfo());
+  const sd::LongType* xShape = shape::shapeOf(input.shapeInfo());
+  const sd::LongType* xStride = shape::stride(input.shapeInfo());
 
-  // if (isXcontin) {
+  // Pre-cache output array ranks, shapes, and strides
+  std::vector<const sd::LongType*> outShapes(numSplits);
+  std::vector<const sd::LongType*> outStrides(numSplits);
+  std::vector<sd::LongType> outRanks(numSplits);
 
-  //     for (sd::Unsigned i = 0; i < numSplits; ++i) {
+  for (int i = 0; i < numSplits; i++) {
+    outRanks[i] = shape::rank(outArrs[i]->shapeInfo());
+    outShapes[i] = shape::shapeOf(outArrs[i]->shapeInfo());
+    outStrides[i] = shape::stride(outArrs[i]->shapeInfo());
+  }
 
-  //         areOutsContin &= outArrs[i]->strideAt(axis) == 1;
-  //         allSameOrder &= outArrs[i]->ordering() == input.ordering();
-  //         if (!areOutsContin || !allSameOrder)
-  //             break;
-
-  //         strideOfContigStride[i] = shape::strideOverContigAxis(axis, outArrs[i]->shapeInfo());
-  //     }
-  // }
-
-  // const bool luckCase2 = isXcontin && areOutsContin && allSameOrder;
-
-  // if (luckCase2) {
-
-  //     const auto xStep = shape::strideOverContigAxis(axis, input.shapeInfo());
-
-  //     for (sd::Unsigned i = 0; i < input.lengthOf() / input.sizeAt(axis); ++i) {
-
-  //         T* x = xBuff + xStep * i;
-
-  //         for (sd::Unsigned j = 0; j < numSplits; ++j) {
-  //             const auto zDim = outArrs[j]->sizeAt(axis);
-  //             T* z = outArrs[j]->bufferAsT<T>() + strideOfContigStride[j] * i;
-  //             memcpy(z, x, zDim * sizeofT);
-  //             x += zDim;
-  //         }
-  //     }
-
-  //     return;
-  // }
-
-  sd::Unsigned zDim = outArrs[0]->sizeAt(axis);
-  // general case
+  sd::LongType zDim = outArrs[0]->sizeAt(axis);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK], temp;
+    sd::LongType coords[SD_MAX_RANK], temp;
 
-    for (auto i = start; i < stop; i += increment) {
-      shape::index2coordsCPU(start, i, input.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(input.shapeInfo(), coords);
+    for (sd::LongType i = start; i < stop; i += increment) {
+      INDEX2COORDS(i, xRank, xShape, coords);
+      sd::LongType xOffset;
+      COORDS2INDEX(xRank, xStride, coords, xOffset);
 
-      sd::Unsigned outArrIdx = 0;
+      sd::LongType outArrIdx = 0;
       temp = coords[axis];
 
       while (coords[axis] >= zDim) {
@@ -405,8 +282,9 @@ void SpecialMethods<T>::splitCpuGeneric(const NDArray &input, const std::vector<
         ++outArrIdx;
       }
 
-      T *z = outArrs[outArrIdx]->bufferAsT<T>();
-      const auto zOffset = shape::getOffset(outArrs[outArrIdx]->shapeInfo(), coords);
+      T* z = outArrs[outArrIdx]->bufferAsT<T>();
+      sd::LongType zOffset;
+      COORDS2INDEX(outRanks[outArrIdx], outStrides[outArrIdx], coords, zOffset);
       z[zOffset] = xBuff[xOffset];
 
       coords[axis] = temp;
@@ -416,304 +294,148 @@ void SpecialMethods<T>::splitCpuGeneric(const NDArray &input, const std::vector<
   samediff::Threads::parallel_for(func, 0, input.lengthOf());
 }
 
-/**
- * This kernel accumulates X arrays, and stores result into Z
- *
- * @tparam T
- * @param x
- * @param z
- * @param n
- * @param length
- */
 template <typename T>
-void SpecialMethods<T>::accumulateGeneric(void **vx, void *vz, sd::LongType const *zShapeInfo, int n,
-                                          const sd::LongType length) {
-  auto z = reinterpret_cast<T *>(vz);
-  auto x = reinterpret_cast<T **>(vx);
-
-  auto func = PRAGMA_THREADS_FOR {
-    for (auto i = start; i < stop; i++) {
-      for (auto ar = 0L; ar < n; ar++) {
-        z[i] += x[ar][i];
-      }
-    }
-  };
-
-  samediff::Threads::parallel_for(func, 0, length);
-}
-
-/**
- * This kernel averages X input arrays, and stores result to Z
- *
- * @tparam T
- * @param x
- * @param z
- * @param n
- * @param length
- * @param propagate
- */
-template <typename T>
-void SpecialMethods<T>::averageGeneric(void **vx, void *vz, sd::LongType const *zShapeInfo, int n,
-                                       const sd::LongType length, bool propagate) {
-  auto z = reinterpret_cast<T *>(vz);
-  auto x = reinterpret_cast<T **>(vx);
-
-  if (z == nullptr) {
-    // code branch for absent Z
-    z = x[0];
-
-    PRAGMA_OMP_SIMD
-    for (uint64_t i = 0; i < length; i++) {
-      z[i] /= static_cast<T>(n);
-    }
-
-    auto func = PRAGMA_THREADS_FOR {
-      for (auto i = start; i < stop; i++) {
-        for (sd::LongType ar = 1; ar < n; ar++) {
-          z[i] += x[ar][i] / static_cast<T>(n);
-        }
-      }
-    };
-    samediff::Threads::parallel_for(func, 0, length);
-
-    // instead of doing element-wise propagation, we just issue memcpy to propagate data
-    for (sd::LongType ar = 1; ar < n; ar++) {
-      memcpy(x[ar], z, length * sizeof(T));
-    }
-  } else {
-    // code branch for existing Z
-
-    // memset before propagation
-    memset(z, 0, length * sizeof(T));
-
-    // aggregation step
-    auto func = PRAGMA_THREADS_FOR {
-      for (auto i = start; i < stop; i++) {
-        for (sd::LongType ar = 0; ar < n; ar++) {
-          z[i] += x[ar][i] / static_cast<T>(n);
-        }
-      }
-    };
-    samediff::Threads::parallel_for(func, 0, length);
-
-    // instead of doing element-wise propagation, we just issue memcpy to propagate data
-    for (sd::LongType ar = 0; ar < n; ar++) {
-      memcpy(x[ar], z, length * sizeof(T));
-    }
-  }
+void SpecialMethods<T>::sortGeneric(NDArray *input, bool descending) {
+  auto x = input->bufferAsT<T>();
+  auto xShapeInfo = input->shapeInfo();
+  quickSort_parallel(input, Environment::getInstance().maxMasterThreads(), descending);
 }
 
 template <typename T>
-sd::LongType SpecialMethods<T>::getPosition(sd::LongType const *xShapeInfo, sd::LongType index) {
-  auto xEWS = shape::elementWiseStride(xShapeInfo);
-
-  if (xEWS == 1)
-    return index;
-  else if (xEWS > 1)
-    return index * xEWS;
-  else
-    return shape::getIndexOffset(index, xShapeInfo);
-}
-
-template <typename T>
-void SpecialMethods<T>::quickSort_parallel_internal(T *array, sd::LongType const *xShapeInfo, int left, int right,
-                                                    int cutoff, bool descending) {
-  int i = left, j = right;
-  T tmp;
-  T pivot = array[getPosition(xShapeInfo, (left + right) / 2)];
-
-  {
-    /* PARTITION PART */
-    while (i <= j) {
+void SpecialMethods<T>::quickSort_parallel_internal(NDArray *x, int left, int right, int cutoff, bool descending) {
+  if (right - left <= cutoff) {
+    // Use insertion sort for small arrays
+    auto xBuff = x->bufferAsT<T>();
+    for (int i = left + 1; i <= right; i++) {
+      T key = xBuff[i];
+      int j = i - 1;
       if (descending) {
-        while (array[getPosition(xShapeInfo, i)] > pivot) i++;
-        while (array[getPosition(xShapeInfo, j)] < pivot) j--;
-        if (i <= j) {
-          tmp = array[getPosition(xShapeInfo, i)];
-          array[getPosition(xShapeInfo, i)] = array[getPosition(xShapeInfo, j)];
-          array[getPosition(xShapeInfo, j)] = tmp;
-          i++;
+        while (j >= left && xBuff[j] < key) {
+          xBuff[j + 1] = xBuff[j];
           j--;
         }
       } else {
-        while (array[getPosition(xShapeInfo, i)] < pivot) i++;
-        while (array[getPosition(xShapeInfo, j)] > pivot) j--;
-        if (i <= j) {
-          tmp = array[getPosition(xShapeInfo, i)];
-          array[getPosition(xShapeInfo, i)] = array[getPosition(xShapeInfo, j)];
-          array[getPosition(xShapeInfo, j)] = tmp;
-          i++;
+        while (j >= left && xBuff[j] > key) {
+          xBuff[j + 1] = xBuff[j];
           j--;
+        }
+      }
+      xBuff[j + 1] = key;
+    }
+    return;
+  }
+
+  // Choose pivot as median of three
+  auto xBuff = x->bufferAsT<T>();
+  int mid = (left + right) / 2;
+  if (descending) {
+    if (xBuff[right] > xBuff[left]) std::swap(xBuff[right], xBuff[left]);
+    if (xBuff[mid] > xBuff[left]) std::swap(xBuff[mid], xBuff[left]);
+    if (xBuff[right] > xBuff[mid]) std::swap(xBuff[right], xBuff[mid]);
+  } else {
+    if (xBuff[right] < xBuff[left]) std::swap(xBuff[right], xBuff[left]);
+    if (xBuff[mid] < xBuff[left]) std::swap(xBuff[mid], xBuff[left]);
+    if (xBuff[right] < xBuff[mid]) std::swap(xBuff[right], xBuff[mid]);
+  }
+
+  // Partition
+  T pivot = xBuff[mid];
+  int i = left;
+  int j = right;
+
+  while (i <= j) {
+    if (descending) {
+      while (xBuff[i] > pivot) i++;
+      while (xBuff[j] < pivot) j--;
+    } else {
+      while (xBuff[i] < pivot) i++;
+      while (xBuff[j] > pivot) j--;
+    }
+
+    if (i <= j) {
+      std::swap(xBuff[i], xBuff[j]);
+      i++;
+      j--;
+    }
+  }
+
+  // Recursively sort sub-arrays
+  if (left < j) quickSort_parallel_internal(x, left, j, cutoff, descending);
+  if (i < right) quickSort_parallel_internal(x, i, right, cutoff, descending);
+}
+
+template <typename T>
+void SpecialMethods<T>::quickSort_parallel(NDArray *x, int numThreads, bool descending) {
+  const int CUTOFF = 32;  // Threshold for switching to insertion sort
+  auto length = x->lengthOf();
+
+  if (length <= 1) return;
+
+  // For very small arrays, just use the internal sort
+  if (length <= CUTOFF || numThreads <= 1) {
+    quickSort_parallel_internal(x, 0, length - 1, CUTOFF, descending);
+    return;
+  }
+
+  // For larger arrays, partition into segments and sort in parallel
+  int segmentSize = length / numThreads;
+  auto func = PRAGMA_THREADS_FOR {
+    int threadLeft = start * segmentSize;
+    int threadRight = (start == numThreads - 1) ? length - 1 : (start + 1) * segmentSize - 1;
+    quickSort_parallel_internal(x, threadLeft, threadRight, CUTOFF, descending);
+  };
+
+  samediff::Threads::parallel_for(func, 0, numThreads);
+
+  // Merge sorted segments if we used multiple threads
+  if (numThreads > 1) {
+    auto xBuff = x->bufferAsT<T>();
+    std::vector<T> temp(length);
+    for (int size = segmentSize; size < length; size *= 2) {
+      for (int left = 0; left < length; left += 2 * size) {
+        int mid = std::min(left + size, (int)length);
+        int right = std::min(left + 2 * size, (int)length);
+        int i = left, j = mid, k = left;
+
+        // Merge two segments
+        while (i < mid && j < right) {
+          if (descending) {
+            temp[k++] = (xBuff[i] >= xBuff[j]) ? xBuff[i++] : xBuff[j++];
+          } else {
+            temp[k++] = (xBuff[i] <= xBuff[j]) ? xBuff[i++] : xBuff[j++];
+          }
+        }
+        while (i < mid) temp[k++] = xBuff[i++];
+        while (j < right) temp[k++] = xBuff[j++];
+
+        // Copy back
+        for (i = left; i < right; i++) {
+          xBuff[i] = temp[i];
         }
       }
     }
   }
-
-  //
-
-  if (((right - left) < cutoff)) {
-    if (left < j) {
-      quickSort_parallel_internal(array, xShapeInfo, left, j, cutoff, descending);
-    }
-    if (i < right) {
-      quickSort_parallel_internal(array, xShapeInfo, i, right, cutoff, descending);
-    }
-
-  } else {
-    PRAGMA_OMP_TASK { quickSort_parallel_internal(array, xShapeInfo, left, j, cutoff, descending); }
-    PRAGMA_OMP_TASK { quickSort_parallel_internal(array, xShapeInfo, i, right, cutoff, descending); }
-  }
 }
 
 template <typename T>
-void SpecialMethods<T>::quickSort_parallel(void *varray, sd::LongType const *xShapeInfo, sd::LongType lenArray,
-                                           int numThreads, bool descending) {
-  auto array = reinterpret_cast<T *>(varray);
-  int cutoff = 1000;
-
-  PRAGMA_OMP_PARALLEL_THREADS(numThreads) {
-    PRAGMA_OMP_SINGLE_ARGS(nowait) {
-      quickSort_parallel_internal(array, xShapeInfo, 0, lenArray - 1, cutoff, descending);
-    }
-  }
-}
-
-template <typename T>
-int SpecialMethods<T>::nextPowerOf2(int number) {
-  int pos = 0;
-
-  while (number > 0) {
-    pos++;
-    number = number >> 1;
-  }
-  return (int)pow(2, pos);
-}
-
-template <typename T>
-int SpecialMethods<T>::lastPowerOf2(int number) {
-  int p = 1;
-  while (p <= number) p <<= 1;
-
-  p >>= 1;
-  return p;
-}
-
-template <typename T>
-void SpecialMethods<T>::sortGeneric(void *vx, sd::LongType const *xShapeInfo, bool descending) {
-  auto x = reinterpret_cast<T *>(vx);
-
-  quickSort_parallel(x, xShapeInfo, shape::length(xShapeInfo), omp_get_max_threads(), descending);
-}
-
-template <typename T>
-void SpecialMethods<T>::sortTadGeneric(void *vx, sd::LongType const *xShapeInfo, int *dimension, int dimensionLength,
-                                       sd::LongType const *tadShapeInfo, sd::LongType const *tadOffsets,
-                                       bool descending) {
-  auto x = reinterpret_cast<T *>(vx);
-
-  // quickSort_parallel(x, xShapeInfo, shape::length(xShapeInfo), omp_get_max_threads(), descending);
-  sd::LongType xLength = shape::length(xShapeInfo);
-  sd::LongType xTadLength = shape::tadLength(xShapeInfo, dimension, dimensionLength);
+void SpecialMethods<T>::sortTadGeneric(NDArray *input, sd::LongType *dimension, int dimensionLength, bool descending) {
+  auto x = input->bufferAsT<T>();
+  sd::LongType xLength = input->lengthOf();
+  sd::LongType xTadLength = shape::tadLength(input->shapeInfo(), dimension, dimensionLength);
   int numTads = xLength / xTadLength;
+
+  const std::vector<sd::LongType> dimVector(dimension, dimension + dimensionLength);
+  auto pack = sd::ConstantTadHelper::getInstance().tadForDimensions(
+      const_cast<sd::LongType *>(input->shapeInfo()), const_cast<sd::LongType *>(dimVector.data()), false);
 
   auto func = PRAGMA_THREADS_FOR {
     for (auto r = start; r < stop; r++) {
-      T *dx = x + tadOffsets[r];
-
-      quickSort_parallel(dx, tadShapeInfo, xTadLength, 1, descending);
+      NDArray *dx = pack->extractTadView(input, r);
+      quickSort_parallel(dx,  xTadLength, descending);
+      delete dx;
     }
   };
   samediff::Threads::parallel_tad(func, 0, numTads);
 }
 
-template <typename T>
-void SpecialMethods<T>::decodeBitmapGeneric(const void *dx, sd::LongType N, void *vz, sd::LongType const *zShapeInfo) {
-  auto dz = reinterpret_cast<T *>(vz);
-  auto x = reinterpret_cast<const int *>(dx);
-  sd::LongType lim = N / 16 + 5;
-
-  FloatBits2 fb;
-  fb.i_ = x[2];
-  float threshold = fb.f_;
-
-  auto pPos = -1;
-
-  auto func = PRAGMA_THREADS_FOR {
-    for (auto e = start; e < stop; e++) {
-      const auto v = x[e];
-      for (int bitId = 0; bitId < 16; bitId++) {
-        bool hasBit = (v & 1 << (bitId)) != 0;
-        bool hasSign = (v & 1 << (bitId + 16)) != 0;
-        auto cPos = (e - 4) * 16 + bitId;
-
-        if (hasBit) {
-          if (hasSign)
-            dz[cPos] -= static_cast<T>(threshold);
-          else
-            dz[cPos] += static_cast<T>(threshold);
-        } else if (hasSign) {
-          dz[cPos] -= static_cast<T>(threshold / 2);
-        }
-
-        pPos = cPos;
-      }
-    }
-  };
-
-  samediff::Threads::parallel_for(func, 4, lim);
-}
-
-template <typename T>
-sd::LongType SpecialMethods<T>::encodeBitmapGeneric(void *vx, sd::LongType const *xShapeInfo, sd::LongType N, int *dz,
-                                                    float threshold) {
-  auto dx = reinterpret_cast<T *>(vx);
-  const T two(2.0f);
-  const T zero(0.0f);
-  const T t(threshold);
-  const T thalf = t / two;
-
-  // auto func = PRAGMA_REDUCE_LONG {
-  sd::LongType retVal = 0L;
-
-  PRAGMA_OMP_PARALLEL_FOR_REDUCTION(+ : retVal)
-  for (auto x = 0; x < N; x += 16) {
-    int byte = 0;
-    int byteId = x / 16 + 4;
-
-    for (int f = 0; f < 16; f++) {
-      auto e = x + f;
-
-      if (e >= N) continue;
-
-      T val = dx[e];
-      T abs = sd::math::sd_abs<T>(val);
-
-      int bitId = e % 16;
-
-      if (abs >= t) {
-        byte |= 1 << (bitId);
-        retVal++;
-
-        if (val < zero) {
-          byte |= 1 << (bitId + 16);
-          dx[e] += t;
-        } else {
-          dx[e] -= t;
-        }
-      } else if (abs >= thalf && val < zero) {
-        byte |= 1 << (bitId + 16);
-        dx[e] += thalf;
-
-        retVal++;
-      }
-    }
-
-    dz[byteId] = byte;
-  }
-
-  return retVal;
-  //};
-
-  // return samediff::Threads::parallel_long(func, LAMBDA_SUML, 0, N, 16);
-}
 }  // namespace sd

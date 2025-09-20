@@ -23,6 +23,7 @@ package org.nd4j.linalg.ops.transforms;
 import lombok.NonNull;
 import lombok.val;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.CustomOp;
@@ -88,19 +89,19 @@ public class Transforms {
         return Nd4j.getExecutioner().exec(new JaccardDistance(d1, d2)).getDouble(0);
     }
 
-    public static INDArray allCosineSimilarities(@NonNull INDArray d1, @NonNull INDArray d2, int... dimensions) {
+    public static INDArray allCosineSimilarities(@NonNull INDArray d1, @NonNull INDArray d2, long... dimensions) {
         return Nd4j.getExecutioner().exec(new CosineSimilarity(d1, d2, true, dimensions));
     }
 
-    public static INDArray allCosineDistances(@NonNull INDArray d1, @NonNull INDArray d2, int... dimensions) {
+    public static INDArray allCosineDistances(@NonNull INDArray d1, @NonNull INDArray d2, long... dimensions) {
         return Nd4j.getExecutioner().exec(new CosineDistance(d1, d2, true, dimensions));
     }
 
-    public static INDArray allEuclideanDistances(@NonNull INDArray d1, @NonNull INDArray d2, int... dimensions) {
+    public static INDArray allEuclideanDistances(@NonNull INDArray d1, @NonNull INDArray d2, long... dimensions) {
         return Nd4j.getExecutioner().exec(new EuclideanDistance(d1, d2, true, dimensions));
     }
 
-    public static INDArray allManhattanDistances(@NonNull INDArray d1, @NonNull INDArray d2, int... dimensions) {
+    public static INDArray allManhattanDistances(@NonNull INDArray d1, @NonNull INDArray d2, long... dimensions) {
         return Nd4j.getExecutioner().exec(new ManhattanDistance(d1, d2, true, dimensions));
     }
 
@@ -124,7 +125,7 @@ public class Transforms {
 
     public static INDArray cross(INDArray x, INDArray y) {
         Cross c = new Cross(x, y, null);
-        List<LongShapeDescriptor> shape = c.calculateOutputShape();
+        List<DataBuffer> shape = c.calculateOutputShape();
         INDArray out = Nd4j.create(shape.get(0));
         c.addOutputArgument(out);
         Nd4j.getExecutioner().exec(c);

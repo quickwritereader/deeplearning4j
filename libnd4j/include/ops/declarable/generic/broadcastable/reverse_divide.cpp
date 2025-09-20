@@ -36,21 +36,21 @@ BROADCASTABLE_OP_IMPL(reversedivide, 0, 0) {
   BROADCAST_CHECK_EMPTY(x, y, z);
 
   REQUIRE_TRUE(!x->isB(), 0, "REVERSEDIVIDE OP: you can't divide by bool array!");
-  x->applyTrueBroadcast(BROADCAST(ReverseDivide), *y, *z, true);
+  x->applyTrueBroadcast(BROADCAST(ReverseDivide), y, z, true);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(RDiv, reversedivide);
 
 DECLARE_TYPES(reversedivide) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 DECLARE_TYPES(reversedivide_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 CUSTOM_OP_IMPL(reversedivide_bp, 3, 2, false, 0, 0) {
@@ -65,62 +65,57 @@ CUSTOM_OP_IMPL(reversedivide_bp, 3, 2, false, 0, 0) {
     // PWT case case
 
     // X gradient
-    // epsNext->applyTriplewiseLambda(x, y, lambdaX, gradX);
-    gradX->assign((*epsNext) * (*y) / ((*x) * (*x)));
-    gradX->applyTransform(transform::Neg, *gradX);
+    NDArray gradXTemp = (*epsNext) * (*y) / ((*x) * (*x));
+    gradX->assign(&gradXTemp);
+    gradX->applyTransform(transform::Neg, gradX);
+
     // Y gradient
-    // epsNext->applyPairwiseLambda(x, lambdaY, gradY);
-    gradY->assign((*epsNext) / (*x));
+    NDArray gradYTemp = (*epsNext) / (*x);
+    gradY->assign(&gradYTemp);
   } else if (y->isScalar()) {
     // scalar case
     auto tmp = epsNext->reduceNumber(reduce::Sum);
     auto tmpX = x->reduceNumber(reduce::Sum);
-    gradY->assign(tmp / tmpX);
+    // For gradY
+    NDArray gradYTemp = tmp / tmpX;
+    gradY->assign(&gradYTemp);
 
-    gradX->assign((*epsNext) * (*y) / ((*x) * (*x)));
-    gradX->applyTransform(transform::Neg, *gradX);
+    // For gradX
+    NDArray gradXTemp = (*epsNext) * (*y) / ((*x) * (*x));
+    gradX->assign(&gradXTemp);
+    gradX->applyTransform(transform::Neg, gradX);
   } else {
     // broadcast case
 
     auto preY = (*epsNext) / (*x);
 
     auto preX = *epsNext * (*y) / ((*x) * (*x));
-    preX.applyTransform(transform::Neg, preX);
+    preX.applyTransform(transform::Neg, &preX);
 
     auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = preX.reduceAlongDimension(reduce::Sum, axisX);
-      gradX->assign(sum);
+      auto sum = preX.reduceAlongDimension(reduce::Sum, &axisX);
+      gradX->assign(&sum);
     } else
-      gradX->assign(preX);
+      gradX->assign(&preX);
 
     if (axisY.size() > 0) {
-      auto sum = preY.reduceAlongDimension(reduce::Sum, axisY);
-      gradY->assign(sum);
+      auto sum = preY.reduceAlongDimension(reduce::Sum, &axisY);
+      gradY->assign(&sum);
     } else
-      gradY->assign(preY);
+      gradY->assign(&preY);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(reversedivide_bp) {
   auto x = inputShape->at(0);
   auto y = inputShape->at(1);
   auto e = inputShape->at(2);
-
-  // eps always has shape of x
-  // grad always has shape of y
-
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  return SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  return SHAPELIST(CONSTANT(x), CONSTANT(y));
 }
 }  // namespace ops
 }  // namespace sd

@@ -21,26 +21,28 @@
 //
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/LegacyIndexReduceOp.h>
+#include <ops/declarable/OpRegistrator.h>
+#include <legacy/NativeOpExecutioner.h>
 
 namespace sd {
 namespace ops {
-LegacyIndexReduceOp::LegacyIndexReduceOp() : LegacyOp::LegacyOp(1) {
+LegacyIndexReduceOp::LegacyIndexReduceOp() : LegacyOp(1) {
   //
 }
 
-LegacyIndexReduceOp::LegacyIndexReduceOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyIndexReduceOp::LegacyIndexReduceOp(int opNum) : LegacyOp(1, opNum) {
   //
 }
 
 LegacyOp *LegacyIndexReduceOp::clone() { return new LegacyIndexReduceOp(this->_opNum); }
 
-ShapeList *LegacyIndexReduceOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyIndexReduceOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
 
   if (block.getAxis()->size() == 0 && block.width() == 1) {
-    sd::LongType *newShape;
+    LongType *newShape;
     // in this case we just return scalar
     ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
     newShape[0] = 2;
@@ -51,30 +53,30 @@ ShapeList *LegacyIndexReduceOp::calculateOutputShape(ShapeList *inputShape, sd::
     newShape[6] = 1;
     newShape[7] = 99;
 
-    auto result = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(newShape, DataType::INT64));
+    auto result = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShape);
     RELEASE(newShape, block.getWorkspace());
-    return SHAPELIST(result);
+    return SHAPELIST(result->primary());
   } else if (block.getAxis()->size()) {
     // in this case we're building proper shape for reduction
-    auto array = INPUT_VARIABLE(0);  // new NDArray(nullptr, inShape, block.getWorkspace());
+    auto array = INPUT_VARIABLE(0);
 
     auto newShape =
-        ShapeUtils::evalReduceShapeInfo('c', *block.getAxis(), *array, DataType::INT64, false, true, block.workspace());
+        ShapeUtils::evalReduceShapeInfo('c', block.getAxis(), *array, INT64, false, true, block.workspace());
     return SHAPELIST(newShape);
   } else {
     bool allAxes = false;
     auto indices = INPUT_VARIABLE(1);
-    sd::LongType rank = shape::rank(inShape);
+    LongType rank = shape::rank(inShape);
     if (indices->lengthOf() == rank) allAxes = true;
 
-    std::vector<int> axis(indices->lengthOf());
+    std::vector<LongType> axis(indices->lengthOf());
     for (int e = 0; e < indices->lengthOf(); e++) {
       // lol otherwise we segfault on macOS
       int f = indices->e<int>(e);
       axis[e] = f >= 0 ? f : f += rank;
     }
     if (allAxes) {
-      sd::LongType *newShape;
+      LongType *newShape;
       // in this case we just return scalar
       ALLOCATE(newShape, block.getWorkspace(), shape::shapeInfoLength(2), sd::LongType);
       newShape[0] = 2;
@@ -85,14 +87,15 @@ ShapeList *LegacyIndexReduceOp::calculateOutputShape(ShapeList *inputShape, sd::
       newShape[6] = 1;
       newShape[7] = 99;
 
-      auto result = ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(newShape, DataType::INT64));
+      auto result = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShape);
+
       RELEASE(newShape, block.getWorkspace());
-      return SHAPELIST(result);
+      return SHAPELIST(result->primary());
     } else {
       // in this case we're building proper shape for reduction
-      auto array = INPUT_VARIABLE(0);  // new NDArray(nullptr, inShape, block.getWorkspace());
+      auto array = INPUT_VARIABLE(0);
       return SHAPELIST(
-          ShapeUtils::evalReduceShapeInfo('c', axis, *array, DataType::INT64, false, true, block.workspace()));
+          ShapeUtils::evalReduceShapeInfo('c', &axis, *array, DataType::INT64, false, true, block.workspace()));
     }
   }
 }
@@ -101,14 +104,14 @@ ShapeList *LegacyIndexReduceOp::calculateOutputShape(ShapeList *inputShape, sd::
  *   For all reductions rules are simple: either you return scalar, or you return reduced NDArray.
  *   It solely depends on input shape, and requested dimensions
  */
-sd::Status LegacyIndexReduceOp::validateAndExecute(Context &block) {
+Status LegacyIndexReduceOp::validateAndExecute(Context &block) {
   auto x = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
   NDArray::prepareSpecialUse({z}, {x});
 
   if (z->dataType() != INT64) {
-    throw std::runtime_error("IndexReduce operations require output to be INT64");
+    THROW_EXCEPTION("IndexReduce operations require output to be INT64");
   }
 
   int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
@@ -126,31 +129,30 @@ sd::Status LegacyIndexReduceOp::validateAndExecute(Context &block) {
           extras.argumentsAsT(x->dataType()), z->buffer(), z->shapeInfo(), z->specialBuffer(), z->specialShapeInfo());
     } else {
       // TAD
-      std::vector<int> dims(block.getAxis()->size());
+      std::vector<LongType> dims(block.getAxis()->size());
       for (size_t e = 0; e < dims.size(); e++) {
         auto axe = block.getAxis()->at(e);
         dims[e] = axe < 0 ? axe + x->rankOf() : axe;
       }
       if (dims.size() > 1) std::sort(dims.begin(), dims.end());
 
-      auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
+      auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), &dims);
 
       NativeOpExecutioner::execIndexReduce(
           block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(), x->specialShapeInfo(),
-          extras.argumentsAsT(x->dataType()), reinterpret_cast<sd::LongType *>(z->buffer()), z->shapeInfo(),
+          extras.argumentsAsT(x->dataType()), reinterpret_cast<LongType *>(z->buffer()), z->shapeInfo(),
           z->specialBuffer(), z->specialShapeInfo(), nullptr, (int)dims.size(),
-          Environment::getInstance().isCPU() ? tadPack.primaryShapeInfo() : tadPack.specialShapeInfo(),
-          Environment::getInstance().isCPU() ? tadPack.primaryOffsets() : tadPack.specialOffsets());
+          Environment::getInstance().isCPU() ? tadPack->primaryShapeInfo() : tadPack->specialShapeInfo(),
+          Environment::getInstance().isCPU() ? tadPack->primaryOffsets() : tadPack->specialOffsets());
     }
   } else {
     // TF mode
     auto indices = INPUT_VARIABLE(1);
     if (indices->lengthOf() == x->rankOf()) allAxes = true;
 
-    std::vector<int> axis(indices->lengthOf());
-    for (int e = 0; e < indices->lengthOf(); e++) {
-      // lol otherwise we segfault on macOS
-      int f = indices->e<int>(e);
+    std::vector<LongType> axis(indices->lengthOf());
+    for (LongType e = 0; e < indices->lengthOf(); e++) {
+      LongType f = indices->e<LongType>(e);
       axis[e] = f >= 0 ? f : f += x->rankOf();
     }
 
@@ -164,21 +166,23 @@ sd::Status LegacyIndexReduceOp::validateAndExecute(Context &block) {
 
       REQUIRE_TRUE(axis.size() > 0, 0, "Some dimensions required for reduction!");
 
-      auto tadPack = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), axis);
+      auto tadPack = ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), &axis);
 
       NativeOpExecutioner::execIndexReduce(
           block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(), x->specialShapeInfo(),
-          extras.argumentsAsT(x->dataType()), reinterpret_cast<sd::LongType *>(z->buffer()), z->shapeInfo(),
+          extras.argumentsAsT(x->dataType()), reinterpret_cast<LongType *>(z->buffer()), z->shapeInfo(),
           z->specialBuffer(), z->specialShapeInfo(), nullptr, (int)axis.size(),
-          Environment::getInstance().isCPU() ? tadPack.primaryShapeInfo() : tadPack.specialShapeInfo(),
-          Environment::getInstance().isCPU() ? tadPack.primaryOffsets() : tadPack.specialOffsets());
+          Environment::getInstance().isCPU() ? tadPack->primaryShapeInfo() : tadPack->specialShapeInfo(),
+          Environment::getInstance().isCPU() ? tadPack->primaryOffsets() : tadPack->specialOffsets());
     }
   }
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+
+  return Status::OK;
 }
 }  // namespace ops
 }  // namespace sd

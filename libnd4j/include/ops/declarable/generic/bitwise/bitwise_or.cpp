@@ -39,10 +39,10 @@ BROADCASTABLE_OP_IMPL(bitwise_or, 0, 0) {
   BROADCAST_CHECK_EMPTY(x, y, z);
 
   x->applyTrueBroadcast(
-      BroadcastIntOpsTuple::custom(scalar::IntOps::IntOr, pairwise::IntOps::IntOr, broadcast::IntOps::IntOr), *y, *z,
+      BroadcastIntOpsTuple::custom(scalar::IntOps::IntOr, pairwise::IntOps::IntOr, broadcast::IntOps::IntOr), y, z,
       false);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(bitwise_or) { getOpDescriptor()->setAllowedInputTypes({ALL_INTS})->setSameMode(true); }

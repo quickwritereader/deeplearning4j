@@ -24,17 +24,15 @@ package org.nd4j.linalg.cpu.nativecpu;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.nd4j.common.base.Preconditions;
-import org.nd4j.common.config.ND4JEnvironmentVars;
-import org.nd4j.common.config.ND4JSystemProperties;
 import org.nd4j.linalg.api.buffer.*;
 import org.nd4j.linalg.api.ops.custom.Flatten;
 import org.nd4j.linalg.api.ops.impl.shape.Concat;
+import org.nd4j.linalg.api.shape.LongShapeDescriptor;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.api.shape.options.ArrayOptionsHelper;
 import org.nd4j.linalg.api.shape.options.ArrayType;
 import org.nd4j.linalg.compression.CompressionUtils;
-import org.nd4j.linalg.cpu.nativecpu.buffer.BaseCpuDataBuffer;
-import org.nd4j.linalg.cpu.nativecpu.buffer.LongBuffer;
-import org.nd4j.linalg.cpu.nativecpu.buffer.Utf8Buffer;
+import org.nd4j.linalg.cpu.nativecpu.buffer.*;
 import org.nd4j.common.primitives.Pair;
 import org.bytedeco.javacpp.*;
 import org.nd4j.linalg.api.memory.MemoryWorkspace;
@@ -46,9 +44,7 @@ import org.nd4j.linalg.cpu.nativecpu.blas.*;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.common.util.ArrayUtil;
-import org.nd4j.nativeblas.BaseNativeNDArrayFactory;
-import org.nd4j.nativeblas.LongPointerWrapper;
-import org.nd4j.nativeblas.NativeOpsHolder;
+import org.nd4j.nativeblas.*;
 
 import java.util.*;
 
@@ -60,6 +56,16 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
     protected ThreadLocal<Integer> extrazSize = new ThreadLocal<>();
 
     public CpuNDArrayFactory() {}
+
+    @Override
+    public INDArray createFromDescriptor(DataBuffer shapeInformation) {
+        NDArray ret = new NDArray();
+        ret.setShapeInfoDataBuffer(shapeInformation);
+        DataType dt = Shape.dataType(ret.shapeInfoJava());
+        DataBuffer buff = Nd4j.createBuffer(dt,ret.length(),false);
+        ret.setData(buff);
+        return ret;
+    }
 
     static {
         //invoke the override
@@ -89,7 +95,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
 
             log.warn("*********************************** CPU Feature Check Failed ***********************************");
             log.error("Error initializing ND4J: Attempting to use " + binLevel + " ND4J binary on a CPU with only " + optLevel + " support");
-            log.error( binLevel + " binaries cannot be run on a CPU without these instructions. See deeplearning4j.org/cpu for more details");
+            log.error( binLevel + " binaries cannot be run on a CPU without these instructions. See https://deeplearning4j.konduit.ai/multi-project/explanation/configuration/backends/performance-issues#step-11-check-cpu-support-for-hardware-extensions-avx-etc for more details");
             log.error("ND4J will now exit.");
             log.warn("************************************************************************************************");
             System.exit(1);
@@ -122,7 +128,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
             throw new RuntimeException(nativeOps.lastErrorMessage());
     }
 
-    private static String cpuBinaryLevelToName(int level){
+    private static String cpuBinaryLevelToName(int level) {
         switch (level){
             case 3:
                 return "AVX512";
@@ -133,6 +139,11 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
             default:
                 return "Generic x86";
         }
+    }
+
+    @Override
+    public INDArray create(DataBuffer data, long[] newShape, long[] newStride, long offset, long ews, char ordering, boolean isView) {
+        return new NDArray(data,newShape,newStride,offset,ews,ordering,isView);
     }
 
     @Override
@@ -158,6 +169,11 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
     @Override
     public INDArray create(int[] shape, DataBuffer buffer) {
         return new NDArray(shape, buffer);
+    }
+
+    @Override
+    public INDArray create(DataBuffer buffer, LongShapeDescriptor longShapeDescriptor) {
+        return new NDArray(buffer, longShapeDescriptor);
     }
 
     /**
@@ -227,6 +243,11 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
     }
 
     @Override
+    public INDArray createUninitialized(DataType dataType, long[] shape, long[] strides, char ordering) {
+        return super.createUninitialized(dataType, shape, strides, ordering);
+    }
+
+    @Override
     public INDArray createUninitializedDetached(DataType dataType, char ordering, long... shape){
         MemoryWorkspace workspace = Nd4j.getMemoryManager().getCurrentWorkspace();
         Nd4j.getMemoryManager().setCurrentWorkspace(null);
@@ -257,17 +278,24 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
 
     @Override
     public INDArray create(double[] data, int[] shape, char ordering) {
-        return new NDArray(Nd4j.createBuffer(data), shape, ordering);
+        boolean hasZeros = false;
+        for (long v : shape) {
+            if (v == 0) {
+                hasZeros = true;
+                break;
+            }
+        }
+        return new NDArray(hasZeros ? null : Nd4j.createBuffer(data), shape, ordering);
     }
 
     @Override
     public INDArray create(double[] data, long[] shape, char ordering) {
-        return create(data, shape, (Character) ordering);
+        return create(data, shape, ordering);
     }
 
     @Override
     public INDArray create(float[] data, long[] shape, char ordering) {
-        return create(data, shape, (Character) ordering);
+        return create(data, shape, ordering);
     }
 
     @Override
@@ -296,12 +324,24 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
 
     @Override
     public INDArray create(double[] data, int[] shape, int[] stride, long offset, char ordering) {
-        return new NDArray(Nd4j.createTypedBuffer(data, DataType.DOUBLE), shape, stride, offset, ordering);
+        boolean hasZeros = false;
+        for (long v : shape) {
+            if (v == 0) {
+                hasZeros = true;
+                break;
+            }
+        }
+        return new NDArray(hasZeros ? null : Nd4j.createTypedBuffer(data, DataType.DOUBLE), shape, stride, offset, ordering);
     }
 
     @Override
     public INDArray create(double[] data, long[] shape, long[] stride, long offset, char ordering) {
         return new NDArray(Nd4j.createTypedBuffer(data, DataType.DOUBLE), shape, stride, offset, ordering);
+    }
+
+    @Override
+    public INDArray create(LongShapeDescriptor longShapeDescriptor) {
+        return new NDArray(longShapeDescriptor);
     }
 
     @Override
@@ -336,62 +376,62 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
 
     @Override
     public INDArray create(double[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType, workspace);
     }
 
     @Override
     public INDArray create(long[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType,workspace);
     }
 
     @Override
     public INDArray create(int[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType,workspace);
     }
 
     @Override
     public INDArray create(short[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType,workspace);
     }
 
     @Override
     public INDArray create(byte[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType,workspace);
     }
 
     @Override
     public INDArray create(boolean[] data, long[] shape, long[] stride, char order, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  order, dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  order, dataType,workspace);
     }
 
     @Override
     public INDArray create(float[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
     public INDArray create(long[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
     public INDArray create(int[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
     public INDArray create(short[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
     public INDArray create(boolean[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
     public INDArray create(byte[] data, long[] shape, long[] stride, DataType dataType, MemoryWorkspace workspace) {
-        return new NDArray(Nd4j.createTypedBuffer(data, dataType), shape, stride,  Nd4j.order(), dataType);
+        return new NDArray(Nd4j.createTypedBuffer(data, dataType,workspace), shape, stride,  Nd4j.order(), dataType,workspace);
     }
 
     @Override
@@ -522,47 +562,6 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
         return Nd4j.exec(new Flatten(order, matrices.toArray(new INDArray[matrices.size()])))[0];
     }
 
-    @Override
-    public INDArray[] tear(INDArray tensor, int... dimensions) {
-        if (tensor.isCompressed())
-            Nd4j.getCompressor().decompressi(tensor);
-
-        Arrays.sort(dimensions);
-
-        Pair<DataBuffer, DataBuffer> tadBuffers = Nd4j.getExecutioner().getTADManager().getTADOnlyShapeInfo(tensor, dimensions);
-
-        long tadLength = 1;
-        long[] shape = new long[dimensions.length];
-        for (int i = 0; i < dimensions.length; i++) {
-            tadLength *= tensor.shape()[dimensions[i]];
-            shape[i] = tensor.shape()[dimensions[i]];
-        }
-
-
-
-        int numTads = (int)(tensor.length() / tadLength);
-        INDArray[] result = new INDArray[numTads];
-
-        PointerPointer targets = new PointerPointer(numTads);
-
-        for (int x = 0; x < numTads; x++) {
-            result[x] = Nd4j.createUninitialized(shape);
-
-            targets.put(x, result[x].data().pointer());
-        }
-
-            nativeOps.tear(null,
-                    ((BaseCpuDataBuffer) tensor.data()).getOpaqueDataBuffer(), (LongPointer) tensor.shapeInfoDataBuffer().pointer(), null,
-                    targets, (LongPointer) result[0].shapeInfoDataBuffer().pointer(),
-                    (LongPointer) tadBuffers.getFirst().pointer(), new LongPointerWrapper(tadBuffers.getSecond().pointer())
-            );
-
-        if (nativeOps.lastErrorCode() != 0)
-            throw new RuntimeException(nativeOps.lastErrorMessage());
-
-        return result;
-    }
-
     /**
      * concatenate ndarrays along a dimension
      *
@@ -662,7 +661,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
         if(ret == null){
             ret = Nd4j.createUninitialized(source.dataType(), shape, order);
         } else {
-            if(!Arrays.equals(shape, destination.shape())){
+            if(!Arrays.equals(shape, destination.shape())) {
                 throw new IllegalStateException("Cannot pull rows into destination array: expected destination array of" +
                         " shape " + Arrays.toString(shape) + " but got destination array of shape " + Arrays.toString(destination.shape()));
             }
@@ -670,162 +669,20 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
 
         Nd4j.getCompressor().autoDecompress(source);
 
-        val dummy = new PointerPointer(new Pointer[] {null});
-
-        val tadManager = Nd4j.getExecutioner().getTADManager();
-
-        val tadBuffers = tadManager.getTADOnlyShapeInfo(source, new int[] {sourceDimension});
-
-        val zTadBuffers = tadManager.getTADOnlyShapeInfo(ret, new int[] {sourceDimension});
-
-        val hostTadShapeInfo = tadBuffers.getFirst().addressPointer();
-
-        val zTadShapeInfo = zTadBuffers.getFirst().addressPointer();
-
-        val pIndex = new LongPointer(indexes);
-
-        val offsets = tadBuffers.getSecond();
-        val hostTadOffsets = offsets == null ? null : offsets.addressPointer();
-
-        val zOffsets = zTadBuffers.getSecond();
-
-        val zTadOffsets = zOffsets == null ? null : zOffsets.addressPointer();
+        OpaqueNDArray sourceOpaque = OpaqueNDArray.fromINDArray(source);
+        OpaqueNDArray retOpaque = OpaqueNDArray.fromINDArray(ret);
+        OpaqueNDArray indexOpaque = OpaqueNDArray.fromINDArray(Nd4j.createFromArray(indexes));
 
 
-        nativeOps.pullRows(dummy,
-                    ((BaseCpuDataBuffer) source.data()).getOpaqueDataBuffer(), (LongPointer) source.shapeInfoDataBuffer().addressPointer(), null,
-                    ((BaseCpuDataBuffer) ret.data()).getOpaqueDataBuffer(), (LongPointer) ret.shapeInfoDataBuffer().addressPointer(), null,
-                    indexes.length, pIndex,
-                    (LongPointer) hostTadShapeInfo,
-                    new LongPointerWrapper(hostTadOffsets),
-                    (LongPointer) zTadShapeInfo,
-                    new LongPointerWrapper(zTadOffsets));
+        nativeOps.pullRows(null,
+                sourceOpaque, retOpaque,
+                indexes.length, indexOpaque,
+                sourceDimension);
 
         if (nativeOps.lastErrorCode() != 0)
             throw new RuntimeException(nativeOps.lastErrorMessage());
 
         return ret;
-    }
-
-    public INDArray accumulate(INDArray target, INDArray... arrays) {
-
-        if (arrays == null || arrays.length == 0)
-            throw new RuntimeException("Input arrays are missing");
-
-        if (arrays.length == 1)
-            return target.addi(arrays[0]);
-
-        long len = target.length();
-
-        PointerPointer dataPointers = new PointerPointer(arrays.length);
-
-        for (int i = 0; i < arrays.length; i++) {
-            Nd4j.getCompressor().autoDecompress(arrays[i]);
-
-            if (arrays[i].elementWiseStride() != 1)
-                throw new ND4JIllegalStateException("Native accumulation is applicable only to continuous INDArrays");
-
-            if (arrays[i].length() != len)
-                throw new ND4JIllegalStateException("All arrays should have equal length for accumulation");
-
-            dataPointers.put(i, arrays[i].data().addressPointer());
-        }
-
-
-        nativeOps.accumulate(null,
-                dataPointers, (LongPointer) arrays[0].shapeInfoDataBuffer().addressPointer(),
-                null, null,
-                target.data().addressPointer(), (LongPointer) target.shapeInfoDataBuffer().addressPointer(),
-                null, null,
-                arrays.length,
-                len);
-
-        if (nativeOps.lastErrorCode() != 0)
-            throw new RuntimeException(nativeOps.lastErrorMessage());
-
-        return target;
-    }
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param target
-     * @param arrays
-     * @return
-     */
-    @Override
-    public INDArray average(INDArray target, INDArray[] arrays) {
-        if (arrays == null || arrays.length == 0)
-            throw new RuntimeException("Input arrays are missing");
-
-        if (arrays.length == 1) {
-            //Edge case - average 1 array - no op
-            if(target == null){
-                return null;
-            }
-            return target.assign(arrays[0]);
-        }
-
-        long len = target != null ? target.length() : arrays[0].length();
-
-        PointerPointer dataPointers = new PointerPointer(arrays.length);
-        val firstType = arrays[0].dataType();
-
-        for (int i = 0; i < arrays.length; i++) {
-            Nd4j.getCompressor().autoDecompress(arrays[i]);
-
-            Preconditions.checkArgument(arrays[i].dataType() == firstType, "All arrays must have the same data type");
-
-            if (arrays[i].elementWiseStride() != 1)
-                throw new ND4JIllegalStateException("Native averaging is applicable only to continuous INDArrays");
-
-            if (arrays[i].length() != len)
-                throw new ND4JIllegalStateException("All arrays should have equal length for averaging");
-
-            dataPointers.put(i, arrays[i].data().addressPointer());
-        }
-
-
-        nativeOps.average(null,
-                dataPointers, (LongPointer) arrays[0].shapeInfoDataBuffer().addressPointer(),
-                null, null,
-                target == null ? null : target.data().addressPointer(), target == null ? null : (LongPointer) target.shapeInfoDataBuffer().addressPointer(),
-                null, null,
-                arrays.length,
-                    len,
-                true);
-
-        if (nativeOps.lastErrorCode() != 0)
-            throw new RuntimeException(nativeOps.lastErrorMessage());
-
-        return target;
-    }
-
-    /**
-     * This method averages input arrays, and returns averaged array
-     *
-     * @param target
-     * @param arrays
-     * @return
-     */
-    @Override
-    public INDArray average(INDArray target, Collection<INDArray> arrays) {
-        return average(target, arrays.toArray(new INDArray[0]));
-    }
-
-    @Override
-    public INDArray average(INDArray[] arrays) {
-        if (arrays == null || arrays.length == 0)
-            throw new RuntimeException("Input arrays are missing");
-
-        INDArray ret = Nd4j.createUninitialized(arrays[0].dataType(), arrays[0].shape(), arrays[0].ordering());
-
-        return average(ret, arrays);
-    }
-
-    @Override
-    public INDArray average(Collection<INDArray> arrays) {
-        return average(arrays.toArray(new INDArray[0]));
     }
 
     /**
@@ -837,7 +694,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
      * @return
      */
     @Override
-    public void shuffle(INDArray array, Random rnd, int... dimension) {
+    public void shuffle(INDArray array, Random rnd, long... dimension) {
         shuffle(Collections.singletonList(array), rnd, dimension);
     }
 
@@ -850,7 +707,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
      * @return
      */
     @Override
-    public void shuffle(Collection<INDArray> array, Random rnd, int... dimension) {
+    public void shuffle(Collection<INDArray> array, Random rnd, long... dimension) {
         shuffle(new ArrayList<>(array), rnd, Collections.singletonList(dimension));
     }
 
@@ -863,7 +720,7 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
      * @return
      */
     @Override
-    public void shuffle(List<INDArray> arrays, Random rnd, List<int[]> dimensions) {
+    public void shuffle(List<INDArray> arrays, Random rnd, List<long[]> dimensions) {
         if (dimensions == null || dimensions.size() == 0)
             throw new RuntimeException("Dimension can't be null or 0-length");
 
@@ -877,71 +734,42 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
         int tadLength = 1;
         if (zero.rank() > 1)
             for (int i = 0; i < dimensions.get(0).length; i++) {
-                tadLength *= zero.shape()[dimensions.get(0)[i]];
+                tadLength *= zero.size(dimensions.get(0)[i]);
             }
 
         long numTads = zero.length() / tadLength;
 
         val map = ArrayUtil.buildInterleavedVector(rnd, (int) numTads);
 
-        val dataPointers = new PointerPointer(arrays.size());
-        val shapePointers = new PointerPointer(arrays.size());
-        val tadPointers = new PointerPointer(arrays.size());
-        val offsetPointers = new PointerPointer(arrays.size());
+        OpaqueNDArrayArr arraysOpaque = new OpaqueNDArrayArr(arrays.stream()
+                .map(OpaqueNDArray::fromINDArray)
+                .toArray(OpaqueNDArray[]::new));
 
-        val dummy = new PointerPointer(new Pointer[] {null});
-
-        List<Pair<DataBuffer, DataBuffer>> list = new ArrayList<>();
-
-        val tadManager = Nd4j.getExecutioner().getTADManager();
-
-        val ptrMap = new IntPointer(map);
-
-        long[] ptrs = new long[arrays.size()];
+        INDArray mapArray = Nd4j.createFromArray(map);
+        OpaqueNDArray ptrMap = OpaqueNDArray.fromINDArray(mapArray);
 
 
-        for (int i = 0; i < arrays.size(); i++) {
-            val array = arrays.get(i);
 
-            Nd4j.getCompressor().autoDecompress(array);
-
-            val dimension = dimensions.size() > 1 ? dimensions.get(i) : dimensions.get(0);
-
-            val tadBuffers = tadManager.getTADOnlyShapeInfo(array, dimension);
-            list.add(tadBuffers);
-
-            val hostTadShapeInfo = tadBuffers.getFirst().addressPointer();
-
-            val offsets = tadBuffers.getSecond();
-
-            if (array.rank() != 1 && offsets.length() != numTads)
-                throw new ND4JIllegalStateException("Can't symmetrically shuffle arrays with non-equal number of TADs");
-
-            if (offsets == null)
-                throw new ND4JIllegalStateException("Offsets for shuffle can't be null");
-
-            dataPointers.put(i, array.data().addressPointer());
-            shapePointers.put(i, array.shapeInfoDataBuffer().addressPointer());
-            offsetPointers.put(i, offsets.addressPointer());
-            tadPointers.put(i, tadBuffers.getFirst().addressPointer());
+        // Convert List<long[]> to long[][]
+        long[][] dimensionsArray = new long[dimensions.size()][];
+        for (int i = 0; i < dimensions.size(); i++) {
+            dimensionsArray[i] = dimensions.get(i);
         }
 
+        // Create an INDArray from the long[][]
+        INDArray dimensionsINDArray = Nd4j.createFromArray(dimensionsArray);
 
-        nativeOps.shuffle(dummy,
-                    dataPointers, shapePointers,
-                null, null,
-                    dataPointers, shapePointers,
-                null, null,
+        // Convert the INDArray to an OpaqueNDArray
+        OpaqueNDArray dimensionsOpaque = OpaqueNDArray.fromINDArray(dimensionsINDArray);
+
+
+        nativeOps.shuffle(null,
+                arraysOpaque, arraysOpaque,
                 arrays.size(),
-                    ptrMap, tadPointers, offsetPointers);
+                dimensionsOpaque, ptrMap);
 
         if (nativeOps.lastErrorCode() != 0)
             throw new RuntimeException(nativeOps.lastErrorMessage());
-
-        dataPointers.address();
-        shapePointers.address();
-        tadPointers.address();
-        offsetPointers.address();
     }
 
     /**
@@ -1035,37 +863,36 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
         if (x.isScalar())
             return x;
 
+        OpaqueNDArray xOpaque = OpaqueNDArray.fromINDArray(x);
 
-        NativeOpsHolder.getInstance().getDeviceNativeOps().sort(null,
-                x.data().addressPointer(), (LongPointer) x.shapeInfoDataBuffer().addressPointer(),
-                null, null,
+        nativeOps.sort(null,
+                xOpaque,
                 descending);
+
+        if (nativeOps.lastErrorCode() != 0)
+            throw new RuntimeException(nativeOps.lastErrorMessage());
 
         return x;
     }
 
     @Override
-    public INDArray sort(INDArray x, boolean descending, int... dimension) {
+    public INDArray sort(INDArray x, boolean descending, long... dimension) {
         if (x.isScalar())
             return x;
 
         Arrays.sort(dimension);
-        Pair<DataBuffer, DataBuffer> tadBuffers = Nd4j.getExecutioner().getTADManager().getTADOnlyShapeInfo(x, dimension);
+        OpaqueNDArray xOpaque = OpaqueNDArray.fromINDArray(x);
+        OpaqueNDArray dimensionOpaque = OpaqueNDArray.fromINDArray(Nd4j.createFromArray(dimension));
 
+        nativeOps.sort(null,
+                xOpaque,
+                descending);
 
-        NativeOpsHolder.getInstance().getDeviceNativeOps().sortTad(null,
-                    x.data().addressPointer(), (LongPointer) x.shapeInfoDataBuffer().addressPointer(),
-                null, null,
-                    (IntPointer) Nd4j.getConstantHandler().getConstantBuffer(dimension, DataType.INT).addressPointer(),
-                    dimension.length,
-                    (LongPointer) tadBuffers.getFirst().addressPointer(),
-                    new LongPointerWrapper(tadBuffers.getSecond().addressPointer()),
-                    descending);
-
+        if (nativeOps.lastErrorCode() != 0)
+            throw new RuntimeException(nativeOps.lastErrorMessage());
 
         return x;
     }
-
     @Override
     public INDArray sortCooIndices(INDArray x) {
         throw new UnsupportedOperationException("Not an COO ndarray");
@@ -1076,13 +903,26 @@ public class CpuNDArrayFactory extends BaseNativeNDArrayFactory {
     public INDArray create(Collection<String> strings, long[] shape, char order) {
         val pairShape = Nd4j.getShapeInfoProvider().createShapeInformation(shape, order, DataType.UTF8);
         val buffer = new Utf8Buffer(strings);
-        val list = new ArrayList<>(strings);
         return Nd4j.createArrayFromShapeBuffer(buffer, pairShape);
     }
 
     @Override
+    public INDArray createUninitialized(DataType dataType, long[] shape, long[] strides, char ordering, MemoryWorkspace currentWorkspace) {
+        return new NDArray(dataType,shape,strides,0,ordering,currentWorkspace);
+    }
+
+    @Override
+    public INDArray create(DataBuffer dataBuffer, DataBuffer descriptor) {
+        NDArray jCublasNDArray = new NDArray();
+        jCublasNDArray.setShapeInfoDataBuffer(descriptor);
+        DataType dt = Shape.dataType(jCublasNDArray.shapeInfoJava());
+        jCublasNDArray.setData(dataBuffer);
+        return jCublasNDArray;
+    }
+
+    @Override
     public INDArray create(DataType dataType, long[] shape, long[] paddings, long[] paddingOffsets, char ordering,
-            MemoryWorkspace workspace) { 
+                           MemoryWorkspace workspace) {
         return new NDArray(dataType, shape, paddings, paddingOffsets, ordering, workspace);
     }
 }

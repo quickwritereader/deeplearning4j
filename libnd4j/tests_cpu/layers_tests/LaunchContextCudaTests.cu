@@ -23,7 +23,7 @@
 #include <execution/AffinityManager.h>
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <loops/reduce3.h>
 #include <ops/declarable/LegacyBroadcastOp.h>
 #include <ops/declarable/LegacyIndexReduceOp.h>
@@ -40,7 +40,7 @@
 using namespace sd;
 using namespace sd::ops;
 
-class LaunchContextCudaTests : public testing::Test {
+class LaunchContextCudaTests : public NDArrayTests {
   //
 };
 
@@ -62,14 +62,11 @@ TEST_F(LaunchContextCudaTests, basic_test_1) {
 
   threadA.join();
   threadB.join();
-  sd_printf("All threads joined\n", "");
-
   if (AffinityManager::numberOfDevices() > 1) ASSERT_NE(deviceA, deviceB);
 }
 
 void fillArray(int tid, std::vector<NDArray *> &arrays) {
   auto array = NDArrayFactory::create_<int>('c', {3, 10});
-  sd_printf("Array created on device [%i]\n", AffinityManager::currentDeviceId());
   array->assign(tid);
   arrays[tid] = array;
 }
@@ -94,12 +91,10 @@ TEST_F(LaunchContextCudaTests, basic_test_2) {
 void initAffinity(int tid, std::vector<int> &aff) {
   auto affinity = AffinityManager::currentDeviceId();
   aff[tid] = affinity;
-  sd_printf("Thread [%i] affined with device [%i]\n", tid, affinity);
 }
 
 TEST_F(LaunchContextCudaTests, basic_test_3) {
   auto totalThreads = AffinityManager::numberOfDevices() * 4;
-  sd_printf("Total threads: %i\n", totalThreads);
   std::vector<int> affinities(totalThreads);
 
   for (int e = 0; e < totalThreads; e++) {

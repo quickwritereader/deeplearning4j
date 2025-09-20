@@ -33,13 +33,13 @@ namespace sd {
 namespace ops {
 namespace helpers {
 template <typename X, typename I>
-static void fill_(const void *vvalues, const void *vindices, void *voutput, const sd::LongType *zShapeInfo,
+static void fill_(const void *vvalues, const void *vindices, void *voutput, const LongType *zShapeInfo,
                   uint8_t rank, uint64_t length) {
   auto values = reinterpret_cast<const X *>(vvalues);
   auto indices = reinterpret_cast<const I *>(vindices);
   auto output = reinterpret_cast<X *>(voutput);
 
-  int coords[SD_MAX_RANK];
+  LongType coords[SD_MAX_RANK];
   uint64_t pos = 0;
   for (uint64_t e = 0L; e < length; e++) {
     // indices come in blocks
@@ -48,13 +48,13 @@ static void fill_(const void *vvalues, const void *vindices, void *voutput, cons
     }
 
     // fill output at given coords with sparse value
-    output[shape::getOffset(zShapeInfo, coords)] = values[e];
+    LongType offset;
+    COORDS2INDEX(rank, shape::stride(zShapeInfo), coords, offset);
+    output[offset] = values[e];
   }
 }
-
-void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArray *def, NDArray &output) {
+void compat_sparse_to_dense(NDArray& values, NDArray& indices, NDArray* def, NDArray& output) {
   // make sure host buffer is updated
-
 
   auto rank = output.rankOf();
 
@@ -73,20 +73,21 @@ void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArr
     // now we make sure our output buffer can hold results
     output.dataBuffer()->expand(bufferLength + headerLength);
 
-    std::vector<sd::LongType> outputCoords(rank);
-    std::vector<sd::LongType> valueCoords(rank);
+    std::vector<LongType> outputCoords(rank);
+    std::vector<LongType> valueCoords(rank);
 
-    auto offsetsBuffer = output.bufferAsT<sd::LongType>();
-    auto dataBuffer = reinterpret_cast<uint8_t *>(offsetsBuffer + output.lengthOf());
+    auto offsetsBuffer = output.bufferAsT<LongType>();
+    auto dataBuffer = reinterpret_cast<uint8_t*>(offsetsBuffer + output.lengthOf());
 
     offsetsBuffer[0] = 0;
 
     // getting initial value coords
-    for (int e = 0; e < rank; e++) valueCoords[e] = indices.e<sd::LongType>(e);
+    for (int e = 0; e < rank; e++) valueCoords[e] = indices.e<LongType>(e);
 
     // write results individually
-    for (sd::LongType e = 0; e < numElements; e++) {
-      auto vIndex = shape::coords2index(output.shapeInfo(), valueCoords.data());
+    for (LongType e = 0; e < numElements; e++) {
+      LongType vIndex;
+      COORDS2INDEX(rank, shape::stride(output.shapeInfo()), valueCoords.data(), vIndex);
       auto cLength = 0L;
       std::string str;
       if (vIndex == e) {
@@ -113,7 +114,6 @@ void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArr
     // write out default values, if they are present
     if (def != nullptr) {
       output.assign(def);
- 
     }
     NDArray::preparePrimaryUse({&output}, {&values, &indices});
     // write out values
@@ -124,7 +124,6 @@ void compat_sparse_to_dense(const NDArray &values, const NDArray &indices, NDArr
 
     NDArray::registerPrimaryUse({&output}, {&values, &indices});
   }
- 
 }
 }  // namespace helpers
 }  // namespace ops

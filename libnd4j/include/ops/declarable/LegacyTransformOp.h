@@ -23,7 +23,7 @@
 #ifndef LIBND4J__LEGACY_TRANSFORM_OP__H
 #define LIBND4J__LEGACY_TRANSFORM_OP__H
 
-//#include <ops/declarable/LegacyOp.h>
+
 #ifdef ONLY_SAME_TRANSFORM
 namespace sd {
 namespace ops {
@@ -32,11 +32,11 @@ namespace ops {
  */
 class SD_LIB_EXPORT LegacyTransformOp : public LegacyOp {
  protected:
-  sd::Status validateAndExecute(Context& block);
+  sd::Status validateAndExecute(sd::graph::Context& block);
 
  public:
   LegacyTransformOp();
-  LegacyTransformOp(int opNum);
+  LegacyTransformOp(int opType);
 
   ShapeList* calculateOutputShape(ShapeList* inputShape, sd::graph::Context& block);
   virtual LegacyOp* clone();

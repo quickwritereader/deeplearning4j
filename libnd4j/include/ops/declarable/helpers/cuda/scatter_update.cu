@@ -26,42 +26,74 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/helpers/transforms.h>
 
 #include <numeric>
+
+#include "execution/cuda/LaunchDims.h"
+
 
 namespace sd {
 namespace ops {
 namespace helpers {
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL static void scatterUpdateCuda(const int opCode, const int numOfInd, void* vx, const sd::LongType* xShapeInfo,
-                                        const sd::LongType* xOffsets, void* vy, const sd::LongType* yShapeInfo,
-                                        const sd::LongType* yOffsets, const int* indexes) {
+SD_KERNEL static void scatterUpdateCuda(const int opCode, const int numOfInd, void* vx, const LongType* xShapeInfo,
+                                        const LongType* xOffsets, void* vy, const LongType* yShapeInfo,
+                                        const LongType* yOffsets, const LongType* indexes) {
+  // Shared memory caching for shape and pointers
   __shared__ T *x, *y;
-  __shared__ sd::LongType arrLenX, arrLenY;
+  __shared__ LongType arrLenX, arrLenY;
+  __shared__ LongType xRank, yRank;
+  __shared__ const LongType* xShape;
+  __shared__ const LongType* yShape;
+  __shared__ const LongType* xStride;
+  __shared__ const LongType* yStride;
 
+  // Initialize shared variables
+  if (threadIdx.x == 0) {
+    xRank = shape::rank(xShapeInfo);
+    yRank = shape::rank(yShapeInfo);
+    xShape = shape::shapeOf(xShapeInfo);
+    yShape = shape::shapeOf(yShapeInfo);
+    xStride = shape::stride(xShapeInfo);
+    yStride = shape::stride(yShapeInfo);
+    arrLenX = shape::length(xShapeInfo);
+    arrLenY = shape::length(yShapeInfo);
+  }
+  __syncthreads();
+
+  // Iterate through the number of indices
   for (int e = 0; e < numOfInd; e++) {
     const auto xIndex = indexes[e];
     const bool isOwner = xIndex < gridDim.x ? blockIdx.x == xIndex : blockIdx.x == xIndex % gridDim.x;
 
     if (!isOwner) continue;
 
+    // Initialize x and y pointers
     if (threadIdx.x == 0) {
       x = reinterpret_cast<T*>(vx) + xOffsets[xIndex];
       y = reinterpret_cast<T*>(vy) + yOffsets[e];
-      arrLenX = shape::length(xShapeInfo);
-      arrLenY = shape::length(yShapeInfo);
     }
     __syncthreads();
 
+    // Validate array lengths
     if (arrLenX != arrLenY) return;
 
-    for (sd::LongType i = threadIdx.x; i < arrLenX; i += blockDim.x) {
-      const auto xOffset = shape::getIndexOffset(i, xShapeInfo);
-      const auto yOffset = shape::getIndexOffset(i, yShapeInfo);
+    // Process the elements
+    for (LongType i = threadIdx.x; i < arrLenX; i += blockDim.x) {
+      LongType xCoords[SD_MAX_RANK];
+      LongType yCoords[SD_MAX_RANK];
+      LongType xOffset, yOffset;
 
+      // Compute coordinates and offsets for x and y
+      INDEX2COORDS(i, xRank, xShape, xCoords);
+      COORDS2INDEX(xRank, xStride, xCoords, xOffset);
+      INDEX2COORDS(i, yRank, yShape, yCoords);
+      COORDS2INDEX(yRank, yStride, yCoords, yOffset);
+
+      // Perform the specified operation
       switch (opCode) {
         case 0:
           x[xOffset] += y[yOffset];
@@ -85,43 +117,48 @@ SD_KERNEL static void scatterUpdateCuda(const int opCode, const int numOfInd, vo
           x[xOffset] = y[yOffset];
           break;
         default:
-          continue;
+          break;
       }
     }
     __syncthreads();
   }
 }
 
+
 template <typename T>
 SD_HOST static void scatterUpdateCudaLauncher(const cudaStream_t* stream, const int opCode, const int numOfInd,
-                                              void* vx, const sd::LongType* xShapeInfo, const sd::LongType* xOffsets,
-                                              void* vy, const sd::LongType* yShapeInfo, const sd::LongType* yOffsets,
-                                              const int* indexes) {
-  scatterUpdateCuda<T><<<512, 256, SD_MAX_NUM_THREADS, *stream>>>(opCode, numOfInd, vx, xShapeInfo, xOffsets, vy,
+                                              void* vx, const LongType* xShapeInfo, const LongType* xOffsets,
+                                              void* vy, const LongType* yShapeInfo, const LongType* yOffsets,
+                                              const LongType* indexes) {
+  dim3 launchDims = getLaunchDims("scatter_update");
+  scatterUpdateCuda<T><<<launchDims.y, launchDims.x, SD_MAX_NUM_THREADS, *stream>>>(opCode, numOfInd, vx, xShapeInfo, xOffsets, vy,
                                                                   yShapeInfo, yOffsets, indexes);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "scatterUpdateCuda failed");
+
 }
 
 //////////////////////////////////////////////////////////////////////////
-void scatterUpdate(sd::LaunchContext* context, NDArray& input, NDArray& updates, const std::vector<int>* intArgs) {
+void scatterUpdate(LaunchContext* context, NDArray& input, NDArray& updates, const std::vector<LongType>* intArgs) {
   const int opCode = (*intArgs)[0];
   const int numOfDims = (*intArgs)[1];
   const int numOfInd = (*intArgs)[2 + numOfDims];
 
-  std::vector<int> tadDimensions(numOfDims);
+  std::vector<LongType> tadDimensions(numOfDims);
   for (int e = 2; e < 2 + numOfDims; e++) tadDimensions[e - 2] = (*intArgs)[e];
 
-  auto packX = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), tadDimensions);
-  auto packY = ConstantTadHelper::getInstance().tadForDimensions(updates.shapeInfo(), tadDimensions);
+  auto packX = ConstantTadHelper::getInstance().tadForDimensions(input.shapeInfo(), &tadDimensions);
+  auto packY = ConstantTadHelper::getInstance().tadForDimensions(updates.shapeInfo(), &tadDimensions);
 
-  NDArray indices(const_cast<int*>(intArgs->data()) + numOfDims + 3, 'c', {numOfInd}, sd::DataType::INT32, context);
+  std::vector<LongType> shape = {numOfInd};
+  NDArray indices(const_cast<LongType*>(intArgs->data()) + numOfDims + 3, 'c', shape, INT32, context);
 
   PointersManager manager(context, "scatterUpdate");
 
   NDArray::prepareSpecialUse({&input}, {&input, &updates, &indices});
   BUILD_SINGLE_SELECTOR(input.dataType(), scatterUpdateCudaLauncher,
-                        (context->getCudaStream(), opCode, numOfInd, input.specialBuffer(), packX.platformShapeInfo(),
-                         packX.platformOffsets(), updates.specialBuffer(), packY.platformShapeInfo(),
-                         packY.platformOffsets(), reinterpret_cast<int*>(indices.specialBuffer())),
+                        (context->getCudaStream(), opCode, numOfInd, input.specialBuffer(), packX->platformShapeInfo(),
+                         packX->platformOffsets(), updates.specialBuffer(), packY->platformShapeInfo(),
+                         packY->platformOffsets(), reinterpret_cast<sd::LongType *>(indices.specialBuffer())),
                         SD_COMMON_TYPES);
   NDArray::registerSpecialUse({&input}, {&input, &updates, &indices});
 

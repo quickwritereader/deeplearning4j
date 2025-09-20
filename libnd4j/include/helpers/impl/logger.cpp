@@ -31,9 +31,15 @@ SD_HOST void Logger::info(const char *format, ...) {
   fflush(stdout);
 }
 
+SD_HOST void Logger::infoEmpty(const char *format) {
+ if(format != nullptr)
+  printf("%s",format);
+}
+
+
 SD_HOST void Logger::printv(const char *format, const std::vector<int> &vec) {
   printf("%s: {", format);
-  for (int e = 0; e < vec.size(); e++) {
+  for (size_t e = 0; e < vec.size(); e++) {
     auto v = vec[e];
     printf("%i", v);
     if (e < vec.size() - 1) printf(", ");
@@ -42,9 +48,9 @@ SD_HOST void Logger::printv(const char *format, const std::vector<int> &vec) {
   fflush(stdout);
 }
 
-SD_HOST void Logger::printv(const char *format, const std::vector<sd::LongType> &vec) {
+SD_HOST void Logger::printv(const char *format, const std::vector<LongType> &vec) {
   printf("%s: {", format);
-  for (int e = 0; e < vec.size(); e++) {
+  for (size_t e = 0; e < vec.size(); e++) {
     auto v = vec[e];
     printf("%lld", (long long)v);
     if (e < vec.size() - 1) printf(", ");

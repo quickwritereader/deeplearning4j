@@ -36,6 +36,7 @@ import org.nd4j.linalg.api.memory.MemoryWorkspace;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.impl.transforms.custom.LayerNorm;
 import org.nd4j.linalg.api.ops.impl.transforms.custom.LayerNormBp;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.learning.regularization.Regularization;
@@ -86,7 +87,7 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
 
         Gradient ret = new DefaultGradient();
 
-        if(hasBias()){
+        if(hasBias()) {
             INDArray biasGrad = gradientViews.get(DefaultParamInitializer.BIAS_KEY);
             delta.sum(biasGrad, 0); //biasGrad is initialized/zeroed first
             ret.gradientForVariable().put(DefaultParamInitializer.BIAS_KEY, biasGrad);
@@ -270,7 +271,7 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
      */
     protected INDArray getParamWithNoise(String param, boolean training, LayerWorkspaceMgr workspaceMgr){
         INDArray p;
-        if(layerConf().getWeightNoise() != null){
+        if(layerConf().getWeightNoise() != null) {
             if(training && weightNoiseParams.size() > 0 && weightNoiseParams.containsKey(param) ){
                 //Re-use these weights for both forward pass and backprop - don't want to use 2 different params here
                 //These should be cleared during  backprop
@@ -302,7 +303,6 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
         INDArray W = getParamWithNoise(DefaultParamInitializer.WEIGHT_KEY, training, workspaceMgr);
         INDArray b = getParamWithNoise(DefaultParamInitializer.BIAS_KEY, training, workspaceMgr);
         INDArray g = (hasLayerNorm() ? getParam(DefaultParamInitializer.GAIN_KEY) : null);
-
         INDArray input = this.input.castTo(dataType);
 
         //Input validation:
@@ -318,9 +318,9 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
                             + W.size(0) + ") " + layerId());
         }
 
-
-        INDArray ret = workspaceMgr.createUninitialized(ArrayType.ACTIVATIONS, W.dataType(), input.size(0), W.size(1));
-        input.castTo(ret.dataType()).mmuli(W, ret);     //TODO Can we avoid this cast? (It sohuld be a no op if not required, however)
+        //scope out of workspaces here to avoid borrow clashes
+        INDArray ret = workspaceMgr.create(ArrayType.ACTIVATIONS,W.dataType(),new long[]{ input.size(0), W.size(1)},'f');
+        input.mmuli(W, ret);
 
         INDArray preNorm = ret;
         if(hasLayerNorm()) {
@@ -328,7 +328,7 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
             Nd4j.getExecutioner().exec(new LayerNorm(preNorm, g, ret, true, 1));
         }
 
-        if(hasBias()){
+        if(hasBias()) {
             ret.addiRowVector(b);
         }
 
@@ -336,7 +336,11 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
             applyMask(ret);
         }
 
-        return new Pair<>(ret, preNorm);
+        return new Pair<>(workspaceMgr.leverageTo(ArrayType.ACTIVATIONS,ret), workspaceMgr.leverageTo(ArrayType.ACTIVATIONS,preNorm));
+
+
+
+
     }
 
     @Override
@@ -359,7 +363,7 @@ public abstract class BaseLayer<LayerConfT extends org.deeplearning4j.nn.conf.la
             if(l == null || l.isEmpty()){
                 continue;
             }
-            for(Regularization r : l){
+            for(Regularization r : l) {
                 scoreSum += r.score(e.getValue(), getIterationCount(), getEpochCount());
             }
         }

@@ -39,7 +39,7 @@ void GradCheck::fillGradArrays(const LossFunc loss, const std::vector<NDArray*>&
       break;
 
     default:
-      throw std::invalid_argument("GradCheck::fillGradArrays: invalid type of loss function !");
+      THROW_EXCEPTION("GradCheck::fillGradArrays: invalid type of loss function !");
   }
 }
 
@@ -60,16 +60,16 @@ bool GradCheck::checkGrad(ops::DeclarableOp& opFF, ops::DeclarableOp& opBP, cons
   // back prop pass
   ResultSet outArrsBP = opBP.execute(argsHolderBP);  // number of output arrays in back prop = numInArrsFF;
 
-  NDArray tmpScalar(sd::DataType::DOUBLE, inArrsFF[0]->getContext());  // scalar = 0
+  NDArray tmpScalar(DOUBLE, inArrsFF[0]->getContext());  // scalar = 0
 
   for (int i = 0; i < numInArrsFF; ++i) {  // loop through input array
 
     if (!whatArrsToCheck.empty() && static_cast<bool>(whatArrsToCheck[i]) == false) continue;
 
-    const sd::LongType idxStart = static_cast<sd::LongType>(idxRange[0] * inArrsFF[i]->lengthOf());
-    const sd::LongType idxEnd = static_cast<sd::LongType>(idxRange[1] * inArrsFF[i]->lengthOf());
+    const LongType idxStart = static_cast<LongType>(idxRange[0] * inArrsFF[i]->lengthOf());
+    const LongType idxEnd = static_cast<LongType>(idxRange[1] * inArrsFF[i]->lengthOf());
 
-    for (sd::LongType j = idxStart; j < idxEnd; ++j) {  // loop through all elements for current array
+    for (LongType j = idxStart; j < idxEnd; ++j) {  // loop through all elements for current array
 
       const double orig = inArrsFF[i]->e<double>(j);
 
@@ -81,9 +81,9 @@ bool GradCheck::checkGrad(ops::DeclarableOp& opFF, ops::DeclarableOp& opBP, cons
 
       for (int k = 0; k < numOutArrs; ++k) {  // loop through output arrays
         if (loss == SUM)
-          outArrsFF.at(k)->reduceNumber(reduce::Sum, tmpScalar);
+          outArrsFF.at(k)->reduceNumber(reduce::Sum, &tmpScalar);
         else
-          outArrsFF.at(k)->reduceNumber(reduce::Mean, tmpScalar);
+          outArrsFF.at(k)->reduceNumber(reduce::Mean, &tmpScalar);
         scorePlus += tmpScalar.e<double>(0);
       }
 
@@ -94,9 +94,9 @@ bool GradCheck::checkGrad(ops::DeclarableOp& opFF, ops::DeclarableOp& opBP, cons
 
       for (int k = 0; k < numOutArrs; ++k) {  // loop through output arrays
         if (loss == SUM)
-          outArrsFF.at(k)->reduceNumber(reduce::Sum, tmpScalar);
+          outArrsFF.at(k)->reduceNumber(reduce::Sum, &tmpScalar);
         else
-          outArrsFF.at(k)->reduceNumber(reduce::Mean, tmpScalar);
+          outArrsFF.at(k)->reduceNumber(reduce::Mean, &tmpScalar);
         scoreMinus += tmpScalar.e<double>(0);
       }
 
@@ -110,7 +110,7 @@ bool GradCheck::checkGrad(ops::DeclarableOp& opFF, ops::DeclarableOp& opBP, cons
             "GradCheck::checkGrad: got wrong value for numerical gradient for input array # %i and its element at "
             "position %lld ! \n",
             i, j);
-        throw std::runtime_error("");
+        THROW_EXCEPTION("");
       }
 
       // get analytical gradient
@@ -120,22 +120,21 @@ bool GradCheck::checkGrad(ops::DeclarableOp& opFF, ops::DeclarableOp& opBP, cons
             "GradCheck::checkGrad: got wrong value for analytical gradient for input array # %i and its element at "
             "position %lld ! \n",
             i, j);
-        throw std::runtime_error("");
+        THROW_EXCEPTION("");
       }
 
-      // printf("%lld: num = %.15f, ana = %.15f\n", j, numericalGrad, analyticGrad);
 
       // calculate relative error
       double relError;
       if (numericalGrad == 0. && analyticGrad == 0.)
         relError = 0.;
       else
-        relError = math::sd_abs<double>(analyticGrad - numericalGrad) /
-                   (math::sd_abs<double>(analyticGrad) + math::sd_abs<double>(numericalGrad));
+        relError = math::sd_abs<double,double>(analyticGrad - numericalGrad) /
+                   (math::sd_abs<double,double>(analyticGrad) + math::sd_abs<double,double>(numericalGrad));
 
       // verify result
       if (relError > MAXRELERR || std::isnan(relError)) {
-        if (math::sd_abs<double>(analyticGrad - numericalGrad) < MINABSERR) continue;
+        if (math::sd_abs<double,double>(analyticGrad - numericalGrad) < MINABSERR) continue;
         printf("numericalGrad = %.15f,  analyticGrad = %.15f \n", numericalGrad, analyticGrad);
         printf(
             "GradCheck::checkGrad: got RELERROR = %f > MAXRELERROR(%f) for input array # %i and its element at "

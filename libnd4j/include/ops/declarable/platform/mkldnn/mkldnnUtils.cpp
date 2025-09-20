@@ -31,7 +31,7 @@ namespace sd {
 namespace onednnUtils {
 
 //////////////////////////////////////////////////////////////////////
-void getDims(const NDArray* array, const int rank, dnnl::memory::dims& mklDims) {
+void getDims(NDArray* array, const int rank, dnnl::memory::dims& mklDims) {
   std::vector<int64_t> vDims(rank);
   for (auto i = 0; i < rank; i++) {
     vDims[i] = array->sizeAt(i);
@@ -39,7 +39,7 @@ void getDims(const NDArray* array, const int rank, dnnl::memory::dims& mklDims) 
   mklDims = dnnl::memory::dims(vDims);
 }
 //////////////////////////////////////////////////////////////////////
-dnnl::memory::format_tag getFormat(const NDArray& arr) {
+dnnl::memory::format_tag getFormat(NDArray& arr) {
   dnnl::memory::format_tag result;
 
   switch (arr.rankOf()) {
@@ -62,28 +62,28 @@ dnnl::memory::format_tag getFormat(const NDArray& arr) {
       result = dnnl::memory::format_tag::abcdef;
       break;
     default:
-      throw std::invalid_argument("MKLDNN getFormat: do we really want to use arras with rank > 6 ?");
+      THROW_EXCEPTION("MKLDNN getFormat: do we really want to use arras with rank > 6 ?");
   }
 
   return result;
 }
 
 //////////////////////////////////////////////////////////////////////
-void setBlockStrides(const NDArray& array, dnnl::memory::desc& mklMd, const std::vector<int>& permut) {
-  if (array.ews() != 1 || (array.rankOf() > 3 && array.ordering() == 'f') || !permut.empty()) {
+void setBlockStrides(NDArray& array, dnnl::memory::desc& mklMd, const std::vector<int>& permut) {
+  if ((array.rankOf() > 3 && array.ordering() == 'f') || !permut.empty()) {
     mklMd.data.format_kind = dnnl_blocked;  // overrides format
 
     if (permut.empty())
       for (auto i = 0; i < array.rankOf(); ++i) mklMd.data.format_desc.blocking.strides[i] = array.strideAt(i);
     else {
-      if (array.rankOf() != permut.size())
-        throw std::invalid_argument("mkldnnUtils::setBlockStrides: size of permut vector is not equal to array rank !");
+      if (static_cast<size_t>(array.rankOf()) != permut.size())
+        THROW_EXCEPTION("mkldnnUtils::setBlockStrides: size of permut vector is not equal to array rank !");
       for (auto i = 0; i < array.rankOf(); ++i) mklMd.data.format_desc.blocking.strides[i] = array.strideAt(permut[i]);
     }
   }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////
-dnnl::memory loadDataToMklStream(const NDArray& array, const dnnl::engine& engine, const dnnl::stream& stream,
+dnnl::memory loadDataToMklStream(NDArray& array, const dnnl::engine& engine, const dnnl::stream& stream,
                                  const dnnl::memory::desc& user_md, const dnnl::memory::desc& primitive_md,
                                  dnnl::memory& arg) {
   auto user_mem = dnnl::memory(user_md, engine, const_cast<NDArray&>(array).buffer());
@@ -95,13 +95,13 @@ dnnl::memory loadDataToMklStream(const NDArray& array, const dnnl::engine& engin
 }
 
 //////////////////////////////////////////////////////////////////////
-void poolingONEDNN(const NDArray* input, NDArray* output, const int kD, const int kH, const int kW, const int sD,
-                   const int sH, const int sW, const int pD, const int pH, const int pW, const int isNCHW,
+void poolingONEDNN(NDArray* input, NDArray* output, const sd::LongType kD, const sd::LongType kH, const sd::LongType kW, const sd::LongType sD,
+                   const sd::LongType sH, const sd::LongType sW, const sd::LongType pD, const sd::LongType pH, const sd::LongType pW, const int isNCHW,
                    const dnnl::algorithm mode) {
   // unfortunately mkl dnn doesn't support any format (dnnl::memory::format_tag::any) for input
-  const int rank = input->rankOf();
+  const sd::LongType rank = input->rankOf();
 
-  int bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
+  sd::LongType bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
   dnnl::memory::dims strides, kernel, padding, padding_r, xDims, zDims;
   dnnl::memory::format_tag xzFrmat;
 
@@ -182,14 +182,14 @@ void poolingONEDNN(const NDArray* input, NDArray* output, const int kD, const in
 }
 
 //////////////////////////////////////////////////////////////////////
-void poolingBpONEDNN(const NDArray* input, const NDArray* gradO, NDArray* gradI, const int kD, const int kH,
-                     const int kW, const int sD, const int sH, const int sW, const int pD, const int pH, const int pW,
+void poolingBpONEDNN(NDArray* input, NDArray* gradO, NDArray* gradI, const sd::LongType kD, const sd::LongType kH,
+                     const sd::LongType kW, const sd::LongType sD, const sd::LongType sH, const sd::LongType sW, const sd::LongType pD, const sd::LongType pH, const sd::LongType pW,
                      const int isNCHW, const dnnl::algorithm mode) {
   // unfortunately mkl dnn doesn't support any format (dnnl::memory::format_tag::any) for input
 
-  const int rank = input->rankOf();
+  const sd::LongType rank = input->rankOf();
 
-  int bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
+  sd::LongType bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
   dnnl::memory::dims strides, kernel, padding, padding_r, xDims, zDims;
   dnnl::memory::format_tag xzFrmat;
 
@@ -293,7 +293,7 @@ void poolingBpONEDNN(const NDArray* input, const NDArray* gradO, NDArray* gradI,
 }
 
 //////////////////////////////////////////////////////////////////////////
-void getONEDNNMemoryDescLrn(const NDArray* src, const NDArray* diff_src, const NDArray* dst,
+void getONEDNNMemoryDescLrn(NDArray* src, NDArray* diff_src, NDArray* dst,
                             dnnl::memory::desc* lrn_src_md, dnnl::memory::desc* lrn_diff_src_md,
                             dnnl::memory::desc* lrn_dst_md, dnnl::memory::desc* user_src_md,
                             dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_dst_md, int axis) {
@@ -346,28 +346,28 @@ dnnl::engine& getEngine(void* ptr) {
   return *eng;
 }
 
-void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, const sd::NDArray& in, const sd::NDArray& out) {
+void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, sd::NDArray* in, sd::NDArray* out) {
   // replicate OneDNN check that was added since v1.8
   // https://github.com/oneapi-src/oneDNN/blob/master/src/common/pooling.cpp#L108-L110
   // if (str < 1 || dil < 0 || pad_l < 0 || pad_r + str < 0) return invalid_arguments;
-  if (in.rankOf() > 4 && block.getIArguments()->size() > 12) {
+  if (in->rankOf() > 4 && block.getIArguments()->size() > 12) {
     // pooling 3D
-    int kD = INT_ARG(0);            // filter(kernel) depth
-    int kH = INT_ARG(1);            // filter(kernel) height
-    int kW = INT_ARG(2);            // filter(kernel) width
-    int sD = INT_ARG(3);            // strides depth
-    int sH = INT_ARG(4);            // strides height
-    int sW = INT_ARG(5);            // strides width
-    int pD = INT_ARG(6);            // paddings depth
-    int pH = INT_ARG(7);            // paddings height
-    int pW = INT_ARG(8);            // paddings width
-    int dD = INT_ARG(9);            // dilations depth
-    int dH = INT_ARG(10);           // dilations height
-    int dW = INT_ARG(11);           // dilations width
-    int paddingMode = INT_ARG(12);  // 1-SAME,  0-VALID
+    sd::LongType kD = INT_ARG(0);            // filter(kernel) depth
+    sd::LongType kH = INT_ARG(1);            // filter(kernel) height
+    sd::LongType kW = INT_ARG(2);            // filter(kernel) width
+    sd::LongType sD = INT_ARG(3);            // strides depth
+    sd::LongType sH = INT_ARG(4);            // strides height
+    sd::LongType sW = INT_ARG(5);            // strides width
+    sd::LongType pD = INT_ARG(6);            // paddings depth
+    sd::LongType pH = INT_ARG(7);            // paddings height
+    sd::LongType pW = INT_ARG(8);            // paddings width
+    sd::LongType dD = INT_ARG(9);            // dilations depth
+    sd::LongType dH = INT_ARG(10);           // dilations height
+    sd::LongType dW = INT_ARG(11);           // dilations width
+    sd::LongType paddingMode = INT_ARG(12);  // 1-SAME,  0-VALID
     // int extraParam0 = INT_ARG(13); // unnecessary for max case, required only for avg and pnorm cases
     int isNCDHW = block.getIArguments()->size() > 14 ? !INT_ARG(14) : 1;  // 1-NDHWC, 0-NCDHW
-    reqs.expectEq(makeInfoVariable(in.rankOf(), RANK_MSG_INPUT0), 5) &&
+    reqs.expectEq(makeInfoVariable(in->rankOf(), RANK_MSG_INPUT0), 5) &&
         // stride >=1
         reqs.expectGreaterEq(makeInfoVariable(sD, "strides#Depth"), 1) &&
         reqs.expectGreaterEq(makeInfoVariable(sH, "strides#Height"), 1) &&
@@ -377,10 +377,10 @@ void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, const sd:
         reqs.expectGreaterEq(makeInfoVariable(dH, "dilation#Height"), 0) &&
         reqs.expectGreaterEq(makeInfoVariable(dW, "dilation#Width"), 0);
     if (reqs) {
-      int bS, iC, iD, iH, iW, oC, oD, oH,
+      sd::LongType bS, iC, iD, iH, iW, oC, oD, oH,
           oW;  // batch size, input channels, input depth/height/width, output channels, output depth/height/width;
-      int indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
-      ops::ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, 0, in, out, bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC,
+      sd::LongType indIOioC, indIOioD, indWoC, indWiC, indWkD;  // corresponding indexes
+      ops::ConvolutionUtils::getSizesAndIndexesConv3d(isNCDHW, 0, *in, *out, bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC,
                                                       indIOioD, indWiC, indWoC, indWkD);
 
       if (paddingMode)  // SAME
@@ -402,13 +402,13 @@ void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, const sd:
     const int kW = INT_ARG(1);
     const int sH = INT_ARG(2);
     const int sW = INT_ARG(3);
-    int pH = INT_ARG(4);
-    int pW = INT_ARG(5);
+    sd::LongType pH = INT_ARG(4);
+    sd::LongType pW = INT_ARG(5);
     const int dH = INT_ARG(6);
     const int dW = INT_ARG(7);
     const int paddingMode = INT_ARG(8);
     const int isNCHW = block.getIArguments()->size() > 10 ? !INT_ARG(10) : 1;  // INT_ARG(10): 1-NHWC, 0-NCHW
-    reqs.expectEq(makeInfoVariable(in.rankOf(), RANK_MSG_INPUT0), 4) &&
+    reqs.expectEq(makeInfoVariable(in->rankOf(), RANK_MSG_INPUT0), 4) &&
         // stride >=1
         reqs.expectGreaterEq(makeInfoVariable(sH, "strides#Height"), 1) &&
         reqs.expectGreaterEq(makeInfoVariable(sW, "strides#Width"), 1) &&
@@ -416,8 +416,8 @@ void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, const sd:
         reqs.expectGreaterEq(makeInfoVariable(dH, "dilation#Height"), 0) &&
         reqs.expectGreaterEq(makeInfoVariable(dW, "dilation#Width"), 0);
     if (reqs) {
-      int bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
-      ops::ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, 0, in, out, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH,
+      sd::LongType bS, iC, iD, iH, iW, oC, oD, oH, oW, indIOioC, indIiH, indWoC, indWiC, indWkH, indOoH;
+      ops::ConvolutionUtils::getSizesAndIndexesConv2d(isNCHW, 0, *in, *out, bS, iC, iH, iW, oC, oH, oW, indIOioC, indIiH,
                                                       indWiC, indWoC, indWkH, indOoH);
       if (paddingMode) {
         ops::ConvolutionUtils::calcPadding2D(pH, pW, oH, oW, iH, iW, kH, kW, sH, sW, dH, dW);
@@ -435,332 +435,6 @@ void checkPoolingONEDNN(Requirements& reqs, sd::graph::Context& block, const sd:
   return;
 }
 
-/*
-//////////////////////////////////////////////////////////////////////////
-void getMKLDNNMemoryDescPool2d(
-        int kH, int kW, int sH, int sW, int pH, int pW, int dH, int dW, int poolingMode, int extraParam0, bool isNCHW,
-        int bS, int iC, int iH, int iW, int oC, int oH, int oW,
-        const NDArray* src, const NDArray* diff_src, const NDArray* dst, dnnl::algorithm& algorithm,
-        dnnl::memory::desc* pool_src_md, dnnl::memory::desc* pool_diff_src_md, dnnl::memory::desc* pool_dst_md,
-        dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_dst_md,
-        dnnl::memory::dims& pool_strides, dnnl::memory::dims& pool_kernel, dnnl::memory::dims& pool_padding,
-dnnl::memory::dims& pool_padding_r) { dnnl::memory::dims pool_src_tz = { bS, iC, iH, iW }; dnnl::memory::dims
-pool_dst_tz = { bS, oC, oH, oW };
-
-    pool_strides = { sH, sW };
-    pool_kernel = { kH, kW };
-    pool_padding = { pH, pW };
-    pool_padding_r = { (oH - 1) * sH - iH + kH - pH,
-                       (oW - 1) * sW - iW + kW - pW };
-
-    algorithm = poolingMode == 0 ? algorithm::pooling_max
-                                 : extraParam0 == 0 ? algorithm::pooling_avg_exclude_padding
-                                                    : algorithm::pooling_avg_include_padding;
-    auto type = dnnl::memory::data_type::f32;
-    auto format = isNCHW ? dnnl::memory::format_tag::nchw : dnnl::memory::format_tag::nhwc;
-    auto supposed_to_be_any_format = dnnl::memory::format_tag::nChw8c; // doesn't work with "any"
-
-    if (src != nullptr && src->buffer() != nullptr && pool_src_md != nullptr) {
-        *pool_src_md = dnnl::memory::desc({ pool_src_tz }, type, supposed_to_be_any_format);
-        *user_src_md = dnnl::memory::desc({ pool_src_tz }, type, format);
-        user_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_src_md->data.format_desc.blocking.strides[0] = src->stridesOf()[isNCHW ? 0 : 0];
-        user_src_md->data.format_desc.blocking.strides[1] = src->stridesOf()[isNCHW ? 1 : 3];
-        user_src_md->data.format_desc.blocking.strides[2] = src->stridesOf()[isNCHW ? 2 : 1];
-        user_src_md->data.format_desc.blocking.strides[3] = src->stridesOf()[isNCHW ? 3 : 2];
-    }
-
-    if (diff_src != nullptr && diff_src->buffer() != nullptr && pool_diff_src_md != nullptr) {
-        *pool_diff_src_md = dnnl::memory::desc({ pool_src_tz }, type, supposed_to_be_any_format);
-        *user_diff_src_md = dnnl::memory::desc({ pool_src_tz }, type, format);
-        user_diff_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_diff_src_md->data.format_desc.blocking.strides[0] = diff_src->stridesOf()[isNCHW ? 0 : 0];
-        user_diff_src_md->data.format_desc.blocking.strides[1] = diff_src->stridesOf()[isNCHW ? 1 : 3];
-        user_diff_src_md->data.format_desc.blocking.strides[2] = diff_src->stridesOf()[isNCHW ? 2 : 1];
-        user_diff_src_md->data.format_desc.blocking.strides[3] = diff_src->stridesOf()[isNCHW ? 3 : 2];
-    }
-
-    if (dst != nullptr && dst->buffer() != nullptr && pool_dst_md != nullptr) {
-        *pool_dst_md = dnnl::memory::desc({ pool_dst_tz }, type, supposed_to_be_any_format);
-        *user_dst_md = dnnl::memory::desc({ pool_dst_tz }, type, format);
-        user_dst_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_dst_md->data.format_desc.blocking.strides[0] = dst->stridesOf()[isNCHW ? 0 : 0];
-        user_dst_md->data.format_desc.blocking.strides[1] = dst->stridesOf()[isNCHW ? 1 : 3];
-        user_dst_md->data.format_desc.blocking.strides[2] = dst->stridesOf()[isNCHW ? 2 : 1];
-        user_dst_md->data.format_desc.blocking.strides[3] = dst->stridesOf()[isNCHW ? 3 : 2];
-    }
-};
-
-//////////////////////////////////////////////////////////////////////////
-void getMKLDNNMemoryDescPool3d(
-        int kD, int kH, int kW, int sD, int sH, int sW, int pD, int pH, int pW, int dD, int dH, int dW, int poolingMode,
-int extraParam0, bool isNCDHW, int bS, int iC, int iD, int iH, int iW, int oC, int oD, int oH, int oW, const NDArray*
-src, const NDArray* diff_src, const NDArray* dst, dnnl::algorithm& algorithm, dnnl::memory::desc* pool_src_md,
-dnnl::memory::desc* pool_diff_src_md, dnnl::memory::desc* pool_dst_md, dnnl::memory::desc* user_src_md,
-dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_dst_md, dnnl::memory::dims& pool_strides,
-dnnl::memory::dims& pool_kernel, dnnl::memory::dims& pool_padding, dnnl::memory::dims& pool_padding_r) {
-    dnnl::memory::dims pool_src_tz = { bS, iC, iD, iH, iW };
-    dnnl::memory::dims pool_dst_tz = { bS, oC, oD, oH, oW };
-
-    pool_strides = { sD, sH, sW };
-    pool_kernel = { kD, kH, kW };
-    pool_padding = { pD, pH, pW };
-    pool_padding_r = { (oD - 1) * sD - iD + kD - pD,
-                       (oH - 1) * sH - iH + kH - pH,
-                       (oW - 1) * sW - iW + kW - pW };
-
-    algorithm = poolingMode == 0 ? algorithm::pooling_max
-                                 : extraParam0 == 0 ? algorithm::pooling_avg_exclude_padding
-                                                    : algorithm::pooling_avg_include_padding;
-    auto type = dnnl::memory::data_type::f32;
-    auto format = isNCDHW ? dnnl::memory::format_tag::ncdhw : dnnl::memory::format_tag::ndhwc;
-    auto supposed_to_be_any_format = dnnl::memory::format_tag::nCdhw8c; // doesn't work with "any"
-
-    if (src != nullptr && src->buffer() != nullptr && pool_src_md != nullptr) {
-        *pool_src_md = dnnl::memory::desc({ pool_src_tz }, type, supposed_to_be_any_format);
-        *user_src_md = dnnl::memory::desc({ pool_src_tz }, type, format);
-        user_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_src_md->data.format_desc.blocking.strides[0] = src->stridesOf()[isNCDHW ? 0 : 0];
-        user_src_md->data.format_desc.blocking.strides[1] = src->stridesOf()[isNCDHW ? 1 : 4];
-        user_src_md->data.format_desc.blocking.strides[2] = src->stridesOf()[isNCDHW ? 2 : 1];
-        user_src_md->data.format_desc.blocking.strides[3] = src->stridesOf()[isNCDHW ? 3 : 2];
-        user_src_md->data.format_desc.blocking.strides[4] = src->stridesOf()[isNCDHW ? 4 : 3];
-    }
-
-    if (diff_src != nullptr && diff_src->buffer() != nullptr && pool_diff_src_md != nullptr) {
-        *pool_diff_src_md = dnnl::memory::desc({ pool_src_tz }, type, supposed_to_be_any_format);
-        *user_diff_src_md = dnnl::memory::desc({ pool_src_tz }, type, format);
-        user_diff_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_diff_src_md->data.format_desc.blocking.strides[0] = diff_src->stridesOf()[isNCDHW ? 0 : 0];
-        user_diff_src_md->data.format_desc.blocking.strides[1] = diff_src->stridesOf()[isNCDHW ? 1 : 4];
-        user_diff_src_md->data.format_desc.blocking.strides[2] = diff_src->stridesOf()[isNCDHW ? 2 : 1];
-        user_diff_src_md->data.format_desc.blocking.strides[3] = diff_src->stridesOf()[isNCDHW ? 3 : 2];
-        user_diff_src_md->data.format_desc.blocking.strides[4] = diff_src->stridesOf()[isNCDHW ? 4 : 3];
-    }
-
-    if (dst != nullptr && dst->buffer() != nullptr && pool_dst_md != nullptr) {
-        *pool_dst_md = dnnl::memory::desc({ pool_dst_tz }, type, supposed_to_be_any_format);
-        *user_dst_md = dnnl::memory::desc({ pool_dst_tz }, type, format);
-        user_dst_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_dst_md->data.format_desc.blocking.strides[0] = dst->stridesOf()[isNCDHW ? 0 : 0];
-        user_dst_md->data.format_desc.blocking.strides[1] = dst->stridesOf()[isNCDHW ? 1 : 4];
-        user_dst_md->data.format_desc.blocking.strides[2] = dst->stridesOf()[isNCDHW ? 2 : 1];
-        user_dst_md->data.format_desc.blocking.strides[3] = dst->stridesOf()[isNCDHW ? 3 : 2];
-        user_dst_md->data.format_desc.blocking.strides[4] = dst->stridesOf()[isNCDHW ? 4 : 3];
-    }
-};
-
-//////////////////////////////////////////////////////////////////////////
-void getMKLDNNMemoryDescConv2d(
-        int kH, int kW, int sH, int sW, int pH, int pW, int dH, int dW, const int paddingMode, bool isNCHW,
-        int bS, int iC, int iH, int iW, int oC, int oH, int oW, const NDArray* src, const NDArray* diff_src,
-        const NDArray* weights, const NDArray* diff_weights, const NDArray* bias, const NDArray* dst,
-        dnnl::memory::desc* conv_src_md, dnnl::memory::desc* conv_diff_src_md, dnnl::memory::desc* conv_weights_md,
-        dnnl::memory::desc* conv_diff_weights_md, dnnl::memory::desc* conv_bias_md, dnnl::memory::desc* conv_dst_md,
-        dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_weights_md,
-        dnnl::memory::desc* user_diff_weights_md, dnnl::memory::desc* user_bias_md, dnnl::memory::desc* user_dst_md,
-        dnnl::memory::dims& conv_strides, dnnl::memory::dims& conv_padding, dnnl::memory::dims& conv_padding_r,
-dnnl::memory::dims& conv_dilation) { dnnl::memory::dims conv_src_tz = { bS, iC, iH, iW }; dnnl::memory::dims
-conv_weights_tz = { oC, iC, kH, kW }; dnnl::memory::dims conv_bias_tz = { oC }; dnnl::memory::dims conv_dst_tz = { bS,
-oC, oH, oW };
-
-    const int pWSame = (paddingMode == 2 && dW > 1) ? ((oW - 1) * sW + (kW - 1) * dW + 1 - iW) / 2 : pW;       // dH ==
-1 for causal mode in conv1d
-
-    conv_strides   = { sH, sW };
-    conv_padding   = { pH, pW };
-    conv_padding_r = { (oH - 1) * sH - iH + kH - pH, (oW - 1) * sW - iW + kW - pWSame };
-    conv_dilation  = { dH-1, dW-1};
-
-    auto type = dnnl::memory::data_type::f32;
-    auto format = isNCHW ? dnnl::memory::format_tag::nchw : dnnl::memory::format_tag::nhwc;
-    auto formatw = dnnl::memory::format_tag::hwio;
-
-    if (src != nullptr && conv_src_md != nullptr) {
-        *conv_src_md = dnnl::memory::desc({ conv_src_tz }, type, dnnl::memory::format_tag::any);
-        *user_src_md = dnnl::memory::desc({ conv_src_tz }, type, format);
-        user_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_src_md->data.format_desc.blocking.strides[0] = src->stridesOf()[isNCHW ? 0 : 0];
-        user_src_md->data.format_desc.blocking.strides[1] = src->stridesOf()[isNCHW ? 1 : 3];
-        user_src_md->data.format_desc.blocking.strides[2] = src->stridesOf()[isNCHW ? 2 : 1];
-        user_src_md->data.format_desc.blocking.strides[3] = src->stridesOf()[isNCHW ? 3 : 2];
-    }
-
-    if (diff_src != nullptr && conv_diff_src_md != nullptr) {
-        *conv_diff_src_md = dnnl::memory::desc({ conv_src_tz }, type, dnnl::memory::format_tag::any);
-        *user_diff_src_md = dnnl::memory::desc({ conv_src_tz }, type, format);
-        user_diff_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_diff_src_md->data.format_desc.blocking.strides[0] = diff_src->stridesOf()[isNCHW ? 0 : 0];
-        user_diff_src_md->data.format_desc.blocking.strides[1] = diff_src->stridesOf()[isNCHW ? 1 : 3];
-        user_diff_src_md->data.format_desc.blocking.strides[2] = diff_src->stridesOf()[isNCHW ? 2 : 1];
-        user_diff_src_md->data.format_desc.blocking.strides[3] = diff_src->stridesOf()[isNCHW ? 3 : 2];
-    }
-
-    if (weights != nullptr && conv_weights_md != nullptr) {
-        *conv_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, dnnl::memory::format_tag::any);
-        *user_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, formatw);
-        user_weights_md->data.format_kind = dnnl_blocked; // overrides "formatw = hwio"
-        user_weights_md->data.format_desc.blocking.strides[0] = weights->stridesOf()[3];
-        user_weights_md->data.format_desc.blocking.strides[1] = weights->stridesOf()[2];
-        user_weights_md->data.format_desc.blocking.strides[2] = weights->stridesOf()[0];
-        user_weights_md->data.format_desc.blocking.strides[3] = weights->stridesOf()[1];
-    }
-
-    if (diff_weights != nullptr && conv_diff_weights_md != nullptr) {
-        *conv_diff_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, dnnl::memory::format_tag::any);
-        *user_diff_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, formatw);
-        user_diff_weights_md->data.format_kind = dnnl_blocked; // overrides "formatw = hwio"
-        user_diff_weights_md->data.format_desc.blocking.strides[0] = diff_weights->stridesOf()[3];
-        user_diff_weights_md->data.format_desc.blocking.strides[1] = diff_weights->stridesOf()[2];
-        user_diff_weights_md->data.format_desc.blocking.strides[2] = diff_weights->stridesOf()[0];
-        user_diff_weights_md->data.format_desc.blocking.strides[3] = diff_weights->stridesOf()[1];
-    }
-
-    if (bias != nullptr && conv_bias_md != nullptr) {
-        *conv_bias_md = dnnl::memory::desc({ conv_bias_tz }, type, dnnl::memory::format_tag::any);
-        *user_bias_md = dnnl::memory::desc({ conv_bias_tz }, type, dnnl::memory::format_tag::x);
-    }
-
-    if (dst != nullptr && conv_dst_md != nullptr) {
-        *conv_dst_md = dnnl::memory::desc({ conv_dst_tz }, type, dnnl::memory::format_tag::any);
-        *user_dst_md = dnnl::memory::desc({ conv_dst_tz }, type, format);
-        user_dst_md->data.format_kind = dnnl_blocked; // overrides "format = isNCHW ? nchw : nhwc"
-        user_dst_md->data.format_desc.blocking.strides[0] = dst->stridesOf()[isNCHW ? 0 : 0];
-        user_dst_md->data.format_desc.blocking.strides[1] = dst->stridesOf()[isNCHW ? 1 : 3];
-        user_dst_md->data.format_desc.blocking.strides[2] = dst->stridesOf()[isNCHW ? 2 : 1];
-        user_dst_md->data.format_desc.blocking.strides[3] = dst->stridesOf()[isNCHW ? 3 : 2];
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////
-void getMKLDNNMemoryDescConv3d(
-        int kD, int kH, int kW, int sD, int sH, int sW, int pD, int pH, int pW, int dD, int dH, int dW, bool
-paddingMode, bool isNCDHW, int bS, int iC, int iD, int iH, int iW, int oC, int oD, int oH, int oW, const NDArray* src,
-const NDArray* diff_src, const NDArray* weights, const NDArray* diff_weights, const NDArray* bias, const NDArray* dst,
-        dnnl::memory::desc* conv_src_md, dnnl::memory::desc* conv_diff_src_md, dnnl::memory::desc* conv_weights_md,
-        dnnl::memory::desc* conv_diff_weights_md, dnnl::memory::desc* conv_bias_md, dnnl::memory::desc* conv_dst_md,
-        dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md, dnnl::memory::desc* user_weights_md,
-        dnnl::memory::desc* user_diff_weights_md, dnnl::memory::desc* user_bias_md, dnnl::memory::desc* user_dst_md,
-        dnnl::memory::dims& conv_strides, dnnl::memory::dims& conv_padding, dnnl::memory::dims& conv_padding_r,
-dnnl::memory::dims& conv_dilation) { dnnl::memory::dims conv_src_tz = { bS, iC, iD, iH, iW }; dnnl::memory::dims
-conv_weights_tz = { oC, iC, kD, kH, kW }; dnnl::memory::dims conv_bias_tz = { oC }; dnnl::memory::dims conv_dst_tz = {
-bS, oC, oD, oH, oW };
-
-    conv_strides   = { sD, sH, sW };
-    conv_padding   = { pD, pH, pW };
-    conv_padding_r = { (oD - 1) * sD - iD + kD - pD, (oH - 1) * sH - iH + kH - pH, (oW - 1) * sW - iW + kW - pW };
-    conv_dilation  = { dD-1, dH-1, dW-1};
-
-    auto type = dnnl::memory::data_type::f32;
-    auto format = isNCDHW ? dnnl::memory::format_tag::ncdhw : dnnl::memory::format_tag::ndhwc;
-    auto formatw = dnnl::memory::format_tag::dhwio;
-
-    if (src != nullptr && conv_src_md != nullptr) {
-        *conv_src_md = dnnl::memory::desc({ conv_src_tz }, type, dnnl::memory::format_tag::any);
-        *user_src_md = dnnl::memory::desc({ conv_src_tz }, type, format);
-        user_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_src_md->data.format_desc.blocking.strides[0] = src->stridesOf()[isNCDHW ? 0 : 0];
-        user_src_md->data.format_desc.blocking.strides[1] = src->stridesOf()[isNCDHW ? 1 : 4];
-        user_src_md->data.format_desc.blocking.strides[2] = src->stridesOf()[isNCDHW ? 2 : 1];
-        user_src_md->data.format_desc.blocking.strides[3] = src->stridesOf()[isNCDHW ? 3 : 2];
-        user_src_md->data.format_desc.blocking.strides[4] = src->stridesOf()[isNCDHW ? 4 : 3];
-    }
-
-    if (diff_src != nullptr && conv_diff_src_md != nullptr) {
-        *conv_diff_src_md = dnnl::memory::desc({ conv_src_tz }, type, dnnl::memory::format_tag::any);
-        *user_diff_src_md = dnnl::memory::desc({ conv_src_tz }, type, format);
-        user_diff_src_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_diff_src_md->data.format_desc.blocking.strides[0] = diff_src->stridesOf()[isNCDHW ? 0 : 0];
-        user_diff_src_md->data.format_desc.blocking.strides[1] = diff_src->stridesOf()[isNCDHW ? 1 : 4];
-        user_diff_src_md->data.format_desc.blocking.strides[2] = diff_src->stridesOf()[isNCDHW ? 2 : 1];
-        user_diff_src_md->data.format_desc.blocking.strides[3] = diff_src->stridesOf()[isNCDHW ? 3 : 2];
-        user_diff_src_md->data.format_desc.blocking.strides[4] = diff_src->stridesOf()[isNCDHW ? 4 : 3];
-    }
-
-    if (weights != nullptr && conv_weights_md != nullptr) {
-        *conv_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, dnnl::memory::format_tag::any);
-        *user_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, formatw);
-        user_weights_md->data.format_kind = dnnl_blocked; // overrides "formatw = dhwio"
-        user_weights_md->data.format_desc.blocking.strides[0] = weights->stridesOf()[4];
-        user_weights_md->data.format_desc.blocking.strides[1] = weights->stridesOf()[3];
-        user_weights_md->data.format_desc.blocking.strides[2] = weights->stridesOf()[0];
-        user_weights_md->data.format_desc.blocking.strides[3] = weights->stridesOf()[1];
-        user_weights_md->data.format_desc.blocking.strides[4] = weights->stridesOf()[2];
-    }
-
-    if (diff_weights != nullptr && conv_diff_weights_md != nullptr) {
-        *conv_diff_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, dnnl::memory::format_tag::any);
-        *user_diff_weights_md = dnnl::memory::desc({ conv_weights_tz }, type, formatw);
-        user_diff_weights_md->data.format_kind = dnnl_blocked; // overrides "formatw = dhwio"
-        user_diff_weights_md->data.format_desc.blocking.strides[0] = diff_weights->stridesOf()[4];
-        user_diff_weights_md->data.format_desc.blocking.strides[1] = diff_weights->stridesOf()[3];
-        user_diff_weights_md->data.format_desc.blocking.strides[2] = diff_weights->stridesOf()[0];
-        user_diff_weights_md->data.format_desc.blocking.strides[3] = diff_weights->stridesOf()[1];
-        user_diff_weights_md->data.format_desc.blocking.strides[4] = diff_weights->stridesOf()[2];
-    }
-
-    if (bias != nullptr && conv_bias_md != nullptr) {
-        *conv_bias_md = dnnl::memory::desc({ conv_bias_tz }, type, dnnl::memory::format_tag::any);
-        *user_bias_md = dnnl::memory::desc({ conv_bias_tz }, type, dnnl::memory::format_tag::x);
-    }
-
-    if (dst != nullptr && conv_dst_md != nullptr) {
-        *conv_dst_md = dnnl::memory::desc({ conv_dst_tz }, type, dnnl::memory::format_tag::any);
-        *user_dst_md = dnnl::memory::desc({ conv_dst_tz }, type, format);
-        user_dst_md->data.format_kind = dnnl_blocked; // overrides "format = isNCDHW ? ncdhw : ndhwc"
-        user_dst_md->data.format_desc.blocking.strides[0] = dst->stridesOf()[isNCDHW ? 0 : 0];
-        user_dst_md->data.format_desc.blocking.strides[1] = dst->stridesOf()[isNCDHW ? 1 : 4];
-        user_dst_md->data.format_desc.blocking.strides[2] = dst->stridesOf()[isNCDHW ? 2 : 1];
-        user_dst_md->data.format_desc.blocking.strides[3] = dst->stridesOf()[isNCDHW ? 3 : 2];
-        user_dst_md->data.format_desc.blocking.strides[4] = dst->stridesOf()[isNCDHW ? 4 : 3];
-    }
-};
-
-void getMKLDNNMemoryDescBatchNorm(const NDArray* src, const NDArray* diff_src, const NDArray* dst,
-                                  dnnl::memory::desc* batchnorm_src_md, dnnl::memory::desc* batchnorm_diff_src_md,
-dnnl::memory::desc* batchnorm_dst_md, dnnl::memory::desc* user_src_md, dnnl::memory::desc* user_diff_src_md,
-dnnl::memory::desc* user_dst_md, int axis) { const sd::LongType* shape = src->shapeInfo(); sd::LongType rank = shape[0];
-    sd::LongType dim1 = axis; // MKL-DNN supports only 1 axis, which has to be the "channel" one
-    sd::LongType dim2 = axis >= 2 ? 1 : 2;
-    sd::LongType dim3 = axis >= 3 ? 2 : 3;
-    dnnl::memory::dims batchnorm_src_tz = { (int)shape[1], (int)shape[dim1 + 1], rank > 2 ? (int)shape[dim2 + 1] : 1,
-rank > 3 ? (int)shape[dim3 + 1] : 1};
-
-    auto type = dnnl::memory::data_type::f32;
-    auto format = dnnl::memory::format_tag::nchw;
-    auto supposed_to_be_any_format = dnnl::memory::format_tag::nChw8c; // doesn't work with "any"
-
-    if (src != nullptr && src->buffer() != nullptr && batchnorm_src_md != nullptr) {
-        *batchnorm_src_md = dnnl::memory::desc({ batchnorm_src_tz }, type, supposed_to_be_any_format);
-        *user_src_md = dnnl::memory::desc({ batchnorm_src_tz }, type, format);
-        user_src_md->data.format_kind = dnnl_blocked; // overrides format
-        user_src_md->data.format_desc.blocking.strides[0] = src->stridesOf()[0];
-        user_src_md->data.format_desc.blocking.strides[1] = src->stridesOf()[dim1];
-        user_src_md->data.format_desc.blocking.strides[2] = rank > 2 ? src->stridesOf()[dim2] : 1;
-        user_src_md->data.format_desc.blocking.strides[3] = rank > 3 ? src->stridesOf()[dim3] : 1;
-    }
-
-    if (diff_src != nullptr && diff_src->buffer() != nullptr && batchnorm_diff_src_md != nullptr) {
-        *batchnorm_diff_src_md = dnnl::memory::desc({ batchnorm_src_tz }, type, supposed_to_be_any_format);
-        *user_diff_src_md = dnnl::memory::desc({ batchnorm_src_tz }, type, format);
-        user_diff_src_md->data.format_kind = dnnl_blocked; // overrides format
-        user_diff_src_md->data.format_desc.blocking.strides[0] = diff_src->stridesOf()[0];
-        user_diff_src_md->data.format_desc.blocking.strides[1] = diff_src->stridesOf()[dim1];
-        user_diff_src_md->data.format_desc.blocking.strides[2] = rank > 2 ? diff_src->stridesOf()[dim2] : 1;
-        user_diff_src_md->data.format_desc.blocking.strides[3] = rank > 3 ? diff_src->stridesOf()[dim3] : 1;
-    }
-
-    if (dst != nullptr && dst->buffer() != nullptr && batchnorm_dst_md != nullptr) {
-        *batchnorm_dst_md = dnnl::memory::desc({ batchnorm_src_tz }, type, supposed_to_be_any_format);
-        *user_dst_md = dnnl::memory::desc({ batchnorm_src_tz }, type, format);
-        user_dst_md->data.format_kind = dnnl_blocked; // overrides format
-        user_dst_md->data.format_desc.blocking.strides[0] = dst->stridesOf()[0];
-        user_dst_md->data.format_desc.blocking.strides[1] = dst->stridesOf()[dim1];
-        user_dst_md->data.format_desc.blocking.strides[2] = rank > 2 ? dst->stridesOf()[dim2] : 1;
-        user_dst_md->data.format_desc.blocking.strides[3] = rank > 3 ? dst->stridesOf()[dim3] : 1;
-    }
-};
-*/
 
 }  // namespace onednnUtils
 }  // namespace sd

@@ -2,7 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>deeplearning4j</artifactId>
-        <groupId>org.deeplearning4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -18,6 +18,7 @@
     <modules>
         <module>op-codegen</module>
         <module>libnd4j-gen</module>
+        <module>blas-lapack-generator</module>
     </modules>
 
 

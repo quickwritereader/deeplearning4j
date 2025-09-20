@@ -21,18 +21,19 @@
 //
 #include <legacy/NativeOpExecutioner.h>
 #include <ops/declarable/LegacyTransformSameOp.h>
+#include <ops/declarable/OpRegistrator.h>
 
 namespace sd {
 namespace ops {
-LegacyTransformSameOp::LegacyTransformSameOp() : LegacyOp::LegacyOp(1) { this->getOpDescriptor()->allowInplace(true); }
+LegacyTransformSameOp::LegacyTransformSameOp() : LegacyOp(1) { this->getOpDescriptor()->allowInplace(true); }
 
-LegacyTransformSameOp::LegacyTransformSameOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyTransformSameOp::LegacyTransformSameOp(int opNum) : LegacyOp(1, opNum) {
   this->getOpDescriptor()->allowInplace(true);
 }
 
 LegacyOp *LegacyTransformSameOp::clone() { return new LegacyTransformSameOp(this->_opNum); }
 
-sd::Status LegacyTransformSameOp::validateAndExecute(Context &block) {
+Status LegacyTransformSameOp::validateAndExecute(Context &block) {
   auto input = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
@@ -50,8 +51,9 @@ sd::Status LegacyTransformSameOp::validateAndExecute(Context &block) {
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 /**
@@ -59,10 +61,10 @@ sd::Status LegacyTransformSameOp::validateAndExecute(Context &block) {
  * col2im. But these ops already have CustomOp implementations.
  *
  */
-ShapeList *LegacyTransformSameOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyTransformSameOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
 
-  sd::LongType *newShape;
+  LongType *newShape;
   COPY_SHAPE(inShape, newShape);
 
   return SHAPELIST(CONSTANT(newShape));

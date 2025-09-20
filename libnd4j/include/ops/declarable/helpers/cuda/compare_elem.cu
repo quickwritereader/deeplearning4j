@@ -17,12 +17,14 @@
  ******************************************************************************/
 #include <ops/declarable/helpers/compare_elem.h>
 
+#include "execution/cuda/LaunchDims.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
-
 template <typename T>
-static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::LongType length, const bool isStrict,
+static SD_KERNEL void comparator(void *vx, const LongType *xShapeInfo, LongType length, const bool isStrict,
                                  void *reductionBuffer, bool *z) {
   auto x = reinterpret_cast<T *>(vx);
   auto reduction = reinterpret_cast<uint32_t *>(reductionBuffer);
@@ -30,12 +32,33 @@ static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::L
   extern __shared__ uint32_t shared[];
   auto tid = threadIdx.x + blockIdx.x * blockDim.x;
 
+  // Cache shape information in shared memory
+  __shared__ LongType xRank;
+  __shared__ LongType *xShape;
+  __shared__ LongType *xStride;
+
+  if (threadIdx.x == 0) {
+    xRank = shape::rank(xShapeInfo);
+    xShape = shape::shapeOf(xShapeInfo);
+    xStride = shape::stride(xShapeInfo);
+  }
+  __syncthreads();
+
   shared[threadIdx.x] = 0;
+
+  LongType xCoords[SD_MAX_RANK];
+  LongType xOffset0;
+  LongType xOffset1;
 
   // each thread will compare 2 elements: E and E+1
   for (int e = tid; e < length - 1; e += blockDim.x * gridDim.x) {
-    auto val0 = x[shape::getIndexOffset(e, xShapeInfo)];
-    auto val1 = x[shape::getIndexOffset(e + 1, xShapeInfo)];
+    INDEX2COORDS(e, xRank, xShape, xCoords);
+    COORDS2INDEX(xRank, xStride, xCoords, xOffset0);
+    INDEX2COORDS(e + 1, xRank, xShape, xCoords);
+    COORDS2INDEX(xRank, xStride, xCoords, xOffset1);
+
+    auto val0 = x[xOffset0];
+    auto val1 = x[xOffset1];
 
     bool v = false;
     if (isStrict)
@@ -49,7 +72,7 @@ static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::L
   __syncthreads();
 
   // aggregate sums in shared memory
-  for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+  for (LongType activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
     if (threadIdx.x < activeThreads) shared[threadIdx.x] += shared[threadIdx.x + activeThreads];
     __syncthreads();
   }
@@ -80,7 +103,7 @@ static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::L
 
       __syncthreads();
 
-      for (sd::Unsigned activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
+      for (LongType activeThreads = blockDim.x / 2; activeThreads > 0; activeThreads /= 2) {
         if (threadIdx.x < activeThreads) shared[threadIdx.x] += shared[threadIdx.x + activeThreads];
         __syncthreads();
       }
@@ -102,23 +125,21 @@ static SD_KERNEL void comparator(void *vx, const sd::LongType *xShapeInfo, sd::L
 }
 
 template <typename T>
-static void _compare_elem(sd::LaunchContext *context, NDArray *input, bool isStrictlyIncreasing, bool &output) {
+static void _compare_elem(LaunchContext *context, NDArray *input, bool isStrictlyIncreasing, bool &output) {
   auto z = NDArrayFactory::create<bool>(false, context);
 
-  const int numThreads = 256;
-  const int numBlocks = sd::math::sd_min<int>(128, sd::math::sd_max<int>(1, input->lengthOf() / numThreads));
-
-  comparator<T><<<numBlocks, numThreads, numThreads * 4 + 1024, *context->getCudaStream()>>>(
+  dim3 compareElemDims = getCompareElem(input->lengthOf());
+  comparator<T><<<compareElemDims.x,compareElemDims.y,compareElemDims.z, *context->getCudaStream()>>>(
       input->specialBuffer(), input->specialShapeInfo(), input->lengthOf(), isStrictlyIncreasing,
       context->getReductionPointer(), reinterpret_cast<bool *>(z.specialBuffer()));
 
   z.tickWriteDevice();
-  sd::DebugHelper::checkErrorCode(context->getCudaStream(), "is_strictly_increasing");
+  DebugHelper::checkErrorCode(context->getCudaStream(), "is_strictly_increasing");
 
   output = z.e<bool>(0);
 }
 
-void compare_elem(sd::LaunchContext *context, NDArray *input, bool isStrictlyIncreasing, bool &output) {
+void compare_elem(LaunchContext *context, NDArray *input, bool isStrictlyIncreasing, bool &output) {
   auto xType = input->dataType();
   input->syncToDevice();
 
@@ -127,7 +148,7 @@ void compare_elem(sd::LaunchContext *context, NDArray *input, bool isStrictlyInc
 
 BUILD_SINGLE_TEMPLATE(template void _compare_elem,
                       (sd::LaunchContext * context, NDArray *A, bool isStrictlyIncreasing, bool &output);
-                      , SD_COMMON_TYPES);
+, SD_COMMON_TYPES);
 }  // namespace helpers
 }  // namespace ops
 }  // namespace sd

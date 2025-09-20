@@ -32,32 +32,30 @@ BROADCASTABLE_OP_IMPL(add, 0, 0) {
   auto x = INPUT_VARIABLE(0);
   auto y = INPUT_VARIABLE(1);
   auto z = OUTPUT_VARIABLE(0);
-
   BROADCAST_CHECK_EMPTY(x, y, z);
 
-  auto tZ = BroadcastHelper::broadcastApply(sd::BroadcastOpsTuple::Add(), x, y, z);
+  auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::Add(), x, y, z);
   if (tZ == nullptr)
-    return sd::Status::KERNEL_FAILURE;
-  else if (tZ != z)
-    throw std::runtime_error("add: result was replaced");
-
-  return sd::Status::OK;
+    return Status::KERNEL_FAILURE;
+  else if (tZ != z && !tZ->isEmpty()) {
+    OVERWRITE_RESULT(tZ);
+  }
+  return Status::OK;
 }
 
 DECLARE_TYPES(add) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(DataType::ANY);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(ANY);
 }
 
-DECLARE_TYPES(add_bp) { getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS}); }
+DECLARE_TYPES(add_bp) { getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS}); }
 
 CUSTOM_OP_IMPL(add_bp, 3, 2, false, 0, 0) {
   auto x = INPUT_VARIABLE(0);
   auto y = INPUT_VARIABLE(1);
   auto epsNext = INPUT_VARIABLE(2);
-
   auto gradX = OUTPUT_VARIABLE(0);
   auto gradY = OUTPUT_VARIABLE(1);
 
@@ -67,8 +65,8 @@ CUSTOM_OP_IMPL(add_bp, 3, 2, false, 0, 0) {
     gradX->assign(epsNext);
   } else if (y->isScalar()) {
     // scalar case
-    auto tmp = epsNext->reduceNumber(sd::reduce::Sum);
-    gradY->assign(tmp);
+    auto tmp = epsNext->reduceNumber(reduce::Sum);
+    gradY->assign(&tmp);
     gradX->assign(epsNext);
   } else {
     // broadcast case
@@ -76,19 +74,21 @@ CUSTOM_OP_IMPL(add_bp, 3, 2, false, 0, 0) {
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = epsNext->reduceAlongDimension(sd::reduce::Sum, axisX);
-      gradX->assign(sum);
+      auto sum = epsNext->reduceAlongDimension(reduce::Sum, &axisX);
+      gradX->assign(&sum);
     } else
       gradX->assign(epsNext);
 
     if (axisY.size() > 0) {
-      auto sum = epsNext->reduceAlongDimension(sd::reduce::Sum, axisY);
-      gradY->assign(sum);
+      auto sum = epsNext->reduceAlongDimension(reduce::Sum, &axisY);
+      gradY->assign(&sum);
     } else
       gradY->assign(epsNext);
   }
 
-  return sd::Status::OK;
+
+
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(add_bp) {
@@ -98,14 +98,7 @@ DECLARE_SHAPE_FN(add_bp) {
 
   // eps always has shape of x
   // grad always has shape of y
-
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  return SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  return SHAPELIST(CONSTANT(x), CONSTANT(y));
 }
 }  // namespace ops
 }  // namespace sd

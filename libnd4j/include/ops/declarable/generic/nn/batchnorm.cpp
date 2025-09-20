@@ -53,13 +53,13 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
   const int inRank = input->rankOf();
 
   // get axes args to normalize input array over
-  std::vector<int> axes;
+  std::vector<sd::LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
     axes.push_back(inRank - 1);  // default dimension to reduce along is last dimension
 
-  const sd::Unsigned numOfAxes = axes.size();
+  const sd::LongType numOfAxes = axes.size();
   REQUIRE_TRUE(numOfAxes <= inRank, 0,
                "BATCHNORM op: too big number of input axes to normalize over, expected number should be less or equal "
                "to rank of input array, but got %i and %i correspondingly !",
@@ -73,7 +73,7 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
     expShape.push_back(input->sizeAt(axes[0]));
   else {  // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
     expShape = std::vector<sd::LongType>(inRank, 1);
-    for (sd::Unsigned i = 0; i < numOfAxes; ++i) expShape[axes[i]] = input->sizeAt(axes[i]);
+    for (sd::LongType i = 0; i < numOfAxes; ++i) expShape[axes[i]] = input->sizeAt(axes[i]);
   }
 
   REQUIRE_TRUE(mean->isSameShape(expShape), 0,
@@ -99,27 +99,9 @@ CUSTOM_OP_IMPL(batchnorm, 3, 1, false, 1, 2) {
   sd_debug("MKL-DNN is not used for batchnorm!\n", 0);
 
   // formula: output = gamma * ((input - mean) / sqrt(variance + epsilon)) + beta
-  // auto v = input->varianceAlongDimension(variance::SummaryStatsVariance, false,
-  // ShapeUtils::evalDimsToExclude(input->rankOf(), axes)); auto m = input->reduceAlongDimension(sd::reduce::Mean,
-  // ShapeUtils::evalDimsToExclude(input->rankOf(), axes));
-
   helpers::batchnorm(input, mean, variance, gamma, beta, output, axes, epsilon);
 
-  // NDArray stdInv = *v + epsilon;
-  // stdInv.applyTransform(transform::Reciprocal);               // 1 / (variance + epsilon)
-  // stdInv.applyTransform(transform::Sqrt);                     // 1 / (variance + epsilon)^0.5
-  // if(applyScale)
-  //     stdInv *= *gamma;
 
-  //  // empty array with same shape as input
-  // input->applyBroadcast(sd::broadcast::Subtract, axes, m, output);
-  // output->applyBroadcast(sd::broadcast::Multiply, axes, &stdInv);
-
-  // if(applyOffset)
-  //     output->applyBroadcast(sd::broadcast::Add, axes, beta);
-
-  // delete v;
-  // delete m;
 
   return sd::Status::OK;
 }
@@ -168,13 +150,13 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
   const int inRank = input->rankOf();
 
   // get axes args to normalize input array over
-  std::vector<int> axes;
+  std::vector<LongType> axes;
   if (numOfIntArgs > 2)
     for (int i = 2; i < numOfIntArgs; ++i) axes.push_back(INT_ARG(i));
   else
     axes.push_back(inRank - 1);  // default dimension to reduce along is last dimension
 
-  const sd::Unsigned numOfAxes = axes.size();
+  const sd::LongType numOfAxes = axes.size();
   REQUIRE_TRUE(numOfAxes <= inRank, 0,
                "BATCHNORM_BP op: too big number of input axes to normalize over, expected number should be less or "
                "equal to rank of input array, but got %i and %i correspondingly !",
@@ -188,7 +170,7 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
     expShape.push_back(input->sizeAt(axes[0]));
   else {  // get, for example, something like {1, inputDim1, 1, inputDim3, 1} if axes = {1, 3}
     expShape = std::vector<sd::LongType>(inRank, 1);
-    for (sd::Unsigned i = 0; i < numOfAxes; ++i) expShape[axes[i]] = input->sizeAt(axes[i]);
+    for (sd::LongType i = 0; i < numOfAxes; ++i) expShape[axes[i]] = input->sizeAt(axes[i]);
   }
 
   REQUIRE_TRUE(mean->isSameShape(expShape), 0,
@@ -239,41 +221,40 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
   // dLdB = g_sum
 
   // variance = input->varianceAlongDimension(variance::SummaryStatsVariance, false,
-  // ShapeUtils::evalDimsToExclude(input->rankOf(), axes)); mean = input->reduceAlongDimension(sd::reduce::Mean,
-  // ShapeUtils::evalDimsToExclude(input->rankOf(), axes));
 
-  const auto excludedAxes = ShapeUtils::evalDimsToExclude(inRank, axes);
+
+  const auto excludedAxes = ShapeUtils::evalDimsToExclude(inRank, axes.size(),axes.data());
   const bool keepUnitiesInShape = inRank == mean->rankOf();
 
   // inverse batch size 1/N
-  const float Ninv = 1.f * shape::tadLength(input->shapeInfo(), axes.data(), axes.size()) / input->lengthOf();
+  const float Ninv = 1.f * shape::tadLength(input->shapeInfo(), (axes.data()), axes.size()) / input->lengthOf();
 
   // input - mean
   NDArray xMinusMean(input);  // empty array with same shape as input
-  input->applyBroadcast(sd::broadcast::Subtract, axes, *mean, xMinusMean);
+  input->applyBroadcast(sd::broadcast::Subtract, &axes, mean, &xMinusMean);
 
   // stdInv
   NDArray stdInv = *variance + epsilon;
-  stdInv.applyTransform(transform::Reciprocal, stdInv);  // 1 / (variance + epsilon)
-  stdInv.applyTransform(transform::Sqrt, stdInv);        // 1 / (variance + epsilon)^0.5
+  stdInv.applyTransform(transform::Reciprocal, &stdInv);  // 1 / (variance + epsilon)
+  stdInv.applyTransform(transform::Sqrt, &stdInv);        // 1 / (variance + epsilon)^0.5
 
   // dvdm (use dLdM as storage for dvdm)
-  xMinusMean.reduceAlongDimension(sd::reduce::Sum, *dLdM, excludedAxes, keepUnitiesInShape);
+  xMinusMean.reduceAlongDimension(sd::reduce::Sum, dLdM, excludedAxes, keepUnitiesInShape);
   *dLdM *= -Ninv;
 
   // g_sum
   auto gSum = dLdO->reduceAlongDimension(sd::reduce::Sum, excludedAxes, keepUnitiesInShape);
 
   // dLdB
-  if (applyOffset) dLdB->assign(gSum);
+  if (applyOffset) dLdB->assign(&gSum);
 
   // stdInv * (g - g_sum/N) (use dLdI as storage for this expression)
   gSum *= Ninv;
-  dLdO->applyBroadcast(sd::broadcast::Subtract, axes, gSum, *dLdI);
-  dLdI->applyBroadcast(sd::broadcast::Multiply, axes, stdInv, *dLdI);
+  dLdO->applyBroadcast(sd::broadcast::Subtract, &axes, &gSum, dLdI);
+  dLdI->applyBroadcast(sd::broadcast::Multiply, &axes, &stdInv, dLdI);
 
   // dLdV <- [g*(x - m)]_sum
-  (xMinusMean * *dLdO).reduceAlongDimension(sd::reduce::Sum, *dLdV, excludedAxes, keepUnitiesInShape);
+  (xMinusMean * *dLdO).reduceAlongDimension(sd::reduce::Sum, dLdV, excludedAxes, keepUnitiesInShape);
 
   // dLdG
   *dLdV *= stdInv;
@@ -284,45 +265,18 @@ CUSTOM_OP_IMPL(batchnorm_bp, 4, 3, false, 1, 2) {
   *dLdV *= -Ninv;            // -0.5f * (2 / N);
 
   // dfdv * (dvdm  + (x - m)) (use xMinusMean as storage for this expression)
-  xMinusMean.applyBroadcast(sd::broadcast::Add, axes, *dLdM, xMinusMean);
-  xMinusMean.applyBroadcast(sd::broadcast::Multiply, axes, *dLdV, xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Add, &axes, dLdM, &xMinusMean);
+  xMinusMean.applyBroadcast(sd::broadcast::Multiply, &axes, dLdV, &xMinusMean);
 
   // dLdI
   *dLdI += xMinusMean;
-  if (applyScale) dLdI->applyBroadcast(sd::broadcast::Multiply, axes, *gamma, *dLdI);
+  if (applyScale) dLdI->applyBroadcast(sd::broadcast::Multiply, &axes, gamma, dLdI);
 
   *dLdM = 0;  // put zeros so far
   *dLdV = 0;  // put zeros so far
 
-  // java code
-  // NDArray std = *variance + epsilon;
-  // std.applyTransform(transform::Reciprocal);                           // 1 / (variance + epsilon)
-  // std.applyTransform(transform::Sqrt);                                 // 1 / (variance + epsilon)^0.5
-  // NDArray xMu(input);
-  // input->applyBroadcast(sd::broadcast::Subtract, axes, mean, &xMu);
-  // NDArray xHat(input);
-  // xMu.applyBroadcast(sd::broadcast::Multiply, axes, &std, &xHat);
-  // NDArray dxhat(input);
-  // dLdO->applyBroadcast(sd::broadcast::Multiply, axes, gamma, &dxhat);
-  // NDArray temp = dxhat*xMu;
-  // temp.reduceAlongDimension(reduce::Sum, dLdV, excludedAxes, keepUnitiesInShape);
-  // *dLdV *= -0.5f * std*std*std;
-  // NDArray* dxmu1 = dxhat.reduceAlongDimension(reduce::Sum, excludedAxes, keepUnitiesInShape);
-  // *dxmu1 *= -std;
-  // NDArray* dxmu2 = xMu.reduceAlongDimension(reduce::Sum, excludedAxes, keepUnitiesInShape);
-  // *dxmu2 *=  *dLdV * (-2.f/N);
-  // NDArray dLdmu = *dxmu1 + *dxmu2;
-  // dLdmu *= (1.f /N);
-  // *dLdV *= (2.f/N);
-  // dxhat.applyBroadcast(sd::broadcast::Multiply, axes, &std);
-  // xMu.applyBroadcast(sd::broadcast::Multiply, axes, dLdV);
-  // dxhat += xMu;
-  // dxhat.applyBroadcast(sd::broadcast::Add, axes, &dLdmu, dLdI);
-  // delete  dxmu1;
-  // delete  dxmu2;
-  // xHat *= *dLdO;
-  // xHat.reduceAlongDimension(reduce::Sum, dLdG, excludedAxes, keepUnitiesInShape);
 
+  delete excludedAxes;
   return sd::Status::OK;
 }
 
@@ -340,8 +294,8 @@ DECLARE_TYPES(batchnorm_bp) {
 //////////////////////////////////////////////////////////////////////////
 
 DECLARE_SHAPE_FN(batchnorm_bp) {
-  sd::LongType const* inShapeInfo = inputShape->at(0);
-  sd::LongType const* meanShapeInfo = inputShape->at(1);
+  sd::LongType * inShapeInfo = inputShape->at(0);
+  sd::LongType * meanShapeInfo = inputShape->at(1);
 
   const bool applyScale = (bool)INT_ARG(0);
   const bool applyOffset = (bool)INT_ARG(1);

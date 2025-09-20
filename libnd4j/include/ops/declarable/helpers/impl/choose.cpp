@@ -33,14 +33,14 @@ namespace sd {
 namespace ops {
 namespace helpers {
 template <typename T>
-static sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd::NDArray& compScalar);
+static NDArray* processCondition_(int mode, NDArray* arg, NDArray* comp, NDArray& compScalar);
 
 template <typename T>
 static T processElementCondition(int mode, T d1, T d2);
 
 template <typename T>
-sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd::NDArray* output,
-                               sd::NDArray* numResult, sd::NDArray& compScalar) {
+NDArray* processCondition_(int mode, NDArray* arg, NDArray* comp, NDArray* output, NDArray* numResult,
+                           NDArray& compScalar) {
   // Convert to straight ndarray based on input
 
   int numResults = 0;
@@ -50,7 +50,7 @@ sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd
       // for comparison
       //                sd::NDArray arg1 = *arg;
       //                sd::NDArray comp1 = *comp;
-      for (sd::LongType i = 0; i < arg->lengthOf(); i++) {
+      for (LongType i = 0; i < arg->lengthOf(); i++) {
         T result2 = processElementCondition(mode, arg->e<T>(i), comp->e<T>(0));
         if (result2 > static_cast<T>(0)) {
           if (output != nullptr) output->p(numResults, arg->e<T>(i));
@@ -58,11 +58,10 @@ sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd
         }
       }
     } else {
-      // REQUIRE_TRUE(comp.isSameShape(arg));
       // Other input for compare could be an ndarray or a secondary scalar
       // for comparison
-      sd::NDArray arg1 = *arg;
-      for (sd::LongType i = 0; i < arg->lengthOf(); i++) {
+      NDArray arg1 = *arg;
+      for (LongType i = 0; i < arg->lengthOf(); i++) {
         T result2 = processElementCondition(mode, arg->e<T>(i), comp->e<T>(i));
         if (result2 > static_cast<T>(0)) {
           if (output != nullptr) output->p(numResults, arg->e<T>(i));
@@ -75,7 +74,7 @@ sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd
     //        sd::NDArray arg1 = *arg;
     // Other input for compare could be an ndarray or a secondary scalar
     // for comparison
-    for (sd::LongType i = 0; i < arg->lengthOf(); i++) {
+    for (LongType i = 0; i < arg->lengthOf(); i++) {
       T result2 = processElementCondition(mode, arg->e<T>(i), compScalar.e<T>(0));
       if (result2 > static_cast<T>(0)) {
         if (output != nullptr) output->p(numResults, arg->e<T>(i));
@@ -89,8 +88,8 @@ sd::NDArray* processCondition_(int mode, sd::NDArray* arg, sd::NDArray* comp, sd
   return output;
 }
 
-sd::NDArray* processCondition(sd::LaunchContext* context, int mode, sd::NDArray* arg, sd::NDArray* comp,
-                              sd::NDArray* output, sd::NDArray* numResult, sd::NDArray& compScalar) {
+NDArray* processCondition(LaunchContext* context, int mode, NDArray* arg, NDArray* comp, NDArray* output,
+                          NDArray* numResult, NDArray& compScalar) {
   arg->syncToHost();
 
   if (comp != nullptr) comp->syncToHost();
@@ -113,21 +112,21 @@ sd::NDArray* processCondition(sd::LaunchContext* context, int mode, sd::NDArray*
   if (numResult != nullptr) numResult->syncToDevice();
 
   compScalar.syncToDevice();
+  return nullptr;
 }
 BUILD_SINGLE_TEMPLATE(template NDArray* processCondition_,
                       (int mode, sd::NDArray* arg, sd::NDArray* comp, sd::NDArray* output, sd::NDArray* numResult,
-                       sd::NDArray& compScalar),
+                          sd::NDArray& compScalar),
                       SD_FLOAT_TYPES);
 
 template <typename T>
 T processElementCondition(int mode, T d1, T d2) {
-  T modePointer = (T)mode;
   T input[3] = {d2, (T)SD_EPSILON, (T)mode};
   T res = simdOps::MatchCondition<T, T>::op(d1, input);
   return res;
 }
 
-void chooseFunctorArray(sd::LaunchContext* context, NDArray* arg, NDArray* comp, int mode, NDArray* result,
+void chooseFunctorArray(LaunchContext* context, NDArray* arg, NDArray* comp, int mode, NDArray* result,
                         NDArray* numResults) {
   if (arg->isScalar() || comp->isScalar()) {
     if (arg->isScalar()) {
@@ -141,7 +140,7 @@ void chooseFunctorArray(sd::LaunchContext* context, NDArray* arg, NDArray* comp,
   }
 }
 
-void chooseFunctorScalar(sd::LaunchContext* context, NDArray* arg, double scalar, int mode, NDArray* result,
+void chooseFunctorScalar(LaunchContext* context, NDArray* arg, double scalar, int mode, NDArray* result,
                          NDArray* numResults) {
   auto scalarA = NDArrayFactory::create(scalar);
   processCondition(context, mode, arg, nullptr, result, numResults, scalarA);

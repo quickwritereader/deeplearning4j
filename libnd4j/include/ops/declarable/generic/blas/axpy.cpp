@@ -47,9 +47,9 @@ CONFIGURABLE_OP_IMPL(axpy, 2, 1, false, -2, 0) {
 
   ExtraArguments arguments({a});
 
-  y->applyPairwiseTransform(pairwise::Axpy, *x, *z, &arguments);
+  y->applyPairwiseTransform(pairwise::Axpy, x, z, &arguments);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(axpy) {

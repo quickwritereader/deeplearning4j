@@ -22,8 +22,10 @@
 #include <execution/Threads.h>
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/helpers/nth_element.h>
+
+#include "ops/specials.h"
 #if NOT_EXCLUDED(OP_nth_element)
 namespace sd {
 namespace ops {
@@ -33,24 +35,13 @@ template <typename T>
 void nthElementFunctor_(NDArray* input, sd::LongType n, NDArray* output, bool reverse) {
   NDArray sortedVals(*input);
   if (input->isVector()) {
-    // std::vector<float> data(input->lengthOf());
-    // memcpy(&data[0], input->buffer(), sizeof(T) * data.size());
-    // size_t l = 0;
-    // for (size_t l = 0; l < data.size(); ++l)
-    //    data[l] = input->e<float>(l);
-    // auto nthPos = data.begin();
-    // nthPos += n;
-    // std::nth_element(data.begin(), nthPos, data.end());
-    SpecialMethods<T>::sortGeneric(sortedVals.buffer(), sortedVals.shapeInfo(), reverse);
-    output->p(0, sortedVals.e<T>(n));
+    SpecialMethods<T>::sortGeneric(input, reverse);
+    output->p(0, input->e<T>(n));
   } else {  // rank greater than 1
-    std::vector<int> lastDims(
-        {input->rankOf() - 1});  // = ShapeUtils::evalDimsToExclude(input->rankOf(), {input->rankOf() - 1});
-
-    auto pack = sd::ConstantTadHelper::getInstance().tadForDimensions(sortedVals.shapeInfo(), lastDims);
-
-    SpecialMethods<T>::sortTadGeneric(sortedVals.buffer(), sortedVals.shapeInfo(), lastDims.data(), lastDims.size(),
-                                      pack.primaryShapeInfo(), pack.primaryOffsets(), reverse);
+    std::vector<sd::LongType> lastDims(
+        {input->rankOf() - 1});
+    SpecialMethods<T>::sortTadGeneric(&sortedVals, lastDims.data(), lastDims.size(),
+                                      reverse);
 
     ResultSet rows = sortedVals.allTensorsAlongDimension(lastDims);
     sd::LongType oL = output->lengthOf();
@@ -68,10 +59,10 @@ void nthElementFunctor_(NDArray* input, sd::LongType n, NDArray* output, bool re
 
 void nthElementFunctor(sd::LaunchContext* launchContext, NDArray* input, sd::LongType n, NDArray* output,
                        bool reverse) {
-  BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), SD_COMMON_TYPES);
+  BUILD_SINGLE_SELECTOR(input->dataType(), nthElementFunctor_, (input, n, output, reverse), SD_NUMERIC_TYPES);
 }
 BUILD_SINGLE_TEMPLATE(template void nthElementFunctor_,
-                      (NDArray * input, sd::LongType n, NDArray* output, bool reverse), SD_COMMON_TYPES);
+                      (NDArray * input, sd::LongType n, NDArray* output, bool reverse), SD_NUMERIC_TYPES);
 
 }  // namespace helpers
 }  // namespace ops

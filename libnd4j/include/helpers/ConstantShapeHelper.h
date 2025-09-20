@@ -1,6 +1,5 @@
 /* ******************************************************************************
  *
- *
  * This program and the accompanying materials are made available under the
  * terms of the Apache License, Version 2.0 which is available at
  * https://www.apache.org/licenses/LICENSE-2.0.
@@ -27,86 +26,48 @@
 #include <array/ShapeDescriptor.h>
 #include <memory/Workspace.h>
 #include <system/op_boilerplate.h>
-
-#include <map>
+#include "DirectShapeTrie.h"
 #include <mutex>
-#include <vector>
 
 namespace sd {
 
 class SD_LIB_EXPORT ConstantShapeHelper {
  private:
   std::mutex _mutex;
-  std::vector<SD_MAP_IMPL<ShapeDescriptor, ConstantShapeBuffer>> _cache;
-#if defined(__NEC__)
-  bool _cache_existing_pointers = true;
-#endif
+  DirectShapeTrie _shapeTrie;
+
   ConstantShapeHelper();
 
  public:
-  ~ConstantShapeHelper() = default;
-
-#if defined(__NEC__)
-  //Warning: Use it with caution. please, restore it to the previous state to avoid interfering internals
-  void disableExistingPointerCaching(){
-    _cache_existing_pointers = false;
-  }
-
-  void enableExistingPointerCaching(){
-    _cache_existing_pointers = true;
-  }
-#endif
-
   static ConstantShapeHelper& getInstance();
 
-  ConstantShapeBuffer& bufferForShapeInfo(sd::DataType dataType, char order, const std::vector<sd::LongType>& shape);
-  ConstantShapeBuffer& bufferForShapeInfo(const ShapeDescriptor& descriptor);
-  ConstantShapeBuffer& bufferForShapeInfo(const sd::LongType* shapeInfo);
-  ConstantShapeBuffer& bufferForShapeInfo(sd::DataType dataType, char order, int rank, const sd::LongType* shape);
-  ConstantShapeBuffer& createShapeInfoWithUnitiesForBroadcast(const sd::LongType* maxShapeInfo,
-                                                              const sd::LongType* minShapeInfo,
-                                                              sd::memory::Workspace* workspace = nullptr,
-                                                              const std::vector<int>& dimensions = {});
-  ConstantShapeBuffer& createShapeInfoWithNoUnitiesForReduce(const sd::LongType* maxShapeInfo,
-                                                             const std::vector<int>& dimsWithUnities,
-                                                             sd::memory::Workspace* workspace = nullptr);
-  ConstantShapeBuffer& createSubArrShapeInfo(const sd::LongType* inShapeInfo, const int* dims, const int dimsSize,
-                                             sd::memory::Workspace* workspace = nullptr);
+  ~ConstantShapeHelper();
+  ConstantShapeBuffer* bufferForShapeInfo(DataType dataType, char order, const std::vector<LongType>& shape);
+  ConstantShapeBuffer* bufferForShapeInfo(LongType* shapeInfo);
+  ConstantShapeBuffer* bufferForShapeInfo(DataType dataType, char order, int rank,  LongType* shape);
+  ConstantShapeBuffer* createShapeInfoWithUnitiesForBroadcast( LongType* maxShapeInfo,
+                                                               LongType* minShapeInfo,
+                                                               memory::Workspace* workspace = nullptr,
+                                                               const std::vector<LongType>& dimensions = {});
+  ConstantShapeBuffer* createShapeInfoWithNoUnitiesForReduce( LongType* maxShapeInfo,
+                                                              const std::vector<LongType>* dimsWithUnities,
+                                                              memory::Workspace* workspace = nullptr);
 
-  const sd::LongType* emptyShapeInfo(sd::DataType dataType);
-  const sd::LongType* scalarShapeInfo(sd::DataType dataType);
-  const sd::LongType* vectorShapeInfo(sd::LongType length, sd::DataType dataType);
-  const sd::LongType* createShapeInfo(const ShapeDescriptor& descriptor);
-  const sd::LongType* createShapeInfo(sd::DataType dataType, char order, const std::vector<sd::LongType>& shape);
-  const sd::LongType* createShapeInfo(sd::DataType dataType, char order, int rank, const sd::LongType* shape);
-  const sd::LongType* createShapeInfo(sd::DataType dataType, const sd::LongType* shapeInfo);
+  LongType* emptyShapeInfo(DataType dataType);
+  LongType * scalarShapeInfo(DataType dataType);
+  LongType* vectorShapeInfo(LongType length, DataType dataType);
+  LongType* createShapeInfo(ShapeDescriptor *descriptor);
+  LongType* createShapeInfo(DataType dataType, char order, const std::vector<LongType>& shape);
+  LongType* createShapeInfo(DataType dataType, const char order, const int rank,  LongType* shape, LongType extraProperties);
+  LongType* createShapeInfo(DataType dataType,  LongType* shapeInfo);
+  LongType* createFromExisting(LongType* shapeInfo);
 
-  const sd::LongType* createFromExisting(sd::LongType* shapeInfo, sd::memory::Workspace* workspace);
-  const sd::LongType* createFromExisting(sd::LongType* shapeInfo, bool destroyOriginal = true);
 
-  bool checkBufferExistenceForShapeInfo(ShapeDescriptor& descriptor);
 
-  /**
-   * This method returns number of cached TAD shapes/offsets on specific device
-   * @return
-   */
-  SD_INLINE int cachedEntriesForDevice(int deviceId) {
-    if (deviceId > _cache.size()) throw std::runtime_error("deviceId > number of actual devices");
-
-    return _cache[deviceId].size();
-  }
-
-  /**
-   * This method returns total number of cached TAD shapes/offsets on all devices
-   * @return
-   */
-  SD_INLINE int totalCachedEntries() {
-    int total = 0;
-
-    for (int e = 0; e < _cache.size(); e++) total += _cache[e].size();
-
-    return total;
-  }
+  LongType* castToDataType( LongType* shapeInfo,  DataType newType);
+  LongType* emptyShapeInfoWithShape(const DataType dataType, std::vector<LongType>& shape);
+  ConstantShapeBuffer* createConstBuffFromExisting(sd::LongType* shapeInfo);
+  ConstantShapeBuffer* createSubArrShapeInfo(LongType* shapeInfo, LongType* dims, LongType rank);
 };
 }  // namespace sd
 

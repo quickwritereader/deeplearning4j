@@ -21,6 +21,8 @@
 package org.nd4j.linalg.api.shape;
 
 
+import org.bytedeco.javacpp.LongPointer;
+import org.nd4j.nativeblas.OpaqueConstantShapeBuffer;
 import org.nd4j.shade.guava.primitives.Ints;
 import org.nd4j.shade.guava.primitives.Longs;
 import lombok.NonNull;
@@ -42,6 +44,8 @@ import java.util.*;
 
 public class Shape {
 
+
+    public static final int MAX_RANK = 32;
 
     private Shape() {}
 
@@ -169,17 +173,17 @@ public class Shape {
 
 
 
-    public static int[] getBroadcastDimensions(long[] left, long[] right) {
+    public static long[] getBroadcastDimensions(long[] left, long[] right) {
         if(Arrays.equals(left,right))
             return null;
 
         int n = Math.min(left.length,right.length);
-        List<Integer> dims = new ArrayList<>();
+        List<Long> dims = new ArrayList<>();
         int leftIdx = left.length - 1;
         int rightIdx = right.length - 1;
         for(int i = n - 1; i >= 0; i--) {
             if(left[leftIdx] != right[rightIdx] && right[rightIdx] == 1 || left[leftIdx] == 1) {
-                dims.add(i);
+                dims.add((long) i);
             }
             else if(left[leftIdx] != right[rightIdx]) {
                 throw new IllegalArgumentException("Unable to broadcast dimension " + i + " due to shape mismatch. Right shape must be 1. "
@@ -191,7 +195,7 @@ public class Shape {
         }
 
         Collections.reverse(dims);
-        return Ints.toArray(dims);
+        return Longs.toArray(dims);
     }
 
 
@@ -383,8 +387,8 @@ public class Shape {
      * the dimension is null or the dimension length is 1 and the first entry is
      * {@link Integer#MAX_VALUE}
      */
-    public static boolean isWholeArray(int[] shape, int... dimension) {
-        return isWholeArray(shape.length, dimension);
+    public static boolean isWholeArray(long[] shape, long... dimension) {
+        return isWholeArray((long) shape.length, dimension);
     }
 
     public static boolean isWholeArray(long[] shape, int... dimension) {
@@ -402,37 +406,28 @@ public class Shape {
      * the dimension is null or the dimension length is 1 and the first entry is
      * {@link Integer#MAX_VALUE}
      */
-    public static boolean isWholeArray(int rank, int... dimension){
+    public static boolean isWholeArray(int rank, int... dimension) {
         return rank == 0 || dimension == null || dimension.length == 0 ||
                 (dimension.length == 1 && dimension[0] == Integer.MAX_VALUE) || dimension.length == rank;
     }
 
     /**
-     * Get the shape of the reduced array
-     * @param wholeShape the shape of the array
-     *                   with the reduce op being performed
-     * @param dimensions the dimensions the reduce op is being performed on
-     * @return the shape of the result array as the result of the reduce
+     * Returns true if the dimension is null
+     * or the dimension length is 1 and the first entry
+     * is {@link Integer#MAX_VALUE}
+     * @param rank the rank of the input array
+     * @param dimension the dimensions specified
+     *
+     * @return true if the dimension length is equal to the rank,
+     * the dimension is null or the dimension length is 1 and the first entry is
+     * {@link Integer#MAX_VALUE}
      */
-    public static long[] getReducedShape(int[] wholeShape, int[] dimensions) {
-        if (isWholeArray(wholeShape, dimensions))
-            return new long[] {};
-        else if (dimensions.length == 1 && wholeShape.length == 2) {
-            val ret = new long[2];
-            if (dimensions[0] == 1) {
-                ret[0] = wholeShape[0];
-                ret[1] = 1;
-            } else if (dimensions[0] == 0) {
-                ret[0] = 1;
-                ret[1] = wholeShape[1];
-            }
-            return ret;
-        }
-
-        return ArrayUtil.toLongArray(ArrayUtil.removeIndex(wholeShape, dimensions));
+    public static boolean isWholeArray(long rank, long... dimension) {
+        return rank == 0 || dimension == null || dimension.length == 0 ||
+                (dimension.length == 1 && dimension[0] == Integer.MAX_VALUE) || dimension.length == rank;
     }
 
-    public static long[] getReducedShape(long[] wholeShape, int[] dimensions) {
+    public static long[] getReducedShape(long[] wholeShape, long[] dimensions) {
         if (isWholeArray(wholeShape, dimensions))
             return new long[] {};
         else if (dimensions.length == 1 && wholeShape.length == 2) {
@@ -450,69 +445,17 @@ public class Shape {
         return ArrayUtil.removeIndex(wholeShape, dimensions);
     }
 
-    /**
-     * Get the shape of the reduced array
-     *
-     * @param wholeShape the shape of the array
-     *                   with the reduce op being performed
-     * @param dimensions the dimensions the reduce op is being performed on
-     * @param keepDims if set to true, corresponding dimensions will be set to 1
-     * @return the shape of the result array as the result of the reduce
-     */
-    public static long[] getReducedShape(int[] wholeShape, int[] dimensions, boolean keepDims, boolean newFormat) {
+
+    public static long[] getReducedShape(long[] wholeShape, long[] dimensions, boolean keepDims) {
+        return getReducedShape(wholeShape, dimensions, keepDims, true);
+    }
+
+    public static long[] getReducedShape(long[] wholeShape, long[] dimensions, boolean keepDims, boolean newFormat) {
         // we need to normalize dimensions, in case they have negative values or unsorted, or whatever
         dimensions = Shape.normalizeAxis(wholeShape.length, dimensions);
 
         // strip leading keepDims argument
-        //if (newFormat)
-        //    dimensions = Arrays.copyOfRange(dimensions, 1, dimensions.length);
 
-        if (!keepDims)
-            if (!newFormat)
-                return getReducedShape(wholeShape, dimensions);
-            else {
-                if (isWholeArray(wholeShape, dimensions))
-                    return new long[] {};
-                else if (dimensions.length == 1 && wholeShape.length == 2) {
-                    val ret = new long[1];
-                    if (dimensions[0] == 1) {
-                        ret[0] = wholeShape[0];
-                    } else if (dimensions[0] == 0) {
-                        ret[0] = wholeShape[1];
-                    }
-                    return ret;
-                }
-
-                return ArrayUtil.toLongArray(ArrayUtil.removeIndex(wholeShape, dimensions));
-            }
-
-
-        // we'll return full array of 1 as shape
-        if (isWholeArray(wholeShape, dimensions)) {
-            val result = new long[wholeShape.length];
-
-            Arrays.fill(result, 1);
-            return result;
-        }
-
-        val result = ArrayUtil.toLongArray(Arrays.copyOf(wholeShape, wholeShape.length));
-        for (val dim: dimensions)
-            result[dim] = 1;
-
-        return result;
-    }
-
-    public static long[] getReducedShape(long[] wholeShape, int[] dimensions, boolean keepDims) {
-         return getReducedShape(wholeShape, dimensions, keepDims, true);
-    }
-
-    public static long[] getReducedShape(long[] wholeShape, int[] dimensions, boolean keepDims, boolean newFormat) {
-        // we need to normalize dimensions, in case they have negative values or unsorted, or whatever
-        dimensions = Shape.normalizeAxis(wholeShape.length, dimensions);
-
-        // strip leading keepDims argument
-        //if (newFormat)
-        //    dimensions = Arrays.copyOfRange(dimensions, 1, dimensions.length);
 
         if (!keepDims)
             if (!newFormat)
@@ -536,7 +479,8 @@ public class Shape {
 
         // we'll return full array of 1 as shape
         if (isWholeArray(wholeShape, dimensions)) {
-            val result = new long[wholeShape.length];
+            int len = Math.max(wholeShape.length,dimensions.length);
+            val result = new long[len];
 
             Arrays.fill(result, 1);
             return result;
@@ -544,7 +488,7 @@ public class Shape {
 
         val result = Arrays.copyOf(wholeShape, wholeShape.length);
         for (val dim: dimensions)
-            result[dim] = 1;
+            result[(int) dim] = 1;
 
         return result;
     }
@@ -735,17 +679,17 @@ public class Shape {
      */
     public static double getDouble(INDArray arr, int[] indices) {
         long offset = getOffset(arr.shapeInfoJava(), ArrayUtil.toLongArray(indices));
-        return arr.data().getDouble(offset);
+        return arr.data().getDouble(offset + arr.offset());
     }
 
     public static double getDouble(INDArray arr, long... indices) {
         long offset = getOffset(arr.shapeInfoJava(), indices);
-        return arr.data().getDouble(offset);
+        return arr.data().getDouble(offset + arr.offset());
     }
 
     public static long getLong(INDArray arr, long... indices) {
         long offset = getOffset(arr.shapeInfoJava(), indices);
-        return arr.data().getLong(offset);
+        return arr.data().getLong(offset + arr.offset());
     }
 
     /**
@@ -903,7 +847,6 @@ public class Shape {
      * @return the double at the specified index
      */
     public static long getOffset(long baseOffset, int[] shape, int[] stride, int... indices) {
-        //int ret =  mappers[shape.length].getOffset(baseOffset, shape, stride, indices);
         if (shape.length != stride.length || indices.length != shape.length)
             throw new IllegalArgumentException("Indexes, shape, and stride must be the same length");
         long offset = baseOffset;
@@ -920,19 +863,33 @@ public class Shape {
     }
 
     /**
-     * Get the offset of the specified indices from the shape info buffer
-     *
-     * @param shapeInformation    Shape information to get the offset for
-     * @param indices             Indices array to get the offset for (must be same length as array rank)
-     * @return                    Buffer offset fo the specified indices
+     * Get an offset for retrieval
+     * from a data buffer
+     * based on the given
+     * shape stride and given indices
+     * @param baseOffset the offset to start from
+     * @param shape the shape of the array
+     * @param stride the stride of the array
+     * @param indices the indices to iterate over
+     * @return the double at the specified index
      */
-    /*public static long getOffset(IntBuffer shapeInformation, int[] indices) {
-        return getOffset(shapeInformation, ArrayUtil.toLongArray(indices));
+    public static long getOffset(long baseOffset, long[] shape, long[] stride, long... indices) {
+        if (shape.length != stride.length || indices.length != shape.length)
+            throw new IllegalArgumentException("Indexes, shape, and stride must be the same length");
+        long offset = baseOffset;
+        for (int i = 0; i < shape.length; i++) {
+            if (indices[i] >= shape[i])
+                throw new IllegalArgumentException(
+                        String.format("J: Index [%d] must not be >= shape[%d]=%d.", i, i, shape[i]));
+            if (shape[i] != 1) {
+                offset += indices[i] * stride[i];
+            }
+        }
+
+        return offset;
     }
 
-    public static long getOffset(LongBuffer shapeInformation, int[] indices) {
-        return getOffset(shapeInformation, ArrayUtil.toLongArray(indices));
-    }*/
+
 
     public static long getOffset(LongBuffer shapeInformation, long... indices) {
         int rank = rank(shapeInformation);
@@ -993,7 +950,7 @@ public class Shape {
 
     public static long getOffset(int[] shapeInformation, int... indices) {
         int rank = rank(shapeInformation);
-         long offset = 0;
+        long offset = 0;
         for (int i = 0; i < Math.min(rank,indices.length); i++) {
             int size_dimi = size(shapeInformation, i);
             if (indices[i] > size_dimi)
@@ -1058,9 +1015,6 @@ public class Shape {
         long offset = 0;
         int size_0 = sizeUnsafe(shapeInformation, 0);
         int size_1 = sizeUnsafe(shapeInformation, 1);
-        if (row >= size_0 || col >= size_1)
-            throw new IllegalArgumentException("Invalid indices: cannot get [" + row + "," + col + "] from a "
-                    + Arrays.toString(shape(shapeInformation)) + " NDArray");
 
         if (size_0 != 1)
             offset += row * strideUnsafe(shapeInformation, 0, 2);
@@ -1185,9 +1139,6 @@ public class Shape {
         int size_0 = sizeUnsafe(shapeInformation, 0);
         int size_1 = sizeUnsafe(shapeInformation, 1);
         int size_2 = sizeUnsafe(shapeInformation, 2);
-        if (dim0 >= size_0 || dim1 >= size_1 || dim2 >= size_2)
-            throw new IllegalArgumentException("Invalid indices: cannot get [" + dim0 + "," + dim1 + "," + dim2
-                    + "] from a " + Arrays.toString(shape(shapeInformation)) + " NDArray");
 
         if (size_0 != 1)
             offset += dim0 * strideUnsafe(shapeInformation, 0, 3);
@@ -1276,9 +1227,6 @@ public class Shape {
         int size_1 = sizeUnsafe(shapeInformation, 1);
         int size_2 = sizeUnsafe(shapeInformation, 2);
         int size_3 = sizeUnsafe(shapeInformation, 3);
-        if (dim0 >= size_0 || dim1 >= size_1 || dim2 >= size_2 || dim3 >= size_3)
-            throw new IllegalArgumentException("Invalid indices: cannot get [" + dim0 + "," + dim1 + "," + dim2 + ","
-                    + dim3 + "] from a " + Arrays.toString(shape(shapeInformation)) + " NDArray");
 
         if (size_0 != 1)
             offset += dim0 * strideUnsafe(shapeInformation, 0, 4);
@@ -1337,36 +1285,7 @@ public class Shape {
         return offset;
     }
 
-    /**
-     * Output an int array for a particular dimension
-     * @param axes the axes
-     * @param shape the current shape
-     * @return
-     */
-    public static int[] sizeForAxes(int[] axes, int[] shape) {
-        int[] ret = new int[shape.length];
-        for (int i = 0; i < axes.length; i++) {
-            ret[i] = shape[axes[i]];
-        }
-        return ret;
-    }
 
-    /**
-     * Returns whether the given shape is a vector
-     *
-     * @param shapeInfo the shapeinfo to test
-     * @return whether the given shape is a vector
-     */
-    public static boolean isVector(IntBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        if (rank > 2 || rank < 1)
-            return false;
-        else {
-            int len = Shape.length(shapeInfo);
-            IntBuffer shape = Shape.shapeOf(shapeInfo);
-            return shape.get(0) == len || shape.get(1) == len;
-        }
-    }
 
     public static boolean isVector(LongBuffer shapeInfo) {
         int rank = Shape.rank(shapeInfo);
@@ -1379,22 +1298,7 @@ public class Shape {
         }
     }
 
-    /**
-     * Returns whether the given shape is a vector
-     *
-     * @param shapeInfo the shapeinfo to test
-     * @return whether the given shape is a vector
-     */
-    public static boolean isVector(DataBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        if (rank > 2 || rank < 1)
-            return false;
-        else {
-            long len = Shape.length(shapeInfo);
-            DataBuffer shape = Shape.shapeOf(shapeInfo);
-            return shape.getInt(0) == len || shape.getInt(1) == len;
-        }
-    }
+
 
     /**
      * Returns whether the given shape is a vector
@@ -1421,32 +1325,7 @@ public class Shape {
     }
 
 
-    /**
-     * Returns whether the passed in shape is a matrix
-     *
-     * @param shapeInfo whether the passed in shape is a matrix
-     * @return true if the shape is a matrix false otherwise
-     */
-    public static boolean isMatrix(IntBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        if (rank != 2)
-            return false;
-        return !isVector(shapeInfo);
-    }
 
-
-    /**
-     * Returns whether the passed in shape is a matrix
-     *
-     * @param shapeInfo whether the passed in shape is a matrix
-     * @return true if the shape is a matrix false otherwise
-     */
-    public static boolean isMatrix(DataBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        if (rank != 2)
-            return false;
-        return !isVector(shapeInfo);
-    }
 
     /**
      * Returns whether the passed in shape is a matrix
@@ -1618,9 +1497,6 @@ public class Shape {
         }
 
 
-        shape1 = squeeze(shape1);
-        shape2 = squeeze(shape2);
-
         return scalarEquals(shape1, shape2) || Arrays.equals(shape1, shape2);
     }
 
@@ -1652,33 +1528,8 @@ public class Shape {
         return false;
     }
 
-    /**
-     * Returns true if the given shape is of length 1
-     * or provided the shape length is 2:
-     * element 0 is 1
-     * @param shapeInfo the shape info to check
-     * @return true if the above conditions hold,false otherwise
-     */
-    public static boolean isRowVectorShape(DataBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        DataBuffer shape = Shape.shapeOf(shapeInfo);
-        return (rank == 2 && shape.getInt(0) == 1) || rank == 1;
 
-    }
 
-    /**
-     * Returns true if the given shape is of length 1
-     * or provided the shape length is 2:
-     * element 0 is 1
-     * @param shapeInfo the shape info to check
-     * @return true if the above conditions hold,false otherwise
-     */
-    public static boolean isRowVectorShape(IntBuffer shapeInfo) {
-        int rank = Shape.rank(shapeInfo);
-        IntBuffer shape = Shape.shapeOf(shapeInfo);
-        return (rank == 2 && shape.get(0) == 1) || rank == 1;
-
-    }
 
     /**
      * Returns true if the given shape is of length 1
@@ -1725,31 +1576,24 @@ public class Shape {
      * @return the shape as is if its already >= 2 in length
      * otherwise a row vector shape
      */
-    public static int[] ensureAtMinRowVector(int... shape) {
+    public static long[] ensureAtMinRowVector(long... shape) {
         if (shape.length >= 2)
             return shape;
-        return new int[] {1, shape[0]};
+        return new long[] {1, shape[0]};
     }
 
 
-    public static long getTADLength(int[] shape, int... dimensions) {
+    public static long getTADLength(long[] shape, long... dimensions) {
         int tadLength = 1;
         for (int i = 0; i < dimensions.length; i++) {
-            tadLength *= shape[dimensions[i]];
+            tadLength *= shape[(int) dimensions[i]];
         }
 
         return tadLength;
     }
 
 
-    public static long getTADLength(long[] shape, int... dimensions) {
-        int tadLength = 1;
-        for (int i = 0; i < dimensions.length; i++) {
-            tadLength *= shape[dimensions[i]];
-        }
 
-        return tadLength;
-    }
 
 
 
@@ -1884,8 +1728,19 @@ public class Shape {
     }
 
     public static long elementWiseStride(long[] shape, long[] stride, boolean isFOrder) {
+        if(shape == null)
+            return 0;
+
+        boolean hasZero = false;
+        for(int i = 0; i < shape.length; i++) {
+            if(shape[i] == 0) {
+                hasZero = true;
+                break;
+            }
+        }
+
         // 0D edge case
-        if (shape.length == 0 || stride == null && stride.length == 0)
+        if (hasZero || shape.length == 0 || stride == null && stride.length == 0)
             return 1;
 
         if (shape.length == 1 && stride.length == 1)
@@ -2008,6 +1863,107 @@ public class Shape {
     public static INDArray newShapeNoCopy(INDArray arr, int[] newShape, boolean isFOrder) {
         return newShapeNoCopy(arr, ArrayUtil.toLongArray(newShape), isFOrder);
     }
+
+
+    public static boolean ableToReshapeWithView(INDArray arr,boolean isFOrder, long[] newShape) {
+        int oldnd;
+        if(arr == null || arr.shape() == null)
+            return false;
+        long[] olddims = ArrayUtil.copy(arr.shape());
+        long[] oldstrides = ArrayUtil.copy(arr.stride());
+        long np, op, last_stride;
+        int oi, oj, ok, ni, nj, nk;
+        long[] newStrides = new long[newShape.length];
+        oldnd = 0;
+        /*
+         * Remove axes with dimension 1 from the old array. They have no effect
+         * but would need special cases since their strides do not matter.
+         */
+        for (oi = 0; oi < arr.rank(); oi++) {
+            if (arr.size(oi) != 1) {
+                olddims[oldnd] = arr.size(oi);
+                oldstrides[oldnd] = arr.stride(oi);
+                oldnd++;
+            }
+        }
+
+        np = 1;
+        for (ni = 0; ni < newShape.length; ni++) {
+            np *= newShape[ni];
+        }
+        op = 1;
+        for (oi = 0; oi < oldnd; oi++) {
+            op *= olddims[oi];
+        }
+        if (np != op) {
+            /* different total sizes; no hope */
+            return false;
+        }
+
+        if (np == 0) {
+            /* the current code does not handle 0-sized arrays, so give up */
+            return false;
+        }
+
+        /* oi to oj and ni to nj give the axis ranges currently worked with */
+        oi = 0;
+        oj = 1;
+        ni = 0;
+        nj = 1;
+        /* oi to oj and ni to nj give the axis ranges currently worked with */
+        oi = 0;
+        oj = 1;
+        ni = 0;
+        nj = 1;
+        while (ni < newShape.length && oi < oldnd) {
+            np = newShape[ni];
+            op = olddims[oi];
+
+            while (np != op) {
+                if (np < op) {
+                    /* Misses trailing 1s, these are handled later */
+                    np *= newShape[nj++];
+                } else {
+                    op *= olddims[oj++];
+                }
+            }
+
+            /* Check whether the original axes can be combined */
+            for (ok = oi; ok < oj - 1; ok++) {
+                if (isFOrder) {
+                    if (oldstrides[ok + 1] != olddims[ok] * oldstrides[ok]) {
+                        /* not contiguous enough */
+                        return false;
+                    }
+                } else {
+                    /* C order */
+                    if (oldstrides[ok] != olddims[ok + 1] * oldstrides[ok + 1]) {
+                        /* not contiguous enough */
+                        return false;
+                    }
+                }
+            }
+
+            /* Calculate new strides for all axes currently worked with */
+            if (isFOrder) {
+                newStrides[ni] = oldstrides[oi];
+                for (nk = ni + 1; nk < nj; nk++) {
+                    newStrides[nk] = newStrides[nk - 1] * newShape[nk - 1];
+                }
+            } else {
+                /* C order */
+                newStrides[nj - 1] = oldstrides[oj - 1];
+                for (nk = nj - 1; nk > ni; nk--) {
+                    newStrides[nk - 1] = newStrides[nk] * newShape[nk];
+                }
+            }
+            ni = nj++;
+            oi = oj++;
+        }
+
+
+        return true;
+    }
     /**
      * A port of numpy's reshaping algorithm that leverages
      * no copy where possible and returns
@@ -2123,9 +2079,7 @@ public class Shape {
         }
 
         // we need to wrap buffer of a current array, to make sure it's properly marked as a View
-        DataBuffer db = arr.data();
-        DataBuffer buffer = Nd4j.createBuffer(db, arr.offset(), arr.length());
-        INDArray ret = Nd4j.create(buffer, newShape, newStrides, arr.offset(), isFOrder ? 'f' : 'c');
+        INDArray ret = Nd4j.create(arr.data(),newShape,newStrides,arr.offset(),isFOrder ? 'f' : 'c',true);
         return ret;
     }
 
@@ -2277,7 +2231,7 @@ public class Shape {
         }
 
         if (isFortran && cContiguous)
-            return 'a';
+            return 'c';
         else if (isFortran && !cContiguous)
             return 'f';
 
@@ -2531,20 +2485,6 @@ public class Shape {
         }
     }
 
-    /**
-     * Gets the rank given the shape info buffer
-     * @param buffer the buffer to get the rank for
-     * @return the rank for the shape buffer
-     */
-    public static int length(IntBuffer buffer) {
-        int ret = 1;
-        IntBuffer shape = Shape.shapeOf(buffer);
-        int rank = Shape.rank(buffer);
-        for (int i = 0; i < rank; i++)
-            ret *= shape.get(i);
-        return ret;
-    }
-
     public static int length(LongBuffer buffer) {
         int ret = 1;
         val shape = Shape.shapeOf(buffer);
@@ -2554,21 +2494,6 @@ public class Shape {
         return ret;
     }
 
-    /**
-     * Gets the rank given the shape info buffer
-     * @param buffer the buffer to get the rank for
-     * @return the rank for the shape buffer
-     */
-    public static long length(DataBuffer buffer) {
-        long ret = 1;
-        val rr = buffer.asLong();
-        DataBuffer shape = Shape.shapeOf(buffer);
-        int rank = Shape.rank(buffer);
-        for (int i = 0; i < rank; i++)
-            ret *= shape.getLong(i);
-
-        return ret;
-    }
 
 
     public static long length(int[] buffer) {
@@ -2705,17 +2630,7 @@ public class Shape {
         return ret;
     }
 
-    /**
-     * Get array shape from the buffer, as an int[]
-     * @param buffer    Buffer to get the shape from
-     * @return          Shape array
-     */
-    public static long[] shape(DataBuffer buffer) {
-        val ret = new long[rank(buffer)];
-        for (int i = 0; i < ret.length; i++)
-            ret[i] = buffer.getInt(1 + i);
-        return ret;
-    }
+
 
     /**
      * Get array shape from an int[]
@@ -2781,18 +2696,6 @@ public class Shape {
         return buffer[1 + rank + dimension];
     }
 
-    /**
-     * Get array shape from the buffer, as an int[]
-     * @param buffer    Buffer to get the shape from
-     * @return          Shape array
-     */
-    public static long[] strideArr(DataBuffer buffer) {
-        val ret = new long[rank(buffer)];
-        DataBuffer stride = Shape.stride(buffer);
-        for (int i = 0; i < ret.length; i++)
-            ret[i] = stride.getInt(i);
-        return ret;
-    }
 
     /**
      * Get the stride of the specified dimension, without any input validation
@@ -2820,6 +2723,8 @@ public class Shape {
      * @return rank * 2 + 4
      */
     public static int shapeInfoLength(long rank) {
+        if(rank == 0)
+            return 2 + 4;
         return (int) rank * 2 + 4;
     }
 
@@ -2827,36 +2732,8 @@ public class Shape {
         return shapeInfoLength((int) shape[0]);
     }
 
-    /**
-     * Get the stride for the given
-     * shape information buffer
-     * @param buffer
-     * @return
-     */
-    public static IntBuffer stride(IntBuffer buffer) {
-        int rank = rank(buffer);
-        val buffer2 = (Buffer) buffer;
-        val ret = (IntBuffer) buffer2.position(1 + rank);
-        return ret.slice();
-    }
 
-    public static LongBuffer stride(LongBuffer buffer) {
-        int rank = rank(buffer);
-        val buffer2 = (Buffer) buffer;
-        val ret = (LongBuffer) buffer2.position(1 + rank);
-        return ret.slice();
-    }
 
-    /**
-     * Get the shape from
-     * the given int buffer
-     * @param buffer the buffer to get the shape information for
-     * @return
-     */
-    public static DataBuffer stride(DataBuffer buffer) {
-        int rank = rank(buffer);
-        return Nd4j.createBuffer(buffer, 1 + rank, rank);
-    }
 
     public static int[] stride(int[] buffer) {
         int rank = rank(buffer);
@@ -2878,28 +2755,6 @@ public class Shape {
     }
 
 
-    /**
-     * Get the shape from
-     * the given int buffer
-     * @param buffer the buffer to get the shape information for
-     * @return
-     */
-    public static DataBuffer shapeOf(DataBuffer buffer) {
-        int rank = (int) buffer.getLong(0);
-        return Nd4j.createBuffer(buffer, 1, rank);
-    }
-
-    /**
-     * Get the shape from
-     * the given int buffer
-     * @param buffer the buffer to get the shape information for
-     * @return
-     */
-    public static IntBuffer shapeOf(IntBuffer buffer) {
-        Buffer buffer2 = (Buffer) buffer;
-        IntBuffer ret = (IntBuffer) buffer2.position(1);
-        return ret.slice();
-    }
 
     public static LongBuffer shapeOf(LongBuffer buffer) {
         Buffer buffer2 = (Buffer) buffer;
@@ -2973,55 +2828,23 @@ public class Shape {
      * @return the shape information to string
      */
     public static String shapeToString(INDArray arr) {
-        return shapeToString(arr.shapeInfo());
+        return shapeToString(arr.shapeInfoJava());
     }
 
-    /**
-     * Prints the shape
-     * for this shape information
-     * @param buffer the shape information to print
-     * @return the shape information to string
-     */
-    public static String shapeToString(IntBuffer buffer) {
-        val shapeBuff = shapeOf(buffer);
-        int rank = Shape.rank(buffer);
-        val strideBuff = stride(buffer);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Rank: " + rank + ",");
-        sb.append("Offset: " + Shape.offset(buffer) + "\n");
-        sb.append(" Order: " + Shape.order(buffer));
-        sb.append(" Shape: [");
-        for (int i = 0; i < rank; i++) {
-            sb.append(shapeBuff.get(i));
-            if (i < rank - 1)
-                sb.append(",");
-        }
-        sb.append("], ");
 
-        sb.append(" stride: [");
-        for (int i = 0; i < rank; i++) {
-            sb.append(strideBuff.get(i));
-            if (i < rank - 1)
-                sb.append(",");
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
-    public static String shapeToString(LongBuffer buffer) {
-        int length = buffer.capacity();
-        long options = buffer.get(length -3);
+    public static String shapeToString(long[] buffer) {
+        int length = buffer.length;
+        long options = buffer[length -3];
         val shapeBuff = shapeOf(buffer);
         int rank = Shape.rank(buffer);
         val strideBuff = stride(buffer);
         StringBuilder sb = new StringBuilder();
         sb.append("Rank: ").append(rank).append(",")
                 .append(" DataType: ").append(ArrayOptionsHelper.dataType(options)).append(",")
-                .append(" Offset: ").append(Shape.offset(buffer)).append(",")
                 .append(" Order: ").append(Shape.order(buffer)).append(",")
                 .append(" Shape: [");
         for (int i = 0; i < rank; i++) {
-            sb.append(shapeBuff.get(i));
+            sb.append(shapeBuff[i]);
             if (i < rank - 1)
                 sb.append(",");
         }
@@ -3029,7 +2852,7 @@ public class Shape {
 
         sb.append(" Stride: [");
         for (int i = 0; i < rank; i++) {
-            sb.append(strideBuff.get(i));
+            sb.append(strideBuff[i]);
             if (i < rank - 1)
                 sb.append(",");
         }
@@ -3037,69 +2860,61 @@ public class Shape {
         return sb.toString();
     }
 
-    public static String shapeToStringShort(INDArray arr){
+    public static String shapeToStringShort(INDArray arr) {
         long[] s = arr.shape();
         return arr.dataType() + "," + (s == null ? "[]" : Arrays.toString(s).replace(" ","")) + "," + arr.ordering();
     }
 
 
-
     /**
-     * Get the offset for the buffer
-     *
-     * PLEASE NOTE: Legacy method. Will return 0 ALWAYS
-     * @param buffer the shape info buffer to get the offset for
-     * @return
+     * Set the extras/flags for this shape buffer
+     * @param buffer the buffer to set the extras for
+     * @param extras    the extras to set
      */
-    @Deprecated
-    public static int offset(DataBuffer buffer) {
-        //throw new UnsupportedOperationException("offset() method should NOT be used");
-        return 0;
+    public static void setExtras(long[] buffer,long extras) {
+        long rank = rank(buffer);
+        int idx =  rank == 0 ? 3 : (int) (rank + rank + 1);
+        //follows the c++ calculation in ArrayOptions.h under extra(...)
+        buffer[idx] = extras;
+
     }
 
     public static long options(long[] buffer) {
-        int length = shapeInfoLength(rank(buffer));
-        long ret = buffer[length - 3];
+        long rank = rank(buffer);
+        int idx =  rank == 0 ? 3 : (int) (rank + rank + 1);
+        //follows the c++ calculation in ArrayOptions.h under extra(...)
+        long ret = buffer[idx];
         return ret;
     }
 
+
+
+
+
+    /**
+     * Returns the options for the given
+     * shape information buffer
+     * @param buffer
+     * @return
+     */
+    public static long options(DataBuffer buffer) {
+        long rank = rank(buffer);
+        int idx =  rank == 0 ? 3 : (int) (rank + rank + 1);
+        long ret = buffer.getLong(idx);
+        return ret;
+    }
+
+    /**
+     * Returns the options for the given
+     * shape information buffer
+     * @param buffer the buffer to get the options for
+     * @return
+     */
     public static long extras(long[] buffer) {
         return options(buffer);
     }
 
-    /**
-     * Get the offset for the buffer
-     *
-     * PLEASE NOTE: Legacy method. Will return 0 ALWAYS
-     * @param buffer
-     * @return
-     */
-    @Deprecated
-    public static int offset(int[] buffer) {
-        //throw new UnsupportedOperationException("offset() method should NOT be used");
-        return 0;
-    }
 
-    @Deprecated
-    public static int offset(long[] buffer) {
-        //throw new UnsupportedOperationException("offset() method should NOT be used");
-        return 0;
-    }
-
-    /**
-     * Get the offset for the buffer
-     * @param buffer the shape info buffer to get the offset for
-     * @return
-     */
-    @Deprecated
-    public static int offset(IntBuffer buffer) {
-        return 0;
-    }
-
-    @Deprecated
-    public static long offset(LongBuffer buffer) {
-        return 0L;
-    }
 
 
 
@@ -3140,9 +2955,9 @@ public class Shape {
      * @return the element wise stride for the buffer
      */
     public static long elementWiseStride(long[] buffer) {
-        int length2 = shapeInfoLength(buffer);
-        return buffer[length2 - 2];
+        return buffer[buffer.length - 2];
     }
+
 
 
     /**
@@ -3154,7 +2969,6 @@ public class Shape {
      */
     public static void setElementWiseStride(IntBuffer buffer, int elementWiseStride) {
         int length2 = shapeInfoLength(buffer.get(0));
-        //        if (1 > 0) throw new RuntimeException("setElementWiseStride called: [" + elementWiseStride + "], buffer: " + bufferToString(buffer));
         buffer.put(length2 - 2, elementWiseStride);
     }
 
@@ -3167,8 +2981,20 @@ public class Shape {
      */
     public static void setElementWiseStride(DataBuffer buffer, int elementWiseStride) {
         int length2 = shapeInfoLength(Shape.rank(buffer));
-        //if (1 > 0) throw new RuntimeException("setElementWiseStride called: [" + elementWiseStride + "], buffer: " + buffer);
         buffer.put(length2 - 2, elementWiseStride);
+    }
+
+
+
+    /**
+     * Set the element wise stride for the
+     * shape info buffer
+     * @param shapeInfo the buffer to get the element
+     *               wise stride from
+     */
+    public static void setElementWiseStride(long[] shapeInfo, int elementWiseStride) {
+        int length2 = shapeInfoLength(Shape.rank(shapeInfo));
+        shapeInfo[length2 - 2] =  elementWiseStride;
     }
 
     /**
@@ -3206,24 +3032,13 @@ public class Shape {
         return (char) buffer.get(length - 1);
     }
 
-    /**
-     * Returns the order given the shape information
-     * @param buffer the buffer
-     * @return
-     */
-    public static char order(DataBuffer buffer) {
-        int length = Shape.shapeInfoLength(Shape.rank(buffer));
-        return (char) buffer.getInt(length - 1);
-    }
-
     public static char order(int[] buffer) {
         int length = Shape.shapeInfoLength(Shape.rank(buffer));
         return (char) buffer[length - 1];
     }
 
     public static char order(long[] buffer) {
-        int length = Shape.shapeInfoLength(Shape.rank(buffer));
-        return (char) buffer[length - 1];
+        return (char) buffer[buffer.length - 1];
     }
 
 
@@ -3232,14 +3047,15 @@ public class Shape {
      * @param buffer the buffer
      * @return
      */
-    @Deprecated
-    public static void setOrder(IntBuffer buffer, char order) {
+    public static void setOrder(long[] buffer, char order) {
         int length = Shape.shapeInfoLength(Shape.rank(buffer));
-        buffer.put(length - 1, (int) order);
-        throw new RuntimeException("setOrder called");
+       buffer[length - 1] = (int) order;
     }
 
-    public static DataBuffer createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, DataType dataType, boolean empty) {
+
+
+
+    public static DataBuffer createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, DataType dataType, boolean empty,boolean isView) {
         boolean isEmpty = empty;
         if (!empty)
             for (val v:shape) {
@@ -3249,38 +3065,32 @@ public class Shape {
                 }
             }
 
-        return Nd4j.getExecutioner().createShapeInfo(shape, stride, elementWiseStride, order, dataType, isEmpty);
+        DataBuffer ret =  Nd4j.getExecutioner().createShapeInfo(shape, stride, elementWiseStride, order, dataType, isEmpty, isView);
+        if(ret.getLong(0) == 0) {
+            boolean allZero = true;
+            for(int i = 0; i < ret.length(); i++) {
+                if(ret.getLong(i) != 0) {
+                    allZero = false;
+                    break;
+                }
+            }
+
+            if(allZero) {
+                throw new IllegalStateException("Shape buffer is all zero. Values are unset.");
+            }
+        }
+        return ret;
+    }
+
+
+    public static DataBuffer createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, DataType dataType, boolean empty) {
+        return createShapeInformation(shape, stride, elementWiseStride, order, dataType, empty, false);
     }
 
 
     public static DataBuffer createShapeInformation(long[] shape, long[] stride, long elementWiseStride, char order, long extras) {
-        /*
-        if (shape.length != stride.length)
-            throw new IllegalStateException("Shape and stride must be the same length");
-
-        int rank = shape.length;
-        long shapeBuffer[] = new long[Shape.shapeInfoLength(rank)];
-        shapeBuffer[0] = rank;
-        int count = 1;
-        for (int e = 0; e < shape.length; e++)
-            shapeBuffer[count++] = shape[e];
-
-        for (int e = 0; e < stride.length; e++)
-            shapeBuffer[count++] = stride[e];
-
-        shapeBuffer[count++] = extras;
-        shapeBuffer[count++] = elementWiseStride;
-        shapeBuffer[count] = (int) order;
-
-        DataBuffer ret = Nd4j.createBufferDetached(shapeBuffer);
-        ret.setConstant(true);
-
-        return ret;
-        */
-
         val dtype = ArrayOptionsHelper.dataType(extras);
-        //val empty = ArrayOptionsHelper.hasBitSet(extras, ArrayOptionsHelper.ATYPE_EMPTY_BIT);
-        //just propogate extra // it is the same value in the backend
+        //just propagate extra // it is the same value in the backend
         return Nd4j.getExecutioner().createShapeInfo(shape, stride, elementWiseStride, order, dtype, extras);
     }
 
@@ -3358,9 +3168,23 @@ public class Shape {
      * @param arr the array to test
      * @return true if arr.length == 1 && arr[0] is Integer.MAX_VALUE
      */
-    public static boolean wholeArrayDimension(int... arr) {
+    public static boolean wholeArrayDimension(long... arr) {
         return arr == null || arr.length == 0 || (arr.length == 1 && arr[0] == Integer.MAX_VALUE);
     }
+
+    public static long[] uniquify(long[] array) {
+        if (array.length <= 1)
+            return array;
+
+        Set<Long> ints = new LinkedHashSet<>();
+
+        for (val v : array)
+            ints.add(v);
+
+        return Longs.toArray(ints);
+
+    }
+
 
     public static int[] uniquify(int[] array) {
         if (array.length <= 1)
@@ -3374,31 +3198,17 @@ public class Shape {
         return Ints.toArray(ints);
     }
 
-    public static int[] normalizeAxis(int rank, int... axis) {
+    public static long[] normalizeAxis(long rank, long... axis) {
         if (axis == null || axis.length == 0)
-            return new int[] {Integer.MAX_VALUE};
-
-        if(rank == 0) {
-            if(axis.length != 1 || (axis[0] != 0 && axis[0] != Integer.MAX_VALUE)){
-                throw new ND4JIllegalStateException("Array axis for scalar (rank 0) array invalid: rank " + Arrays.toString(axis));
-            }
-            if(axis[0] == Integer.MAX_VALUE)
-                return axis;
-            return new int[]{Integer.MAX_VALUE};
-        }
+            return new long[] {Integer.MAX_VALUE};
 
         // first we should get rid of all negative axis
-        int[] tmp = new int[axis.length];
+        long[] tmp = new long[axis.length];
 
         int cnt = 0;
         for (val v: axis) {
             val t = v < 0 ? v + rank : v;
-
-            if ((t >= rank && t != Integer.MAX_VALUE)|| t < 0) {
-                throw new ND4JIllegalStateException("Axis array " + Arrays.toString(axis) + " contains values above array rank (rank=" + rank + ")");
-            }
-
-            tmp[cnt++] = t;
+            tmp[cnt++] =  t;
         }
 
         // now we're sorting array
@@ -3644,8 +3454,8 @@ public class Shape {
                 shape, stride);
         //Length is simply 1 + the buffer index of the last element
         long length = 1;
-        for(int i=0; i<shape.length; i++ ){
-            length += (shape[i]-1) * stride[i];
+        for(int i = 0; i < shape.length; i++) {
+            length += (shape[i] - 1) * stride[i];
         }
         return length;
     }
@@ -3662,13 +3472,13 @@ public class Shape {
                 shape, stride);
         //Length is simply 1 + the buffer index of the last element
         long length = 1;
-        for(int i=0; i<shape.length; i++ ){
-            length += (shape[i]-1) * stride[i];
+        for(int i = 0; i < shape.length; i++) {
+            length += (shape[i] - 1) * stride[i];
         }
         return length;
     }
 
-    public static boolean hasDefaultStridesForShape(INDArray input){
+    public static boolean hasDefaultStridesForShape(INDArray input) {
         if(input.rank() == 0)
             return true;
         if(!strideDescendingCAscendingF(input)){
@@ -3710,13 +3520,13 @@ public class Shape {
         } else if (number instanceof Float) {
             return pickPairwiseDataType(typeX, DataType.FLOAT);
         } else if (number instanceof Long) {
-            return pickPairwiseDataType(typeX, DataType.LONG);
+            return pickPairwiseDataType(typeX, DataType.INT64);
         } else if (number instanceof Integer) {
-            return pickPairwiseDataType(typeX, DataType.INT);
+            return pickPairwiseDataType(typeX, DataType.INT32);
         } else if (number instanceof Short) {
-            return pickPairwiseDataType(typeX, DataType.SHORT);
+            return pickPairwiseDataType(typeX, DataType.INT16);
         } else if (number instanceof Byte) {
-            return pickPairwiseDataType(typeX, DataType.BYTE);
+            return pickPairwiseDataType(typeX, DataType.INT8);
         } else {
             throw new UnsupportedOperationException("Unknown Number used: [" + number.getClass().getCanonicalName() + "]");
         }
@@ -3771,12 +3581,19 @@ public class Shape {
         return typeX;
     }
 
+
     public static boolean isEmpty(long[] shapeInfo) {
         return ArrayOptionsHelper.arrayType(shapeInfo) == ArrayType.EMPTY;
     }
 
+
+
+    public static boolean isEmpty(long opt) {
+        return ArrayOptionsHelper.arrayType(opt) == ArrayType.EMPTY;
+    }
+
     public static void assertValidOrder(char order) {
-        if(order != 'c' && order != 'f' && order != 'a'){
+        if(order != 'c' && order != 'f' && order != 'a') {
             throw new IllegalArgumentException("Invalid order arg: must be 'c' or 'f' (or 'a' for vectors), got '" + order + "'");
         }
     }
@@ -3787,9 +3604,22 @@ public class Shape {
      * @param dimensions Dimensions to convert
      * @return Dimensions as an INDArray
      */
-    public static INDArray ndArrayDimFromInt(int... dimensions){
+    public static INDArray ndArrayDimFromInt(int... dimensions) {
         if (dimensions == null || dimensions.length == 0)
             return Nd4j.empty(DataType.INT);
+        else
+            return Nd4j.createFromArray(dimensions);
+    }
+
+    /**
+     * Create an INDArray to represent the (possibly null) int[] dimensions.
+     * If null or length 0, returns an empty INT array. Otherwise, returns a 1d INT NDArray
+     * @param dimensions Dimensions to convert
+     * @return Dimensions as an INDArray
+     */
+    public static INDArray ndArrayDimFromLong(long... dimensions) {
+        if (dimensions == null || dimensions.length == 0)
+            return Nd4j.empty(DataType.LONG);
         else
             return Nd4j.createFromArray(dimensions);
     }
@@ -3802,7 +3632,7 @@ public class Shape {
      * @param keepDims     If reduced dimensions should be kept as size 1 dimensions
      * @return             Shape of the output array for the reduction
      */
-    public static long[] reductionShape(INDArray x, int[] dimension, boolean newFormat, boolean keepDims){
+    public static long[] reductionShape(INDArray x, long[] dimension, boolean newFormat, boolean keepDims) {
         boolean wholeArray = Shape.wholeArrayDimension(dimension) || dimension.length == x.rank();
         for(int i = 0; i < dimension.length; i++) {
             if(dimension[i] < 0)
@@ -3830,11 +3660,12 @@ public class Shape {
                         retShape[i] = 1;
                     }
                 } else {
-                    for (int d : dimension) {
-                        if(d < 0)
-                             d += dimension.length;
-                        retShape[d] = 1;
-                    }
+                    if(retShape.length > 0)
+                        for (long d : dimension) {
+                            if(d < 0)
+                                d += dimension.length;
+                            retShape[(int) d] = 1;
+                        }
                 }
             } else {
                 if(wholeArray)
@@ -3873,4 +3704,22 @@ public class Shape {
         return true;
     }
 
+    public static DataType dataType(long[] dataBuffer) {
+        long options = Shape.options(dataBuffer);
+        return ArrayOptionsHelper.dataType(options);
+    }
+
+
+    /**
+     * Create a shape information buffer
+     * @param descriptor the descriptor to create the shape information buffer for
+     * @return the created shape information buffer
+     */
+    public static DataBuffer createShapeInformation(LongShapeDescriptor descriptor) {
+        OpaqueConstantShapeBuffer opaqueConstantShapeBuffer = Nd4j.getNativeOps().cacheAndStoreShapeBuffer(descriptor.toShapeInfo());
+        LongPointer longPointer = new LongPointer(Nd4j.getNativeOps().getConstantShapeBufferPrimary(opaqueConstantShapeBuffer));
+        longPointer.capacity(Shape.shapeInfoLength(descriptor.rank()));
+        DataBuffer ret = Nd4j.createBuffer(longPointer,Shape.shapeInfoLength(descriptor.rank()),DataType.INT64);
+        return  ret;
+    }
 }

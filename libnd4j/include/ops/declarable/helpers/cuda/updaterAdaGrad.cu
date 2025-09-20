@@ -25,26 +25,50 @@
 #include <ops/declarable/helpers/updatersHelpers.h>
 #include <system/op_boilerplate.h>
 
+#include "execution/cuda/LaunchDims.h"
+#include "helpers/DebugHelper.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL void adaGradUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vin,
-                                  const sd::LongType* inShapeInfo, void* vz, const sd::LongType* zShapeInfo, void* vst,
-                                  const sd::LongType* stShapeInfo, const T lr, const T epsilon) {
+SD_KERNEL void adaGradUpdaterCuda(const void* vx, const LongType* xShapeInfo, const void* vin,
+                                  const LongType* inShapeInfo, void* vz, const LongType* zShapeInfo, void* vst,
+                                  const LongType* stShapeInfo, const T lr, const T epsilon) {
   const auto x = reinterpret_cast<const T*>(vx);
   const auto init = reinterpret_cast<const T*>(vin);
-
   auto up = reinterpret_cast<T*>(vz);
   auto st = reinterpret_cast<T*>(vst);
 
   __shared__ bool bEWS, bOrdering, bXZsame, bXInSame, bXStSame;
-  __shared__ sd::LongType xLen;
+  __shared__ LongType xLen;
+  __shared__ LongType xRank, zRank, inRank, stRank;
+  __shared__ LongType *xShape, *zShape, *inShape, *stShape;
+  __shared__ LongType *xStride, *zStride, *inStride, *stStride;
 
   if (threadIdx.x == 0) {
     xLen = shape::length(xShapeInfo);
+
+    // Cache ranks
+    xRank = shape::rank(xShapeInfo);
+    zRank = shape::rank(zShapeInfo);
+    inRank = shape::rank(inShapeInfo);
+    stRank = shape::rank(stShapeInfo);
+
+    // Cache shapes
+    xShape = shape::shapeOf(xShapeInfo);
+    zShape = shape::shapeOf(zShapeInfo);
+    inShape = shape::shapeOf(inShapeInfo);
+    stShape = shape::shapeOf(stShapeInfo);
+
+    // Cache strides
+    xStride = shape::stride(xShapeInfo);
+    zStride = shape::stride(zShapeInfo);
+    inStride = shape::stride(inShapeInfo);
+    stStride = shape::stride(stShapeInfo);
 
     bEWS = 1 == shape::elementWiseStride(xShapeInfo) && 1 == shape::elementWiseStride(zShapeInfo) &&
            1 == shape::elementWiseStride(stShapeInfo) && 1 == shape::elementWiseStride(inShapeInfo);
@@ -58,51 +82,71 @@ SD_KERNEL void adaGradUpdaterCuda(const void* vx, const sd::LongType* xShapeInfo
   }
   __syncthreads();
 
-  int coords[SD_MAX_RANK];
+  LongType coords[SD_MAX_RANK];
 
-  for (sd::LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
-    auto xOffset = i, zOffset = i, initOffset = i, stOffset = i;
+  for (LongType i = blockIdx.x * blockDim.x + threadIdx.x; i < xLen; i += gridDim.x * blockDim.x) {
+    LongType xOffset, zOffset, initOffset, stOffset;
 
     if (!bEWS || !bOrdering) {
-      shape::index2coords(i, xShapeInfo, coords);
-      xOffset = shape::getOffset(xShapeInfo, coords);
-      zOffset = bXZsame ? xOffset : shape::getOffset(zShapeInfo, coords);
-      initOffset = bXInSame ? xOffset : shape::getOffset(inShapeInfo, coords);
-      stOffset = bXStSame ? xOffset : shape::getOffset(stShapeInfo, coords);
+      INDEX2COORDS(i, xRank, xShape, coords);
+      COORDS2INDEX(xRank, xStride, coords, xOffset);
+
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(zRank, zStride, coords, zOffset);
+      }
+
+      if (bXInSame) {
+        initOffset = xOffset;
+      } else {
+        COORDS2INDEX(inRank, inStride, coords, initOffset);
+      }
+
+      if (bXStSame) {
+        stOffset = xOffset;
+      } else {
+        COORDS2INDEX(stRank, stStride, coords, stOffset);
+      }
+    } else {
+      xOffset = zOffset = initOffset = stOffset = i;
     }
 
     st[stOffset] = init[initOffset] + x[xOffset] * x[xOffset];
     up[zOffset] = (lr * x[xOffset]) / (math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
   }
 }
-
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-void adaGradUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t* stream,
-                                const void* vx, const sd::LongType* xShapeInfo, const void* vin,
-                                const sd::LongType* inShapeInfo, void* vz, const sd::LongType* zShapeInfo, void* vst,
-                                const sd::LongType* stShapeInfo, const double dLr, const double dEpsilon) {
+void adaGradUpdaterCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMemory,
+                                const cudaStream_t* stream, const void* vx, const LongType* xShapeInfo,
+                                const void* vin, const LongType* inShapeInfo, void* vz,
+                                const LongType* zShapeInfo, void* vst, const LongType* stShapeInfo,
+                                const double dLr, const double dEpsilon) {
   const T lr = static_cast<T>(dLr);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
+  adaGradUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMemory, *stream>>>(vx, xShapeInfo, vin, inShapeInfo, vz,
+                                                                                   zShapeInfo, vst, stShapeInfo, lr, epsilon);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "adaGradUpdaterCuda failed");
 
-  adaGradUpdaterCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, vin, inShapeInfo, vz,
-                                                                          zShapeInfo, vst, stShapeInfo, lr, epsilon);
 }
 
 ///////////////////////////////////////////////////////////////////
-void updaterAdaGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update,
+void updaterAdaGrad(LaunchContext* context, NDArray& gradient, NDArray& initState, NDArray& update,
                     NDArray& stateH, const double dLr, const double dEpsilon) {
   PointersManager manager(context, "adaGradUpdater");
 
-  const int threadsPerBlock = SD_MAX_NUM_THREADS / 4;
-  const int blocksPerGrid = (gradient.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-
+  dim3 launchDims = updaterDims(gradient.lengthOf());
   NDArray::prepareSpecialUse({&update, &stateH}, {&gradient, &initState});
   BUILD_SINGLE_SELECTOR(
       gradient.dataType(), adaGradUpdaterCudaLauncher,
-      (blocksPerGrid, threadsPerBlock, context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
-       initState.specialBuffer(), initState.specialShapeInfo(), update.specialBuffer(), update.specialShapeInfo(),
-       stateH.specialBuffer(), stateH.specialShapeInfo(), dLr, dEpsilon),
+      (launchDims.y, launchDims.x, launchDims.z,context->getCudaStream(), gradient.specialBuffer(), gradient.specialShapeInfo(),
+          initState.specialBuffer(), initState.specialShapeInfo(), update.specialBuffer(), update.specialShapeInfo(),
+          stateH.specialBuffer(), stateH.specialShapeInfo(), dLr, dEpsilon),
       SD_FLOAT_TYPES);
   NDArray::registerSpecialUse({&update, &stateH}, {&gradient, &initState});
 

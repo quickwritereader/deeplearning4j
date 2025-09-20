@@ -14,7 +14,7 @@ on:
       releaseVersion:
         description: 'Release version target'
         required: false
-        default: 1.0.0-M2.1
+        default: 1.0.0-M3
 
       snapshotVersion:
         description: 'Snapshot version target'
@@ -29,7 +29,7 @@ on:
       serverId:
         description: 'Server id to publish to'
         required: false
-        default: ossrh
+        default: central
 
       mvnFlags:
         description: "Extra maven flags (must escape input yourself if used)"
@@ -45,7 +45,7 @@ on:
       runsOn:
         description: 'System to run on'
         required: false
-        default: ubuntu-18.04
+        default: ubuntu-22.04
 
       debug_enabled:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
@@ -107,6 +107,20 @@ jobs:
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v2
+
+      - name: Free Disk Space Before Build
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/lib/android/sdk/ndk
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
       - uses: ./.github/actions/set-linux-distro-version
       - name: Set mvn build command based on matrix
         shell: bash
@@ -137,13 +151,13 @@ jobs:
         uses: ./.github/actions/build-centos
         env:
           JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64/
-          MAVEN_GPG_KEY: ${{ secrets.SONATYPE_GPG_KEY }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           DEBIAN_FRONTEND: noninteractive
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISH_TO: ossrh
-          MAVEN_USERNAME: ${{ secrets.SONATYPE_USER_1 }}
-          MAVEN_PASSWORD: ${{ secrets.SONATYPE_USER1_PASS }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.PACKAGES_GPG_PASS }}
+          PUBLISH_TO: central
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_SONATYPE_TOKEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_SONATYPE_TOKEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           PERFORM_RELEASE: ${{ matrix.deploy_to_release_staging }}
           RELEASE_VERSION: ${{ matrix.release_version }}
           SNAPSHOT_VERSION: ${{ matrix.snapshot_version }}
@@ -153,16 +167,12 @@ jobs:
           EXTENSION: ${{ matrix.extension }}
           MAVEN_OPTS: -Xmx2g
       - name: Set up Java for publishing to GitHub Packages
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: 11
           distribution: 'temurin'
-          server-id: ${{ github.event.inputs.serverId }}
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.SONATYPE_GPG_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
-          cache: 'maven'
+        
+        
 
 
       - name: Deploy
@@ -178,13 +188,13 @@ jobs:
                            eval "${DEPLOY_COMMAND}"
               fi
         env:
-          MAVEN_GPG_KEY: ${{ secrets.SONATYPE_GPG_KEY }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           DEBIAN_FRONTEND: noninteractive
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISH_TO: ossrh
-          MAVEN_USERNAME: ${{ secrets.SONATYPE_USER_1 }}
-          MAVEN_PASSWORD: ${{ secrets.SONATYPE_USER1_PASS }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.PACKAGES_GPG_PASS }}
+          PUBLISH_TO: central
+          MAVEN_USERNAME: ${{ secrets.CENTRAL_SONATYPE_TOKEN_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.CENTRAL_SONATYPE_TOKEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           PERFORM_RELEASE: ${{ matrix.deploy_to_release_staging }}
           RELEASE_VERSION: ${{ matrix.release_version }}
           SNAPSHOT_VERSION: ${{ matrix.snapshot_version }}
@@ -193,10 +203,6 @@ jobs:
           HELPER: ${{ matrix.helper }}
           EXTENSION: ${{ matrix.extension }}
           MAVEN_OPTS: -Xmx2g
-
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && matrix.debug_enabled }}
 
 
 

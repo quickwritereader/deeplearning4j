@@ -34,6 +34,7 @@ inline void swap(T* arr, sd::LongType from, sd::LongType to) {
   arr[from] = arr[to];
   arr[to] = tmp;
 }
+
 /////////////////////////////////////////////////////////////////////////////////////
 // this legacy op is written by raver119@gmail.com
 
@@ -43,100 +44,67 @@ static void reverseArray(sd::LaunchContext* context, void const* vinArr, sd::Lon
   auto inArr = reinterpret_cast<T const*>(vinArr);
   auto outArr = reinterpret_cast<T*>(voutArr);
 
+  // Cache shape information
+  const auto inRank = shape::rank(inShapeBuffer);
+  const auto outRank = shape::rank(outShapeBuffer);
+  const auto* inShape = shape::shapeOf(inShapeBuffer);
+  const auto* outShape = shape::shapeOf(outShapeBuffer);
+  const auto* inStride = shape::stride(inShapeBuffer);
+  const auto* outStride = shape::stride(outShapeBuffer);
+
   sd::LongType inLength = shape::length(inShapeBuffer);
   sd::LongType outLength = shape::length(outShapeBuffer);
   if (numOfElemsToReverse == 0) numOfElemsToReverse = inLength;
-  int inEWS = shape::elementWiseStride(inShapeBuffer);
-  char inOrder = shape::order(inShapeBuffer);
-  auto sLength = numOfElemsToReverse - 1;
+  sd::LongType sLength = numOfElemsToReverse - 1;
+
+  LongType inCoords[SD_MAX_RANK];
+  LongType outCoords[SD_MAX_RANK];
+  LongType inOffset;
+  LongType outOffset;
 
   // two step phase here
   if (inArr == outArr) {
-    if (inEWS == 1) {
-      auto func = PRAGMA_THREADS_FOR {
-        for (auto e = start; e < stop; e++) {
-          auto idx = sLength - e;
-          swap(const_cast<T*>(inArr), e, idx);
-        }
-      };
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse / 2);
-    } else if (inEWS > 1) {
-      auto func = PRAGMA_THREADS_FOR {
-        for (auto e = start; e < stop; e++) {
-          auto idx1 = (sLength - e) * inEWS;
-          sd::LongType idx2 = e * inEWS;
-          swap(const_cast<T*>(inArr), idx1, idx2);
-        }
-      };
-
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse / 2);
-    } else {
-      auto func = PRAGMA_THREADS_FOR {
-        for (auto e = start; e < stop; e++) {
-          auto inOffset = shape::getIndexOffset(e, inShapeBuffer);
-          auto outOffset = shape::getIndexOffset(sLength - e, inShapeBuffer);
-          swap(outArr, inOffset, outOffset);
-        }
-      };
-
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse / 2);
-    }
+    auto func = PRAGMA_THREADS_FOR {
+      for (sd::LongType e = start; e < stop; e++) {
+        INDEX2COORDS(e, inRank, inShape, inCoords);
+        COORDS2INDEX(inRank, inStride, inCoords, inOffset);
+        INDEX2COORDS(sLength - e, inRank, inShape, outCoords);
+        COORDS2INDEX(inRank, inStride, outCoords, outOffset);
+        swap(const_cast<T*>(inArr), inOffset, outOffset);
+      }
+    };
+    samediff::Threads::parallel_for(func, 0, numOfElemsToReverse / 2);
   } else {
     // single step phase here
-    auto outEWS = shape::elementWiseStride(outShapeBuffer);
-    char outOrder = shape::order(outShapeBuffer);
-
-    if (inEWS == 1 && outEWS == 1 && inOrder == outOrder) {
-      auto func = PRAGMA_THREADS_FOR {
-        for (sd::LongType e = start; e < stop; e++) outArr[sLength - e] = inArr[e];
-      };
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse);
-
-      if (inLength != numOfElemsToReverse) {
-        auto f2 = PRAGMA_THREADS_FOR {
-          for (auto e = start; e < stop; e++) outArr[e] = inArr[e];
-        };
-        samediff::Threads::parallel_for(f2, numOfElemsToReverse, inLength);
+    auto func = PRAGMA_THREADS_FOR {
+      for (sd::LongType e = start; e < stop; e++) {
+        INDEX2COORDS(e, inRank, inShape, inCoords);
+        COORDS2INDEX(inRank, inStride, inCoords, inOffset);
+        INDEX2COORDS(sLength - e, outRank, outShape, outCoords);
+        COORDS2INDEX(outRank, outStride, outCoords, outOffset);
+        outArr[outOffset] = inArr[inOffset];
       }
-    } else if (inEWS >= 1 && outEWS >= 1 && inOrder == outOrder) {
-      auto func = PRAGMA_THREADS_FOR {
-        for (auto e = start; e < stop; e++) outArr[(sLength - e) * outEWS] = inArr[e * inEWS];
-      };
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse);
+    };
+    samediff::Threads::parallel_for(func, 0, numOfElemsToReverse);
 
-      if (inLength != numOfElemsToReverse) {
-        auto f2 = PRAGMA_THREADS_FOR {
-          for (auto e = start; e < stop; e++) outArr[e * outEWS] = inArr[e * inEWS];
-        };
-        samediff::Threads::parallel_for(f2, numOfElemsToReverse, inLength);
-      }
-    } else {
-      auto func = PRAGMA_THREADS_FOR {
-        for (auto e = start; e < stop; e++) {
-          auto inOffset = shape::getIndexOffset(e, inShapeBuffer);
-          auto outOffset = shape::getIndexOffset(sLength - e, outShapeBuffer);
+    if (inLength != numOfElemsToReverse) {
+      auto f2 = PRAGMA_THREADS_FOR {
+        for (sd::LongType e = start; e < stop; e++) {
+          INDEX2COORDS(e, inRank, inShape, inCoords);
+          COORDS2INDEX(inRank, inStride, inCoords, inOffset);
+          INDEX2COORDS(e, outRank, outShape, outCoords);
+          COORDS2INDEX(outRank, outStride, outCoords, outOffset);
           outArr[outOffset] = inArr[inOffset];
         }
       };
-      samediff::Threads::parallel_for(func, 0, numOfElemsToReverse);
-
-      if (inLength != numOfElemsToReverse) {
-        auto f2 = PRAGMA_THREADS_FOR {
-          for (auto e = start; e < stop; e++) {
-            auto inOffset = shape::getIndexOffset(e, inShapeBuffer);
-            auto outOffset = shape::getIndexOffset(e, outShapeBuffer);
-            outArr[outOffset] = inArr[inOffset];
-          }
-        };
-        samediff::Threads::parallel_for(f2, numOfElemsToReverse, inLength);
-      }
+      samediff::Threads::parallel_for(f2, numOfElemsToReverse, inLength);
     }
   }
 }
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void reverseSequence_(sd::LaunchContext* context, const NDArray* input, const NDArray* seqLengths,
+static void reverseSequence_(sd::LaunchContext* context, NDArray* input, NDArray* seqLengths,
                              NDArray* output, int seqDim, const int batchDim) {
   int posOfNonUnityDim = -1;
   if (input->isVector() || shape::isLikeVector(input->shapeInfo(), posOfNonUnityDim)) {
@@ -148,11 +116,13 @@ static void reverseSequence_(sd::LaunchContext* context, const NDArray* input, c
   } else {
     if (seqDim > batchDim) --seqDim;
 
-    std::vector<int> dimensions = ShapeUtils::evalDimsToExclude(input->rankOf(), {batchDim});
+    std::vector<sd::LongType> batchDimVec = {batchDim};
+    std::vector<sd::LongType> *dimensions = ShapeUtils::evalDimsToExclude(input->rankOf(), 1,batchDimVec.data());
 
-    auto inSubArrsSet = input->allTensorsAlongDimension(dimensions);
-    auto outSubArrsSet = output->allTensorsAlongDimension(dimensions);
-
+    auto inSubArrsSet = input->allTensorsAlongDimension(*dimensions);
+    auto outSubArrsSet = output->allTensorsAlongDimension(*dimensions);
+    delete dimensions;
+    
     for (int i = 0; i < inSubArrsSet.size(); ++i) {
       sd::LongType numOfElemsToReverse = seqLengths->e<sd::LongType>(i);
 
@@ -169,14 +139,14 @@ static void reverseSequence_(sd::LaunchContext* context, const NDArray* input, c
   }
 }
 
-void reverseSequence(sd::LaunchContext* context, const NDArray* input, const NDArray* seqLengths, NDArray* output,
+void reverseSequence(sd::LaunchContext* context, NDArray* input, NDArray* seqLengths, NDArray* output,
                      int seqDim, const int batchDim) {
   BUILD_SINGLE_SELECTOR(input->dataType(), reverseSequence_, (context, input, seqLengths, output, seqDim, batchDim),
                         SD_COMMON_TYPES);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void reverse(sd::LaunchContext* context, const NDArray* input, NDArray* output, const std::vector<int>* intArgs) {
+void reverse(sd::LaunchContext* context, NDArray* input, NDArray* output, const std::vector<LongType>* intArgs) {
   auto listOut = output->allTensorsAlongDimension(*intArgs);
   auto listIn = input->allTensorsAlongDimension(*intArgs);
 
@@ -193,12 +163,12 @@ void reverse(sd::LaunchContext* context, const NDArray* input, NDArray* output, 
 }
 
 BUILD_SINGLE_TEMPLATE(template void reverseSequence_,
-                      (sd::LaunchContext * context, const NDArray* input, const NDArray* seqLengths, NDArray* output,
-                       int seqDim, const int batchDim),
+                      (sd::LaunchContext * context, NDArray* input, NDArray* seqLengths, NDArray* output,
+                          int seqDim, const int batchDim),
                       SD_COMMON_TYPES);
 BUILD_SINGLE_TEMPLATE(template void reverseArray,
                       (sd::LaunchContext * context, void const* inArr, sd::LongType const* inShapeBuffer, void* outArr,
-                       sd::LongType const* outShapeBuffer, int numOfElemsToReverse),
+                          sd::LongType const* outShapeBuffer, int numOfElemsToReverse),
                       SD_COMMON_TYPES);
 
 }  // namespace helpers

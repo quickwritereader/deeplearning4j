@@ -28,24 +28,24 @@
 namespace sd {
 
 template <typename T>
-SD_HOST void TypeCast::convertFromQuantized(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
+SD_HOST void TypeCast::convertFromQuantized(Pointer *extras, void *dx, LongType N, void *dz) {
   //
   auto z = reinterpret_cast<T *>(dz);
 
   auto fx = reinterpret_cast<float *>(dx);
-  auto amin = sd::math::sd_abs<float>(fx[0]);
-  auto amax = sd::math::sd_abs<float>(fx[1]);
+  auto amin = sd::math::sd_abs<float,float>(fx[0]);
+  auto amax = sd::math::sd_abs<float,float>(fx[1]);
 
   auto x = reinterpret_cast<char *>(dx) + 8;
 
-  for (sd::LongType e = 0; e < N; e++) {
+  for (LongType e = 0; e < N; e++) {
     z[e] = static_cast<T>(static_cast<float>(x[e]) / static_cast<float>(DataTypeUtils::max<int8_t>()) *
                           sd::math::sd_max<float>(amin, amax));
   }
 }
 
 template <typename T>
-SD_HOST void TypeCast::convertToQuantized(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
+SD_HOST void TypeCast::convertToQuantized(Pointer *extras, void *dx, LongType N, void *dz) {
   // find min/max first
 
   auto x = reinterpret_cast<T *>(dx);
@@ -54,7 +54,7 @@ SD_HOST void TypeCast::convertToQuantized(sd::Pointer *extras, void *dx, sd::Lon
   T mn = DataTypeUtils::max<T>();
   T mx = -DataTypeUtils::max<T>();
 
-  for (sd::LongType e = 0; e < N; e++) {
+  for (LongType e = 0; e < N; e++) {
     T v = x[e];
     if (v < mn) mn = v;
 
@@ -74,8 +74,8 @@ SD_HOST void TypeCast::convertToQuantized(sd::Pointer *extras, void *dx, sd::Lon
   fz[0] = min;
   fz[1] = max;
 
-  auto amax = sd::math::sd_abs<float>(max);
-  auto amin = sd::math::sd_abs<float>(min);
+  auto amax = sd::math::sd_abs<float,float>(max);
+  auto amin = sd::math::sd_abs<float,float>(min);
 
   // now we actually apply quantization
   auto func = PRAGMA_THREADS_FOR {
@@ -89,7 +89,7 @@ SD_HOST void TypeCast::convertToQuantized(sd::Pointer *extras, void *dx, sd::Lon
 }
 
 template <typename T>
-void TypeCast::convertToThreshold(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
+void TypeCast::convertToThreshold(Pointer *extras, void *dx, LongType N, void *dz) {
   // we suppose that first 4 bytes are integer, second 4 bytes are float
   // integer: enc length
   // integer: dec length
@@ -165,7 +165,7 @@ void TypeCast::convertToThreshold(sd::Pointer *extras, void *dx, sd::LongType N,
 }
 
 template <typename T>
-void TypeCast::convertFromThreshold(sd::Pointer *extras, const void *dx, sd::LongType N, void *dz) {
+void TypeCast::convertFromThreshold(Pointer *extras, const void *dx, LongType N, void *dz) {
   FloatBits fb;
   auto z = reinterpret_cast<T *>(dz);
   auto x = reinterpret_cast<const int *>(dx);
@@ -179,7 +179,7 @@ void TypeCast::convertFromThreshold(sd::Pointer *extras, const void *dx, sd::Lon
   auto func = PRAGMA_THREADS_FOR {
     for (auto e = start; e < stop; e++) {
       int el = x[e];
-      int ael = sd::math::sd_abs<int>(el) - 1;
+      int ael = sd::math::sd_abs<int,int>(el) - 1;
       z[ael] += el > 0 ? static_cast<T>(threshold) : static_cast<T>(-threshold);
     }
   };
@@ -197,7 +197,7 @@ void TypeCast::convertFromThreshold(sd::Pointer *extras, const void *dx, sd::Lon
  * @param dz
  */
 template <typename S, typename T>
-void TypeCast::convertGeneric(sd::Pointer *extras, void *dx, sd::LongType N, void *dz) {
+void TypeCast::convertGeneric(Pointer *extras, void *dx, LongType N, void *dz) {
   auto x = reinterpret_cast<S *>(dx);
   auto z = reinterpret_cast<T *>(dz);
 
@@ -209,27 +209,26 @@ void TypeCast::convertGeneric(sd::Pointer *extras, void *dx, sd::LongType N, voi
   samediff::Threads::parallel_for(func, 0, N);
 };
 
-template void TypeCast::convertFromThreshold<double>(sd::Pointer *extras, const void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertFromThreshold<float>(sd::Pointer *extras, const void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertFromThreshold<float16>(sd::Pointer *extras, const void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertFromThreshold<bfloat16>(sd::Pointer *extras, const void *dx, sd::LongType N, void *dz);
+template void TypeCast::convertFromThreshold<double>(Pointer *extras, const void *dx, LongType N, void *dz);
+template void TypeCast::convertFromThreshold<float>(Pointer *extras, const void *dx, LongType N, void *dz);
+template void TypeCast::convertFromThreshold<float16>(Pointer *extras, const void *dx, LongType N, void *dz);
+template void TypeCast::convertFromThreshold<bfloat16>(Pointer *extras, const void *dx, LongType N, void *dz);
 
-template void TypeCast::convertToThreshold<double>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertToThreshold<float>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertToThreshold<float16>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertToThreshold<bfloat16>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
+template void TypeCast::convertToThreshold<double>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertToThreshold<float>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertToThreshold<float16>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertToThreshold<bfloat16>(Pointer *extras, void *dx, LongType N, void *dz);
 
-template void TypeCast::convertFromQuantized<double>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertFromQuantized<float>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertFromQuantized<float16>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
+template void TypeCast::convertFromQuantized<double>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertFromQuantized<float>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertFromQuantized<float16>(Pointer *extras, void *dx, LongType N, void *dz);
 
-template void TypeCast::convertToQuantized<double>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertToQuantized<float>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
-template void TypeCast::convertToQuantized<float16>(sd::Pointer *extras, void *dx, sd::LongType N, void *dz);
+template void TypeCast::convertToQuantized<double>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertToQuantized<float>(Pointer *extras, void *dx, LongType N, void *dz);
+template void TypeCast::convertToQuantized<float16>(Pointer *extras, void *dx, LongType N, void *dz);
 
-#ifndef __CLION_IDE__
 BUILD_DOUBLE_TEMPLATE(template void TypeCast::convertGeneric,
                       (sd::Pointer * extras, void *dx, sd::LongType N, void *dz), SD_COMMON_TYPES_ALL,
                       SD_COMMON_TYPES_ALL)
-#endif
+
 }  // namespace sd

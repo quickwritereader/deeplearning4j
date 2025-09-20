@@ -65,17 +65,19 @@ SD_HOST void bitonicArbitraryStepGenericValue(dim3 &launchDims, cudaStream_t *st
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
 SD_HOST void oesTadGeneric(dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const *xShapeInfo,
-                           int *dimension, int dimensionLength, sd::LongType const *tadShapeInfo,
+                           sd::LongType *dimension, sd::LongType dimensionLength, sd::LongType const *tadShapeInfo,
                            sd::LongType const *tadOffsets, bool descending);
 
 template <typename X, typename Y>
 SD_HOST void oesTadGenericKey(dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const *xShapeInfo,
-                              void *vy, sd::LongType const *yShapeInfo, int *dimension, int dimensionLength,
+                              void *vy, sd::LongType const *yShapeInfo, sd::LongType *dimension,
+                              sd::LongType dimensionLength,
                               sd::LongType const *tadShapeInfo, sd::LongType const *tadOffsets, bool descending);
 
 template <typename X, typename Y>
 SD_HOST void oesTadGenericValue(dim3 &launchDims, cudaStream_t *stream, void *vx, sd::LongType const *xShapeInfo,
-                                void *vy, sd::LongType const *yShapeInfo, int *dimension, int dimensionLength,
+                                void *vy, sd::LongType const *yShapeInfo, sd::LongType *dimension,
+                                sd::LongType dimensionLength,
                                 sd::LongType const *tadShapeInfo, sd::LongType const *tadOffsets, bool descending);
 
 ////////////////////////////////////////////////////////////////////////
@@ -100,7 +102,7 @@ SD_HOST void printCudaHost(void *pointer, const int len, cudaStream_t &stream) {
 
   cudaMemcpyAsync(ptr, pointer, sizeof(T) * len, cudaMemcpyDeviceToHost, stream);
   cudaError_t cudaResult = cudaStreamSynchronize(stream);
-  if (cudaResult != 0) throw std::runtime_error("printCudaHost:: cudaStreamSynchronize failed!");
+  if (cudaResult != 0) THROW_EXCEPTION("printCudaHost:: cudaStreamSynchronize failed!");
 
   for (int i = 0; i < len; ++i) printf("%f, ", (double)reinterpret_cast<T *>(ptr)[i]);
   printf("\n");

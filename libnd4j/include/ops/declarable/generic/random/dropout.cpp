@@ -29,44 +29,46 @@ namespace sd {
 namespace ops {
 
 //////////////////////////////////////////////////////////////////////////
-CONFIGURABLE_OP_IMPL(dropout, 1, 1, true, 1, 1) {
+CONFIGURABLE_OP_IMPL(dropout, 1, 2, true, 1, 1) {
   auto input = INPUT_VARIABLE(0);  // lookup param
   bool inverted = block.numB() > 0 ? B_ARG(0) : false;
   NDArray* reduceShape = nullptr;     // this param is optional
   auto output = OUTPUT_NULLIFIED(0);  //
+  auto mask = OUTPUT_NULLIFIED(1);
 
   int seed = INT_ARG(0);
 
-  // FIXME: float?
   double probValue = T_ARG(0);
   if(inverted) {
     probValue = 1 - probValue;
   }
 
-  if (block.width() > 1) reduceShape = INPUT_VARIABLE(1);
 
   REQUIRE_TRUE(probValue >= 0.f && probValue <= 1.f, 0, "dropout: Probability should be with range 0 to 1.");
 
   if (probValue == 1.0f) {
     *output = *input;
-    return sd::Status::OK;
+    double one = 1.0;
+    mask->assign(one);
+    return Status::OK;
   }
 
-  return helpers::dropOutFunctor(block, input, output, reduceShape, seed, probValue);
+  return helpers::dropOutFunctor(block, input, output, reduceShape, seed, probValue, mask);
 }
 
 DECLARE_TYPES(dropout) {
   getOpDescriptor()
       ->setAllowedInputTypes(0, {ALL_FLOATS})
-      ->setAllowedInputTypes(1, {ALL_INTS})
+      ->setAllowedInputTypes(1, {ALL_FLOATS,ALL_INTS})
       ->setAllowedOutputTypes({ALL_FLOATS})
       ->setSameMode(true);
 }
 
 //////////////////////////////////////////////////////////////////////////
-CONFIGURABLE_OP_IMPL(dropout_bp, 2, 1, false, 1, 1) {
+CONFIGURABLE_OP_IMPL(dropout_bp, 3, 1, false, 1, 1) {
   auto input = INPUT_VARIABLE(0);    // lookup param
-  auto gradOut = INPUT_VARIABLE(1);  // lookup param
+  auto mask = INPUT_VARIABLE(1);
+  auto gradOut = INPUT_VARIABLE(2);  // lookup param
   bool inverted = block.numB() > 0 ? B_ARG(0) : false;
 
   NDArray* reduceShape = nullptr;         // this param is optional
@@ -79,18 +81,19 @@ CONFIGURABLE_OP_IMPL(dropout_bp, 2, 1, false, 1, 1) {
     probValue = 1 - probValue;
   }
 
-  if (block.width() > 2) reduceShape = INPUT_VARIABLE(2);
 
   REQUIRE_TRUE((probValue > 0. && probValue <= 1.), 0, "dropout_bp: Probability should be with range 0 to 1.");
   if (probValue == 1.0) {
-    output->assign(0.f);  // fill up output with 0
-    return sd::Status::OK;
+    float zero = 0.0f;
+    output->assign(zero);  // fill up output with 0
+    return Status::OK;
   }
 
-  REQUIRE_TRUE(helpers::dropOutFunctorBP(block, input, gradOut, output, reduceShape, seed, probValue) == sd::Status::OK,
+  REQUIRE_TRUE(sd::ops::helpers::dropOutFunctorBP(block, input, gradOut, output, reduceShape, seed, probValue,
+                                                  mask) == sd::Status::OK,
                0, "dropout_bp: Cannot backprop dropout.");
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(dropout_bp) {
@@ -100,7 +103,8 @@ DECLARE_TYPES(dropout_bp) {
 //////////////////////////////////////////////////////////////////////////
 CONFIGURABLE_OP_IMPL(alpha_dropout_bp, 2, 1, false, 4, 1) {
   NDArray* input = INPUT_VARIABLE(0);    // lookup param
-  NDArray* gradOut = INPUT_VARIABLE(1);  // lookup param
+  NDArray *mask = INPUT_VARIABLE(1);     // lookup param
+  NDArray* gradOut = INPUT_VARIABLE(2);  // lookup param
 
   NDArray* reduceShape = nullptr;        // this param is optional
   NDArray* output = OUTPUT_VARIABLE(0);  //
@@ -116,12 +120,13 @@ CONFIGURABLE_OP_IMPL(alpha_dropout_bp, 2, 1, false, 4, 1) {
 
   REQUIRE_TRUE(probValue > 0. && probValue <= 1., 0, "dropout_bp: Probability should be with range 0 to 1.");
   if (probValue == 1.0) {
-    output->assign(0.);  // fill up output with 0
-    return sd::Status::OK;
+    double zero = 0.0;
+    output->assign(zero);  // fill up output with 0
+    return Status::OK;
   }
 
   return helpers::alphaDropOutFunctorBP(block, input, gradOut, output, reduceShape, seed, probValue, alphaValue,
-                                        alpha1Value, betaValue);
+                                        alpha1Value, betaValue, mask);
 }
 DECLARE_TYPES(alpha_dropout_bp) { getOpDescriptor()->setAllowedInputTypes({ALL_FLOATS})->setSameMode(true); }
 }  // namespace ops

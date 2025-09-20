@@ -25,7 +25,6 @@
 #include <system/op_boilerplate.h>
 #if NOT_EXCLUDED(OP_resize_bilinear)
 
-//#include <ops/declarable/headers/parity_ops.h>
 #include <ops/declarable/CustomOperations.h>
 #include <ops/declarable/helpers/image_resize.h>
 namespace sd {
@@ -37,7 +36,7 @@ CUSTOM_OP_IMPL(resize_bilinear, 1, 1, false, 0, -2) {
   int height;
   bool alignCorners = false;  // - default value
   auto inRank = image->rankOf();
-  if (output->isEmpty()) return sd::Status::OK;
+  if (output->isEmpty()) return Status::OK;
 
   REQUIRE_TRUE(inRank == 4 || inRank == 3, 0,
                "resize_bilinear: input image should be 4D "
@@ -46,16 +45,23 @@ CUSTOM_OP_IMPL(resize_bilinear, 1, 1, false, 0, -2) {
   REQUIRE_TRUE(inRank == output->rankOf(), 0,
                "resize_bilinear: Input and output ranks should be equals, but %i and %i occured.", inRank,
                output->rankOf());
+  std::vector<sd::LongType> imageShape1 = {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2),image->sizeAt(3)};
+  std::vector<sd::LongType> imageShape2 = {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)};
 
   auto source =
       inRank == 4
-          ? image->reshape(image->ordering(), {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2), image->sizeAt(3)})
-          : image->reshape(image->ordering(), {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)});
+          ? image->reshape(image->ordering(),imageShape1)
+          : image->reshape(image->ordering(), imageShape2);
+
+
+  std::vector<sd::LongType> outputShape1 = {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2),output->sizeAt(3)};
+  std::vector<sd::LongType> outputShape2 = {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)};
+
   auto target =
       inRank == 4
           ? output->reshape(output->ordering(),
-                            {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2), output->sizeAt(3)}, false)
-          : output->reshape(output->ordering(), {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)}, false);
+                            outputShape1, false)
+          : output->reshape(output->ordering(), outputShape2, false);
 
   if (block.width() > 1) {
     auto newImageSize = INPUT_VARIABLE(1);
@@ -87,7 +93,7 @@ DECLARE_SHAPE_FN(resize_bilinear) {
   auto shapeList = SHAPELIST();
   auto in = inputShape->at(0);
 
-  sd::LongType* outputShape;
+  LongType* outputShape;
   auto inRank = shape::rank(in);
   REQUIRE_TRUE(inRank == 4 || inRank == 3, 0,
                "resize_bilinear: input image should be 4D "
@@ -125,14 +131,14 @@ DECLARE_SHAPE_FN(resize_bilinear) {
   if (DataTypeUtils::isR(ArrayOptions::dataType(in))) {
     ShapeUtils::updateStridesAndType(outputShape, in, shape::order(in));
   } else {
-    ShapeUtils::updateStridesAndType(outputShape, DataType::FLOAT32, shape::order(in));
+    ShapeUtils::updateStridesAndType(outputShape, FLOAT32, shape::order(in));
   }
 
   shapeList->push_back(CONSTANT(outputShape));
   return shapeList;
 }
 DECLARE_TYPES(resize_bilinear) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 }  // namespace ops

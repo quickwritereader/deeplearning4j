@@ -1,4 +1,4 @@
-/* ******************************************************************************
+    /* ******************************************************************************
  *
  *
  * This program and the accompanying materials are made available under the
@@ -24,13 +24,17 @@
 #include <helpers/shape.h>
 #include <loops/ReduceType.h>
 #include <loops/summarystatsreduce.h>
+#include <math/templatemath.h>
 #include <system/Environment.h>
 #include <system/common.h>
 #include <system/op_boilerplate.h>
 
+#include <codecvt>
 #include <vector>
 
-#define no_op_exec_special_any                                                                                     \
+#include "helpers/unicode.h"
+
+#define no_op_exec_special_any                                                                           \
   static const bool requiresSpecial = false;                                                                       \
   static void execSpecial(const X *dx, const sd::LongType *xShapeBuffer, Z *result,                                \
                           const sd::LongType *resultShapeBuffer, X *extraParams, const sd::LongType *tadShapeInfo, \
@@ -53,64 +57,56 @@
 #define no_op_exec_special_accumulation                                                                   \
   static const bool requiresSpecialAccumulation = false;                                                  \
   static void execSpecial(const X *x, const sd::LongType *xShapeInfo, Z *extraParams, Z *result,          \
-                          const sd::LongType *resultShapeInfoBuffer, int *dimension, int dimensionLength, \
+                          const sd::LongType *resultShapeInfoBuffer, sd::LongType *dimension, sd::LongType dimensionLength, \
                           const sd::LongType *tadShapeInfo, const sd::LongType *tadOffset) {}
 #define no_op_exec_special_accumulation_long                                                              \
   static const bool requiresSpecialAccumulation = false;                                                  \
   static void execSpecial(const X *x, const sd::LongType *xShapeInfo, X *extraParams, Z *result,          \
-                          const sd::LongType *resultShapeInfoBuffer, int *dimension, int dimensionLength, \
+                          const sd::LongType *resultShapeInfoBuffer, sd::LongType *dimension, sd::LongType dimensionLength, \
                           const sd::LongType *tadShapeInfo, const sd::LongType *tadOffset) {}
 #define no_op_exec_special_accumulation_same                                                              \
   static const bool requiresSpecialAccumulation = false;                                                  \
   static void execSpecial(const X *x, const sd::LongType *xShapeInfo, X *extraParams, X *result,          \
-                          const sd::LongType *resultShapeInfoBuffer, int *dimension, int dimensionLength, \
+                          const sd::LongType *resultShapeInfoBuffer, sd::LongType *dimension, sd::LongType dimensionLength, \
                           const sd::LongType *tadShapeInfo, const sd::LongType *tadOffset) {}
 #ifdef __CUDACC__
 #define no_op_exec_special_any_cuda                                                                                    \
   static SD_DEVICE void execSpecialCuda(                                                                               \
       const X *dx, const sd::LongType *xShapeBuffer, Z *result, const sd::LongType *resultShapeBuffer, X *extraParams, \
-      int *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
+      sd::LongType *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
   }
 #define no_op_exec_special_bool_cuda                                                                                   \
   static SD_DEVICE void execSpecialCuda(                                                                               \
       const X *dx, const sd::LongType *xShapeBuffer, Z *result, const sd::LongType *resultShapeBuffer, X *extraParams, \
-      int *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
+      sd::LongType *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
   }
 #define no_op_exec_special_same_cuda                                                                                   \
   static SD_DEVICE void execSpecialCuda(                                                                               \
       const X *dx, const sd::LongType *xShapeBuffer, X *result, const sd::LongType *resultShapeBuffer, X *extraParams, \
-      int *allocationPointer, X *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
+      sd::LongType *allocationPointer, X *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
   }
 #define no_op_exec_special_cuda                                                                                        \
   static SD_DEVICE void execSpecialCuda(                                                                               \
       const X *dx, const sd::LongType *xShapeBuffer, Z *result, const sd::LongType *resultShapeBuffer, Z *extraParams, \
-      int *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
+      sd::LongType *allocationPointer, Z *reductionPointer, const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) { \
   }
 #define no_op_exec_special_accumulation_same_cuda                                                                  \
   static SD_INLINE SD_DEVICE void execSpecialCuda(                                                                 \
       const X *dx, const sd::LongType *xShapeInfo, X *extraParams, X *result, const sd::LongType *resultShapeInfo, \
-      int *dimension, int dimensionLength, X *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
+      sd::LongType *dimension, sd::LongType dimensionLength, X *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
       const sd::LongType *tadOffsets) {}
 #define no_op_exec_special_accumulation_long_cuda                                                                  \
   static SD_INLINE SD_DEVICE void execSpecialCuda(                                                                 \
       const X *dx, const sd::LongType *xShapeInfo, X *extraParams, Z *result, const sd::LongType *resultShapeInfo, \
-      int *dimension, int dimensionLength, Z *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
+      sd::LongType *dimension, sd::LongType dimensionLength, Z *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
       const sd::LongType *tadOffsets) {}
 #define no_op_exec_special_accumulation_cuda                                                                       \
   static SD_INLINE SD_DEVICE void execSpecialCuda(                                                                 \
       const X *dx, const sd::LongType *xShapeInfo, Z *extraParams, Z *result, const sd::LongType *resultShapeInfo, \
-      int *dimension, int dimensionLength, Z *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
+      sd::LongType *dimension, sd::LongType dimensionLength, Z *reductionBuffer, const sd::LongType *tadOnlyShapeInfo,               \
       const sd::LongType *tadOffsets) {}
 
 #else
-// hacky fix for isnan/being being out of scope
-//#ifdef IOS
-//#define isinf(x) 0 // this isn't right. But std::isinf fails
-//#define isnan(x) 0
-//#else
-//#define isnan std::isnan
-//#define isinf std::isinf
-//#endif
 
 #define no_op_exec_special_cuda
 #define no_op_exec_special_accumulation_cuda
@@ -124,6 +120,7 @@
 
 #define SELU_ALPHA 1.6732632423543772848170429916717
 #define SELU_LAMBDA 1.0507009873554804934193349852946
+#define SD_STRING_ASSIGN_TEMP_BUFFER_BYTES 256
 
 namespace functions {
 namespace indexreduce {
@@ -132,7 +129,8 @@ struct IndexValue {
   T value;
   sd::LongType index;
   SD_HOST_DEVICE IndexValue() = default;
-  SD_HOST_DEVICE IndexValue(const T val, const sd::LongType ind) : index(ind), value(val) {}
+  // Change initialization order to match declaration order
+  SD_HOST_DEVICE IndexValue(const T val, const sd::LongType ind) : value(val), index(ind) {}
 };
 }  // namespace indexreduce
 
@@ -146,93 +144,98 @@ namespace simdOps {
 template <typename X, typename Y, typename Z>
 class Add {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d1 + d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return d1 + d2; }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d1 + d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_add<X,Y,Z>(d1,d2); }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(d1 + params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) {  return sd::math::sd_add<X,Y,Z>(d1,params[0]); }
 
   SD_OP_DEF static X startingValue() { return static_cast<X>(0.f); }
 };
 
-template <typename X, typename Y>
-class NewAdd {
- public:
-  SD_OP_DEF static X op(X d1, Y d2, X *params) { return d1 + d2; }
-};
+
 
 template <typename X, typename Y, typename Z>
 class Subtract {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d1 - d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_subtract<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d1 - d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_subtract<X,Y,Z>(d1, d2); }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(d1 - params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_subtract<X,Y,Z>(d1, params[0]); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0.f); }
 };
 
 template <typename X, typename Y, typename Z>
 class SquaredSubtract {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    auto d = static_cast<Z>(d1 - d2);
-    return d * d;
+    Z diff = sd::math::sd_subtract<X,Y,Z>(d1, d2);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    auto d = static_cast<Z>(d1 - d2);
-    return d * d;
+    Z diff = sd::math::sd_subtract<X,Y,Z>(d1, d2);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    auto d = static_cast<Z>(d1 - params[0]);
-    return d * d;
+    Z diff = sd::math::sd_subtract<X,Y,Z>(d1, params[0]);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0.f); }
 };
 
 template <typename X, typename Y, typename Z>
 class SquaredReverseSubtract {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    auto d = static_cast<Z>(d2 - d1);
-    return d * d;
+    Z diff = sd::math::sd_subtract<Y,X,Z>(d2, d1);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    auto d = static_cast<Z>(d2 - d1);
-    return d * d;
+    Z diff = sd::math::sd_subtract<Y,X,Z>(d2, d1);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    auto d = static_cast<Z>(params[0] - d1);
-    return d * d;
+    Z diff = sd::math::sd_subtract<Y,X,Z>(params[0], d1);
+    return sd::math::sd_multiply<Z,Z,Z>(diff, diff);
   }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0.f); }
 };
 
 template <typename X, typename Y, typename Z>
 class ReverseSubtract {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d2 - d1); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_subtract<Y,X,Z>(d2, d1); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d2 - d1); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_subtract<Y,X,Z>(d2, d1); }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(params[0] - d1); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_subtract<Y,X,Z>(params[0], d1); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0.f); }
 };
+
 
 template <typename X, typename Y, typename Z>
 class LogPoissonLossFull {
@@ -292,14 +295,14 @@ class LogPoissonLoss {
 template <typename X, typename Y, typename Z>
 class Multiply {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d1 * d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_multiply<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d1 * d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_multiply<X,Y,Z>(d1, d2); }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(d1 * params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_multiply<X,Y,Z>(d1, params[0]); }
 
   SD_OP_DEF static X startingValue() { return static_cast<X>(1.f); }
 };
@@ -307,14 +310,14 @@ class Multiply {
 template <typename X, typename Y, typename Z>
 class Divide {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d1 / d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_divide<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d1 / d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_divide<X,Y,Z>(d1, d2); }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(d1 / params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_divide<X,Y,Z>(d1, params[0]); }
 
   SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
 };
@@ -323,21 +326,18 @@ template <typename X, typename Y, typename Z>
 class DivideNoNan {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    if (d2 == (Y)0) return (Z)0;
-    return static_cast<Z>(d1 / d2);
+    return d2 == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, d2);
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    if (d2 == (Y)0) return (Z)0;
-    return static_cast<Z>(d1 / d2);
+    return d2 == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, d2);
   }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    if (params[0] == (Y)0) return (Z)0;
-    return static_cast<Z>(d1 / params[0]);
+    return params[0] == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, params[0]);
   }
 
   SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
@@ -347,147 +347,154 @@ template <typename X, typename Y, typename Z>
 class SafeDivide {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    if (d2 == static_cast<Y>(0)) return static_cast<Z>(0);
-    return static_cast<Z>(d1 / d2);
+    return d2 == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, d2);
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    if (d2 == static_cast<Y>(0)) return static_cast<Z>(0);
-    return static_cast<Z>(d1 / d2);
+    return d2 == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, d2);
   }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    if (params[0] == static_cast<Y>(0)) return static_cast<Z>(0);
-    return static_cast<Z>(d1 / params[0]);
+    return params[0] == static_cast<Y>(0) ? static_cast<Z>(0) : sd::math::sd_divide<X,Y,Z>(d1, params[0]);
   }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
 };
 
 template <typename X, typename Y, typename Z>
 class FloorDiv {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_floor<Z, Z>(static_cast<Z>(d1 / d2)); }
+  SD_OP_DEF static Z op(X d1, Y d2) {
+    auto divResult = sd::math::sd_divide<X,Y,double>(d1, d2);
+    return static_cast<Z>(sd::math::sd_floor<double,Z>(divResult));
+  }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_floor<Z, Z>(static_cast<Z>(d1 / d2)); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
+    auto divResult = sd::math::sd_divide<X,Y,double>(d1, d2);
+    return static_cast<Z>(sd::math::sd_floor<double,Z>(divResult));
+  }
 
-  SD_OP_DEF static Z op(X d1) { return sd::math::sd_floor<Z, Z>(static_cast<Z>(d1)); }
+  SD_OP_DEF static Z op(X d1) { return sd::math::sd_floor<X,Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_floor<Z, Z>(static_cast<Z>(d1 / params[0])); }
+  SD_OP_DEF static Z op(X d1, Y *params) {
+    auto divResult = sd::math::sd_divide<X,Y,double>(d1, params[0]);
+    return static_cast<Z>(sd::math::sd_floor<double,Z>(divResult));
+  }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
 };
 
 template <typename X, typename Y, typename Z>
 class TruncateDiv {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(d2);
-    return static_cast<Z>(i1 / i2);
+    return static_cast<Z>(sd::math::sd_divide<int,int,int>(static_cast<int>(d1), static_cast<int>(d2)));
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(d2);
-    return static_cast<Z>(i1 / i2);
+    return static_cast<Z>(sd::math::sd_divide<int,int,int>(static_cast<int>(d1), static_cast<int>(d2)));
   }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(params[0]);
-    return static_cast<Z>(i1 / i2);
+    return static_cast<Z>(sd::math::sd_divide<int,int,int>(static_cast<int>(d1), static_cast<int>(params[0])));
   }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
 };
 
 template <typename X, typename Y, typename Z>
 class TruncateMod {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(d2);
-    return static_cast<Z>(i1 % i2);
+    return static_cast<Z>(static_cast<int>(d1) % static_cast<int>(d2));
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(d2);
-    return static_cast<Z>(i1 % i2);
+    return static_cast<Z>(static_cast<int>(d1) % static_cast<int>(d2));
   }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) {
-    auto i1 = static_cast<int>(d1);
-    auto i2 = static_cast<int>(params[0]);
-    return static_cast<Z>(i1 % i2);
+    return static_cast<Z>(static_cast<int>(d1) % static_cast<int>(params[0]));
   }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0); }
 };
 
 template <typename X, typename Y, typename Z>
 class Remainder {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_remainder<X, Y, Z>(d1, d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_remainder<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_remainder<X, Y, Z>(d1, d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_remainder<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_remainder<X, Y, Z>(d1, params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_remainder<X,Y,Z>(d1, params[0]); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0); }
 };
 
 template <typename X, typename Y, typename Z>
 class FMod {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_fmod<X, Y, Z>(d1, d2); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_fmod<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_fmod<X, Y, Z>(d1, d2); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_fmod<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_fmod<X, Y, Z>(d1, params[0]); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_fmod<X,Y,Z>(d1, params[0]); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0); }
 };
 
 template <typename X, typename Y, typename Z>
 class FloorMod {
  public:
   SD_OP_DEF static Z op(X d1, Y d2) {
-    auto m = sd::math::sd_fmod<X, Y, Z>(d1, d2);
+    Z m = sd::math::sd_fmod<X,Y,Z>(d1, d2);
     return (d1 < static_cast<X>(0)) == (d2 < static_cast<Y>(0))
            ? m
-           : sd::math::sd_fmod<Z, Y, Z>(m + static_cast<Z>(d2), d2);
+           : sd::math::sd_fmod<Z,Y,Z>(m + static_cast<Z>(d2), d2);
   }
 
   SD_OP_DEF static Z op(X d1, Y d2, Z *params) {
-    auto m = sd::math::sd_fmod<X, Y, Z>(d1, d2);
-    return (d1 < static_cast<X>(0.0f)) == (d2 < static_cast<Y>(0))
-           ? m
-           : sd::math::sd_fmod<Z, Y, Z>(m + static_cast<Z>(d2), d2);
+    return op(d1, d2);
   }
 
-  SD_OP_DEF static Z op(X d1) { return d1; }
+  SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
   SD_OP_DEF static Z op(X d1, Y *params) { return op(d1, params[0]); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(0); }
 };
 
 template <typename X, typename Y, typename Z>
 class ReverseDivide {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2) { return static_cast<Z>(d2 / d1); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_divide<Y,X,Z>(d2, d1); }
 
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return static_cast<Z>(d2 / d1); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_divide<Y,X,Z>(d2, d1); }
 
   SD_OP_DEF static Z op(X d1) { return static_cast<Z>(d1); }
 
   // op for MetaOps
-  SD_OP_DEF static Z op(X d1, Y *params) { return static_cast<Z>(params[0] / d1); }
+  SD_OP_DEF static Z op(X d1, Y *params) { return sd::math::sd_divide<Y,X,Z>(params[0], d1); }
+
+  SD_OP_DEF static X startingValue() { return static_cast<X>(1); }
 };
 
 template <typename X, typename Y, typename Z>
@@ -541,13 +548,323 @@ class Axpy {
 template <typename X, typename Z>
 class Assign {
  public:
-  no_op_exec_special_any no_op_exec_special_any_cuda
+  // Assuming this member exists based on the error message context
+  // Define it appropriately or remove if not applicable to the generic case
+  // no_op_exec_special_any no_op_exec_special_any_cuda;
 
-  SD_OP_DEF static Z
-  op(X d1, X *params) {
-    return static_cast<Z>(d1);
+  SD_OP_DEF static Z op(X d1, X *params) {
+    // Use if constexpr (C++17) for better compile-time checking
+    if constexpr (std::is_same_v<X, Z>) {
+      return d1; // No conversion needed
+    } else if constexpr (std::is_convertible_v<X, Z>) {
+      return static_cast<Z>(d1); // Use static_cast only if directly convertible
+    } else {
+      // This path should ideally not be taken for types requiring
+      // specialized conversion. Rely on specializations below.
+      // If a conversion is attempted here without a specialization,
+      // it will likely lead to a compile error as before.
+      // You could add a static_assert here for unsupported types:
+      // static_assert(std::is_convertible_v<X, Z>, "Assign requires specialization for this type combination or direct convertibility.");
+      return static_cast<Z>(d1); // Keep the original line to trigger errors for unhandled cases
+    }
   }
 };
+
+// --- Specialization: std::basic_string<char16_t> -> std::basic_string<char> (UTF-16 to UTF-8) ---
+// --- Specialization: std::basic_string<char16_t> (UTF-16) -> std::basic_string<char> (UTF-8) ---
+// --- Specialization: std::basic_string<char16_t> (UTF-16) -> std::basic_string<char> (UTF-8) ---
+template <>
+class Assign<std::basic_string<char16_t>, std::basic_string<char>> {
+ public:
+  // Manually expanded "no_op_exec_special_any" content
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char16_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  // Manually expanded "no_op_exec_special_any_cuda" content
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char16_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char>
+  op(const std::basic_string<char16_t>& d1, std::basic_string<char16_t> * /*params*/) {
+    char temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES];
+    const char16_t* input_data = d1.data();
+    const uint32_t input_length_char16_units = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes = sd::unicode::offsetUtf16StringInUtf8(input_data, input_length_char16_units);
+
+    if (required_bytes > 0 && static_cast<size_t>(required_bytes) <= SD_STRING_ASSIGN_TEMP_BUFFER_BYTES) {
+      void* end_ptr = sd::unicode::utf16to8Ptr(input_data, input_data + input_length_char16_units, temp_output_buffer);
+      size_t bytes_written = static_cast<char*>(end_ptr) - temp_output_buffer;
+      if (bytes_written == static_cast<size_t>(required_bytes)) {
+        return std::basic_string<char>(temp_output_buffer, bytes_written);
+      }
+    }
+    return std::basic_string<char>();
+  }
+};
+
+// --- Specialization: std::basic_string<char> (UTF-8) -> std::basic_string<char16_t> (UTF-16) ---
+template <>
+class Assign<std::basic_string<char>, std::basic_string<char16_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char16_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char16_t>
+  op(const std::basic_string<char>& d1, std::basic_string<char> * /*params*/) {
+    char16_t temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES / sizeof(char16_t) + 1];
+    const char* input_data = d1.data();
+    const uint32_t input_length_bytes = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes_for_utf16 = sd::unicode::offsetUtf8StringInUtf16(input_data, input_length_bytes);
+
+    if (required_bytes_for_utf16 > 0 && static_cast<size_t>(required_bytes_for_utf16) < sizeof(temp_output_buffer) ) {
+      void* end_ptr = sd::unicode::utf8to16Ptr(input_data, input_data + input_length_bytes, temp_output_buffer);
+      size_t char16_units_written = static_cast<char16_t*>(end_ptr) - temp_output_buffer;
+      if (char16_units_written * sizeof(char16_t) == static_cast<size_t>(required_bytes_for_utf16)) {
+        return std::basic_string<char16_t>(temp_output_buffer, char16_units_written);
+      }
+    }
+    return std::basic_string<char16_t>();
+  }
+};
+
+// --- Specialization: std::basic_string<char32_t> (UTF-32) -> std::basic_string<char> (UTF-8) ---
+template <>
+class Assign<std::basic_string<char32_t>, std::basic_string<char>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char32_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char32_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char>
+  op(const std::basic_string<char32_t>& d1, std::basic_string<char32_t> * /*params*/) {
+    char temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES];
+    const char32_t* input_data = d1.data();
+    const uint32_t input_length_char32_units = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes = sd::unicode::offsetUtf32StringInUtf8(input_data, input_length_char32_units);
+
+    if (required_bytes > 0 && static_cast<size_t>(required_bytes) <= SD_STRING_ASSIGN_TEMP_BUFFER_BYTES) {
+      void* end_ptr = sd::unicode::utf32to8Ptr(input_data, input_data + input_length_char32_units, temp_output_buffer);
+      size_t bytes_written = static_cast<char*>(end_ptr) - temp_output_buffer;
+      if (bytes_written == static_cast<size_t>(required_bytes)) {
+        return std::basic_string<char>(temp_output_buffer, bytes_written);
+      }
+    }
+    return std::basic_string<char>();
+  }
+};
+
+// --- Specialization: std::basic_string<char> (UTF-8) -> std::basic_string<char32_t> (UTF-32) ---
+template <>
+class Assign<std::basic_string<char>, std::basic_string<char32_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char32_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char32_t>
+  op(const std::basic_string<char>& d1, std::basic_string<char> * /*params*/) {
+    char32_t temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES / sizeof(char32_t) + 1];
+    const char* input_data = d1.data();
+    const uint32_t input_length_bytes = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes_for_utf32_data = sd::unicode::offsetUtf8StringInUtf32(input_data, input_length_bytes);
+
+    if (required_bytes_for_utf32_data > 0 && static_cast<size_t>(required_bytes_for_utf32_data) < sizeof(temp_output_buffer) ) {
+      void* end_ptr = sd::unicode::utf8to32Ptr(input_data, input_data + input_length_bytes, temp_output_buffer);
+      size_t char32_units_written = static_cast<char32_t*>(end_ptr) - temp_output_buffer;
+      if (char32_units_written * sizeof(char32_t) == static_cast<size_t>(required_bytes_for_utf32_data)) {
+        return std::basic_string<char32_t>(temp_output_buffer, char32_units_written);
+      }
+    }
+    return std::basic_string<char32_t>();
+  }
+};
+
+// --- Specialization: std::basic_string<char32_t> (UTF-32) -> std::basic_string<char16_t> (UTF-16) ---
+template <>
+class Assign<std::basic_string<char32_t>, std::basic_string<char16_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char32_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char32_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char16_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char16_t>
+  op(const std::basic_string<char32_t>& d1, std::basic_string<char32_t> * /*params*/) {
+    char16_t temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES / sizeof(char16_t) + 1];
+    const char32_t* input_data = d1.data();
+    const uint32_t input_length_char32_units = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes_for_utf16 = sd::unicode::offsetUtf32StringInUtf16(input_data, input_length_char32_units);
+
+    if (required_bytes_for_utf16 > 0 && static_cast<size_t>(required_bytes_for_utf16) < sizeof(temp_output_buffer)) {
+      void* end_ptr = sd::unicode::utf32to16Ptr(input_data, input_data + input_length_char32_units, temp_output_buffer);
+      size_t char16_units_written = static_cast<char16_t*>(end_ptr) - temp_output_buffer;
+      if (char16_units_written * sizeof(char16_t) == static_cast<size_t>(required_bytes_for_utf16)) {
+        return std::basic_string<char16_t>(temp_output_buffer, char16_units_written);
+      }
+    }
+    return std::basic_string<char16_t>();
+  }
+};
+
+// --- Specialization: std::basic_string<char16_t> (UTF-16) -> std::basic_string<char32_t> (UTF-32) ---
+template <>
+class Assign<std::basic_string<char16_t>, std::basic_string<char32_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char16_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char16_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char32_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+
+  SD_HOST_DEVICE static std::basic_string<char32_t>
+  op(const std::basic_string<char16_t>& d1, std::basic_string<char16_t> * /*params*/) {
+    char32_t temp_output_buffer[SD_STRING_ASSIGN_TEMP_BUFFER_BYTES / sizeof(char32_t) + 1];
+    const char16_t* input_data = d1.data();
+    const uint32_t input_length_char16_units = static_cast<uint32_t>(d1.length());
+
+    sd::LongType required_bytes_for_utf32_data = sd::unicode::offsetUtf16StringInUtf32(input_data, input_length_char16_units);
+
+    if (required_bytes_for_utf32_data > 0 && static_cast<size_t>(required_bytes_for_utf32_data) < sizeof(temp_output_buffer)) {
+      void* end_ptr = sd::unicode::utf16to32Ptr(input_data, input_data + input_length_char16_units, temp_output_buffer);
+      size_t char32_units_written = static_cast<char32_t*>(end_ptr) - temp_output_buffer;
+      if (char32_units_written * sizeof(char32_t) == static_cast<size_t>(required_bytes_for_utf32_data)) {
+        return std::basic_string<char32_t>(temp_output_buffer, char32_units_written);
+      }
+    }
+    return std::basic_string<char32_t>();
+  }
+};
+
+// --- Identity Specializations ---
+template <>
+class Assign<std::basic_string<char>, std::basic_string<char>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+  SD_HOST_DEVICE static std::basic_string<char>
+  op(const std::basic_string<char>& d1, std::basic_string<char> * /*params*/) {
+    return d1;
+  }
+};
+
+template <>
+class Assign<std::basic_string<char16_t>, std::basic_string<char16_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char16_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char16_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char16_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char16_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char16_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+  SD_HOST_DEVICE static std::basic_string<char16_t>
+  op(const std::basic_string<char16_t>& d1, std::basic_string<char16_t> * /*params*/) {
+    return d1;
+  }
+};
+
+template <>
+class Assign<std::basic_string<char32_t>, std::basic_string<char32_t>> {
+ public:
+  static const bool requiresSpecial = false;
+  static void execSpecial(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                          std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                          std::basic_string<char32_t> *extraParams, const sd::LongType *tadShapeInfo,
+                          const sd::LongType *tadOffsets) {}
+#ifdef __CUDACC__
+  static SD_DEVICE void execSpecialCuda(const std::basic_string<char32_t> *dx, const sd::LongType *xShapeBuffer,
+                                        std::basic_string<char32_t> *result, const sd::LongType *resultShapeBuffer,
+                                        std::basic_string<char32_t> *extraParams,
+                                        sd::LongType *allocationPointer,
+                                        std::basic_string<char32_t> *reductionPointer,
+                                        const sd::LongType *tadShapeInfo, const sd::LongType *tadOffsets) {}
+#endif
+  SD_HOST_DEVICE static std::basic_string<char32_t>
+  op(const std::basic_string<char32_t>& d1, std::basic_string<char32_t> * /*params*/) {
+    return d1;
+  }
+};
+
+
+
 
 template <typename X, typename Z>
 class And {
@@ -802,12 +1119,22 @@ class Epsilon {
  public:
   SD_OP_DEF static Z op(X d1, X d2) {
     X diff = d1 - d2;
-    X absDiff = sd::math::sd_abs<X>(diff);
+    X absDiff = sd::math::sd_abs<X,X>(diff);
     if (absDiff <= static_cast<X>(SD_MIN_V)) return static_cast<Z>(1);
     return static_cast<Z>(0);
   }
 
-  SD_OP_DEF static Z op(X d1, X d2, X *params) { return op(d1, d2); }
+  SD_OP_DEF static Z op(X d1, X d2, X *params) {
+    X diff = d1 - d2;
+    X absDiff = sd::math::sd_abs<X,X>(diff);
+    if(params != nullptr && absDiff <= static_cast<X>(params[0])) {
+      return static_cast<Z>(1);
+    } else  if(absDiff <= static_cast<X>(1e-5)) {
+      return static_cast<Z>(1);
+    }
+    return static_cast<Z>(0);
+  }
+
 
   SD_OP_DEF static Z op(X d1, X *params) { return d1; }
 };
@@ -881,7 +1208,7 @@ class Abs {
 
   SD_OP_DEF static X
   op(X d1, X *params) {
-    return sd::math::sd_abs<X>(d1);
+    return sd::math::sd_abs<X,X>(d1);
   }
 };
 
@@ -1060,10 +1387,6 @@ template <typename X>
 class Reciprocal {
  public:
   no_op_exec_special_same no_op_exec_special_same_cuda
-  //        SD_OP_DEF static T op(T d1) {
-  //            return (T(1.0f) / d1);
-  //        }
-  // op for MetaOps
   SD_OP_DEF static X
   op(X d1, X *params) {
     return (static_cast<X>(1) / d1);
@@ -1123,8 +1446,8 @@ class BinaryMinimumAbsoluteRelativeError {
     X thresholdRelative = params[1];
     X thresholdAbsolute = params[2];
     return sd::math::sd_re<X>(d1, d2) > thresholdRelative
-           ? (sd::math::sd_abs<X>(d1 - static_cast<X>(d2)) < thresholdAbsolute ? static_cast<Z>(0)
-                                                                               : static_cast<Z>(1))
+           ? (sd::math::sd_abs<X,X>(d1 - static_cast<X>(d2)) < thresholdAbsolute ? static_cast<Z>(0)
+                                                                                 : static_cast<Z>(1))
            : static_cast<Z>(0);
   }
 
@@ -1132,8 +1455,8 @@ class BinaryMinimumAbsoluteRelativeError {
     X thresholdRelative = params[0];
     X thresholdAbsolute = params[1];
     return sd::math::sd_re<X>(d1, d2) > thresholdRelative
-           ? (sd::math::sd_abs<X>(d1 - static_cast<X>(d2)) < thresholdAbsolute ? static_cast<Z>(0)
-                                                                               : static_cast<Z>(1))
+           ? (sd::math::sd_abs<X,X>(d1 - static_cast<X>(d2)) < thresholdAbsolute ? static_cast<Z>(0)
+                                                                                 : static_cast<Z>(1))
            : static_cast<Z>(0);
   }
 
@@ -1249,7 +1572,7 @@ class IsNan {
 
   SD_OP_DEF static Z
   op(X d1, X *params) {
-    return sd::math::sd_isnan(d1) ? static_cast<X>(1) : static_cast<X>(0);
+    return sd::math::sd_isnan<X>(d1) ? static_cast<X>(1) : static_cast<X>(0);
   }
 
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0); }
@@ -1662,7 +1985,7 @@ class RSqrt {
 
   SD_OP_DEF static Z
   op(X d1, Z *params) {
-    return static_cast<Z>(1) / sd::math::sd_sqrt<X, Z>(d1);
+    return static_cast<Z>(1.0) / sd::math::sd_sqrt<X, Z>(d1);
   }
 };
 
@@ -1722,7 +2045,7 @@ class RationalTanh {
 
     auto tanh = sd::math::sd_sgn<X, X>(dis) *
                 (static_cast<X>(1) -
-                 (static_cast<X>(1) / (static_cast<X>(1) + static_cast<X>(sd::math::sd_abs<X>(dis)) +
+                 (static_cast<X>(1) / (static_cast<X>(1) + static_cast<X>(sd::math::sd_abs<X,X>(dis)) +
                                        sd::math::sd_pow<X, X, X>(dis, static_cast<X>(2)) +
                                        static_cast<X>(1.41645f) * sd::math::sd_pow<X, X, X>(dis, static_cast<X>(4)))));
     return static_cast<X>(1.7159f) * tanh;
@@ -1738,7 +2061,7 @@ class RationalTanhDerivative {
   op(X d1, X *params) {
     auto dis = (static_cast<X>(2.f) / static_cast<X>(3.f)) * d1;
 
-    auto a = static_cast<X>(1.f) + sd::math::sd_abs<X>(dis) + sd::math::sd_pow<X, X, X>(dis, static_cast<X>(2.f)) +
+    auto a = static_cast<X>(1.f) + sd::math::sd_abs<X,X>(dis) + sd::math::sd_pow<X, X, X>(dis, static_cast<X>(2.f)) +
              static_cast<X>(1.41645f) * sd::math::sd_pow<X, X, X>(dis, static_cast<X>(4));
 
     auto tDeriv =
@@ -1945,9 +2268,9 @@ class MatchConditionBool {
 
     switch (mode) {
       case 0:  // equals
-        return sd::math::sd_abs<X>(d1 - compare) <= eps ? true : false;
+        return sd::math::sd_abs<X,X>(d1 - compare) <= eps ? true : false;
       case 1:  // not equals
-        return sd::math::sd_abs<X>(d1 - compare) > eps ? true : false;
+        return sd::math::sd_abs<X,X>(d1 - compare) > eps ? true : false;
       case 2:  // less_than
         return d1 < compare ? true : false;
       case 3:  // greater_than
@@ -1957,27 +2280,27 @@ class MatchConditionBool {
       case 5:  // greater_or_equals_than
         return d1 >= compare ? true : false;
       case 6:  // abs_less_than
-        return sd::math::sd_abs<X>(d1) < compare ? true : false;
+        return sd::math::sd_abs<X,X>(d1) < compare ? true : false;
       case 7:  // abs_greater_than
-        return sd::math::sd_abs<X>(d1) > compare ? true : false;
+        return sd::math::sd_abs<X,X>(d1) > compare ? true : false;
       case 8:  // is inf
-        return sd::math::sd_isinf(d1) ? true : false;
+        return sd::math::sd_isinf<X>(d1) ? true : false;
       case 9:  // is nan
-        return sd::math::sd_isnan(d1) ? true : false;
+        return sd::math::sd_isnan<X>(d1) ? true : false;
       case 10:
         return (d1 == compare) ? true : false;
       case 11:
         return (d1 != compare) ? true : false;
       case 12:  // abs_greater_or_equals_than
-        return sd::math::sd_abs<X>(d1) >= compare ? true : false;
+        return sd::math::sd_abs<X,X>(d1) >= compare ? true : false;
       case 13:  // abs_less_or_equals_than
-        return sd::math::sd_abs<X>(d1) <= compare ? true : false;
+        return sd::math::sd_abs<X,X>(d1) <= compare ? true : false;
       case 14:
         // isFinite
-        return !(sd::math::sd_isinf(d1) || sd::math::sd_isnan(d1));
+        return !(sd::math::sd_isinf<X>(d1) || sd::math::sd_isnan<X>(d1));
       case 15:
         // isInfinite
-        return sd::math::sd_isinf(d1) || sd::math::sd_isnan(d1);
+        return sd::math::sd_isinf<X>(d1) || sd::math::sd_isnan<X>(d1);
       default:
         sd_debug("Undefined match condition: [%i]\n", mode);
     }
@@ -2003,12 +2326,11 @@ class MatchCondition {
   SD_OP_DEF static Z update(Z old, Z opOutput, X *extraParams) { return old + opOutput; }
 
   SD_OP_DEF static Z op(X d1, X compare, X eps, int mode) {
-    sd_debug("MatchCondition: value: %f; comp: %f; eps: %f; mode: %i;\n", d1, compare, eps, mode);
     switch (mode) {
       case 0:  // equals
-        return sd::math::sd_abs<X>(d1 - compare) <= eps ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1 - compare) <= eps ? 1 : 0;
       case 1:  // not equals
-        return sd::math::sd_abs<X>(d1 - compare) > eps ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1 - compare) > eps ? 1 : 0;
       case 2:  // less_than
         return d1 < compare ? 1 : 0;
       case 3:  // greater_than
@@ -2018,9 +2340,9 @@ class MatchCondition {
       case 5:  // greater_or_equals_than
         return d1 >= compare ? 1 : 0;
       case 6:  // abs_less_than
-        return sd::math::sd_abs<X>(d1) < compare ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1) < compare ? 1 : 0;
       case 7:  // abs_greater_than
-        return sd::math::sd_abs<X>(d1) > compare ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1) > compare ? 1 : 0;
       case 8:  // is inf
         return sd::math::sd_isinf(d1) ? 1 : 0;
       case 9:  // is nan
@@ -2030,15 +2352,15 @@ class MatchCondition {
       case 11:
         return (d1 != compare) ? 1 : 0;
       case 12:  // abs_greater_or_equals_than
-        return sd::math::sd_abs<X>(d1) >= compare ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1) >= compare ? 1 : 0;
       case 13:  // abs_less_or_equals_than
-        return sd::math::sd_abs<X>(d1) <= compare ? 1 : 0;
+        return sd::math::sd_abs<X,X>(d1) <= compare ? 1 : 0;
       case 14:
         // isFinite
-        return !(sd::math::sd_isinf(d1) || sd::math::sd_isnan(d1)) ? 1 : 0;
+        return !(sd::math::sd_isinf<X>(d1) || sd::math::sd_isnan<X>(d1)) ? 1 : 0;
       case 15:
         // isInfinite
-        return sd::math::sd_isinf(d1) || sd::math::sd_isnan(d1) ? 1 : 0;
+        return sd::math::sd_isinf<X>(d1) || sd::math::sd_isnan<X>(d1) ? 1 : 0;
       default:
         sd_printf("Undefined match condition: [%i]\n", mode);
     }
@@ -2129,7 +2451,7 @@ class RELU6 {
 
   SD_OP_DEF static Z
   op(X d1, Y d2, Z *params) {
-    auto relu = simdOps::RELU<X, Y, Z>::op(d1, d2, params);
+    auto relu = RELU<X, Y, Z>::op(d1, d2, params);
     return relu < static_cast<Z>(6) ? relu : static_cast<Z>(6);
   }
 };
@@ -2404,19 +2726,19 @@ class ShannonEntropy {
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
   SD_OP_DEF static InterType op(X d1, Z *extraParams) {
-    return static_cast<InterType>(d1) * sd::math::sd_log2<X, InterType>(d1);
+    auto p = d1;
+    return static_cast<Z>(p) * sd::math::sd_log2<X, Z>(p);
   }
 
-  SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) {
-    return static_cast<Z>(-reduction);
-  }
+  SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) { return -reduction; }
 };
+
 
 template <typename X, typename Z>
 class LogEntropy {
  public:
   no_op_exec_special_accumulation no_op_exec_special_accumulation_cuda using InterType =
-  typename AggregateType<Z>::type;
+      typename AggregateType<Z>::type;
   const static functions::ReduceType reduceType = functions::ReduceType::SUM;
 
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0); }
@@ -2467,16 +2789,16 @@ class ASum {
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0); }
 
   SD_OP_DEF static X merge(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_abs<X>(opOutput) + sd::math::sd_abs<X>(old);
+    return sd::math::sd_abs<X,X>(opOutput) + sd::math::sd_abs<X,X>(old);
   }
 
   SD_OP_DEF static X update(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_abs<X>(opOutput) + sd::math::sd_abs<X>(old);
+    return sd::math::sd_abs<X,X>(opOutput) + sd::math::sd_abs<X,X>(old);
   }
 
-  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X>(d1); }
+  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X,X>(d1); }
 
-  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X>(reduction); }
+  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X,X>(reduction); }
 };
 
 template <typename X, typename Z>
@@ -2505,7 +2827,7 @@ template <typename X, typename Z>
 class CountZero {
  public:
   no_op_exec_special_accumulation_long no_op_exec_special_accumulation_cuda using InterType =
-  typename AggregateType<Z>::type;
+      typename AggregateType<Z>::type;
   const static functions::ReduceType reduceType = functions::ReduceType::SUM;
 
   SD_OP_DEF static Z startingValue(const X *input) { return static_cast<Z>(0.0f); }
@@ -2564,7 +2886,6 @@ template <typename X, typename Z>
 class All {
  public:
   no_op_exec_special_accumulation no_op_exec_special_accumulation_cuda using InterType = Z;
-  const static functions::ReduceType reduceType = functions::ReduceType::PRODUCT;
 
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(1); }
 
@@ -2639,15 +2960,15 @@ class AMean {
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0); }
 
   SD_OP_DEF static InterType merge(InterType old, InterType opOutput, Z *extraParams) {
-    return sd::math::sd_abs<X>(opOutput) + sd::math::sd_abs<X>(old);
+    return sd::math::sd_abs<X,X>(opOutput) + sd::math::sd_abs<X,X>(old);
   }
 
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
-  SD_OP_DEF static InterType op(X d1, Z *extraParams) { return sd::math::sd_abs<InterType>(d1); }
+  SD_OP_DEF static InterType op(X d1, Z *extraParams) { return sd::math::sd_abs<InterType,InterType>(d1); }
 
   SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) {
-    return sd::math::sd_abs<Z>(reduction / static_cast<InterType>(n));
+    return sd::math::sd_abs<Z,Z>(reduction / static_cast<InterType>(n));
   }
 };
 
@@ -2683,7 +3004,7 @@ class AMaxPairwise {
     auto z1 = static_cast<Z>(d1);
     auto z2 = static_cast<Z>(d2);
 
-    if (sd::math::sd_abs<Z>(z1) > sd::math::sd_abs<Z>(z2))
+    if (sd::math::sd_abs<Z,Z>(z1) > sd::math::sd_abs<Z,Z>(z2))
       return z1;
     else
       return z2;
@@ -2699,7 +3020,7 @@ class AMinPairwise {
     auto z1 = static_cast<Z>(d1);
     auto z2 = static_cast<Z>(d2);
 
-    if (sd::math::sd_abs<Z>(z1) < sd::math::sd_abs<Z>(z2))
+    if (sd::math::sd_abs<Z,Z>(z1) < sd::math::sd_abs<Z,Z>(z2))
       return z1;
     else
       return z2;
@@ -2717,9 +3038,9 @@ class MaxPairwise {
 template <typename X, typename Y, typename Z>
 class MinPairwise {
  public:
-  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_min<Z>(static_cast<Z>(d1), static_cast<Z>(d2)); }
+  SD_OP_DEF static Z op(X d1, Y d2, Z *params) { return sd::math::sd_min<X,Y,Z>(d1, d2); }
 
-  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_min<Z>(static_cast<Z>(d1), static_cast<Z>(d2)); }
+  SD_OP_DEF static Z op(X d1, Y d2) { return sd::math::sd_min<X,Y,Z>(d1,d2); }
 };
 
 template <typename X>
@@ -2732,23 +3053,23 @@ class AMax {
   SD_OP_DEF static X startingValue(const X *input) { return input[0]; }
 
   SD_OP_DEF static X merge(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_max<X>(sd::math::sd_abs<X>(old), sd::math::sd_abs<X>(opOutput));
+    return sd::math::sd_max<X>(sd::math::sd_abs<X,X>(old), sd::math::sd_abs<X,X>(opOutput));
   }
 
   SD_OP_DEF static X update(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_max<X>(sd::math::sd_abs<X>(opOutput), sd::math::sd_abs<X>(old));
+    return sd::math::sd_max<X>(sd::math::sd_abs<X,X>(opOutput), sd::math::sd_abs<X,X>(old));
   }
 
   SD_OP_DEF static X op(X d1, X d2, X *params) {
-    return sd::math::sd_max<X>(sd::math::sd_abs<X>(d1), sd::math::sd_abs<X>(d2));
+    return sd::math::sd_max<X>(sd::math::sd_abs<X,X>(d1), sd::math::sd_abs<X,X>(d2));
   }
 
-  SD_OP_DEF static X op(X d1, X d2) { return sd::math::sd_abs<X>(d1) > sd::math::sd_abs<X>(d2) ? d1 : d2; }
+  SD_OP_DEF static X op(X d1, X d2) { return sd::math::sd_abs<X,X>(d1) > sd::math::sd_abs<X,X>(d2) ? d1 : d2; }
 
   // FIXME: this signature overlaps with MetaOp
-  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X>(d1); }
+  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X,X>(d1); }
 
-  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X>(reduction); }
+  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X,X>(reduction); }
 };
 
 template <typename X>
@@ -2761,23 +3082,23 @@ class AMin {
   SD_OP_DEF static X startingValue(const X *input) { return input[0]; }
 
   SD_OP_DEF static X merge(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_min<X>(sd::math::sd_abs<X>(old), sd::math::sd_abs<X>(opOutput));
+    return sd::math::sd_min<X>(sd::math::sd_abs<X,X>(old), sd::math::sd_abs<X,X>(opOutput));
   }
 
   SD_OP_DEF static X update(X old, X opOutput, X *extraParams) {
-    return sd::math::sd_min<X>(sd::math::sd_abs<X>(opOutput), sd::math::sd_abs<X>(old));
+    return sd::math::sd_min<X>(sd::math::sd_abs<X,X>(opOutput), sd::math::sd_abs<X,X>(old));
   }
 
   SD_OP_DEF static X op(X d1, X d2, X *params) {
-    return sd::math::sd_min<X>(sd::math::sd_abs<X>(d1), sd::math::sd_abs<X>(d2));
+    return sd::math::sd_min<X>(sd::math::sd_abs<X,X>(d1), sd::math::sd_abs<X,X>(d2));
   }
 
-  SD_OP_DEF static X op(X d1, X d2) { return sd::math::sd_min<X>(sd::math::sd_abs<X>(d1), sd::math::sd_abs<X>(d2)); }
+  SD_OP_DEF static X op(X d1, X d2) { return sd::math::sd_min<X>(sd::math::sd_abs<X,X>(d1), sd::math::sd_abs<X,X>(d2)); }
 
   // FIXME: this signature overlaps with MetaOp
-  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X>(d1); }
+  SD_OP_DEF static X op(X d1, X *extraParams) { return sd::math::sd_abs<X,X>(d1); }
 
-  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X>(reduction); }
+  SD_OP_DEF static X postProcess(X reduction, sd::LongType n, X *extraParams) { return sd::math::sd_abs<X,X>(reduction); }
 };
 
 template <typename X>
@@ -2816,7 +3137,7 @@ class Norm1 {
 
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
-  SD_OP_DEF static InterType op(X d1, Z *extraParams) { return static_cast<InterType>(sd::math::sd_abs<X>(d1)); }
+  SD_OP_DEF static InterType op(X d1, Z *extraParams) { return static_cast<InterType>(sd::math::sd_abs<X,X>(d1)); }
 
   SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) { return reduction; }
 };
@@ -2825,7 +3146,7 @@ template <typename X, typename Z>
 class Norm2 {
  public:
   no_op_exec_special_accumulation no_op_exec_special_accumulation_cuda using InterType =
-  typename AggregateType<Z>::type;
+      typename AggregateType<Z>::type;
   const static functions::ReduceType reduceType = functions::ReduceType::SUM;
 
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0); }
@@ -2877,7 +3198,7 @@ class NormFrobenius {
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
   SD_OP_DEF static InterType op(X d1, Z *extraParams) {
-    auto v = sd::math::sd_abs<InterType>(d1);
+    auto v = sd::math::sd_abs<InterType,InterType>(d1);
     return static_cast<InterType>(v * v);
   }
 
@@ -2900,7 +3221,7 @@ class NormP {
   SD_OP_DEF static InterType update(InterType old, InterType opOutput, Z *extraParams) { return opOutput + old; }
 
   SD_OP_DEF static InterType op(X d1, Z *extraParams) {
-    return sd::math::sd_pow<X, Z, InterType>(sd::math::sd_abs<X>(d1), extraParams[0]);
+    return sd::math::sd_pow<X, Z, InterType>(sd::math::sd_abs<X,X>(d1), extraParams[0]);
   }
 
   SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) {
@@ -2920,13 +3241,13 @@ class NormMax {
   SD_OP_DEF static Z merge(Z old, Z opOutput, Z *extraParams) { return opOutput + old; }
 
   SD_OP_DEF static Z update(Z old, Z opOutput, Z *extraParams) {
-    return sd::math::sd_max<Z>(sd::math::sd_abs<Z>(old), sd::math::sd_abs<Z>(opOutput));
+    return sd::math::sd_max<Z>(sd::math::sd_abs<Z,Z>(old), sd::math::sd_abs<Z,Z>(opOutput));
   }
 
   SD_OP_DEF static Z op(X d1, Z *extraParams) { return static_cast<Z>(d1); }
 
   SD_OP_DEF static Z postProcess(Z reduction, sd::LongType n, Z *extraParams) {
-    return sd::math::sd_max<Z>(sd::math::sd_abs<Z>(reduction), sd::math::sd_abs<Z>(reduction));
+    return sd::math::sd_max<Z>(sd::math::sd_abs<Z,Z>(reduction), sd::math::sd_abs<Z,Z>(reduction));
   }
 };
 
@@ -2950,8 +3271,6 @@ class Variance {
   }
 
   SD_OP_DEF static Z postProcess(InterType reduction, sd::LongType n, Z *extraParams) {
-    // T bias = extraParams[1];
-    // return (reduction - (sd::math::sd_pow<T>(bias, static_cast<T>(2.0f)) / static_cast<T>(n))) / (n - 1)
     return static_cast<Z>(reduction / static_cast<InterType>(n - 1));
   }
 };
@@ -2963,7 +3282,7 @@ template <typename X, typename Z>
 class StandardDeviation {
  public:
   no_op_exec_special_accumulation no_op_exec_special_accumulation_cuda using InterType =
-  typename AggregateType<Z>::type;
+      typename AggregateType<Z>::type;
   const static functions::ReduceType reduceType = functions::ReduceType::SUM;
 
   SD_OP_DEF static X startingValue(const X *input) { return static_cast<X>(0.0f); }
@@ -2991,12 +3310,10 @@ class CosineSimilarity {
   static const int extraParamsLen = 2;
 
   SD_OP_DEF static X *generateExtraParams() {
-    // T *extraParams = new T[2];
     return nullptr;
   }
 
   SD_OP_DEF static void finalizeExtraParams(X *extraParams) {
-    // delete[] extraParams;
   }
 
   SD_OP_DEF static Y startingValue(const X *input) { return static_cast<Y>(0.0f); }
@@ -3036,12 +3353,10 @@ class JaccardDistance {
   static const int extraParamsLen = 2;
 
   SD_OP_DEF static X *generateExtraParams() {
-    // T *extraParams = new T[2];
     return nullptr;
   }
 
   SD_OP_DEF static void finalizeExtraParams(X *extraParams) {
-    // delete[] extraParams;
   }
 
   SD_OP_DEF static Y startingValue(const X *input) { return static_cast<X>(0.0f); }
@@ -3087,12 +3402,10 @@ class SimpleHammingDistance {
   static const int extraParamsLen = 0;
 
   SD_OP_DEF static X *generateExtraParams() {
-    // T *extraParams = new T[2];
     return nullptr;
   }
 
   SD_OP_DEF static void finalizeExtraParams(X *extraParams) {
-    // delete[] extraParams;
   }
 
   SD_OP_DEF static Y startingValue(const X *input) { return static_cast<Y>(0.0f); }
@@ -3119,12 +3432,10 @@ class CosineDistance {
   static const int extraParamsLen = 2;
 
   SD_OP_DEF static X *generateExtraParams() {
-    // T *extraParams = new T[2];
     return nullptr;
   }
 
   SD_OP_DEF static void finalizeExtraParams(X *extraParams) {
-    // delete[] extraParams;
   }
 
   SD_OP_DEF static Y startingValue(const X *input) { return static_cast<Y>(0.0f); }
@@ -3135,8 +3446,8 @@ class CosineDistance {
   }
 
   SD_OP_DEF static Y op(X d1, X d2, Y *extraParams) {
-    extraParams[0] += static_cast<Y>(sd::math::sd_abs<X>(d1) * sd::math::sd_abs<X>(d1));
-    extraParams[1] += static_cast<Y>(sd::math::sd_abs<X>(d2) * sd::math::sd_abs<X>(d2));
+    extraParams[0] += static_cast<Y>(sd::math::sd_abs<X,X>(d1) * sd::math::sd_abs<X,X>(d1));
+    extraParams[1] += static_cast<Y>(sd::math::sd_abs<X,X>(d2) * sd::math::sd_abs<X,X>(d2));
     return (d1 * d2);
   }
 
@@ -3147,8 +3458,8 @@ class CosineDistance {
 
 #ifdef __CUDACC__
   static SD_DEVICE inline Y opAtomic(X d1, X d2, Y *extraParams) {
-    sd::math::atomics::sd_atomicAdd(&extraParams[0], sd::math::sd_abs<Y>(d1) * sd::math::sd_abs<Y>(d1));
-    sd::math::atomics::sd_atomicAdd(&extraParams[1], sd::math::sd_abs<Y>(d2) * sd::math::sd_abs<Y>(d2));
+    sd::math::atomics::sd_atomicAdd(&extraParams[0], sd::math::sd_abs<Y,Y>(d1) * sd::math::sd_abs<Y,Y>(d1));
+    sd::math::atomics::sd_atomicAdd(&extraParams[1], sd::math::sd_abs<Y,Y>(d2) * sd::math::sd_abs<Y,Y>(d2));
 
     return (d1 * d2);
   }
@@ -3171,7 +3482,7 @@ class Dot {
 
   SD_OP_DEF static void finalizeExtraParams(X *extraParamsRef) {
     // no-op
-    // delete[] * extraParamsRef;
+
   }
 
   SD_OP_DEF static Y startingValue(const X *input) { return static_cast<Y>(0.0f); }
@@ -3206,13 +3517,20 @@ class EqualsWithEps {
     // no-op
   }
 
-  SD_OP_DEF static Z startingValue(const X *input) { return static_cast<Z>(0.0f); }
+  SD_OP_DEF static Z startingValue(const X *input) {
+    return static_cast<Z>(1.0f);
+  }
 
-  SD_OP_DEF static Z postProcess(Z reduction, sd::LongType n, Z *extraParamsRef) { return reduction; }
+  SD_OP_DEF static Z postProcess(Z reduction, sd::LongType n, Z *extraParamsRef) {
+    return reduction;
+  }
 
   SD_OP_DEF static Z op(X d1, X d2, Z *extraParamsRef) {
-    double eps = sd::math::sd_abs<double>(extraParamsRef[2]);
-    return static_cast<Z>(!sd::math::sd_eq<X>(d1, d2, eps));
+    //x is already type promoted within sd_eq
+    X eps = static_cast<X>(extraParamsRef[2]);
+    auto result = sd::math::sd_eq<X,X>(d1, d2, eps);
+    auto finalResult = static_cast<Z>(result);
+    return finalResult;
   }
 
 #ifdef __CUDACC__
@@ -3220,7 +3538,9 @@ class EqualsWithEps {
   static inline Z opAtomic(X d1, X d2, Z *extraParamsRef) { return op(d1, d2, extraParamsRef); }
 #endif
 
-  SD_OP_DEF static Z update(Z old, Z opOutput, Z *extraParamsRef) { return opOutput + old; }
+  SD_OP_DEF static Z update(Z old, Z opOutput, Z *extraParamsRef) {
+    return opOutput && old;
+  }
 
   SD_OP_DEF static Z merge(X old, Z opOutput, Z *extraParamsRef) { return update(old, opOutput, extraParamsRef); }
 
@@ -3275,7 +3595,7 @@ class ManhattanDistance {
 
   SD_OP_DEF static Y postProcess(Y reduction, sd::LongType n, Y *extraParamsRef) { return reduction; }
 
-  SD_OP_DEF static Y op(X d1, X d2, Y *extraParamsRef) { return sd::math::sd_abs<X>(d1 - d2); }
+  SD_OP_DEF static Y op(X d1, X d2, Y *extraParamsRef) { return sd::math::sd_abs<X,X>(d1 - d2); }
 
   SD_OP_DEF static Y update(Y old, Y opOutput, Y *extraParamsRef) { return old + opOutput; }
 
@@ -3294,13 +3614,13 @@ class IndexAbsoluteMax {
  public:
   static SD_HOST_DEVICE inline functions::indexreduce::IndexValue<X> op(functions::indexreduce::IndexValue<X> val,
                                                                         X *extraParams) {
-    return sd::math::sd_abs<X>(val);
+    return sd::math::sd_abs<X,X>(val);
   }
 
   static SD_HOST_DEVICE inline functions::indexreduce::IndexValue<X> update(
       functions::indexreduce::IndexValue<X> &old, functions::indexreduce::IndexValue<X> &opOutput, X *extraParams) {
-    opOutput.value = sd::math::sd_abs<X>(opOutput.value);
-    old.value = sd::math::sd_abs<X>(old.value);
+    opOutput.value = sd::math::sd_abs<X,X>(opOutput.value);
+    old.value = sd::math::sd_abs<X,X>(old.value);
     if (opOutput.value > old.value) return opOutput;
 #ifdef __CUDACC__
     // workaround for cuda race condition at merge phase
@@ -3315,7 +3635,7 @@ class IndexAbsoluteMax {
   static SD_HOST_DEVICE inline functions::indexreduce::IndexValue<X> merge(functions::indexreduce::IndexValue<X> f1,
                                                                            functions::indexreduce::IndexValue<X> f2,
                                                                            X *extraParams) {
-    if (sd::math::sd_abs<X>(f1.value) > sd::math::sd_abs<X>(f2.value)) return f2;
+    if (sd::math::sd_abs<X,X>(f1.value) > sd::math::sd_abs<X,X>(f2.value)) return f2;
     return f1;
   }
 
@@ -3355,9 +3675,7 @@ class FirstIndex {
     if (opOutput.index < 0) return old;
 #endif
 
-    auto res = simdOps::MatchCondition<X, X>::op(opOutput.value, extraParams);
-
-    // printf("res: %f; oldIdx: %i; newIdx: %i\n", res, old.index, opOutput.index);
+    auto res = MatchCondition<X, X>::op(opOutput.value, extraParams);
 
     if (res == static_cast<X>(0)) return old;
 
@@ -3411,7 +3729,7 @@ class LastIndex {
     if (opOutput.index < 0) return old;
 #endif
 
-    auto res = simdOps::MatchCondition<X, X>::op(opOutput.value, extraParams);
+    auto res = MatchCondition<X, X>::op(opOutput.value, extraParams);
 
     if (res == static_cast<X>(0)) return old;
 
@@ -3521,8 +3839,8 @@ class IndexAbsoluteMin {
 
   static SD_HOST_DEVICE inline functions::indexreduce::IndexValue<X> update(
       functions::indexreduce::IndexValue<X> &old, functions::indexreduce::IndexValue<X> &opOutput, X *extraParams) {
-    opOutput.value = sd::math::sd_abs<X>(opOutput.value);
-    old.value = sd::math::sd_abs<X>(old.value);
+    opOutput.value = sd::math::sd_abs<X,X>(opOutput.value);
+    old.value = sd::math::sd_abs<X,X>(old.value);
     if (opOutput.value < old.value) return opOutput;
 
 #ifdef __CUDACC__
@@ -3538,7 +3856,7 @@ class IndexAbsoluteMin {
   static SD_HOST_DEVICE inline functions::indexreduce::IndexValue<X> merge(functions::indexreduce::IndexValue<X> f1,
                                                                            functions::indexreduce::IndexValue<X> f2,
                                                                            X *extraParams) {
-    if (sd::math::sd_abs<X>(f1.value) < sd::math::sd_abs<X>(f2.value)) return f2;
+    if (sd::math::sd_abs<X,X>(f1.value) < sd::math::sd_abs<X,X>(f2.value)) return f2;
     return f1;
   }
 
@@ -3654,7 +3972,7 @@ class DropOut {
 #ifdef __CUDACC__
     X length = params[1];
     X tid = blockIdx.x * blockDim.x + threadIdx.x;
-    X rnd = sd::math::sd_abs<X>(sd::math::sd_cos<X>(static_cast<X>(clock64()) * static_cast<X>(tid) +
+    X rnd = sd::math::sd_abs<X,X>(sd::math::sd_cos<X>(static_cast<X>(clock64()) * static_cast<X>(tid) +
                                                     static_cast<X>(length) * static_cast<X>(tid)));
 #else
     X rnd = static_cast<X>(rand() / RAND_MAX);
@@ -3676,7 +3994,7 @@ class DropOutInverted {
 #ifdef __CUDACC__
     X length = params[1];
     X tid = blockIdx.x * blockDim.x + threadIdx.x;
-    X rnd = sd::math::sd_abs<X>(sd::math::sd_cos<X>(static_cast<X>(clock64()) * static_cast<X>(tid) +
+    X rnd = sd::math::sd_abs<X,X>(sd::math::sd_cos<X>(static_cast<X>(clock64()) * static_cast<X>(tid) +
                                                     static_cast<X>(length) * static_cast<X>(tid)));
 #else
     X rnd = static_cast<X>(rand() / RAND_MAX);
@@ -3708,12 +4026,12 @@ class CompareAndReplace {
     auto eps = params[2];
     int mode = (int)params[3];
     if (mode == 0)  // equals
-      if (sd::math::sd_abs<Z>(zd1 - compare) <= eps)
+      if (sd::math::sd_abs<Z,Z>(zd1 - compare) <= eps)
         return zd2;
       else
         return zd1;
     else if (mode == 1)  // not equals eps
-      if (sd::math::sd_abs<Z>(zd1 - compare) > eps)
+      if (sd::math::sd_abs<Z,Z>(zd1 - compare) > eps)
         return zd2;
       else
         return zd1;
@@ -3738,12 +4056,12 @@ class CompareAndReplace {
       else
         return zd1;
     else if (mode == 6)  // abs_less_than
-      if (sd::math::sd_abs<Z>(zd1) < compare)
+      if (sd::math::sd_abs<Z,Z>(zd1) < compare)
         return zd2;
       else
         return zd1;
     else if (mode == 7)  // abs_greater_than
-      if (sd::math::sd_abs<Z>(zd1) > compare)
+      if (sd::math::sd_abs<Z,Z>(zd1) > compare)
         return zd2;
       else
         return zd1;
@@ -3754,7 +4072,7 @@ class CompareAndReplace {
       else
         return zd1;
     else if (mode == 9)  // is nan
-      if (sd::math::sd_isnan(zd1))
+      if (sd::math::sd_isnan<X>(zd1))
         return zd2;
       else
         return zd1;
@@ -3769,12 +4087,12 @@ class CompareAndReplace {
       else
         return zd1;
     else if (mode == 12)  // abs_greater_or_equals_than
-      if (sd::math::sd_abs<Z>(zd1) >= compare)
+      if (sd::math::sd_abs<Z,Z>(zd1) >= compare)
         return zd2;
       else
         return zd1;
     else if (mode == 13) {  // abs_less_or_equals_than
-      if (sd::math::sd_abs<Z>(zd1) <= compare) return zd2;
+      if (sd::math::sd_abs<Z,Z>(zd1) <= compare) return zd2;
     }
     else if (mode == 14) {  // is_inf
       if (!sd::math::sd_isinf(zd1))
@@ -3799,12 +4117,12 @@ class CompareAndSet {
     auto eps = params[2];
     auto mode = static_cast<int>(params[3]);
     if (mode == 0)  // equals
-      if (sd::math::sd_abs<Z>(d2 - compare) <= eps)
+      if (sd::math::sd_abs<Z,Z>(d2 - compare) <= eps)
         return d2;
       else
         return d1;
     else if (mode == 1)  // not equals
-      if (sd::math::sd_abs<Z>(d2 - compare) > eps)
+      if (sd::math::sd_abs<Z,Z>(d2 - compare) > eps)
         return d2;
       else
         return d1;
@@ -3829,23 +4147,23 @@ class CompareAndSet {
       else
         return d1;
     else if (mode == 6)  // abs_less_than
-      if (sd::math::sd_abs<Z>(d2) < compare)
+      if (sd::math::sd_abs<Z,Z>(d2) < compare)
         return d2;
       else
         return d1;
     else if (mode == 7)  // abs_greater_than
-      if (sd::math::sd_abs<Z>(d2) > compare)
+      if (sd::math::sd_abs<Z,Z>(d2) > compare)
         return d2;
       else
         return d1;
-    //equivalent case to NOT_FINITE
+      //equivalent case to NOT_FINITE
     else if (mode == 8 || mode == 15)  // is inf
       if (sd::math::sd_isinf(d2))
         return d2;
       else
         return d1;
     else if (mode == 9)  // is nan
-      if (sd::math::sd_isnan(d2))
+      if (sd::math::sd_isnan<X>(d2))
         return d2;
       else
         return d1;
@@ -3860,12 +4178,12 @@ class CompareAndSet {
       else
         return d1;
     else if (mode == 12)  // abs_greater_or_equals_than
-      if (sd::math::sd_abs<Z>(d1) >= compare)
+      if (sd::math::sd_abs<Z,Z>(d1) >= compare)
         return d2;
       else
         return d1;
     else if (mode == 13)  // abs_less_or_equals_than
-      if (sd::math::sd_abs<Z>(d1) <= compare)
+      if (sd::math::sd_abs<Z,Z>(d1) <= compare)
         return d2;
       else
         return d1;
@@ -3896,17 +4214,17 @@ class CompareAndSetTransform {
     // with mode == 0 we do set if d1 equals to compare, and with mode == 1 - we go otherwise
     int mode = (int)params[3];
     if (mode == 0)  // equals
-      if (sd::math::sd_abs<X>(d1 - compare) <= eps)
+      if (sd::math::sd_abs<X,X>(d1 - compare) <= eps)
         return set;
       else
         return d1;
-      // return sd::math::sd_abs<T>(d1 - compare) <= eps ? set : d1;
+      // return sd::math::sd_abs<T,T>(d1 - compare) <= eps ? set : d1;
     else if (mode == 1)  // not equals
-      if (sd::math::sd_abs<X>(d1 - compare) > eps)
+      if (sd::math::sd_abs<X,X>(d1 - compare) > eps)
         return set;
       else
         return d1;
-      // return sd::math::sd_abs<T>(d1 - compare) > eps ? set : d1;
+      // return sd::math::sd_abs<T,T>(d1 - compare) > eps ? set : d1;
     else if (mode == 2)  // less_than
       if (d1 < compare)
         return set;
@@ -3928,12 +4246,12 @@ class CompareAndSetTransform {
       else
         return d1;
     else if (mode == 6)  // abs_less_than
-      if (sd::math::sd_abs<X>(d1) < compare)
+      if (sd::math::sd_abs<X,X>(d1) < compare)
         return set;
       else
         return d1;
     else if (mode == 7)  // abs_greater_than
-      if (sd::math::sd_abs<X>(d1) > compare)
+      if (sd::math::sd_abs<X,X>(d1) > compare)
         return set;
       else
         return d1;
@@ -3943,7 +4261,7 @@ class CompareAndSetTransform {
       else
         return d1;
     else if (mode == 9)  // is nan
-      if (sd::math::sd_isnan(d1))
+      if (sd::math::sd_isnan<X>(d1))
         return set;
       else
         return d1;
@@ -3958,12 +4276,12 @@ class CompareAndSetTransform {
       else
         return d1;
     else if (mode == 12)  // abs_greater_or_equals_than
-      if (sd::math::sd_abs<X>(d1) >= compare)
+      if (sd::math::sd_abs<X,X>(d1) >= compare)
         return set;
       else
         return d1;
     else if (mode == 13)  // abs_less_or_equals_than
-      if (sd::math::sd_abs<X>(d1) <= compare)
+      if (sd::math::sd_abs<X,X>(d1) <= compare)
         return set;
       else
         return d1;

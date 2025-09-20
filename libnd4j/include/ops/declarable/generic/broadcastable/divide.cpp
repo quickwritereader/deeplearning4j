@@ -38,24 +38,24 @@ BROADCASTABLE_OP_IMPL(divide, 0, 0) {
   REQUIRE_TRUE(!y->isB(), 0, "DIVIDE OP: you can't divide by bool array!");
   auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::Divide(), x, y, z);
   if (tZ == nullptr)
-    return sd::Status::KERNEL_FAILURE;
+    return Status::KERNEL_FAILURE;
   else if (tZ != z) {
     OVERWRITE_RESULT(tZ);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(Div, divide);
 
 DECLARE_TYPES(divide) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 DECLARE_TYPES(divide_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 CUSTOM_OP_IMPL(divide_bp, 3, 2, false, 0, 0) {
@@ -66,61 +66,62 @@ CUSTOM_OP_IMPL(divide_bp, 3, 2, false, 0, 0) {
   auto gradX = OUTPUT_VARIABLE(0);
   auto gradY = OUTPUT_VARIABLE(1);
 
-  /*
-              auto lambdaY = LAMBDA_TTT(_e, _x, _y) {
-                  return _e * -_x / (_y * _y);
-              };
-  */
 
   if (x->isSameShape(y)) {
     // PWT case case
 
     // X gradient
-    // epsNext->applyPairwiseLambda(y, lambdaX, gradX);
-    gradX->assign((*epsNext) / (*y));
+    NDArray gradXTemp = (*epsNext) / (*y);
+    gradX->assign(&gradXTemp);
+
     // Y gradient
-    // epsNext->applyTriplewiseLambda(x, y, lambdaY, gradY);
-    gradY->assign((*epsNext) * (*x) / ((*y) * (*y)));
-    gradY->applyTransform(transform::Neg, *gradY);
+    NDArray gradYTemp = (*epsNext) * (*x) / ((*y) * (*y));
+    gradY->assign(&gradYTemp);
+    gradY->applyTransform(transform::Neg, gradY);
 
   } else if (y->isScalar()) {
     // scalar case
 
     auto tmp = epsNext->reduceNumber(reduce::Sum);
     auto tmpX = x->reduceNumber(reduce::Sum);
-    // tmpX.printBuffer("SumX");
-    // tmp.printBuffer("Sum Eps");
-    gradY->assign(tmp * tmpX / ((*y) * (*y)));
-    gradY->applyTransform(transform::Neg, *gradY);
 
-    // epsNext->applyLambda(lambdaS, *gradX);
-    epsNext->applyScalarArr(scalar::Divide, *y, *gradX);
+    NDArray gradYTemp = tmp * tmpX / ((*y) * (*y));
+    gradY->assign(&gradYTemp);
+    gradY->applyTransform(transform::Neg, gradY);
+
+    epsNext->applyScalarArr(scalar::Divide, y, gradX);
   } else {
     // broadcast case
 
     auto preX = *epsNext / *y;
 
     NDArray negX(*x);
-    x->applyTransform(transform::Neg, negX);
+    x->applyTransform(transform::Neg, &negX);
     auto preY = *epsNext * negX / ((*y) * (*y));
 
     auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = preX.reduceAlongDimension(reduce::Sum, axisX);
-      gradX->assign(sum);
-    } else
-      gradX->assign(preX);
+      auto sum = preX.reduceAlongDimension(reduce::Sum, &axisX);
+      NDArray gradXTemp = sum;
+      gradX->assign(&gradXTemp);
+    } else {
+      NDArray gradXTemp = preX;
+      gradX->assign(&gradXTemp);
+    }
 
     if (axisY.size() > 0) {
-      auto sum = preY.reduceAlongDimension(reduce::Sum, axisY);
-      gradY->assign(sum);
-    } else
-      gradY->assign(preY);
+      auto sum = preY.reduceAlongDimension(reduce::Sum, &axisY);
+      NDArray gradYTemp = sum;
+      gradY->assign(&gradYTemp);
+    } else {
+      NDArray gradYTemp = preY;
+      gradY->assign(&gradYTemp);
+    }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(divide_bp) {
@@ -130,14 +131,7 @@ DECLARE_SHAPE_FN(divide_bp) {
 
   // eps always has shape of x
   // grad always has shape of y
-
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  return SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  return SHAPELIST(CONSTANT(x), CONSTANT(y));
 }
 }  // namespace ops
 }  // namespace sd

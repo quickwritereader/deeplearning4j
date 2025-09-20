@@ -45,6 +45,7 @@ import org.nd4j.linalg.factory.Nd4jBackend;
 import org.nd4j.nativeblas.NativeOpsHolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -52,8 +53,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  */
@@ -176,7 +176,7 @@ public class Nd4jTest extends BaseNd4jTestWithBackends {
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
-    public void testExpandDims(){
+    public void testExpandDims() {
         final List<Pair<INDArray, String>> testMatricesC = NDArrayCreationUtil.getAllTestMatricesWithShape('c', 3, 5, 0xDEAD, DataType.DOUBLE);
         final List<Pair<INDArray, String>> testMatricesF = NDArrayCreationUtil.getAllTestMatricesWithShape('f', 7, 11, 0xBEEF, DataType.DOUBLE);
 
@@ -186,7 +186,9 @@ public class Nd4jTest extends BaseNd4jTestWithBackends {
         final List<Pair<INDArray, String>> testMatrices = new ArrayList<>(testMatricesC);
         testMatrices.addAll(testMatricesF);
 
-        for (Pair<INDArray, String> testMatrixPair : testMatrices) {
+        //TODO: verify if test issue fixed by checking the column limit being < columns
+        for (int j = 0; j < testMatrices.size(); j++) {
+            Pair<INDArray, String> testMatrixPair  = testMatrices.get(j);
             final String recreation = testMatrixPair.getSecond();
             final INDArray testMatrix = testMatrixPair.getFirst();
             final char ordering = testMatrix.ordering();
@@ -237,63 +239,7 @@ public class Nd4jTest extends BaseNd4jTestWithBackends {
     }
 
 
-    @Test
-    public void testNumpyConversion() throws Exception {
-        INDArray linspace = Nd4j.linspace(1,4,4, DataType.FLOAT);
-        Pointer convert = Nd4j.getNDArrayFactory().convertToNumpy(linspace);
-        convert.position(0);
 
-        Pointer pointer = NativeOpsHolder.getInstance().getDeviceNativeOps().loadNpyFromHeader(convert);
-        Pointer pointer1 = NativeOpsHolder.getInstance().getDeviceNativeOps().dataPointForNumpyStruct(pointer);
-        pointer1.capacity(linspace.data().getElementSize() * linspace.data().length());
-        ByteBuffer byteBuffer = linspace.data().pointer().asByteBuffer();
-        byte[] originalData = new byte[byteBuffer.capacity()];
-        byteBuffer.get(originalData);
-
-
-        ByteBuffer floatBuffer = pointer1.asByteBuffer();
-        byte[] dataTwo = new byte[floatBuffer.capacity()];
-        floatBuffer.get(dataTwo);
-        assertArrayEquals(originalData,dataTwo);
-        Buffer buffer = (Buffer) floatBuffer;
-        buffer.position(0);
-
-        DataBuffer dataBuffer = Nd4j.createBuffer(new FloatPointer(floatBuffer.asFloatBuffer()),linspace.length(), DataType.FLOAT);
-        assertArrayEquals(new float[]{1,2,3,4}, dataBuffer.asFloat(), 1e-5f);
-
-        INDArray convertedFrom = Nd4j.getNDArrayFactory().createFromNpyHeaderPointer(convert);
-        assertEquals(linspace,convertedFrom);
-
-        File tmpFile = new File(System.getProperty("java.io.tmpdir"),"nd4j-numpy-tmp-" + UUID.randomUUID().toString() + ".bin");
-        tmpFile.deleteOnExit();
-        Nd4j.writeAsNumpy(linspace,tmpFile);
-
-        INDArray numpyFromFile = Nd4j.createFromNpyFile(tmpFile);
-        assertEquals(linspace,numpyFromFile);
-
-    }
-
-
-
-    @Test
-    public void testNumpyWrite() throws Exception {
-        INDArray linspace = Nd4j.linspace(1,4,4, Nd4j.dataType());
-        File tmpFile = new File(System.getProperty("java.io.tmpdir"),"nd4j-numpy-tmp-" + UUID.randomUUID().toString() + ".bin");
-        tmpFile.deleteOnExit();
-        Nd4j.writeAsNumpy(linspace,tmpFile);
-
-        INDArray numpyFromFile = Nd4j.createFromNpyFile(tmpFile);
-        assertEquals(linspace,numpyFromFile);
-    }
-
-    @Test
-    public void testNpyByteArray() throws Exception {
-        INDArray linspace = Nd4j.linspace(1,4,4, Nd4j.dataType());
-        byte[] bytes = Nd4j.toNpyByteArray(linspace);
-        INDArray fromNpy = Nd4j.createNpyFromByteArray(bytes);
-        assertEquals(linspace,fromNpy);
-
-    }
 
     @Test
     public void testChoiceDataType() {

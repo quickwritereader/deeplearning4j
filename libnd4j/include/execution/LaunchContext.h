@@ -70,7 +70,7 @@ class SD_LIB_EXPORT LaunchContext {
 
   bool _isAllocated = false;
 #endif  // CUDA
-  sd::memory::Workspace* _workspace = nullptr;
+  memory::Workspace* _workspace = nullptr;
   int _deviceID = 0;
 
  public:
@@ -82,7 +82,7 @@ class SD_LIB_EXPORT LaunchContext {
 
   void* getReductionPointer() const;
   void* getScalarPointer() const;
-  int* getAllocationPointer() const;
+  LongType* getAllocationPointer() const;
   void* getCublasHandle() const;
   void* getCusolverHandle() const;
   void* getCuDnnHandle() const;
@@ -99,18 +99,20 @@ class SD_LIB_EXPORT LaunchContext {
 #endif  // JCPP
 
 #endif  // CUDA
-  LaunchContext(sd::Pointer cudaStream, sd::Pointer reductionPointer = nullptr, sd::Pointer scalarPointer = nullptr,
-                sd::Pointer allocationPointer = nullptr);
+  LaunchContext(Pointer cudaStream, Pointer reductionPointer = nullptr, Pointer scalarPointer = nullptr,
+                Pointer allocationPointer = nullptr);
   LaunchContext();
   ~LaunchContext();
-  sd::memory::Workspace* getWorkspace() const { return _workspace; }
-  void setWorkspace(sd::memory::Workspace* theWorkspace) { _workspace = theWorkspace; }
+  memory::Workspace* getWorkspace() const {
+    return _workspace;
+  }
+  void setWorkspace(memory::Workspace* theWorkspace) { _workspace = theWorkspace; }
 
   void* engine();
 
   int getDeviceID() const { return _deviceID; }
   void setDeviceID(int deviceID) { _deviceID = deviceID; }
-  sd::ErrorReference* errorReference();
+  ErrorReference* errorReference();
 
 #ifndef __JAVACPP_HACK__
   // this method returns mutex shared between all threads that use the same device

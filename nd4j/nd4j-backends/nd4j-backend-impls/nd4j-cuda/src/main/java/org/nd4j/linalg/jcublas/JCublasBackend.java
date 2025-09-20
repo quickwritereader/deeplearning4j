@@ -35,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.bytedeco.cuda.global.cudart.*;
+
 /**
  *
  */
@@ -63,7 +65,11 @@ public class JCublasBackend extends Nd4jBackend {
     @Override
     public boolean canRun() {
         int[] count = { 0 };
-        org.bytedeco.cuda.global.cudart.cudaGetDeviceCount(count);
+        int errorCode = org.bytedeco.cuda.global.cudart.cudaGetDeviceCount(count);
+        if(errorCode != cudaSuccess) {
+            System.out.println(cudaGetErrorString(errorCode).getString());
+        }
+
         if (count[0] <= 0) {
             throw new RuntimeException("No CUDA devices were found in system");
         }
@@ -127,7 +133,7 @@ public class JCublasBackend extends Nd4jBackend {
                     long totalMem = ((Number) dev.get(Nd4jEnvironment.CUDA_TOTAL_MEMORY_KEY)).longValue();
                     log.info("CUDA device {}: [{}]; cc: [{}.{}]; Total memory: [{}]", i, name, major, minor, totalMem);
                 }
-                log.info("Backend build information:\n {}", buildInfo()); 
+                log.info("Backend build information:\n {}", buildInfo());
             } catch (Throwable t) {
                 log.debug("Error logging CUDA backend versions and devices", t);
             }

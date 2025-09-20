@@ -25,9 +25,7 @@
 #include <array/NDArray.h>
 #include <array/NDArrayList.h>
 #include <graph/VariableType.h>
-#include <graph/generated/array_generated.h>
-#include <graph/generated/graph_generated.h>
-#include <graph/generated/node_generated.h>
+
 
 #include <string>
 
@@ -62,10 +60,10 @@ class SD_LIB_EXPORT Variable {
  protected:
   int _id = 0;
   int _index = 0;
-  sd::NDArray *_ndarray = nullptr;
+  NDArray *_ndarray = nullptr;
   std::string _name;
 
-  std::vector<sd::LongType> _shape;
+  std::vector<LongType> _shape;
 
   bool _external = false;
   bool _readOnly = false;
@@ -77,17 +75,17 @@ class SD_LIB_EXPORT Variable {
   // InputType _variableType = InputType_UNDEFINED;
   // DataType _dataType = INHERIT;
 
-  sd::NDArrayList *_list = nullptr;
+  NDArrayList *_list = nullptr;
 
-  VariableType _variableType = VariableType::NDARRAY;
+  VariableType _variableType = NDARRAY;
 
  public:
   Variable(bool placeHolder);
-  Variable(sd::NDArray *arrayw, const char *name, int id, int idx = 0);
-  Variable(sd::NDArray *array = nullptr, const char *name = nullptr);
+  Variable(NDArray *arrayw, const char *name, int id, int idx = 0);
+  Variable(NDArray *array = nullptr, const char *name = nullptr);
 
 #ifndef __JAVACPP_HACK__
-  Variable(const sd::graph::FlatVariable *flatVariable);
+  Variable(const ::graph::FlatVariable *flatVariable);
 #endif
 
   ~Variable();
@@ -98,12 +96,12 @@ class SD_LIB_EXPORT Variable {
   SD_LIB_EXPORT Variable *asT();
 
   bool hasNDArray();
-  sd::NDArray *getNDArray();
-  void setNDArray(sd::NDArray *array);
+  NDArray *getNDArray();
+  void setNDArray(NDArray *array);
 
   bool hasNDArrayList();
-  sd::NDArrayList *getNDArrayList();
-  void setNDArrayList(sd::NDArrayList *list);
+  NDArrayList *getNDArrayList();
+  void setNDArrayList(NDArrayList *list);
 
   bool isExternal();
   bool isReadOnly();
@@ -115,12 +113,7 @@ class SD_LIB_EXPORT Variable {
   VariableType variableType();
   void setVariableType(VariableType variableType);
 
-  /**
-   * This method returns InputType of this variable
-   */
-  // InputType variableType() {
-  //    return _variableType;
-  //}
+
 
   void markExternal(bool reallyExternal);
   void markReadOnly(bool reallyReadOnly);
@@ -135,7 +128,7 @@ class SD_LIB_EXPORT Variable {
   std::string *getName();
   void setName(std::string *name);
 
-  std::vector<sd::LongType> &shape();
+  std::vector<LongType> &shape();
 
 #ifndef __JAVACPP_HACK__
   /**
@@ -143,7 +136,7 @@ class SD_LIB_EXPORT Variable {
    * @param builder
    * @return
    */
-  flatbuffers::Offset<FlatVariable> asFlatVariable(flatbuffers::FlatBufferBuilder &builder);
+  flatbuffers::Offset<::graph::FlatVariable> asFlatVariable(flatbuffers::FlatBufferBuilder &builder);
 #endif
 };
 }  // namespace graph

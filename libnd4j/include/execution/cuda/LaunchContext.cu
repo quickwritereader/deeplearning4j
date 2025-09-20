@@ -38,11 +38,7 @@ SD_MAP_IMPL<int, std::mutex*> LaunchContext::_deviceMutexes;
 ////////////////////////////////////////////////////////////////////////
 LaunchContext::LaunchContext(cudaStream_t* cudaStream, cudaStream_t& specialCudaStream, void* reductionPointer,
                              void* scalarPointer, int* allocationPointer) {
-  //_cudaStream        = cudaStream;
-  //_cudaSpecialStream = &specialCudaStream; // ideal is = new cudaStream_t; *_cudaSpecialStream = specialCudaStream;
-  //_reductionPointer  = reductionPointer;
-  //_scalarPointer     = scalarPointer;
-  //_allocationPointer = allocationPointer;
+
   _workspace = nullptr;
   _isAllocated = false;
 }
@@ -66,14 +62,10 @@ LaunchContext::LaunchContext() {
   _isAllocated = true;
 }
 
-LaunchContext::LaunchContext(sd::Pointer cudaStream, sd::Pointer reductionPointer, sd::Pointer scalarPointer,
-                             sd::Pointer allocationPointer) {
+LaunchContext::LaunchContext(Pointer cudaStream, Pointer reductionPointer, Pointer scalarPointer,
+                             Pointer allocationPointer) {
   _isAllocated = false;
-  //_cudaStream = reinterpret_cast<cudaStream_t*>(cudaStream);
-  // _cudaSpecialStream = reinterpret_cast<cudaStream_t*>(cudaStream);
-  //_reductionPointer = reductionPointer;
-  //_scalarPointer = scalarPointer;
-  //_allocationPointer = reinterpret_cast<int *>(allocationPointer);
+
 }
 
 LaunchContext* LaunchContext::defaultContext() {
@@ -88,7 +80,7 @@ LaunchContext* LaunchContext::defaultContext() {
   {
     // we need this block synchronous, to avoid double initialization etc
     std::lock_guard<std::mutex> lock(_mutex);
-    if (LaunchContext::_contexts.empty()) {
+    if (_contexts.empty()) {
       // create one context per device
       auto numDevices = AffinityManager::numberOfDevices();
 
@@ -98,7 +90,7 @@ LaunchContext* LaunchContext::defaultContext() {
 
         AffinityManager::setCurrentNativeDevice(e);
 
-        LaunchContext::_contexts[e] = std::make_shared<LaunchContext>();
+        _contexts[e] = std::make_shared<LaunchContext>();
       }
 
       // don't forget to restore device back again
@@ -107,14 +99,14 @@ LaunchContext* LaunchContext::defaultContext() {
   }
 
   // return context for current device
-  return LaunchContext::_contexts[deviceId].get();
+  return _contexts[deviceId].get();
 }
 
 void* LaunchContext::getReductionPointer() const { return contextBuffers.reductionBuffer(); };
 
 void* LaunchContext::getScalarPointer() const { return contextBuffers.scalarBuffer(); };
 
-int* LaunchContext::getAllocationPointer() const { return reinterpret_cast<int*>(contextBuffers.allocationBuffer()); };
+LongType* LaunchContext::getAllocationPointer() const { return reinterpret_cast<LongType*>(contextBuffers.allocationBuffer()); };
 
 void* LaunchContext::getCublasHandle() const { return CublasHelper::getInstance().handle(); };
 
@@ -140,11 +132,9 @@ void LaunchContext::setAllocationPointer(int* allocationPointer) {
 };
 
 void LaunchContext::setCudaStream(cudaStream_t* cudaStream){
-    //_cudaStream = cudaStream;
 };
 
 void LaunchContext::setCudaSpecialStream(cudaStream_t* cudaStream){
-    //_cudaSpecialStream = cudaStream;
 };
 
 void LaunchContext::setCublasHandle(void* handle) { _cublasHandle = handle; };
@@ -152,7 +142,6 @@ void LaunchContext::setCublasHandle(void* handle) { _cublasHandle = handle; };
 void LaunchContext::swapContextBuffers(ContextBuffers& buffers) { contextBuffers = buffers; };
 
 void LaunchContext::releaseBuffers() {
-  // sd_printf("LaunchContext::releaseBuffers() was invoked\n", "");
   contextBuffers.release();
 }
 
@@ -160,7 +149,7 @@ bool LaunchContext::isInitialized() { return contextBuffers.isInitialized(); }
 
 void* LaunchContext::getCuDnnHandle() const { return CublasHelper::getInstance().cudnn(); }
 
-sd::ErrorReference* LaunchContext::errorReference() { return contextBuffers.errorReference(); }
+ErrorReference* LaunchContext::errorReference() { return contextBuffers.errorReference(); }
 
 void* LaunchContext::engine() { return _engine; }
 }  // namespace sd

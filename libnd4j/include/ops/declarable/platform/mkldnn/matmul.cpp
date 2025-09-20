@@ -33,7 +33,7 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////////
-static void matmulMKLDNN(const NDArray* x, const NDArray* y, NDArray* z, const bool transX, const bool transY,
+static void matmulMKLDNN(NDArray* x, NDArray* y, NDArray* z, const bool transX, const bool transY,
                          float alpha = 1.f, float beta = 0.f) {
   // mkl works with following
   // [M,K]     x [K,N]     = [M,N]
@@ -49,7 +49,7 @@ static void matmulMKLDNN(const NDArray* x, const NDArray* y, NDArray* z, const b
   const auto yRank = y->rankOf();
   const auto zRank = z->rankOf();
 
-  std::vector<int> permut;
+  std::vector<sd::LongType> permut;
 
   // fill permutation vector appropriately if transposition is required
   if ((transX && xRank > 1) || (transY && yRank > 1)) {
@@ -60,26 +60,30 @@ static void matmulMKLDNN(const NDArray* x, const NDArray* y, NDArray* z, const b
     permut[rank - 1] = rank - 2;
   }
 
-  const NDArray* xT = (transX && xRank > 1) ? new NDArray(x->permute(permut)) : x;
-  const NDArray* yT = (transY && yRank > 1) ? new NDArray(y->permute(permut)) : y;
+  NDArray* xT = (transX && xRank > 1) ? new NDArray(x->permute(permut, false, false)) : x;
+  NDArray* yT = (transY && yRank > 1) ? new NDArray(y->permute(permut, false, false)) : y;
 
-  const NDArray* xTR =
+
+  std::vector<sd::LongType> shapeOne =  {xT->lengthOf() / (xT->sizeAt(-2) * xT->sizeAt(-1)),
+                                        xT->sizeAt(-2), xT->sizeAt(-1)};
+  NDArray* xTR =
       xRank <= 3 ? xT
-                 : new NDArray(xT->reshape(xT->ordering(), {xT->lengthOf() / (xT->sizeAt(-2) * xT->sizeAt(-1)),
-                                                            xT->sizeAt(-2), xT->sizeAt(-1)}));
-  const NDArray* yTR =
+                 : new NDArray(xT->reshape(xT->ordering(),shapeOne));
+ std::vector<sd::LongType> shapeTwo =  {yT->lengthOf() / (yT->sizeAt(-2) * yT->sizeAt(-1)),
+                                        yT->sizeAt(-2), yT->sizeAt(-1)};
+  NDArray* yTR =
       xRank <= 3 ? yT
-                 : new NDArray(yT->reshape(yT->ordering(), {yT->lengthOf() / (yT->sizeAt(-2) * yT->sizeAt(-1)),
-                                                            yT->sizeAt(-2), yT->sizeAt(-1)}));
+                 : new NDArray(yT->reshape(yT->ordering(),shapeTwo));
+  std::vector<sd::LongType> shapeThree = {z->lengthOf() / (z->sizeAt(-2) * z->sizeAt(-1)),
+                                          z->sizeAt(-2), z->sizeAt(-1)};
   NDArray* zR = xRank <= 3 ? z
-                           : new NDArray(z->reshape(z->ordering(), {z->lengthOf() / (z->sizeAt(-2) * z->sizeAt(-1)),
-                                                                    z->sizeAt(-2), z->sizeAt(-1)}) /*, false*/);
+                           : new NDArray(z->reshape(z->ordering(), shapeThree) /*, false*/);
 
   // [M,K] x [K,N] = [M,N]
-  const int64_t M = (xRank > 1) ? xTR->sizeAt(-2) : 1;
-  const int64_t K = (xRank > 1) ? xTR->sizeAt(-1) : xTR->lengthOf();
-  const int64_t N = (yRank > 1) ? yTR->sizeAt(-1) : 1;
-  const int64_t bS = (xRank > 2) ? xTR->sizeAt(0) : 1;  // [bS, M,K] x [bS, K,N] = [bS, M,N]
+  const sd::LongType M = (xRank > 1) ? xTR->sizeAt(-2) : 1;
+  const sd::LongType K = (xRank > 1) ? xTR->sizeAt(-1) : xTR->lengthOf();
+  const sd::LongType N = (yRank > 1) ? yTR->sizeAt(-1) : 1;
+  const sd::LongType bS = (xRank > 2) ? xTR->sizeAt(0) : 1;  // [bS, M,K] x [bS, K,N] = [bS, M,N]
 
   dnnl::memory::dims xShape = xRank < 3 ? dnnl::memory::dims({M, K}) : dnnl::memory::dims({bS, M, K});
   dnnl::memory::dims yShape = xRank < 3 ? dnnl::memory::dims({K, N}) : dnnl::memory::dims({bS, K, N});
@@ -125,30 +129,27 @@ static void matmulMKLDNN(const NDArray* x, const NDArray* y, NDArray* z, const b
 
   // x
   x_user_md = x_mkl_md = dnnl::memory::desc(xShape, xType, xFormat);
-  if (xTR->ews() != 1) {
     x_user_md.data.format_kind = dnnl_blocked;  // overrides format
     x_user_md.data.format_desc.blocking.strides[0] = xRank == 1 ? 1 : xTR->strideAt(0);
     x_user_md.data.format_desc.blocking.strides[1] = xRank == 1 ? xTR->strideAt(0) : xTR->strideAt(1);
     if (xRank > 2) x_user_md.data.format_desc.blocking.strides[2] = xTR->strideAt(2);
-  }
+
 
   // y
   y_user_md = y_mkl_md = dnnl::memory::desc(yShape, yType, yFormat);
-  if (yTR->ews() != 1) {
     y_user_md.data.format_kind = dnnl_blocked;  // overrides format
     y_user_md.data.format_desc.blocking.strides[0] = yRank == 1 ? 1 : yTR->strideAt(0);
     y_user_md.data.format_desc.blocking.strides[1] = yRank == 1 ? yTR->strideAt(0) : yTR->strideAt(1);
     if (yRank > 2) y_user_md.data.format_desc.blocking.strides[2] = yTR->strideAt(2);
-  }
+
 
   // z
   z_user_md = z_mkl_md = dnnl::memory::desc(zShape, zType, zFormat);
-  if (zR->ews() != 1) {
     z_user_md.data.format_kind = dnnl_blocked;  // overrides format
     z_user_md.data.format_desc.blocking.strides[0] = zRank == 1 ? 1 : zR->strideAt(0);
     z_user_md.data.format_desc.blocking.strides[1] = zRank == 1 ? zR->strideAt(0) : zR->strideAt(1);
     if (zRank > 2) z_user_md.data.format_desc.blocking.strides[2] = zR->strideAt(2);
-  }
+
 
   auto engine = onednnUtils::getEngine(LaunchContext::defaultContext()->engine());
 
@@ -199,8 +200,6 @@ static void matmulMKLDNN(const NDArray* x, const NDArray* y, NDArray* z, const b
   if (xT != x) delete xT;
   if (yTR != yT) delete yTR;
   if (yT != y) delete yT;
-
-  // shape::printArray(z_mkl_mem.map_data<float>(),8);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -211,19 +210,19 @@ PLATFORM_IMPL(matmul, ENGINE_CPU) {
 
   if (x->isEmpty() || y->isEmpty()) return sd::Status::OK;
 
-  int iSize = (int)block.getIArguments()->size();
+  sd::LongType iSize = (sd::LongType)block.getIArguments()->size();
   int transX = iSize > 0 ? INT_ARG(0) : 0;
   int transY = iSize > 1 ? INT_ARG(1) : 0;
   const int transZ = iSize > 2 ? INT_ARG(2) : 0;
 
   // optional use alpha nad beta
-  iSize = (int)block.getTArguments()->size();
+  iSize = (sd::LongType)block.getTArguments()->size();
   float alpha = iSize > 0 ? T_ARG(0) : 1.0;
   float beta = iSize > 1 ? T_ARG(1) : 0.0;
 
-  const int xRank = x->rankOf();
-  const int yRank = y->rankOf();
-  const int zRank = z->rankOf();
+  const sd::LongType xRank = x->rankOf();
+  const sd::LongType yRank = y->rankOf();
+  const sd::LongType zRank = z->rankOf();
 
   if (transZ) {
     x = INPUT_VARIABLE(1);
@@ -233,10 +232,10 @@ PLATFORM_IMPL(matmul, ENGINE_CPU) {
     transY = !temp;
   }
 
-  const int xLastDim = transX ? -2 : -1;
-  const int yLastDim = transY ? -2 : -1;
-  const int xLastButOneDim = transX ? -1 : -2;
-  const int yLastButOneDim = transY ? -1 : -2;
+  const sd::LongType xLastDim = transX ? -2 : -1;
+  const sd::LongType yLastDim = transY ? -2 : -1;
+  const sd::LongType xLastButOneDim = transX ? -1 : -2;
+  const sd::LongType yLastButOneDim = transY ? -1 : -2;
 
   // ******* input validation ******* //
   REQUIRE_TRUE(xRank > 0 && yRank > 0, 0,
@@ -303,20 +302,6 @@ PLATFORM_CHECK(matmul, ENGINE_CPU) {
   // we're skipping if result order is F or arrays are not continuous
   req.expectTrue(block.isUseONEDNN(), IS_USE_ONEDNN_MSG) &&
       req.expectLess(makeInfoVariable(x->rankOf(), RANK_MSG_INPUT0), 3);
-  // NOTE: here is the old check. will be removed
-  if (z->rankOf() == 2) {
-    req.setPrefix("ONEDNN MATMUL OP: case#1").expectEq(makeInfoVariable(x->ews(), EWS_MSG_INPUT0), 1) &&
-        req.expectEq(makeInfoVariable(y->ews(), EWS_MSG_INPUT1), 1) &&
-        req.expectEq(makeInfoVariable(y->ews(), EWS_MSG_OUTPUT1), 1) &&
-        req.expectNotEq(makeInfoVariable(z->ordering(), ORDERING_MSG_OUTPUT), 'f');
-  } else if (z->rankOf() == 3) {
-    req.setPrefix("ONEDNN MATMUL OP: case#2").expectEq(makeInfoVariable(x->ews(), EWS_MSG_INPUT0), 1) &&
-        req.expectEq(makeInfoVariable(y->ews(), EWS_MSG_INPUT1), 1) &&
-        req.expectEq(makeInfoVariable(y->ews(), EWS_MSG_OUTPUT1), 1) &&
-        req.expectNotEq(makeInfoVariable(x->ordering(), ORDERING_MSG_INPUT0), 'f') &&
-        req.expectNotEq(makeInfoVariable(y->ordering(), ORDERING_MSG_INPUT1), 'f') &&
-        req.expectNotEq(makeInfoVariable(z->ordering(), ORDERING_MSG_OUTPUT), 'f');
-  }
 
   req.setPrefix("ONEDNN MATMUL OP")
       .expectTrue(

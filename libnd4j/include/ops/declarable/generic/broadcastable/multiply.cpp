@@ -36,31 +36,31 @@ BROADCASTABLE_OP_IMPL(multiply, 0, 0) {
 
   BROADCAST_CHECK_EMPTY(x, y, z);
 
-  const sd::LongType* zShapeInfo = nullptr;
+   LongType* zShapeInfo = nullptr;
   const bool areShapesBroadcastable =
       ShapeUtils::evalBroadcastShapeInfo(x->shapeInfo(), y->shapeInfo(), true, zShapeInfo, block.getWorkspace());
   REQUIRE_TRUE(areShapesBroadcastable, 0, "MULTIPLY OP: the shapes of x %s and y %s are not suitable for broadcast !",
                ShapeUtils::shapeAsString(x).c_str(), ShapeUtils::shapeAsString(y).c_str());
 
-  auto tZ = BroadcastHelper::broadcastApply(sd::BroadcastOpsTuple::Multiply(), x, y, z);
+  auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::Multiply(), x, y, z);
   if (tZ == nullptr)
-    return sd::Status::KERNEL_FAILURE;
+    return Status::KERNEL_FAILURE;
   else if (tZ != z)
-    throw std::runtime_error("multiply: result was replaced");
+    THROW_EXCEPTION("multiply: result was replaced");
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(Mul, multiply);
 
 DECLARE_TYPES(multiply) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, DataType::INHERIT);
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, INHERIT);
 }
 
 DECLARE_TYPES(multiply_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 ///////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ CUSTOM_OP_IMPL(multiply_bp, 3, 2, false, 0, 0) {
   auto dLdx = OUTPUT_VARIABLE(0);
   auto dLdy = OUTPUT_VARIABLE(1);
 
-  const sd::LongType* dLdzShapeInfo = nullptr;
+   LongType* dLdzShapeInfo = nullptr;
   const bool areShapesBroadcastable =
       ShapeUtils::evalBroadcastShapeInfo(x->shapeInfo(), y->shapeInfo(), true, dLdzShapeInfo, block.getWorkspace());
   REQUIRE_TRUE(areShapesBroadcastable, 0,
@@ -80,140 +80,63 @@ CUSTOM_OP_IMPL(multiply_bp, 3, 2, false, 0, 0) {
                ShapeUtils::shapeAsString(x).c_str(), ShapeUtils::shapeAsString(y).c_str());
 
 
-  const sd::LongType xLen = x->lengthOf();
-  const sd::LongType yLen = y->lengthOf();
+  const LongType xLen = x->lengthOf();
+  const LongType yLen = y->lengthOf();
 
   if (x->isScalar() && y->isScalar()) {  // both are scalars
-    y->applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdx);
-    x->applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdy);
-    // dLdx->assign((*y) * (*dLdz));
-    // dLdy->assign((*x) * (*dLdz));
+    y->applyPairwiseTransform(pairwise::Multiply, dLdz, dLdx);
+    x->applyPairwiseTransform(pairwise::Multiply, dLdz, dLdy);
 
-  } else if (x->isScalar()) {  // x is scalar and y is not
-    dLdx->assign((*y * *dLdz).reduceNumber(reduce::Sum));
-    dLdz->applyScalarArr(scalar::Multiply, *x, *dLdy);
-    // dLdz->applyTrueBroadcast(broadcast::Multiply, x, dLdy, true);
+  }else if (x->isScalar()) {  // x is scalar and y is not
+    NDArray dLdxTemp = (*y * *dLdz).reduceNumber(reduce::Sum);
+    dLdx->assign(&dLdxTemp);
+    dLdz->applyScalarArr(scalar::Multiply, x, dLdy);
   } else if (y->isScalar()) {  // y is scalar and x is not
-    dLdy->assign((*x * *dLdz).reduceNumber(reduce::Sum));
-    dLdz->applyScalarArr(scalar::Multiply, *y, *dLdx);
+    NDArray dLdyTemp = (*x * *dLdz).reduceNumber(reduce::Sum);
+    dLdy->assign(&dLdyTemp);
+    dLdz->applyScalarArr(scalar::Multiply, y, dLdx);
   } else if (x->isSameShape(y)) {
-    x->applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdy);
-    y->applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdx);
+    x->applyPairwiseTransform(pairwise::Multiply, dLdz, dLdy);
+    y->applyPairwiseTransform(pairwise::Multiply, dLdz, dLdx);
   } else if (x->isSameShape(dLdz)) {
     auto yTiled = NDArray(dLdz, false, block.launchContext());
     y->tile(yTiled);
-    std::vector<int> axesForY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), dLdz->shapeInfo());
+    std::vector<LongType> axesForY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), dLdz->shapeInfo());
 
-    dLdy->assign((*x * *dLdz).reduceAlongDimension(reduce::Sum, axesForY));
-    yTiled.applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdx);
+    NDArray dLdyTemp = (*x * *dLdz).reduceAlongDimension(reduce::Sum, &axesForY);
+    dLdy->assign(&dLdyTemp);
+    yTiled.applyPairwiseTransform(pairwise::Multiply, dLdz, dLdx);
   } else if (y->isSameShape(dLdz)) {
     auto xTiled = NDArray(dLdz, false, block.launchContext());
     x->tile(xTiled);
-    std::vector<int> axesForX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), dLdz->shapeInfo());
-
-    dLdx->assign((*y * *dLdz).reduceAlongDimension(reduce::Sum, axesForX));
-    xTiled.applyPairwiseTransform(pairwise::Multiply, *dLdz, *dLdy);
+    std::vector<LongType> axesForX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), dLdz->shapeInfo());
+    NDArray dLdxTemp = (*y * *dLdz).reduceAlongDimension(reduce::Sum, &axesForX);
+    dLdx->assign(&dLdxTemp);    xTiled.applyPairwiseTransform(pairwise::Multiply, dLdz, dLdy);
   } else {
     auto xTiled = NDArray(dLdz, false, block.launchContext());
     auto yTiled = NDArray(dLdz, false, block.launchContext());
     x->tile(xTiled);
     y->tile(yTiled);
-    std::vector<int> axesForX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), dLdz->shapeInfo());
-    std::vector<int> axesForY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), dLdz->shapeInfo());
+    std::vector<LongType> axesForX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), dLdz->shapeInfo());
+    std::vector<LongType> axesForY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), dLdz->shapeInfo());
 
-    dLdx->assign((*y * *dLdz).reduceAlongDimension(reduce::Sum, axesForX));
-    dLdy->assign((*x * *dLdz).reduceAlongDimension(reduce::Sum, axesForY));
+    // For dLdx
+    NDArray dLdxTemp = (*y * *dLdz).reduceAlongDimension(reduce::Sum, &axesForX);
+    dLdx->assign(&dLdxTemp);
+
+    // For dLdy
+    NDArray dLdyTemp = (*x * *dLdz).reduceAlongDimension(reduce::Sum, &axesForY);
+    dLdy->assign(&dLdyTemp);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(multiply_bp) {
   auto xShapeInfo = inputShape->at(0);
   auto yShapeInfo = inputShape->at(1);
-
-  sd::LongType* dLdxShapeInfo = nullptr;
-  sd::LongType* dLdyShapeInfo = nullptr;
-
-  COPY_SHAPE(xShapeInfo, dLdxShapeInfo);
-  COPY_SHAPE(yShapeInfo, dLdyShapeInfo);
-
-  return SHAPELIST(CONSTANT(dLdxShapeInfo), CONSTANT(dLdyShapeInfo));
+  return SHAPELIST(CONSTANT(xShapeInfo), CONSTANT(yShapeInfo));
 }
-/*
-        CUSTOM_OP_IMPL(multiply_bp, 3, 2, false, 0, 0) {
-            auto x = INPUT_VARIABLE(0);
-            auto y = INPUT_VARIABLE(1);
-            auto epsNext = INPUT_VARIABLE(2);
-
-            auto gradX = OUTPUT_VARIABLE(0);
-            auto gradY = OUTPUT_VARIABLE(1);
-
-            auto lambdaX = LAMBDA_TT(_e, _y) {
-                return _e * _y;
-            };
-
-            auto lambdaY = LAMBDA_TT(_e, _x) {
-                return _e * _x;
-            };
-
-
-            if (x->isSameShape(y)) {
-                // PWT case case
-
-                // X gradient
-                epsNext->applyPairwiseLambda(y, lambdaX, gradX);
-
-                // Y gradient
-                epsNext->applyPairwiseLambda(x, lambdaY, gradY);
-
-            } else if (y->isScalar()) {
-                // scalar case
-                T _y = y->e(0);
-                auto lambdaS = LAMBDA_T(_e, _y) {
-                    return _e * _y;
-                };
-
-                T tmpX = x->template reduceNumber<simdOps::Sum<T>>();
-                gradY->assign(tmpX);
-
-                epsNext->applyLambda(lambdaS, *gradX);
-            } else {
-                // broadcast case
-
-                auto preX = x->dup();
-                auto preY = y->dup();
-
-                auto targetShape = epsNext->getShapeAsVector();
-
-                preX->tileToShape(targetShape);
-                preY->tileToShape(targetShape);
-
-                auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
-                auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
-
-                if (axisX.size() > 0) {
-                    auto sum = preX->template reduceAlongDimension<simdOps::Sum<T>>(axisX);
-                    gradX->assign(sum);
-                    delete sum;
-                } else
-                    gradX->assign(preX);
-
-                if (axisY.size() > 0) {
-                    auto sum = preY->template reduceAlongDimension<simdOps::Sum<T>>(axisY);
-                    gradY->assign(sum);
-                    delete sum;
-                } else
-                    gradY->assign(preY);
-
-
-                delete preX;
-                delete preY;
-            }
-
-            return sd::Status::OK;
-        }
-*/
 
 }  // namespace ops
 }  // namespace sd

@@ -26,12 +26,15 @@
 #ifndef __UTIL_TYPES_BFLOAT16__H__
 #define __UTIL_TYPES_BFLOAT16__H__
 
+#include <system/common.h>
+#include <types/float16.h>
 
 #include <cfloat>
 #include <iosfwd>
 #include <iostream>
-#include <system/common.h>
-#include <types/float16.h>
+
+#include "bfloat16.h"
+#include "float16.h"
 
 template <typename T>
 struct isNumericType {
@@ -46,8 +49,10 @@ struct isNumericType {
 // namespace sd
 //{
 struct bfloat16 {
- 
+
  public:
+  constexpr bfloat16(const bfloat16&) = default;
+
   int16_t _data;
 
   SD_INLINE SD_HOST_DEVICE bfloat16() { _data = 0; }
@@ -76,7 +81,7 @@ struct bfloat16 {
 
   SD_INLINE SD_HOST_DEVICE bfloat16& operator=(const float& rhs) {
 #ifdef __CUDACC__
-    if (::isnan(rhs)) {
+    if (static_cast<bfloat16>(rhs) == nan()) {
       _data = bfloat16::nan();
       return *this;
     }
@@ -277,10 +282,7 @@ struct bfloat16 {
 
   SD_INLINE SD_HOST_DEVICE bfloat16 operator-() const { return 0.f - (float)*this; }
 
-  // SD_INLINE SD_HOST_DEVICE std::ostream& operator<<(std::ostream& os) {
-  //     os << static_cast<float>(*this);
-  //     return os;
-  // }
+
   SD_INLINE SD_HOST_DEVICE static bfloat16 min() {
     bfloat16 res;
     res._data = 0xFF7F;
@@ -310,26 +312,5 @@ struct bfloat16 {
   }
 };
 
-//     SD_INLINE SD_HOST_DEVICE std::ostream& operator<<(std::ostream &os, const bfloat16 &f) {
-//         os << static_cast<float>(f);
-//         return os;
-//     }
-
-//   SD_INLINE SD_HOST_DEVICE bfloat16 /* constexpr */ operator+(const bfloat16& h) { return h; }
-
-//   SD_INLINE SD_HOST_DEVICE bfloat16 operator - (const bfloat16& h) {
-//     auto temp = h._data;
-//     temp ^= 0x8000;
-//     bfloat16 t;
-//     t._data = temp;
-//     return t;
-// }
-
-// WARNING: this implementation only for avoid cyclic references between float16 and bfloat16 types.
-// SD_INLINE SD_HOST_DEVICE void float16::assign(const bfloat16& rhs) {
-//   assign((float)rhs);
-// }
-
-//}   // namespace
 
 #endif

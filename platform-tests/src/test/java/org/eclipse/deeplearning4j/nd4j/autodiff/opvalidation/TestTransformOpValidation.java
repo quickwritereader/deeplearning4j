@@ -37,6 +37,7 @@ import org.nd4j.autodiff.validation.TestCase;
 import org.nd4j.enums.PadMode;
 import org.nd4j.enums.ImageResizeMethod;
 import org.nd4j.enums.PartitionMode;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
@@ -73,6 +74,7 @@ import org.nd4j.linalg.api.ops.impl.transforms.strict.SELU;
 import org.nd4j.linalg.api.ops.impl.transforms.strict.Swish;
 import org.nd4j.linalg.api.ops.random.impl.BernoulliDistribution;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
 import org.nd4j.common.function.Function;
@@ -113,8 +115,8 @@ public class TestTransformOpValidation extends BaseOpValidation {
 
     @AfterEach
     public void tearDown() {
-        NativeOpsHolder.getInstance().getDeviceNativeOps().enableDebugMode(false);
-        NativeOpsHolder.getInstance().getDeviceNativeOps().enableVerboseMode(false);
+       Nd4j.getNativeOps().enableDebugMode(false);
+       Nd4j.getNativeOps().enableVerboseMode(false);
     }
 
     @ParameterizedTest
@@ -561,9 +563,9 @@ public class TestTransformOpValidation extends BaseOpValidation {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testEye(Nd4jBackend backend) {
-        int[] rows = new int[]{3, 3, 3, 3};
-        int[] cols = new int[]{3, 2, 2, 2};
-        int[][] batch = new int[][]{{}, {}, {4}, {3, 3}};
+        long[] rows = new long[]{3, 3, 3, 3};
+        long[] cols = new long[]{3, 2, 2, 2};
+        long[][] batch = new long[][]{{}, {}, {4}, {3, 3}};
         INDArray[] expOut = new INDArray[4];
 
         expOut[0] = Nd4j.eye(3).castTo(DataType.DOUBLE);
@@ -581,7 +583,7 @@ public class TestTransformOpValidation extends BaseOpValidation {
 
         for (int i = 0; i < 3; i++) {
             SameDiff sd = SameDiff.create();
-            SDVariable eye = sd.math().eye("e", rows[i], cols[i], DataType.DOUBLE, batch[i]);
+            SDVariable eye = sd.math().eye("e", (int)rows[i], (int) cols[i], DataType.DOUBLE, batch[i]);
 
             SDVariable loss = sd.standardDeviation("loss", eye, true);
 
@@ -603,7 +605,7 @@ public class TestTransformOpValidation extends BaseOpValidation {
 
         val list = Nd4j.getExecutioner().calculateOutputShape(dco);
         assertEquals(1, list.size());   //Fails here - empty list
-        assertArrayEquals(new long[]{3, 3}, list.get(0).getShape());
+        assertArrayEquals(new long[]{3, 3}, Shape.shape(list.get(0).asLong()));
     }
 
     @ParameterizedTest
@@ -1434,7 +1436,8 @@ public class TestTransformOpValidation extends BaseOpValidation {
         val outShapes = Nd4j.getExecutioner().calculateOutputShape(op);
         assertEquals(1, outShapes.size());
 
-        assertArrayEquals(new long[]{3, 2, 4}, outShapes.get(0).getShape(),Arrays.toString(outShapes.get(0).getShape()));
+        long[] shape = Shape.shape(outShapes.get(0).asLong());
+        assertArrayEquals(new long[]{3, 2, 4}, shape, Arrays.toString(shape));
     }
 
     @ParameterizedTest
@@ -1758,10 +1761,10 @@ public class TestTransformOpValidation extends BaseOpValidation {
                 .addInputs(empty, scalar)
                 .build();
 
-        List<LongShapeDescriptor> l = op.calculateOutputShape();
+        List<DataBuffer> l = op.calculateOutputShape();
         assertEquals(1, l.size());
-        long[] shape = l.get(0).getShape();
-        boolean isEmpty = l.get(0).isEmpty();
+        long[] shape = Shape.shape(l.get(0).asLong());
+        boolean isEmpty = Shape.isEmpty(l.get(0).asLong());
 
         assertTrue(isEmpty);
     }
@@ -1774,21 +1777,21 @@ public class TestTransformOpValidation extends BaseOpValidation {
         //Check broadcast behaviour with empty arrays. The idea is to match TF import behaviour, for import
         //TF behaviour: broadcastableOp(x,empty) -> empty
 
-        /*
-        tf.reset_default_graph()
-        # Hack to create empty array
-        input = tf.constant([False], dtype=tf.bool)
-        empty = tf.where(condition=input)
-        emptyFloat = tf.cast(empty, tf.float32)
-        emptyFloat = tf.reshape(emptyFloat, [0,1])
-        constScalar = tf.constant(1, dtype=tf.float32)
-        # out = tf.math.maximum(emptyFloat,constScalar)
-        # out = emptyFloat + constScalar
-        # out = emptyFloat / constScalar
-        out = tf.math.less(emptyFloat, constScalar)
-        sess = tf.Session()
-        out = sess.run([out])
-         */
+    /*
+    tf.reset_default_graph()
+    # Hack to create empty array
+    input = tf.constant([False], dtype=tf.bool)
+    empty = tf.where(condition=input)
+    emptyFloat = tf.cast(empty, tf.float32)
+    emptyFloat = tf.reshape(emptyFloat, [0,1])
+    constScalar = tf.constant(1, dtype=tf.float32)
+    # out = tf.math.maximum(emptyFloat,constScalar)
+    # out = emptyFloat + constScalar
+    # out = emptyFloat / constScalar
+    out = tf.math.less(emptyFloat, constScalar)
+    sess = tf.Session()
+    out = sess.run([out])
+     */
 
         for (int i = 0; i < 3; i++) {
             for (boolean scalar : new boolean[]{true, false}) {
@@ -1825,10 +1828,10 @@ public class TestTransformOpValidation extends BaseOpValidation {
                             .addInputs(x, y)
                             .build();
 
-                    List<LongShapeDescriptor> l = op.calculateOutputShape();
+                    List<DataBuffer> l = op.calculateOutputShape();
                     assertEquals(1, l.size());
-                    long[] shape = l.get(0).getShape();
-                    boolean empty = l.get(0).isEmpty();
+                    long[] shape = Shape.shape(l.get(0).asLong());
+                    boolean empty = Shape.isEmpty(l.get(0).asLong());
 
                     boolean isBool = isBoolBroadcast(opName);
                     if (isBool) {
@@ -1849,7 +1852,6 @@ public class TestTransformOpValidation extends BaseOpValidation {
             }
         }
     }
-
     private static boolean isBoolBroadcast(String opName) {
         if (opName.startsWith("greater") || opName.startsWith("less") || opName.contains("equals"))
             return true;
@@ -1862,7 +1864,7 @@ public class TestTransformOpValidation extends BaseOpValidation {
     public void testStandardize(Nd4jBackend backend) {
         final INDArray random = Nd4j.rand(new int[]{10, 4});
 
-        final int[] axis = new int[]{1};
+        final long[] axis = new long[]{1};
         final INDArray means = random.mean(axis);
         final INDArray std = random.std(false, axis);
         final INDArray res = random.subColumnVector(means).divColumnVector(std);
@@ -1884,7 +1886,7 @@ public class TestTransformOpValidation extends BaseOpValidation {
     public void testStandardizeOP(Nd4jBackend backend) {
         final INDArray random = Nd4j.rand(new int[]{10, 4});
 
-        final int[] axis = new int[]{1};
+        final long[] axis = new long[]{1};
         final INDArray means = random.mean(axis);
         final INDArray std = random.std(false, axis);
         final INDArray res = random.subColumnVector(means).divColumnVector(std);
@@ -1903,7 +1905,7 @@ public class TestTransformOpValidation extends BaseOpValidation {
             random.putScalar(1, i, 7);
         }
 
-        final int[] axis = new int[]{1};
+        final long[] axis = new long[]{1};
         final INDArray means = random.mean(axis);
         final INDArray std = random.std(false, axis);
         std.addi(std.eq(0).castTo(DataType.DOUBLE));

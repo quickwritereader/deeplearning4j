@@ -26,6 +26,8 @@
 #include <helpers/PointersManager.h>
 #include <helpers/ShapeUtils.h>
 #include <helpers/svd.h>
+#include <system/op_boilerplate.h>
+
 
 namespace sd {
 namespace ops {
@@ -34,76 +36,10 @@ namespace helpers {
 // FIXME -> we should optimize these helpers for the case when input matrices have c order (perform transpositions
 // appropriately)
 
-template <typename T>
-SD_KERNEL static void inverseColumnSignCuda(void* vu, const sd::LongType* uShapeInfo, void* vv,
-                                            const sd::LongType* vShapeInfo) {
-  T* u = reinterpret_cast<T*>(vu);
-  T* v = reinterpret_cast<T*>(vv);
-
-  __shared__ int rank, uLastButOneColumn, vLastButOneColumn;  // uRank = vRank
-  __shared__ sd::LongType uLen, vLen;
-  __shared__ sd::LongType* sharedMem;
-
-  if (threadIdx.x == 0) {
-    extern __shared__ unsigned char shmem[];
-    sharedMem = reinterpret_cast<sd::LongType*>(shmem);
-
-    rank = shape::rank(uShapeInfo);
-    uLen = shape::length(uShapeInfo);
-    vLen = shape::length(vShapeInfo);
-
-    uLastButOneColumn = uShapeInfo[rank] - 2;
-    vLastButOneColumn = vShapeInfo[rank - 1] - 2;
-  }
-
-  __syncthreads();
-
-  const auto ind = threadIdx.x + blockIdx.x * blockDim.x;
-
-  auto coords = sharedMem + threadIdx.x * rank;
-
-  // u
-  for (sd::LongType i = ind; i < uLen; i += gridDim.x * blockDim.x) {
-    shape::index2coords(i, uShapeInfo, coords);
-
-    if (coords[rank - 1] == 0 ||
-        coords[rank - 1] == uLastButOneColumn)  // do not change sign in first and last but one columns
-      continue;
-
-    const auto uOffset = shape::getOffset(uShapeInfo, coords);
-
-    u[uOffset] = -u[uOffset];
-  }
-
-  // v
-  for (sd::LongType i = ind; i < vLen; i += gridDim.x * blockDim.x) {
-    shape::index2coords(i, vShapeInfo, coords);
-
-    if (coords[rank - 2] == 0 ||
-        coords[rank - 2] == vLastButOneColumn)  // do not change sign in first and last but one columns
-      continue;
-
-    const auto vOffset = shape::getOffset(vShapeInfo, coords);
-
-    v[vOffset] = -v[vOffset];
-  }
-}
+//////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////
-template <typename T>
-static void inverseColumnSignCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                                          const cudaStream_t* stream, void* vu, const sd::LongType* uShapeInfo,
-                                          void* vv, const sd::LongType* vShapeInfo) {
-  inverseColumnSignCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vu, uShapeInfo, vv, vShapeInfo);
-}
-BUILD_SINGLE_TEMPLATE(template void inverseColumnSignCudaLauncher,
-                      (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                       const cudaStream_t* stream, void* vu, const sd::LongType* uShapeInfo, void* vv,
-                       const sd::LongType* vShapeInfo),
-                      SD_FLOAT_TYPES);
-
-//////////////////////////////////////////////////////////////////////////
-static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDArray* U, NDArray* VT, const bool fullUV,
+static void svdQR(LaunchContext* context, NDArray* A, NDArray* S, NDArray* U, NDArray* VT, const bool fullUV,
                   const bool calcUV) {
   // since cusa api cusolverDnDgesvd/cusolverDnSgesvd have following constrain on input matrix A: A_rows >= A_columns &&
   // A_order = 'f' we make this function to have deal with 2 valid cases only: 1) A_rows >= A_columns and A_corder = 'f'
@@ -115,28 +51,31 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
   // U  [m, m] or [m, n] if fullUV = false and m > n
   // VT [n, n] or [m, n] if fullUV = false and m < n
 
-  if (A->rankOf() != 2) throw std::runtime_error("svdQR: rank of A array is not equal 2 !");
+  if (A->rankOf() != 2) THROW_EXCEPTION("svdQR: rank of A array is not equal 2 !");
 
   auto m = A->sizeAt(0);
   auto n = A->sizeAt(1);
   const int minDim = m < n ? m : n;
   const char orderA = A->ordering();
 
-  if (m < n) throw std::runtime_error("svdQR: due to cuda api input constrains given shape of A array are not valid !");
+  if (m < n) THROW_EXCEPTION("svdQR: due to cuda api input constrains given shape of A array are not valid !");
 
-  if (std::vector<sd::LongType>({minDim}) != S->getShapeAsVector())
-    throw std::runtime_error("svdQR: wrong shape of S array !");
+  if (std::vector<LongType>({minDim}) != S->getShapeAsVector())
+    THROW_EXCEPTION("svdQR: wrong shape of S array !");
 
   if (calcUV) {
-    if (fullUV && std::vector<sd::LongType>({m, m}) != U->getShapeAsVector())
-      throw std::runtime_error("svdQR: wrong shape of U array !");
-    else if (!fullUV && std::vector<sd::LongType>({m, minDim}) != U->getShapeAsVector())
-      throw std::runtime_error("svdQR: wrong shape of U array !");
+    if (fullUV && std::vector<LongType>({m, m}) != U->getShapeAsVector()) {
+      THROW_EXCEPTION("svdQR: wrong shape of U array !");
+    } else if (!fullUV && std::vector<LongType>({m, minDim}) != U->getShapeAsVector()) {
+      THROW_EXCEPTION("svdQR: wrong shape of U array !");
+    }
 
-    if (fullUV && std::vector<sd::LongType>({n, n}) != VT->getShapeAsVector())
-      throw std::runtime_error("svdQR: wrong shape of VT array !");
-    else if (!fullUV && std::vector<sd::LongType>({minDim, n}) != VT->getShapeAsVector())
-      throw std::runtime_error("svdQR: wrong shape of VT array !");
+    if (fullUV && std::vector<LongType>({n, n}) != VT->getShapeAsVector()) {
+      THROW_EXCEPTION("svdQR: wrong shape of VT array !");
+    }
+    else if (!fullUV && std::vector<LongType>({minDim, n}) != VT->getShapeAsVector()) {
+      THROW_EXCEPTION("svdQR: wrong shape of VT array !");
+    }
   }
 
   NDArray* pA = const_cast<NDArray*>(A);
@@ -146,23 +85,22 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
 
   std::vector<NDArray*> toDelete;
 
-  if (pA->ews() != 1 || pA->ordering() == 'c') {
+  if (pA->ordering() == 'c') {
     pA = new NDArray(A->dup('f'));
     toDelete.push_back(pA);
   }
 
-  if (S->ews() != 1) {
     pS = new NDArray(S->dup('f'));
     toDelete.push_back(pS);
-  }
+
 
   if (calcUV) {
-    if (pU->ews() != 1 || pU->ordering() == 'c') {
+    if (pU->ordering() == 'c') {
       pU = new NDArray(U->dup('f'));
       toDelete.push_back(pU);
     }
 
-    if (pVT->ews() != 1 || pVT->ordering() == 'c') {
+    if (pVT->ordering() == 'c') {
       pVT = new NDArray(VT->dup('f'));
       toDelete.push_back(pVT);
     }
@@ -172,7 +110,6 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
 
   // create cusolverDn handle
   cusolverDnHandle_t* handle = (cusolverDnHandle_t*)context->getCusolverHandle();  // nullptr;
-  // cusolverStatus_t status = cusolverDnCreate(&handle);
   if (handle == nullptr) throw cuda_exception::build("svdQR: cuda failed !", -1);
 
   // stream
@@ -181,12 +118,12 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
 
   // query working space of SVD
   int lwork = 0;
-  if (A->dataType() == DataType::DOUBLE)
+  if (A->dataType() == DOUBLE)
     status = cusolverDnDgesvd_bufferSize(*handle, m, n, &lwork);
-  else if (A->dataType() == DataType::FLOAT32)
+  else if (A->dataType() == FLOAT32)
     status = cusolverDnSgesvd_bufferSize(*handle, m, n, &lwork);
   else
-    throw std::invalid_argument("svdQR: given data type is unsupported !");
+    THROW_EXCEPTION("svdQR: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdQR: cuda failed !", status);
 
@@ -221,20 +158,20 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
   NDArray::prepareSpecialUse({pS, pU, pVT}, {pA});
 
   // choose appropriate cuda gemm api depending on data types
-  if (A->dataType() == DataType::DOUBLE) {
+  if (A->dataType() == DOUBLE) {
     status = cusolverDnDgesvd(*handle, jobu, jobvt, m, n, reinterpret_cast<double*>(pA->specialBuffer()), lda,
                               reinterpret_cast<double*>(pS->specialBuffer()),
                               calcUV ? reinterpret_cast<double*>(pU->specialBuffer()) : nullptr, ldu,
                               calcUV ? reinterpret_cast<double*>(pVT->specialBuffer()) : nullptr, ldvt,
                               reinterpret_cast<double*>(dWork), lwork, reinterpret_cast<double*>(rWork), devInfo);
-  } else if (A->dataType() == DataType::FLOAT32) {
+  } else if (A->dataType() == FLOAT32) {
     status = cusolverDnSgesvd(*handle, jobu, jobvt, m, n, reinterpret_cast<float*>(pA->specialBuffer()), lda,
                               reinterpret_cast<float*>(pS->specialBuffer()),
                               calcUV ? reinterpret_cast<float*>(pU->specialBuffer()) : nullptr, ldu,
                               calcUV ? reinterpret_cast<float*>(pVT->specialBuffer()) : nullptr, ldvt,
                               reinterpret_cast<float*>(dWork), lwork, reinterpret_cast<float*>(rWork), devInfo);
   } else
-    throw std::invalid_argument("svdQR: given data type is unsupported !");
+    THROW_EXCEPTION("svdQR: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdQR: cuda failed !", status);
 
@@ -249,45 +186,39 @@ static void svdQR(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDAr
     VT->assign(pVT);
   }
 
-  for (int i = toDelete.size() - 1; i >= 0; --i) delete toDelete[i];
+  //for (int i = toDelete.size() - 1; i >= 0; --i) delete toDelete[i];
 
-  if (devInfo) cudaFree(devInfo);
-  if (dWork) cudaFree(dWork);
-  if (rWork) cudaFree(rWork);
+  // if (devInfo) cudaFree(devInfo);
+  // if (dWork) cudaFree(dWork);
+  // if (rWork) cudaFree(rWork);
 
-  //    if(handle)
-  //        cusolverDnDestroy(handle);
-
-  // cudaDeviceReset();
 }
 
 //////////////////////////////////////////////////////////////////////////
-static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDArray* U, NDArray* V, const bool fullUV,
+static void svdJcb(LaunchContext* context, NDArray* A, NDArray* S, NDArray* U, NDArray* V, const bool fullUV,
                    const bool calcUV) {
   // A [m, n]
   // S [n]
   // U [m, m] or [m, n] if fullUV = false and m > n
   // V [n, n] or [n, m] if fullUV = false and m < n
 
-  if (A->rankOf() != 2) throw std::runtime_error("svdJcb: rank of A array is not equal 2 !");
+  if (A->rankOf() != 2) THROW_EXCEPTION("svdJcb: rank of A array is not equal 2 !");
 
   int m = A->sizeAt(0);
   int n = A->sizeAt(1);
   const int minDim = m < n ? m : n;
 
-  if (std::vector<sd::LongType>({minDim}) != S->getShapeAsVector())
-    throw std::runtime_error("svdJcb: wrong shape of S array !");
+  if (std::vector<LongType>({minDim}) != S->getShapeAsVector()) THROW_EXCEPTION("svdJcb: wrong shape of S array !");
 
-  if (calcUV) {
-    if (fullUV && std::vector<sd::LongType>({m, m}) != U->getShapeAsVector())
-      throw std::runtime_error("svdJcb: wrong shape of U array !");
-    else if (!fullUV && std::vector<sd::LongType>({m, minDim}) != U->getShapeAsVector())
-      throw std::runtime_error("svdJcb: wrong shape of U array !");
-
-    if (fullUV && std::vector<sd::LongType>({n, n}) != V->getShapeAsVector())
-      throw std::runtime_error("svdJcb: wrong shape of V array !");
-    else if (!fullUV && std::vector<sd::LongType>({n, minDim}) != V->getShapeAsVector())
-      throw std::runtime_error("svdJcb: wrong shape of V array !");
+  if (fullUV && U != nullptr && std::vector<LongType>({m, m}) != U->getShapeAsVector()) {
+    THROW_EXCEPTION("svdJcb: wrong shape of U array !");
+  } else if (!fullUV && U != nullptr && std::vector<LongType>({m, minDim}) != U->getShapeAsVector()) {
+    THROW_EXCEPTION("svdJcb: wrong shape of U array !");
+  }
+  if (fullUV && V != nullptr && std::vector<LongType>({n, n}) != V->getShapeAsVector()) {
+    THROW_EXCEPTION("svdJcb: wrong shape of V array !");
+  } else if (!fullUV && V != nullptr && std::vector<LongType>({n, minDim}) != V->getShapeAsVector()) {
+    THROW_EXCEPTION("svdJcb: wrong shape of V array !");
   }
 
   NDArray* pA = const_cast<NDArray*>(A);
@@ -307,16 +238,16 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
 
   NDArray* pS = S;
 
-  if (S->ews() != 1) {
     pS = new NDArray(S->dup('f'));
     toDelete.push_back(pS);
-  }
+
 
   NDArray *pU(nullptr), *pV(nullptr);
 
   int lda = transA ? pA->strideAt(0) : pA->strideAt(1);
   int ldu(transA ? n : m), ldv(transA ? m : n);
   bool uForder(true), vForder(true);
+
 
   if (calcUV) {
     pU = transA ? V : U;
@@ -343,7 +274,6 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
 
   // create cusolverDn handle
   cusolverDnHandle_t* handle = (cusolverDnHandle_t*)context->getCusolverHandle();
-  // cusolverStatus_t status = cusolverDnCreate(&handle);
   if (handle == nullptr) throw cuda_exception::build("svdJcb: cuda failed !", -1);
 
   // stream
@@ -370,7 +300,8 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
   NDArray* arrToAvoidBugInAPI = nullptr;
   if (!calcUV && m != n) {
     int maxDim = m > n ? m : n;
-    arrToAvoidBugInAPI = new NDArray('c', {maxDim, maxDim}, pA->dataType(), context);
+    std::vector<LongType> shape = {maxDim, maxDim};
+    arrToAvoidBugInAPI = new NDArray('c', shape, pA->dataType(), context);
     nullPtr = arrToAvoidBugInAPI->specialBuffer();
   }
   // ******************
@@ -379,14 +310,14 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
 
   // query working space of SVD
   int lwork = 0;
-  if (A->dataType() == DataType::DOUBLE)
+  if (A->dataType() == DOUBLE)
     status = cusolverDnDgesvdj_bufferSize(
         *handle, jobz, econ, m, n, reinterpret_cast<double*>(pA->specialBuffer()), lda,
         reinterpret_cast<double*>(pS->specialBuffer()),
         calcUV ? reinterpret_cast<double*>(pU->specialBuffer()) : reinterpret_cast<double*>(nullPtr), ldu,
         calcUV ? reinterpret_cast<double*>(pV->specialBuffer()) : reinterpret_cast<double*>(nullPtr), ldv, &lwork,
         gesvdjParams);
-  else if (A->dataType() == DataType::FLOAT32)
+  else if (A->dataType() == FLOAT32)
     status = cusolverDnSgesvdj_bufferSize(
         *handle, jobz, econ, m, n, reinterpret_cast<float*>(pA->specialBuffer()), lda,
         reinterpret_cast<float*>(pS->specialBuffer()),
@@ -394,7 +325,7 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
         calcUV ? reinterpret_cast<float*>(pV->specialBuffer()) : reinterpret_cast<float*>(nullPtr), ldv, &lwork,
         gesvdjParams);
   else
-    throw std::invalid_argument("svdJcb: given data type is unsupported !");
+    THROW_EXCEPTION("svdJcb: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdJcb: cuda failed !", status);
 
@@ -406,14 +337,14 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
   PointersManager manager(context, "svdJcb");
 
   // choose appropriate cuda gemm api depending on data types
-  if (A->dataType() == DataType::DOUBLE) {
+  if (A->dataType() == DOUBLE) {
     status = cusolverDnDgesvdj(
         *handle, jobz, econ, m, n, reinterpret_cast<double*>(pA->specialBuffer()), lda,
         reinterpret_cast<double*>(pS->specialBuffer()),
         calcUV ? reinterpret_cast<double*>(pU->specialBuffer()) : reinterpret_cast<double*>(nullPtr), ldu,
         calcUV ? reinterpret_cast<double*>(pV->specialBuffer()) : reinterpret_cast<double*>(nullPtr), ldv,
         reinterpret_cast<double*>(dWork), lwork, devInfo, gesvdjParams);
-  } else if (A->dataType() == DataType::FLOAT32) {
+  } else if (A->dataType() == FLOAT32) {
     status = cusolverDnSgesvdj(
         *handle, jobz, econ, m, n, reinterpret_cast<float*>(pA->specialBuffer()), lda,
         reinterpret_cast<float*>(pS->specialBuffer()),
@@ -421,7 +352,7 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
         calcUV ? reinterpret_cast<float*>(pV->specialBuffer()) : reinterpret_cast<float*>(nullPtr), ldv,
         reinterpret_cast<float*>(dWork), lwork, devInfo, gesvdjParams);
   } else
-    throw std::invalid_argument("svdJcb: given data type is unsupported !");
+    THROW_EXCEPTION("svdJcb: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdJcb: cuda failed !", status);
 
@@ -429,7 +360,7 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
 
   NDArray::registerSpecialUse({pS, pU, pV}, {pA});
 
-  if (S->ews() != 1) S->assign(pS);
+   S->assign(pS);
 
   if (calcUV) {
     if (!uForder) U->assign(transA ? pV : pU);
@@ -442,15 +373,13 @@ static void svdJcb(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDA
 
   if (devInfo) cudaFree(devInfo);
   if (dWork) cudaFree(dWork);
-  //    if(handle)
-  //        cusolverDnDestroy(handle);
   if (gesvdjParams) cusolverDnDestroyGesvdjInfo(gesvdjParams);
 
-  // cudaDeviceReset();
+
 }
 
 //////////////////////////////////////////////////////////////////////////
-static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S, NDArray* U, NDArray* V,
+static void svdBatched(LaunchContext* context, NDArray* A, NDArray* S, NDArray* U, NDArray* V,
                        const bool fullUV, const bool calcUV) {
   // A [..., m, n]
   // S [..., n]
@@ -460,22 +389,22 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
   auto m = A->sizeAt(-2);
   auto n = A->sizeAt(-1);
   const int minDim = m < n ? m : n;
-  const sd::LongType bS = A->lengthOf() / (m * n);
+  const LongType bS = A->lengthOf() / (m * n);
 
-  if (m > 32 || n > 32) throw std::runtime_error("svdBatched: numbers of rows and columns should be <= 32 !");
+  if (m > 32 || n > 32) THROW_EXCEPTION("svdBatched: numbers of rows and columns should be <= 32 !");
 
-  if (minDim != S->sizeAt(-1)) throw std::runtime_error("svdBatched: wrong shape of S array !");
+  if (minDim != S->sizeAt(-1)) THROW_EXCEPTION("svdBatched: wrong shape of S array !");
 
   if (calcUV) {
-    if (U->sizeAt(-2) != m) throw std::runtime_error("svdBatched: wrong shape of U array !");
-    if (U->sizeAt(-1) != (fullUV ? m : minDim)) throw std::runtime_error("svdBatched: wrong shape of U array !");
+    if (U->sizeAt(-2) != m) THROW_EXCEPTION("svdBatched: wrong shape of U array !");
+    if (U->sizeAt(-1) != (fullUV ? m : minDim)) THROW_EXCEPTION("svdBatched: wrong shape of U array !");
     if (U->lengthOf() / (U->sizeAt(-2) * U->sizeAt(-1)) != bS)
-      throw std::runtime_error("svdBatched: wrong shape of U array !");
+      THROW_EXCEPTION("svdBatched: wrong shape of U array !");
 
-    if (V->sizeAt(-2) != n) throw std::runtime_error("svdBatched: wrong shape of V array !");
-    if (V->sizeAt(-1) != (fullUV ? n : minDim)) throw std::runtime_error("svdBatched: wrong shape of V array !");
+    if (V->sizeAt(-2) != n) THROW_EXCEPTION("svdBatched: wrong shape of V array !");
+    if (V->sizeAt(-1) != (fullUV ? n : minDim)) THROW_EXCEPTION("svdBatched: wrong shape of V array !");
     if (V->lengthOf() / (V->sizeAt(-2) * V->sizeAt(-1)) != bS)
-      throw std::runtime_error("svdBatched: wrong shape of V array !");
+      THROW_EXCEPTION("svdBatched: wrong shape of V array !");
   }
 
   NDArray* pA = const_cast<NDArray*>(A);
@@ -485,23 +414,22 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
 
   std::vector<NDArray*> toDelete;
 
-  if (pA->ews() != 1 || pA->ordering() == 'c') {
+  if (pA->ordering() == 'c') {
     pA = new NDArray(A->dup('f'));
     toDelete.push_back(pA);
   }
 
-  if (S->ews() != 1) {
     pS = new NDArray(S->dup('f'));
     toDelete.push_back(pS);
-  }
+
 
   if (calcUV) {
-    if (pU->ews() != 1 || pU->ordering() == 'c') {
+    if (pU->ordering() == 'c') {
       pU = new NDArray(U->dup('f'));
       toDelete.push_back(pU);
     }
 
-    if (pV->ews() != 1 || pV->ordering() == 'c') {
+    if (pV->ordering() == 'c') {
       pV = new NDArray(V->dup('f'));
       toDelete.push_back(pV);
     }
@@ -527,7 +455,7 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
 
   // devInfo
   int* devInfo = nullptr;
-  auto status2 = cudaMalloc((void**)&devInfo, sizeof(int) * bS);
+  auto status2 = cudaMalloc((void**)&devInfo, sizeof(LongType) * bS);
   if (status2 != cudaSuccess) throw cuda_exception::build("svdBatched: cuda failed !", status2);
   status2 = cudaDeviceSynchronize();
   if (status2 != cudaSuccess) throw cuda_exception::build("svdJcb: cuda failed !", status2);
@@ -545,19 +473,19 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
 
   // query working space of SVD
   int lwork = 0;
-  if (A->dataType() == DataType::DOUBLE)
+  if (A->dataType() == DOUBLE)
     status = cusolverDnDgesvdjBatched_bufferSize(handle, jobz, m, n, reinterpret_cast<double*>(pA->specialBuffer()),
                                                  lda, reinterpret_cast<double*>(pS->specialBuffer()),
                                                  calcUV ? reinterpret_cast<double*>(pU->specialBuffer()) : nullptr, ldu,
                                                  calcUV ? reinterpret_cast<double*>(pV->specialBuffer()) : nullptr, ldv,
                                                  &lwork, gesvdjParams, bS);
-  else if (A->dataType() == DataType::FLOAT32)
+  else if (A->dataType() == FLOAT32)
     status = cusolverDnSgesvdjBatched_bufferSize(
         handle, jobz, m, n, reinterpret_cast<float*>(pA->specialBuffer()), lda,
         reinterpret_cast<float*>(pS->specialBuffer()), calcUV ? reinterpret_cast<float*>(pU->specialBuffer()) : nullptr,
         ldu, calcUV ? reinterpret_cast<float*>(pV->specialBuffer()) : nullptr, ldv, &lwork, gesvdjParams, bS);
   else
-    throw std::invalid_argument("svdBatched: given data type is unsupported !");
+    THROW_EXCEPTION("svdBatched: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdBatched: cuda failed !", status);
 
@@ -573,20 +501,20 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
   NDArray::prepareSpecialUse({pS, pU, pV}, {pA});
 
   // choose appropriate cuda gemm api depending on data types
-  if (A->dataType() == DataType::DOUBLE) {
+  if (A->dataType() == DOUBLE) {
     status = cusolverDnDgesvdjBatched(handle, jobz, m, n, reinterpret_cast<double*>(pA->specialBuffer()), lda,
                                       reinterpret_cast<double*>(pS->specialBuffer()),
                                       calcUV ? reinterpret_cast<double*>(pU->specialBuffer()) : nullptr, ldu,
                                       calcUV ? reinterpret_cast<double*>(pV->specialBuffer()) : nullptr, ldv,
                                       reinterpret_cast<double*>(dWork), lwork, devInfo, gesvdjParams, bS);
-  } else if (A->dataType() == DataType::FLOAT32) {
+  } else if (A->dataType() == FLOAT32) {
     status = cusolverDnSgesvdjBatched(handle, jobz, m, n, reinterpret_cast<float*>(pA->specialBuffer()), lda,
                                       reinterpret_cast<float*>(pS->specialBuffer()),
                                       calcUV ? reinterpret_cast<float*>(pU->specialBuffer()) : nullptr, ldu,
                                       calcUV ? reinterpret_cast<float*>(pV->specialBuffer()) : nullptr, ldv,
                                       reinterpret_cast<float*>(dWork), lwork, devInfo, gesvdjParams, bS);
   } else
-    throw std::invalid_argument("svdBatched: given data type is unsupported !");
+    THROW_EXCEPTION("svdBatched: given data type is unsupported !");
 
   if (status != CUSOLVER_STATUS_SUCCESS) throw cuda_exception::build("svdBatched: cuda failed !", status);
 
@@ -608,25 +536,20 @@ static void svdBatched(sd::LaunchContext* context, const NDArray* A, NDArray* S,
   if (handle) cusolverDnDestroy(handle);
   if (gesvdjParams) cusolverDnDestroyGesvdjInfo(gesvdjParams);
 
-  // cudaDeviceReset();
 }
 
 ////////////////////////////////////////////////////////////////////
-void svd(sd::LaunchContext* context, const NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV,
+void svd(LaunchContext* context, NDArray* x, const std::vector<NDArray*>& outArrs, const bool fullUV,
          const bool calcUV, const int switchNum) {
   NDArray* S = outArrs[0];
   NDArray* U = outArrs[1];
-  // NDArray VT = outArrs[2]->transpose();
   NDArray* V = outArrs[2];
 
   NDArray::prepareSpecialUse({S, U, V}, {x});
 
   if (x->rankOf() == 2) {
-    // svdQR(context, x, S, U, VT, fullUV, calcUV);
     svdJcb(context, x, S, U, V, fullUV, calcUV);
   } else {
-    // svdBatched(context, *x, *S, *U, *V, fullUV, calcUV);
-
     ResultSet *tadsU(nullptr), *tadsV(nullptr);
 
     auto tadsX = x->allTensorsAlongDimension({x->rankOf() - 2, x->rankOf() - 1});

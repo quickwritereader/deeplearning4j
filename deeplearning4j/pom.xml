@@ -26,12 +26,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.deeplearning4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <artifactId>deeplearning4j</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.deeplearning4j</groupId>
+    <groupId>org.eclipse.deeplearning4j</groupId>
     <artifactId>deeplearning4j-parent</artifactId>
     <packaging>pom</packaging>
 
@@ -40,16 +40,15 @@
 
 
     <scm>
-        <connection>scm:git://github.com:eclipse/deeplearning4j.git</connection>
-        <developerConnection>scm:git:git@github.com:eclipse/deeplearning4j.git
+        <connection>scm:git://github.com:deeplearning4j/deeplearning4j.git</connection>
+        <developerConnection>scm:git:git@github.com:deeplearning4j/deeplearning4j.git
         </developerConnection>
-        <url>git@github.com:eclipse/deeplearning4j.git</url>
+        <url>git@github.com:deeplearning4j/deeplearning4j.git</url>
         <tag>HEAD</tag>
     </scm>
 
     <modules>
         <module>deeplearning4j-core</module>
-        <module>deeplearning4j-scaleout</module>
         <module>deeplearning4j-ui-parent</module>
         <module>deeplearning4j-graph</module>
         <module>deeplearning4j-nlp-parent</module>
@@ -58,6 +57,7 @@
         <module>deeplearning4j-zoo</module>
         <module>deeplearning4j-data</module>
         <module>deeplearning4j-common-tests</module>
+        <module>deeplearning4j-parallelwrapper</module>
     </modules>
 
     <dependencyManagement>
@@ -87,6 +87,12 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>log4j-over-slf4j</artifactId>
                 <version>${slf4j.version}</version>
             </dependency>
             <dependency>
@@ -131,12 +137,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-common-tests</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.google.android</groupId>
             <artifactId>android</artifactId>
             <version>4.1.1.4</version>
@@ -174,7 +174,6 @@
                 <configuration>
                     <directories>
                         <directory>deeplearning4j-core</directory>
-                        <directory>deeplearning4j-scaleout</directory>
                         <directory>deeplearning4j-ui-parent</directory>
                         <directory>deeplearning4j-graph</directory>
                         <directory>deeplearning4j-nlp-parent</directory>
@@ -200,16 +199,4 @@
 
     </build>
 
-    <profiles>
-        <profile>
-            <id>cuda</id>
-            <activation>
-                <property>
-                    <name>libnd4j.chip</name>
-                    <value>cuda</value>
-                </property>
-            </activation>
-        </profile>
-
-    </profiles>
 </project>

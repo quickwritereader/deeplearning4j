@@ -32,43 +32,44 @@ CUSTOM_OP_IMPL(compat_string_split, 2, 2, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto delim = INPUT_VARIABLE(1);
 
-  auto indices = OUTPUT_NULLIFIED(0);
+  auto indices = OUTPUT_VARIABLE(0);
   auto values = OUTPUT_VARIABLE(1);
 
   auto d = delim->e<std::string>(0);
 
-  input->syncToHost();
-  delim->syncToHost();
+  NDArray::preparePrimaryUse({values},{indices});
 
   // output rank N+1 wrt input rank
-  std::vector<int> icoords(input->rankOf());
+  std::vector<LongType> icoords(input->rankOf());
 
   // getting buffer lengths
-  // FIXME: it'll be bigger, since it'll include delimiters,
   auto outputLength = StringUtils::byteLength(*input);
+  LongType ic = 0L;
+  int len = input->isScalar() ? 1 : input->lengthOf();
 
-  uint64_t ss = 0L;
-  sd::LongType ic = 0L;
+  sd::LongType inputRank = input->rankOf();
+  sd::LongType *inputShape = shape::shapeOf(input->shapeInfo());
+
   // loop through each string within tensor
-  for (auto e = 0L; e < input->lengthOf(); e++) {
+  for (LongType e = 0L; e < len; e++) {
     // now we should map substring to indices
     auto s = input->e<std::string>(e);
 
     // getting base index
-    shape::index2coordsCPU(0, e, input->shapeInfo(), icoords.data());
+    INDEX2COORDS(e, inputRank, inputShape, icoords.data());
 
     // getting number of substrings
-    auto cnt = StringUtils::countSubarrays(s.c_str(), s.length(), d.c_str(), d.length()) + 1;
-
+    auto cnt = StringUtils::countSubarrays(s.c_str(), s.length(), d.c_str(), d.length());
     // filling output indices
-    for (uint64_t f = 0; f < cnt; f++) {
-      for (auto v : icoords) indices->p(ic++, v);
+    for (LongType f = 0; f < cnt; f++) {
+      for (auto v : icoords) {
+        indices->p(ic++, v);
+      }
 
       // last index
       indices->p(ic++, f);
     }
 
-    ss += cnt;
   }
 
   // process strings now
@@ -80,11 +81,10 @@ CUSTOM_OP_IMPL(compat_string_split, 2, 2, false, 0, 0) {
   }
 
   // now once we have all strings in single vector time to fill
-  auto tmp = NDArrayFactory::string({(sd::LongType)strings.size()}, strings, input->dataType(), block.launchContext());
+  auto nonConst = const_cast<NDArray*>(values);
+  std::vector<sd::LongType> shape = nonConst->getShapeAsVector();
+  auto tmp = NDArrayFactory::string(shape, strings);
   auto blen = StringUtils::byteLength(tmp) + ShapeUtils::stringBufferHeaderRequirements(strings.size());
-
-  // for CUDA mostly
-  values->dataBuffer()->allocatePrimary();
   values->dataBuffer()->expand(blen);
   memcpy(values->buffer(), tmp.buffer(), blen);
   values->tickWriteHost();
@@ -93,37 +93,43 @@ CUSTOM_OP_IMPL(compat_string_split, 2, 2, false, 0, 0) {
   indices->syncToDevice();
   values->syncToDevice();
 
+  NDArray::registerPrimaryUse({values});
   // we have to tick buffers
   values->dataBuffer()->writePrimary();
   values->dataBuffer()->readSpecial();
 
-  return sd::Status::OK;
+
+  return Status::OK;
 };
 
 DECLARE_SHAPE_FN(compat_string_split) {
   auto input = INPUT_VARIABLE(0);
   auto delim = INPUT_VARIABLE(1);
 
+
   auto d = delim->e<std::string>(0);
 
   // count number of delimiter substrings in all strings within input tensor
-  uint64_t cnt = 0;
-  for (auto e = 0L; e < input->lengthOf(); e++) {
-    // FIXME: bad, not UTF-compatible
+  LongType cnt = 0;
+  int len = input->isScalar() ? 1 : input->lengthOf();
+  for (auto e = 0L; e < len; e++) {
     auto s = input->e<std::string>(e);
 
     // each substring we see in haystack, splits string in two parts. so we should add 1 to the number of subarrays
-    cnt += StringUtils::countSubarrays(s.c_str(), s.length(), d.c_str(), d.length()) + 1;
+    cnt += StringUtils::countSubarrays(s.c_str(), s.length(), d.c_str(), d.length());
   }
+  cnt++;
 
   // shape calculations
   // virtual tensor rank will be N+1, for N rank input array, where data will be located at the biggest dimension
   // values tensor is going to be vector always
   // indices tensor is going to be vector with length equal to values.length * output rank
 
-  auto valuesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(cnt, sd::DataType::UTF8);
+  sd_printf("compat_string_split: Assigning number of values: %d\n",cnt);
+
+  auto valuesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(cnt, UTF8);
   auto indicesShape =
-      ConstantShapeHelper::getInstance().vectorShapeInfo(cnt * (input->rankOf() + 1), sd::DataType::INT64);
+      ConstantShapeHelper::getInstance().vectorShapeInfo(cnt * (input->rankOf() + 1), INT64);
 
   return SHAPELIST(indicesShape, valuesShape);
 }

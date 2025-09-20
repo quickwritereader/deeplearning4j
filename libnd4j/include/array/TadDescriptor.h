@@ -28,33 +28,24 @@
 namespace sd {
 class SD_LIB_EXPORT TadDescriptor {
  private:
-  ShapeDescriptor _originalShape;
+  sd::LongType *_originalShape;
 
-  std::vector<int> _axis;
+  std::vector<LongType> _axis;
 
   bool _unitiesInShape;
 
  public:
-  explicit TadDescriptor(const sd::LongType *originalShape, const int *dimensions, const int length,
-                         const bool keepUnitiesInShape = false);
-  explicit TadDescriptor(const ShapeDescriptor &descriptor, const std::vector<int> &dimensions,
+  explicit TadDescriptor(const LongType *originalShape, const LongType *dimensions, const LongType length,
                          const bool keepUnitiesInShape = false);
   ~TadDescriptor() = default;
 
-  // we use default copy assignment operator
-#ifndef __NEC__
+
   // NCC has issues with copy constructors
   TadDescriptor &operator=(const TadDescriptor &other) = default;
   // we use default move assignment operator
   TadDescriptor &operator=(TadDescriptor &&other) noexcept = default;
   explicit TadDescriptor(const TadDescriptor &other);
-#endif
 
-#ifdef __NEC__
-  TadDescriptor(TadDescriptor &&rhs) = default;                  // move constructor
-  TadDescriptor(const TadDescriptor &rhs) = default;             // copy constructor
-  TadDescriptor &operator=(const TadDescriptor &rhs) = default;  // copy assignment operator
-#endif
 
   // equal to operator
   bool operator==(const TadDescriptor &other) const;
@@ -62,9 +53,8 @@ class SD_LIB_EXPORT TadDescriptor {
   // less than operator
   bool operator<(const TadDescriptor &other) const;
 
-  std::vector<int> &axis();
-  ShapeDescriptor &originalShape();
-  ShapeDescriptor const &originalShapeConst() const;
+  std::vector<LongType> &axis();
+  LongType *originalShape();
   bool areUnitiesinShape() const;
 };
 }  // namespace sd

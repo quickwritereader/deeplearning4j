@@ -62,11 +62,9 @@ CUSTOM_OP_IMPL(resize_images, 1, 1, false, 0, 0) {
       //                    width = I_ARG(1);
     }
   }
-  bool preserveAspectRatio = false;  // - default value
   bool alignCorners = false;
   if (block.numB()) {
     alignCorners = B_ARG(0);
-    if (block.numB() > 1) preserveAspectRatio = B_ARG(1);
   }
   REQUIRE_TRUE(
       method >= helpers::ImageResizeMethods::kResizeFirst && method <= helpers::ImageResizeMethods::kResizeOldLast, 0,
@@ -77,25 +75,33 @@ CUSTOM_OP_IMPL(resize_images, 1, 1, false, 0, 0) {
 
   auto inRank = image->rankOf();
   REQUIRE_TRUE(inRank >= 3 && inRank <= 4, 0, "image_resize: Input rank should be 4 or 3, but %i given.", inRank);
+  std::vector<sd::LongType> imageShape1 = {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2),image->sizeAt(3)};
+  std::vector<sd::LongType> imageShape2 = {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)};
 
   auto source =
       inRank == 4
-          ? image->reshape(image->ordering(), {image->sizeAt(0), image->sizeAt(1), image->sizeAt(2), image->sizeAt(3)})
-          : image->reshape(image->ordering(), {1, image->sizeAt(0), image->sizeAt(1), image->sizeAt(2)});
+          ? image->reshape(image->ordering(), imageShape1)
+          : image->reshape(image->ordering(), imageShape2);
+
+
+
+  std::vector<sd::LongType> outputShape1 = {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2),output->sizeAt(3)};
+  std::vector<sd::LongType> outputShape2 = {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)};
+
   auto target =
       inRank == 4
           ? output->reshape(output->ordering(),
-                            {output->sizeAt(0), output->sizeAt(1), output->sizeAt(2), output->sizeAt(3)}, false)
-          : output->reshape(output->ordering(), {1, output->sizeAt(0), output->sizeAt(1), output->sizeAt(2)}, false);
+                            outputShape1, false)
+          : output->reshape(output->ordering(), outputShape2, false);
 
-  return helpers::resizeImagesFunctor(block.launchContext(), &source, width, height,
+  return resizeImagesFunctor(block.launchContext(), &source, width, height,
                                       (helpers::ImageResizeMethods)method, alignCorners, &target);
 }
 
 DECLARE_SHAPE_FN(resize_images) {
   auto in = inputShape->at(0);
 
-  sd::LongType* outputShape;
+  LongType* outputShape;
 
   int width;
   int height;
@@ -116,27 +122,27 @@ DECLARE_SHAPE_FN(resize_images) {
     }
   }
 
-  double ratio = shape::sizeAt(in, 1) / (0.0 + shape::sizeAt(in, 2));
+  double ratio = shape::sizeAt(in, static_cast<LongType>(1)) / (0.0 + shape::sizeAt(in, static_cast<LongType>(2)));
   if (block.numB() > 1) {
     if (B_ARG(1)) {
       width = math::sd_ceil<double, int>(height / ratio);
     }
   }
 
-  std::vector<sd::LongType> shape;
+  std::vector<LongType> shape;
   if (shape::rank(in) == 4)
     shape = {in[1], height, width, in[4]};
   else if (shape::rank(in) == 3)
     shape = {height, width, in[3]};
 
-  auto outShape = ConstantShapeHelper::getInstance().createShapeInfo(DataType::FLOAT32, shape::order(in), shape);
+  auto outShape = ConstantShapeHelper::getInstance().createShapeInfo(FLOAT32, shape::order(in), shape);
   return SHAPELIST(outShape);
 }
 DECLARE_TYPES(resize_images) {
   getOpDescriptor()
       ->setAllowedInputTypes(0, {ALL_FLOATS, ALL_INTS})
       ->setAllowedInputTypes(1, {ALL_INTS})
-      ->setAllowedOutputTypes({DataType::FLOAT32});
+      ->setAllowedOutputTypes({FLOAT32});
 }
 
 }  // namespace ops

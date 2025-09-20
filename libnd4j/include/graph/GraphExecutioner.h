@@ -42,16 +42,15 @@ namespace graph {
 class SD_LIB_EXPORT GraphExecutioner {
  protected:
  public:
-  // static sd::Status executeFlatNode(sd::graph::Graph *graph, sd::graph::Node *node, sd::graph::VariableSpace<float>
-  // *variableSpace);
 
-  static sd::Status executeFlatNode(Graph *graph, Node *node, VariableSpace *variableSpace);
+
+  static Status executeFlatNode(Graph *graph, Node *node, VariableSpace *variableSpace);
 
   /**
    * This method executes given Graph
    * @return
    */
-  static sd::Status execute(Graph *graph, VariableSpace *variableSpace = nullptr);
+  static Status execute(Graph *graph, VariableSpace *variableSpace = nullptr);
 
   /**
    * This method executes graph stored at given FlatBuffers pointer
@@ -59,16 +58,16 @@ class SD_LIB_EXPORT GraphExecutioner {
    * @param pointer Pointer to FlatBuffer
    * @return pointer to FlatBuffer with result
    */
-  static sd::graph::ResultWrapper *executeFlatBuffer(sd::Pointer pointer);
+  static ResultWrapper *executeFlatBuffer(Pointer pointer);
 
-  static flatbuffers::Offset<FlatResult> execute(Graph *graph, flatbuffers::FlatBufferBuilder &builder,
-                                                 const FlatInferenceRequest *request);
+  static flatbuffers::Offset<::graph::FlatResult> execute(Graph *graph, flatbuffers::FlatBufferBuilder &builder,
+                                                 const ::graph::FlatInferenceRequest *request);
 
   static Graph *importFromTensorFlow(const char *fileName);
 
   static Graph *importFromFlatBuffers(const char *filename);
 
-  static Graph *importFromFlatPointer(sd::Pointer ptr);
+  static Graph *importFromFlatPointer(Pointer ptr);
 };
 
 long getFileSize(const char *filename);

@@ -32,11 +32,9 @@
 
 using namespace sd;
 
-class DeclarableOpsTests16 : public testing::Test {
+class DeclarableOpsTests16 : public NDArrayTests {
  public:
   DeclarableOpsTests16() {
-    printf("\n");
-    fflush(stdout);
   }
 };
 
@@ -46,7 +44,7 @@ TEST_F(DeclarableOpsTests16, scatter_upd_1) {
   auto w = NDArrayFactory::create<float>(3.0f);
   auto e = NDArrayFactory::create<float>('c', {3}, {3.f, 1.f, 1.f});
 
-  sd::ops::scatter_upd op;
+  ops::scatter_upd op;
   auto result = op.evaluate({&x, &y, &w});
   ASSERT_EQ(sd::Status::OK, result.status());
 
@@ -56,16 +54,16 @@ TEST_F(DeclarableOpsTests16, scatter_upd_1) {
 }
 
 TEST_F(DeclarableOpsTests16, scatter_upd_2) {
-  NDArray x('c', {10, 3}, sd::DataType::FLOAT32);
-  NDArray indices('c', {2}, {2, 5}, sd::DataType::INT32);
-  NDArray updates('c', {2, 3}, {100, 101, 102, 200, 201, 202}, sd::DataType::FLOAT32);
+  NDArray x('c', {10, 3}, FLOAT32);
+  NDArray indices('c', {2}, {2, 5}, INT32);
+  NDArray updates('c', {2, 3}, {100, 101, 102, 200, 201, 202}, FLOAT32);
   NDArray e('c', {10, 3}, {1,   2,   3,   4,  5,  6,  100, 101, 102, 10, 11, 12, 13, 14, 15,
                            200, 201, 202, 19, 20, 21, 22,  23,  24,  25, 26, 27, 28, 29, 30},
-            sd::DataType::FLOAT32);
+            FLOAT32);
 
   x.linspace(1);
 
-  sd::ops::scatter_upd op;
+  ops::scatter_upd op;
   auto result = op.evaluate({&x, &indices, &updates});
   ASSERT_EQ(sd::Status::OK, result.status());
 
@@ -75,12 +73,12 @@ TEST_F(DeclarableOpsTests16, scatter_upd_2) {
 }
 
 TEST_F(DeclarableOpsTests16, scatter_upd_3) {
-  NDArray x('c', {10, 3}, sd::DataType::FLOAT32);
-  NDArray indices('c', {2}, {20, 5}, sd::DataType::INT32);
-  NDArray updates('c', {2, 3}, {100, 101, 102, 200, 201, 202}, sd::DataType::FLOAT32);
-  NDArray output('c', {10, 3}, sd::DataType::FLOAT32);
+  NDArray x('c', {10, 3}, FLOAT32);
+  NDArray indices('c', {2}, {20, 5}, INT32);
+  NDArray updates('c', {2, 3}, {100, 101, 102, 200, 201, 202}, FLOAT32);
+  NDArray output('c', {10, 3}, FLOAT32);
 
-  sd::ops::scatter_upd op;
+  ops::scatter_upd op;
   ASSERT_ANY_THROW(op.execute({&x, &indices, &updates}, {&output}, {}, {}, {true, true}));
 }
 
@@ -89,7 +87,7 @@ TEST_F(DeclarableOpsTests16, test_size_dtype_1) {
   auto z = NDArrayFactory::create<float>(0.0f);
   auto e = NDArrayFactory::create<float>(3.0f);
 
-  sd::ops::size op;
+  ops::size op;
   auto status = op.execute({&x}, {&z}, {}, {}, {});
   ASSERT_EQ(sd::Status::OK, status);
 
@@ -97,20 +95,20 @@ TEST_F(DeclarableOpsTests16, test_size_dtype_1) {
 }
 
 TEST_F(DeclarableOpsTests16, test_empty_noop_1) {
-  auto z = NDArrayFactory::empty<sd::LongType>();
+  auto z = NDArrayFactory::empty<LongType>();
 
-  sd::ops::noop op;
+  ops::noop op;
   auto status = op.execute({}, {&z}, {}, {}, {});
   ASSERT_EQ(sd::Status::OK, status);
 }
 
 TEST_F(DeclarableOpsTests16, test_empty_noop_2) {
-  auto z = NDArrayFactory::empty<sd::LongType>();
+  auto z = NDArrayFactory::empty<LongType>();
 
   Context ctx(1);
   ctx.setOutputArray(0, z.buffer(), z.shapeInfo(), z.specialBuffer(), z.specialShapeInfo());
 
-  sd::ops::noop op;
+  ops::noop op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -122,18 +120,18 @@ TEST_F(DeclarableOpsTests16, test_svd_1) {
                                           0.50563407f, 0.89252293f, 0.5461209f});
   auto z = NDArrayFactory::create<float>('c', {3});
 
-  sd::ops::svd op;
+  ops::svd op;
   auto status = op.execute({&x}, {&z}, {}, {0, 0, 16}, {});
 
   ASSERT_EQ(sd::Status::OK, status);
 }
 
 TEST_F(DeclarableOpsTests16, test_hamming_distance_1) {
-  auto x = NDArrayFactory::create<sd::LongType>({37, 37, 37});
-  auto y = NDArrayFactory::create<sd::LongType>({8723, 8723, 8723});
-  auto e = NDArrayFactory::create<sd::LongType>(18);
+  auto x = NDArrayFactory::create<LongType>({37, 37, 37});
+  auto y = NDArrayFactory::create<LongType>({8723, 8723, 8723});
+  auto e = NDArrayFactory::create<LongType>(18);
 
-  sd::ops::bits_hamming_distance op;
+  ops::bits_hamming_distance op;
   auto result = op.evaluate({&x, &y});
   ASSERT_EQ(sd::Status::OK, result.status());
 
@@ -153,23 +151,23 @@ TEST_F(DeclarableOpsTests16, test_knn_mindistance_1) {
   low.linspace(1.0);
   high.linspace(1.0);
 
-  sd::ops::knn_mindistance op;
+  ops::knn_mindistance op;
   auto result = op.execute({&input, &low, &high}, {&output}, {}, {}, {});
   ASSERT_EQ(sd::Status::OK, result);
 }
 
 TEST_F(DeclarableOpsTests16, test_empty_cast_1) {
   auto x = NDArrayFactory::create<bool>('c', {1, 0, 2});
-  auto e = NDArrayFactory::create<sd::LongType>('c', {1, 0, 2});
+  auto e = NDArrayFactory::create<LongType>('c', {1, 0, 2});
 
-  sd::ops::cast op;
+  ops::cast op;
   auto result = op.evaluate({&x}, {10});
   ASSERT_EQ(sd::Status::OK, result.status());
   ASSERT_EQ(e, *result.at(0));
 }
 
 TEST_F(DeclarableOpsTests16, test_range_1) {
-  sd::ops::range op;
+  ops::range op;
   auto z = NDArrayFactory::create<float>('c', {200});
 
   Context ctx(1);
@@ -181,26 +179,24 @@ TEST_F(DeclarableOpsTests16, test_range_1) {
 }
 
 TEST_F(DeclarableOpsTests16, test_range_2) {
-  sd::ops::range op;
+  ops::range op;
   auto z = NDArrayFactory::create<float>('c', {200});
 
   double tArgs[] = {-1.0, 1.0, 0.01};
 
-  auto shapes = ::calculateOutputShapes2(nullptr, op.getOpHash(), nullptr, nullptr, 0, tArgs, 3, nullptr, 0, nullptr, 0,
+  auto shapes = calculateOutputShapes2(nullptr, op.getOpHash(), nullptr, nullptr, 0, tArgs, 3, nullptr, 0, nullptr, 0,
                                          nullptr, 0);
-  // shape::printShapeInfoLinear("Result", shapes->at(0));
   ASSERT_TRUE(shape::shapeEquals(z.shapeInfo(), shapes->at(0)));
 
   delete shapes;
 }
 
 TEST_F(DeclarableOpsTests16, test_reverse_1) {
-  std::vector<sd::LongType> rows = {3, 5, 7, 8, 9, 10, 119, 211};
-  std::vector<sd::LongType> columns = {6, 5, 10, 100, 153, 171, 635};
+  std::vector<LongType> rows = {3, 5, 7, 8, 9, 10, 119, 211};
+  std::vector<LongType> columns = {6, 5, 10, 100, 153, 171, 635};
 
   for (auto r : rows) {
     for (auto c : columns) {
-      // sd_printf("Trying [%i, %i]\n", r, c);
       auto array = NDArrayFactory::create<float>('c', {r, c});
       auto exp = NDArrayFactory::create<float>('c', {r, c});
       auto reversed = NDArrayFactory::create<float>('c', {r, c});
@@ -221,8 +217,8 @@ TEST_F(DeclarableOpsTests16, test_reverse_1) {
         listE.at(e)->assign(rowReversed);
       }
 
-      sd::ops::reverse op;
-      sd::LongType axis = 1;
+      ops::reverse op;
+      LongType axis = 1;
       auto status = op.execute({&array}, {&reversed}, {}, {axis}, {});
       ASSERT_EQ(sd::Status::OK, status);
 
@@ -270,14 +266,8 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_1) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
-#if 0
-    //visual check
-    rgbs.printBuffer("rgbs ");
-    actual.printBuffer("HSV ");
-    expected.printBuffer("exp");
-#endif
   ASSERT_EQ(sd::Status::OK, status);
   ASSERT_TRUE(expected.equalsTo(actual));
 }
@@ -315,7 +305,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_2) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({1});
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -338,7 +328,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_3) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -361,7 +351,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_4) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({0});
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -378,7 +368,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_5) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -396,21 +386,17 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_hsv_6) {
        0.725874603f, 0.890151322f, 0.928968489f, 0.684074104f});
 
   // get subarray
-  // get subarray
   NDArray subArrRgbs = rgbs.subarray({NDIndex::all(), NDIndex::point(0)});
   NDArray expected = hsvs.subarray({NDIndex::all(), NDIndex::point(0)});
   subArrRgbs.reshapei({3});
   expected.reshapei({3});
-#if 0
-    //[RANK][SHAPE][STRIDES][OPTIONS][EWS][ORDER]
-    subArrRgbs.printShapeInfo("subArrRgbs");
-#endif
+
   auto actual = NDArrayFactory::create<float>('c', {3});
 
   Context ctx(1);
   ctx.setInputArray(0, &subArrRgbs);
   ctx.setOutputArray(0, &actual);
-  sd::ops::rgb_to_hsv op;
+  ops::rgb_to_hsv op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -447,7 +433,7 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_1) {
   ctx.setInputArray(0, &hsvs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -483,7 +469,7 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_2) {
   ctx.setInputArray(0, &hsvs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({1});
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -505,7 +491,7 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_3) {
   ctx.setInputArray(0, &hsvs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -527,7 +513,7 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_4) {
   ctx.setInputArray(0, &hsvs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({0});
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -544,7 +530,7 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_5) {
   ctx.setInputArray(0, &hsvs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -569,13 +555,12 @@ TEST_F(DeclarableOpsTests16, test_hsv_to_rgb_6) {
   expected.reshapei({3});
 #if 0
     //[RANK][SHAPE][STRIDES][OPTIONS][EWS][ORDER]
-    subArrHsvs.printShapeInfo("subArrHsvs");
 #endif
 
   Context ctx(1);
   ctx.setInputArray(0, &subArrHsvs);
   ctx.setOutputArray(0, &actual);
-  sd::ops::hsv_to_rgb op;
+  ops::hsv_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -623,7 +608,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_1) {
   ctx.setInputArray(0, &rgb);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -659,7 +644,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_2) {
   ctx.setInputArray(0, &rgb);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({1});
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -683,7 +668,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_3) {
   ctx.setInputArray(0, &rgb);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -707,7 +692,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_4) {
   ctx.setInputArray(0, &rgb);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({0});
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -729,7 +714,7 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_5) {
   ctx.setInputArray(0, &rgbs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -752,16 +737,13 @@ TEST_F(DeclarableOpsTests16, test_rgb_to_yiq_6) {
   NDArray expected = yiqs.subarray({NDIndex::all(), NDIndex::point(0)});
   subArrRgbs.reshapei({3});
   expected.reshapei({3});
-#if 0
-    //[RANK][SHAPE][STRIDES][OPTIONS][EWS][ORDER]
-    subArrRgbs.printShapeInfo("subArrRgbs");
-#endif
+
   auto actual = NDArrayFactory::create<float>('c', {3});
 
   Context ctx(1);
   ctx.setInputArray(0, &subArrRgbs);
   ctx.setOutputArray(0, &actual);
-  sd::ops::rgb_to_yiq op;
+  ops::rgb_to_yiq op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -797,7 +779,7 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_1) {
   ctx.setInputArray(0, &yiqs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -833,7 +815,7 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_2) {
   ctx.setInputArray(0, &yiqs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({1});
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -855,7 +837,7 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_3) {
   ctx.setInputArray(0, &yiqs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -877,7 +859,7 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_4) {
   ctx.setInputArray(0, &yiqs);
   ctx.setOutputArray(0, &actual);
   ctx.setIArguments({0});
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -893,12 +875,8 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_5) {
   ctx.setInputArray(0, &yiqs);
   ctx.setOutputArray(0, &actual);
 
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
-#if 0
-    actual.printBuffer("actual");
-    expected.printBuffer("expected");
-#endif
   ASSERT_EQ(sd::Status::OK, status);
   ASSERT_TRUE(expected.equalsTo(actual));
 }
@@ -918,16 +896,13 @@ TEST_F(DeclarableOpsTests16, test_yiq_to_rgb_6) {
   NDArray expected = rgbs.subarray({NDIndex::all(), NDIndex::point(0)});
   subArrYiqs.reshapei({3});
   expected.reshapei({3});
-#if 0
-    //[RANK][SHAPE][STRIDES][OPTIONS][EWS][ORDER]
-    subArrYiqs.printShapeInfo("subArrYiqs");
-#endif
+
   auto actual = NDArrayFactory::create<float>('c', {3});
 
   Context ctx(1);
   ctx.setInputArray(0, &subArrYiqs);
   ctx.setOutputArray(0, &actual);
-  sd::ops::yiq_to_rgb op;
+  ops::yiq_to_rgb op;
   auto status = op.execute(&ctx);
 
   ASSERT_EQ(sd::Status::OK, status);
@@ -939,26 +914,24 @@ TEST_F(DeclarableOpsTests16, clipbynorm_1) {
   auto x = NDArrayFactory::create<double>('c', {2, 3}, {-3.0, 0.0, 0.0, 4.0, 0.0, 0.0});
   auto exp = NDArrayFactory::create<double>('c', {2, 3}, {-2.4, 0.0, 0.0, 3.2, 0.0, 0.0});
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {4.0}, {});
 
   auto z = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(z));
-  ASSERT_TRUE(exp.equalsTo(z));
+ASSERT_EQ(exp,*z);
 }
 
 TEST_F(DeclarableOpsTests16, clipbynorm_2) {
   auto x = NDArrayFactory::create<double>('c', {2, 3}, {-3.0f, 0.0f, 0.0f, 4.0f, 0.0f, 0.0f});
   auto exp = NDArrayFactory::create<double>('c', {2, 3}, {-3.0f, 0.0f, 0.0f, 4.0f, 0.0f, 0.0f});
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {6.0}, {});
 
   auto z = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(z));
-  ASSERT_TRUE(exp.equalsTo(z));
+ASSERT_EQ(exp,*z);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -969,21 +942,22 @@ TEST_F(DeclarableOpsTests16, clipbynorm_3) {
 
   x.linspace(100.);
 
-  auto xNorm1 = x.reduceAlongDimension(reduce::Norm2, {1}, true);
+  std::vector<LongType> dimOne = {1};
+  auto xNorm1 = x.reduceAlongDimension(reduce::Norm2, &dimOne, true);
   x /= xNorm1;
-  xNorm1 = x.reduceAlongDimension(reduce::Norm2, {1}, true);
+  xNorm1 = x.reduceAlongDimension(reduce::Norm2, &dimOne, true);
 
   ASSERT_TRUE(unities.isSameShape(xNorm1));
   ASSERT_TRUE(unities.equalsTo(xNorm1));
 
   x *= scale;
-  xNorm1 = x.reduceAlongDimension(reduce::Norm2, {1}, true);
+  xNorm1 = x.reduceAlongDimension(reduce::Norm2, &dimOne, true);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {1.0}, {1});
   auto z = result.at(0);
 
-  auto zNorm1 = z->reduceAlongDimension(reduce::Norm2, {1}, true);
+  auto zNorm1 = z->reduceAlongDimension(reduce::Norm2, &dimOne, true);
   auto exp = NDArrayFactory::create<double>('c', {3, 1}, {1., 1., xNorm1.e<double>(2)});
 
   ASSERT_TRUE(exp.isSameShape(&zNorm1));
@@ -1001,31 +975,26 @@ TEST_F(DeclarableOpsTests16, clipbynorm_4) {
                                      {0.405392, 0.319980, 0.091113, 0.001079, 0.354444, 0.225846, 0.426676, 0.237501,
                                       0.138259, 0.150149, 0.268965, 0.010723, 0.049078, 0.304615, 0.317105});
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {1.f}, {});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 TEST_F(DeclarableOpsTests16, clipbynorm_5) {
-  // auto x = NDArrayFactory::create<double>('c', {3, 5}, {1,2,3,4,5,  1,2,3,4,5,  1,2,3,4,5});
   auto x = NDArrayFactory::create<double>('c', {3, 5});
   auto exp = NDArrayFactory::create<double>(
       'c', {3, 5},
       {1., 2., 2.89271, 3.50524, 4.00892, 6., 7., 7.71389, 7.88678, 8.01784, 11., 12., 12.53507, 12.26833, 12.02676});
-  // auto exp = NDArrayFactory::create<double>('c', {3, 5}, {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1});
-
   x.linspace(1);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {15.f}, {0});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1037,12 +1006,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_6) {
 
   x.linspace(1);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {15.f}, {1});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1054,12 +1022,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_7) {
 
   x.linspace(1);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {15.f}, {0, 1});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1071,12 +1038,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_8) {
 
   x.linspace(1);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {15.}, {});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1084,12 +1050,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_9) {
   auto x = NDArrayFactory::create<double>('c', {2}, {3., 4.});
   auto exp = NDArrayFactory::create<double>('c', {2}, {2.4, 3.2});
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {4.}, {});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1097,12 +1062,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_10) {
   auto x = NDArrayFactory::create<double>(6.);
   auto exp = NDArrayFactory::create<double>(5.);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {5.}, {});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1115,12 +1079,11 @@ TEST_F(DeclarableOpsTests16, clipbynorm_11) {
 
   x.linspace(1);
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {35.}, {0, 2});
   auto output = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(output));
-  ASSERT_TRUE(exp.equalsTo(output));
+ASSERT_EQ(exp,*output);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1130,7 +1093,7 @@ TEST_F(DeclarableOpsTests16, clipbynorm_12) {
       'c', {3, 3},
       {0.03198684, 0.06397368, 0.09596053, 0.12794736, 0.15993419, 0.19192106, 0.22390789, 0.25589472, 0.28788155});
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&x}, {0.54}, {});
 
   ASSERT_EQ(e, *result.at(0));
@@ -1140,7 +1103,7 @@ TEST_F(DeclarableOpsTests16, clipbynorm_12) {
 TEST_F(DeclarableOpsTests16, clipbynorm_13) {
   const int bS = 5;
   const int nOut = 4;
-  const int axis = 0;
+  const LongType axis = 0;
   const double clip = 2.;
 
   auto x = NDArrayFactory::create<double>(
@@ -1150,7 +1113,9 @@ TEST_F(DeclarableOpsTests16, clipbynorm_13) {
   auto colVect = NDArrayFactory::create<double>('c', {bS, 1}, {0.9, 0.95, 1.00, 1.05, 1.1});
   auto expect = NDArrayFactory::create<double>('c', {bS, nOut});
 
-  auto norm2 = x.reduceAlongDimension(reduce::Norm2, {axis}, true);  // norm2 has shape [1, nOut]
+
+  std::vector<LongType> dims = {axis};
+  auto norm2 = x.reduceAlongDimension(reduce::Norm2, &dims, true);  // norm2 has shape [1, nOut]
 
   auto y = ((x / norm2) * clip) * colVect;
   auto temp = (x / norm2) * clip;
@@ -1164,7 +1129,7 @@ TEST_F(DeclarableOpsTests16, clipbynorm_13) {
       expect({0, 0, j, j + 1}).assign(yCol * (clip / norm2Col));
   }
 
-  sd::ops::clipbynorm op;
+  ops::clipbynorm op;
   auto result = op.evaluate({&y}, {clip}, {axis});
   auto outFF = result.at(0);
 
@@ -1185,8 +1150,8 @@ TEST_F(DeclarableOpsTests16, clipbynorm_bp_1) {
   const OpArgsHolder argsHolderFF({&x}, {clip}, {});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {clip}, {});
 
-  sd::ops::clipbynorm opFF;
-  sd::ops::clipbynorm_bp opBP;
+  ops::clipbynorm opFF;
+  ops::clipbynorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
@@ -1207,8 +1172,8 @@ TEST_F(DeclarableOpsTests16, clipbynorm_bp_2) {
   const OpArgsHolder argsHolderFF({&x}, {clip}, {axis});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {clip}, {axis});
 
-  sd::ops::clipbynorm opFF;
-  sd::ops::clipbynorm_bp opBP;
+  ops::clipbynorm opFF;
+  ops::clipbynorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
@@ -1229,8 +1194,8 @@ TEST_F(DeclarableOpsTests16, clipbynorm_bp_3) {
   const OpArgsHolder argsHolderFF({&x}, {clip}, {axis});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {clip}, {axis});
 
-  sd::ops::clipbynorm opFF;
-  sd::ops::clipbynorm_bp opBP;
+  ops::clipbynorm opFF;
+  ops::clipbynorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
@@ -1242,13 +1207,12 @@ TEST_F(DeclarableOpsTests16, clipbyavgnorm_1) {
   auto x = NDArrayFactory::create<double>('c', {2, 3}, {-3.0, 0.0, 0.0, 4.0, 0.0, 0.0});
   auto exp = NDArrayFactory::create<double>('c', {2, 3}, {-2.88, 0.0, 0.0, 3.84, 0.0, 0.0});
 
-  sd::ops::clipbyavgnorm op;
+  ops::clipbyavgnorm op;
   auto result = op.evaluate({&x}, {0.8}, {});
 
   auto z = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(z));
-  ASSERT_TRUE(exp.equalsTo(z));
+ASSERT_EQ(exp,*z);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1256,13 +1220,12 @@ TEST_F(DeclarableOpsTests16, clipbyavgnorm_2) {
   auto x = NDArrayFactory::create<float>('c', {2, 3}, {-3.0f, 0.0f, 0.0f, 4.0f, 0.0f, 0.0f});
   auto exp = NDArrayFactory::create<float>('c', {2, 3}, {-3.f, 0.0f, 0.0f, 4.f, 0.0f, 0.0f});
 
-  sd::ops::clipbyavgnorm op;
+  ops::clipbyavgnorm op;
   auto result = op.evaluate({&x}, {0.9}, {});
 
   auto z = result.at(0);
 
-  ASSERT_TRUE(exp.isSameShape(z));
-  ASSERT_TRUE(exp.equalsTo(z));
+ASSERT_EQ(exp,*z);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1278,8 +1241,8 @@ TEST_F(DeclarableOpsTests16, clipbyavgnorm_bp_1) {
   const OpArgsHolder argsHolderFF({&x}, {clip}, {});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {clip}, {});
 
-  sd::ops::clipbyavgnorm opFF;
-  sd::ops::clipbyavgnorm_bp opBP;
+  ops::clipbyavgnorm opFF;
+  ops::clipbyavgnorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
@@ -1300,8 +1263,8 @@ TEST_F(DeclarableOpsTests16, clipbyavgnorm_bp_2) {
   const OpArgsHolder argsHolderFF({&x}, {clip}, {axis});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {clip}, {axis});
 
-  sd::ops::clipbyavgnorm opFF;
-  sd::ops::clipbyavgnorm_bp opBP;
+  ops::clipbyavgnorm opFF;
+  ops::clipbyavgnorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 
@@ -1312,14 +1275,14 @@ TEST_F(DeclarableOpsTests16, clipbyavgnorm_bp_2) {
 TEST_F(DeclarableOpsTests16, clipbyavgnorm_bp_3) {
   NDArray x('c', {2, 3, 4}, {-0.14, 0.96,  0.47,  -0.98, 0.03,  0.95, 0.33,  -0.97, 0.59, -0.92, -0.12, -0.33,
                              0.82,  -0.76, -0.69, -0.95, -0.77, 0.25, -0.35, 0.94,  0.50, 0.04,  0.61,  0.99},
-            sd::DataType::DOUBLE);
-  NDArray gradO('c', {2, 3, 4}, sd::DataType::DOUBLE);
+            DOUBLE);
+  NDArray gradO('c', {2, 3, 4}, DOUBLE);
 
   const OpArgsHolder argsHolderFF({&x}, {0.7}, {0, 2});
   const OpArgsHolder argsHolderBP({&x, &gradO}, {0.7}, {0, 2});
 
-  sd::ops::clipbyavgnorm opFF;
-  sd::ops::clipbyavgnorm_bp opBP;
+  ops::clipbyavgnorm opFF;
+  ops::clipbyavgnorm_bp opBP;
 
   const bool isGradCorrect = GradCheck::checkGrad(opFF, opBP, argsHolderFF, argsHolderBP);
 

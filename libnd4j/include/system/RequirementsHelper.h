@@ -28,11 +28,11 @@
 #include <iostream>
 #include <type_traits>
 
-// internal usage only
-//#define ENABLE_LOG_TO_TEST 1
 namespace sd {
 
-inline std::ostream& operator<<(std::ostream& o, const sd::DataType& type) {
+
+
+inline std::ostream& operator<<(std::ostream& o, DataType type) {
   o << DataTypeUtils::asString(type);
   return o;
 }
@@ -237,9 +237,9 @@ class Requirements {
   };
 
   // Requirements is implicitly converted to bool.
-  // Note: this way you can use shortcircuit operators && to chain requirements
+  // Note: this way you can use short circuit operators && to chain requirements
   //      req.expect && req.expect && ...
-  //      This way you will get the shortcircuit that will not evaluate the laters
+  //      This way you will get the shortcircuit that will not evaluate the later
   //      it is better than using calls chaining like: req.expect( ).expect
   operator bool() { return this->ok; }
 
@@ -249,7 +249,7 @@ class Requirements {
     return *this;
   }
 
-  // Compares two values with comparision
+  // Compares two values with comparison
   // Note: to achive full lazy evaluation of the obtained values or messages
   //        you should wrap them and use getValue getMsg functions
   template <typename T, typename T1, typename Op>
@@ -298,7 +298,7 @@ class Requirements {
 
   // throws. use this if you want to throw an exception if there is any failure
   void throws() {
-    if (!this->ok) throw std::invalid_argument(OP_VALIDATION_FAIL_MSG);
+    if (!this->ok) THROW_EXCEPTION(OP_VALIDATION_FAIL_MSG);
   }
 
   template <typename T>

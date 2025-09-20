@@ -28,7 +28,6 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/OpTracker.h>
 #include <helpers/ShapeBuilders.h>
-#include <helpers/TAD.h>
 #include <helpers/shape.h>
 #include <ops/declarable/headers/BarnesHutTsne.h>
 #include <ops/declarable/headers/activations.h>
@@ -37,7 +36,6 @@
 #include <ops/declarable/headers/boolean.h>
 #include <ops/declarable/headers/broadcastable.h>
 #include <ops/declarable/headers/compat.h>
-#include <ops/declarable/headers/compression.h>
 #include <ops/declarable/headers/convo.h>
 #include <ops/declarable/headers/datatypes.h>
 #include <ops/declarable/headers/decoder.h>
@@ -74,7 +72,7 @@ DECLARE_DIVERGENT_OP(Switch, 2, 2, true);
 DECLARE_LOGIC_OP(While);
 #endif
 #if NOT_EXCLUDED(OP_Scope)
-DECLARE_LOGIC_OP(Scope);
+DECLARE_LOGIC_OP(OpScope);
 #endif
 #if NOT_EXCLUDED(OP_Conditional)
 DECLARE_LOGIC_OP(Conditional);

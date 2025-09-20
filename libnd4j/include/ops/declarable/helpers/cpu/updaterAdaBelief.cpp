@@ -34,9 +34,26 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU, const NDArray& initStateM,
+static void adaBeliefUpdater_(NDArray& gradient, NDArray& initStateU, NDArray& initStateM,
                               NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr, const double dBeta1,
                               const double dBeta2, const double dEpsilon, const int nIteration) {
+  // Cache shape information
+  const auto gradientShapeInfo = gradient.shapeInfo();
+  const auto updateShapeInfo = update.shapeInfo();
+  const auto initStateUShapeInfo = initStateU.shapeInfo();
+  const auto stateUShapeInfo = stateU.shapeInfo();
+  const auto initStateMShapeInfo = initStateM.shapeInfo();
+  const auto stateMShapeInfo = stateM.shapeInfo();
+  
+  const auto gradRank = shape::rank(gradientShapeInfo);
+  const auto* gradShape = shape::shapeOf(gradientShapeInfo);
+  const auto* gradStride = shape::stride(gradientShapeInfo);
+  const auto* updateStride = shape::stride(updateShapeInfo);
+  const auto* initStateUStride = shape::stride(initStateUShapeInfo);
+  const auto* stateUStride = shape::stride(stateUShapeInfo);
+  const auto* initStateMStride = shape::stride(initStateMShapeInfo);
+  const auto* stateMStride = shape::stride(stateMShapeInfo);
+
   const T* grad = gradient.bufferAsT<T>();
   const T* initU = initStateU.bufferAsT<T>();
   const T* initM = initStateM.bufferAsT<T>();
@@ -48,7 +65,11 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
   const T lr = static_cast<T>(dLr);
   const T beta1 = static_cast<T>(dBeta1);
   const T beta2 = static_cast<T>(dBeta2);
-  const T epsilon = static_cast<T>(dEpsilon);
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   const T iteration = static_cast<T>(nIteration);
 
   const T beta1T = sd::math::sd_pow<T, T, T>(beta1, (iteration + 1));
@@ -77,23 +98,24 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
     return;
   }
 
-  bool bXZsame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), update.shapeInfo());
-  bool bXInVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateU.shapeInfo());
-  bool bXStVSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateU.shapeInfo());
-  bool bXInMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initStateM.shapeInfo());
-  bool bXStMSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateM.shapeInfo());
+  bool bXZsame = shape::haveSameShapeAndStrides(gradientShapeInfo, updateShapeInfo);
+  bool bXInVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateUShapeInfo);
+  bool bXStVSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateUShapeInfo);
+  bool bXInMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateMShapeInfo);
+  bool bXStMSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateMShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initUOffset = bXInVSame ? xOffset : shape::getOffset(initStateU.shapeInfo(), coords);
-      const auto stUOffset = bXStVSame ? xOffset : shape::getOffset(stateU.shapeInfo(), coords);
-      const auto initMOffset = bXInVSame ? xOffset : shape::getOffset(initStateM.shapeInfo(), coords);
-      const auto stMOffset = bXStMSame ? xOffset : shape::getOffset(stateM.shapeInfo(), coords);
-
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType  i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
+      sd::LongType xOffset, zOffset, initUOffset, stUOffset, initMOffset, stMOffset;
+      COORDS2INDEX(gradRank, gradStride, coords, xOffset);
+      COORDS2INDEX(gradRank, updateStride, coords, zOffset);
+      COORDS2INDEX(gradRank, initStateUStride, coords, initUOffset);
+      COORDS2INDEX(gradRank, stateUStride, coords, stUOffset);
+      COORDS2INDEX(gradRank, initStateMStride, coords, initMOffset);
+      COORDS2INDEX(gradRank, stateMStride, coords, stMOffset);
+      
       stM[stMOffset] = beta1 * initM[initMOffset] + grad[xOffset] * (1 - beta1);
       stU[stUOffset] = beta2 * initU[initUOffset] +
                        (grad[xOffset] - stM[stMOffset]) * (grad[xOffset] - stM[stMOffset]) * (1 - beta2) + epsilon;
@@ -106,8 +128,8 @@ static void adaBeliefUpdater_(const NDArray& gradient, const NDArray& initStateU
   return;
 }
 
-void updaterAdaBelief(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initStateU,
-                      const NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr,
+void updaterAdaBelief(sd::LaunchContext* context, NDArray& gradient, NDArray& initStateU,
+                      NDArray& initStateM, NDArray& update, NDArray& stateU, NDArray& stateM, const double dLr,
                       const double dBeta1, const double dBeta2, const double dEpsilon, const int nIteration) {
   BUILD_SINGLE_SELECTOR(
       gradient.dataType(), adaBeliefUpdater_,

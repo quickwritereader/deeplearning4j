@@ -27,7 +27,7 @@ import org.deeplearning4j.nn.modelimport.keras.config.KerasLayerConfiguration;
 import org.deeplearning4j.nn.modelimport.keras.exceptions.InvalidKerasConfigurationException;
 import org.deeplearning4j.nn.modelimport.keras.exceptions.UnsupportedKerasConfigurationException;
 import org.deeplearning4j.nn.modelimport.keras.layers.KerasInput;
-import org.deeplearning4j.nn.modelimport.keras.layers.KerasTFOpLayer;
+import org.deeplearning4j.nn.modelimport.keras.layers.attention.KerasAttentionLayer;
 import org.deeplearning4j.nn.modelimport.keras.layers.convolutional.*;
 import org.deeplearning4j.nn.modelimport.keras.layers.core.*;
 import org.deeplearning4j.nn.modelimport.keras.layers.embeddings.KerasEmbedding;
@@ -305,6 +305,8 @@ public class KerasLayerUtils {
             layer = new KerasCropping2D(layerConfig, enforceTrainingConfig);
         } else if (layerClassName.equals(conf.getLAYER_CLASS_NAME_CROPPING_1D())) {
             layer = new KerasCropping1D(layerConfig, enforceTrainingConfig);
+        } else if(layerClassName.equals(conf.getLAYER_CLASS_NAME_ATTENTION())) {
+            layer = new KerasAttentionLayer(layerConfig,enforceTrainingConfig);
         } else if (layerClassName.equals(conf.getLAYER_CLASS_NAME_LAMBDA())) {
             String lambdaLayerName = KerasLayerUtils.getLayerNameFromConfig(layerConfig, conf);
             if (!lambdaLayers.containsKey(lambdaLayerName) && !customLayers.containsKey(layerClassName)) {
@@ -328,7 +330,8 @@ public class KerasLayerUtils {
         } else if (conf instanceof Keras2LayerConfiguration) {
             Keras2LayerConfiguration k2conf = (Keras2LayerConfiguration) conf;
             if (layerClassName.equals(k2conf.getTENSORFLOW_OP_LAYER())) {
-                layer = new KerasTFOpLayer(layerConfig, enforceTrainingConfig);
+                //this was never really tested/worked better to remove/redo
+                throw new UnsupportedKerasConfigurationException("Tensorflow op layers are not supported yet.");
             }
         }
         if (layer == null) {

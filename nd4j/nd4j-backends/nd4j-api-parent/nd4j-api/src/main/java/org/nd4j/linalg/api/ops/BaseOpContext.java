@@ -24,8 +24,14 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.val;
+import org.bytedeco.javacpp.Pointer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.nativeblas.OpaqueNDArray;
+import org.nd4j.shade.guava.primitives.Booleans;
+import org.nd4j.shade.guava.primitives.Doubles;
+import org.nd4j.shade.guava.primitives.Longs;
 
 import java.util.*;
 
@@ -36,6 +42,7 @@ public abstract class BaseOpContext implements OpContext {
     protected List<Double> fastpath_t = new ArrayList<>();
     protected List<Boolean> fastpath_b = new ArrayList<>();
     protected List<Long> fastpath_i = new ArrayList<>();
+
     protected List<DataType> fastpath_d = new ArrayList<>();
 
     @Setter()
@@ -43,10 +50,116 @@ public abstract class BaseOpContext implements OpContext {
     protected ExecutionMode executionMode = ExecutionMode.UNDEFINED;
 
     @Override
+    public void setArgsFrom(CustomOp customOp) {
+        setIArguments(customOp.iArgs());
+        setTArguments(customOp.tArgs());
+        setBArguments(customOp.bArgs());
+        setDArguments(customOp.dArgs());
+        setInputArrays(customOp.inputArguments());
+        setOutputArrays(customOp.outputArguments());
+    }
+
+
+    @Override
+    public boolean bArgumentAtNative(int index) {
+        return false;
+    }
+
+    @Override
+    public INDArray getInputArrayNative(int idx) {
+        return OpaqueNDArray.toINDArray(Nd4j.getNativeOps().getInputArrayNative(contextPointer(), idx));
+    }
+
+    @Override
+    public INDArray getOutputArrayNative(int idx) {
+        return OpaqueNDArray.toINDArray(Nd4j.getNativeOps().getOutputArrayNative(contextPointer(), idx));
+    }
+
+    @Override
+    public DataType dataTypeNativeAt(int index) {
+        return DataType.fromInt((int) Nd4j.getNativeOps().dataTypeNativeAt(contextPointer(), index));
+    }
+
+    @Override
+    public int iArgumentAtNative(int index) {
+        return (int) Nd4j.getNativeOps().iArgumentAtNative(contextPointer(), index);
+    }
+
+    @Override
+    public int numDNative() {
+        return (int) Nd4j.getNativeOps().numDNative(contextPointer());
+    }
+
+    @Override
+    public int numInputsNative() {
+        return (int) Nd4j.getNativeOps().numInputsNative(contextPointer());
+    }
+
+    @Override
+    public int numTArgumentsNative() {
+        return (int) Nd4j.getNativeOps().numTArgumentsNative(contextPointer());
+    }
+
+    @Override
+    public Double tArgumentNative(int index) {
+        return Nd4j.getNativeOps().tArgumentNative(contextPointer(), index);
+    }
+
+    @Override
+    public int numOutArgumentsNative() {
+        return (int) Nd4j.getNativeOps().numOutputsNative(contextPointer());
+    }
+
+
+    @Override
+    public int numIArgumentsNative() {
+        return (int) Nd4j.getNativeOps().numIArgumentsNative(contextPointer());
+    }
+    @Override
+    public int numBArgumentsNative() {
+        return (int) Nd4j.getNativeOps().numBNative(contextPointer());
+    }
+
+    @Override
+    public void setIArguments(Pointer arguments, int length) {
+        throw new UnsupportedOperationException("Unable to set an int arguments pointer using a pointer");
+
+    }
+
+    @Override
+    public void setTArguments(Pointer arguments, int length) {
+        throw new UnsupportedOperationException("Unable to set an double arguments pointer using a pointer");
+
+    }
+
+    @Override
+    public void setDArguments(Pointer arguments, int length) {
+        throw new UnsupportedOperationException("Unable to set a data type arguments pointer using a pointer");
+
+    }
+
+    @Override
+    public void setBArguments(Pointer arguments, int length) {
+        throw new UnsupportedOperationException("Unable to set a boolean arguments pointer using a pointer");
+
+    }
+
+    @Override
+    public void setBArguments(List<Boolean> arguments) {
+        setBArguments(Booleans.toArray(arguments));
+    }
+
+
+    @Override
     public void setIArguments(long... arguments) {
         fastpath_i.clear();
         for (val v:arguments)
             fastpath_i.add(v);
+    }
+
+    @Override
+    public void setIArguments(List<Long> iArguments) {
+        setIArguments(Longs.toArray(iArguments));
     }
 
     @Override
@@ -67,6 +180,11 @@ public abstract class BaseOpContext implements OpContext {
     }
 
     @Override
+    public void setTArguments(List<Double> tArguments) {
+        setTArguments(Doubles.toArray(tArguments));
+    }
+
+    @Override
     public List<Double> getTArguments(){
         return fastpath_t;
     }
@@ -83,6 +201,8 @@ public abstract class BaseOpContext implements OpContext {
             fastpath_b.add(v);
     }
 
+
+
     @Override
     public List<Boolean> getBArguments(){
         return fastpath_b;
@@ -98,6 +218,11 @@ public abstract class BaseOpContext implements OpContext {
         fastpath_d.clear();
         for (val v:arguments)
             fastpath_d.add(v);
+    }
+
+    @Override
+    public void setDArguments(List<DataType> arguments) {
+        setDArguments(arguments.toArray(new DataType[0]));
     }
 
     @Override
@@ -211,5 +336,25 @@ public abstract class BaseOpContext implements OpContext {
             setTArguments(tArgs);
         if (bArgs != null)
             setBArguments(bArgs);
+    }
+
+    @Override
+    public void transferTArgs() {
+        setTArguments();
+    }
+
+    @Override
+    public void transferIArgs() {
+
+    }
+
+    @Override
+    public void transferBArgs() {
+
+    }
+
+    @Override
+    public void transferDArgs() {
+
     }
 }

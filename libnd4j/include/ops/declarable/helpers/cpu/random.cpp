@@ -41,13 +41,13 @@ namespace helpers {
 template <typename T>
 T gammaLess(graph::RandomGenerator& rng, T const alpha, T const beta) {
   auto d = T(1.0334f) - T(0.0766f) * math::p_exp(T(2.2942f) * alpha);
-  auto a = math::p_pow(T(2.f), alpha) * math::p_pow(T(1.f) - math::p_exp(-d * T(0.5f)), alpha);
+  auto a = math::p_pow(T(2.f), alpha) * math::p_pow<T>(T(1.f) - math::p_exp(-d * T(0.5f)), alpha);
   auto b = alpha * math::p_pow(d, alpha - T(1.f)) * exp(-d);
   auto c = a + b;
   T rawX;
   static auto index = 0LL;
   const T underAlpha = T(1.f) / alpha;
-  const T powerAlpha = math::p_pow(T(2.f), alpha - T(1.f));
+  const T powerAlpha = math::p_pow<T>(T(2.f), alpha - T(1.f));
 
   for (;;) {
     auto u = rng.relativeT<T>(index++, T(0.f), T(1.f));
@@ -64,7 +64,7 @@ T gammaLess(graph::RandomGenerator& rng, T const alpha, T const beta) {
       if (testVal < v) continue;
       break;
     } else {
-      if (v <= math::p_pow(d / rawX, T(1.f) - alpha)) break;
+      if (v <= math::p_pow<T>(d / rawX, T(1.f) - alpha)) break;
       continue;
     }
   }
@@ -93,19 +93,16 @@ T gammaGreat(graph::RandomGenerator& rng, T const alpha, T const beta) {
     return math::p_cos(T(2.f * 3.141592f) * v2) * math::p_sqrt(T(-2.f) * math::p_log(v1));
   };
 
-  //        const T underAlpha = T(1.f) / alpha;
-  //        const T powerAlpha = math::p_pow(T(2.f), alpha - T(1.f));
-
   float normalizedVar;
   for (;;) {
     do {
-      x = normalDistributed(rng, index);  // printf("X = %f\n", x);
+      x = normalDistributed(rng, index);
       normalizedVar = T(1.f) + c * x;
     } while (normalizedVar < T(0.f));
     normalizedVar = normalizedVar * normalizedVar * normalizedVar;  // v * v * v;
 
-    auto u = rng.relativeT<T>(index++, T(0.f), T(1.f));     // printf("UNI = %f\n", u);
-    if (u < T(1.f) - T(.0331f) * (x * x) * (x * x)) break;  // return (d * v / b);
+    auto u = rng.relativeT<T>(index++, T(0.f), T(1.f));
+    if (u < T(1.f) - T(.0331f) * (x * x) * (x * x)) break;
     if (log(u) < 0.5f * x * x + decreasedAlpha * (1. - normalizedVar + math::p_log(normalizedVar))) break;
   }
   return (decreasedAlpha * normalizedVar / beta);
@@ -116,8 +113,8 @@ void fillRandomGamma_(LaunchContext* context, graph::RandomGenerator& rng, NDArr
                       NDArray* output) {
   auto broadcasted = alpha->shapeInfo();
   if (beta != nullptr) {
-    const sd::LongType* broadcastedShape = nullptr;
-    ShapeUtils::evalBroadcastShapeInfo(*alpha, *beta, true, broadcastedShape, context->getWorkspace());
+     sd::LongType* broadcastedShape = nullptr;
+    ShapeUtils::evalBroadcastShapeInfo(alpha->shapeInfo(), beta->shapeInfo(), true, broadcastedShape, context->getWorkspace());
     broadcasted = broadcastedShape;
   }
 
@@ -130,8 +127,8 @@ void fillRandomGamma_(LaunchContext* context, graph::RandomGenerator& rng, NDArr
     NDArray alphaBroadcasted(broadcasted, alpha->dataType(), false, context);
     NDArray betaBroadcasted(broadcasted, beta->dataType(), false, context);
 
-    copyAlpha = new NDArray(alphaBroadcasted.applyTrueBroadcast(BroadcastOpsTuple::Assign(), *alpha));
-    copyBeta = new NDArray(betaBroadcasted.applyTrueBroadcast(BroadcastOpsTuple::Assign(), *beta));
+    copyAlpha = alphaBroadcasted.applyTrueBroadcast(BroadcastOpsTuple::Assign(), alpha);
+    copyBeta = betaBroadcasted.applyTrueBroadcast(BroadcastOpsTuple::Assign(), beta);
   }
   bool directOutput = output->ews() == 1 && output->ordering() == 'c';
   T* outputBuf = output->dataBuffer()->primaryAsT<T>();
@@ -154,7 +151,6 @@ void fillRandomGamma_(LaunchContext* context, graph::RandomGenerator& rng, NDArr
   if (beta != nullptr) {
     delete copyAlpha;
     delete copyBeta;
-    // delete broadcasted;
   }
 }
 

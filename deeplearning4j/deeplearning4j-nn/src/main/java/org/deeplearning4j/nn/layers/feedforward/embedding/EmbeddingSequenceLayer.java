@@ -33,6 +33,8 @@ import org.deeplearning4j.nn.workspace.ArrayType;
 import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.api.ops.impl.scatter.ScatterAdd;
+import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.factory.Broadcast;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.common.primitives.Pair;
@@ -43,7 +45,7 @@ import static org.nd4j.linalg.api.shape.Shape.hasDefaultStridesForShape;
 
 @Slf4j
 public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf.layers.EmbeddingSequenceLayer> {
-    private static final int[] WEIGHT_DIM = new int[]{1};
+    private static final long[] WEIGHT_DIM = new long[]{1};
 
     public EmbeddingSequenceLayer(NeuralNetConfiguration conf, DataType dataType) {
         super(conf, dataType);
@@ -88,7 +90,9 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
             input = workspaceMgr.dup(ArrayType.ACTIVATIONS, input, 'f');
 
         INDArray indices = Nd4j.createFromArray(indexes);
-        Nd4j.scatterUpdate(org.nd4j.linalg.api.ops.impl.scatter.ScatterUpdate.UpdateOp.ADD, weightGradients, indices, delta, WEIGHT_DIM);
+        ScatterAdd scatterAdd = new ScatterAdd(weightGradients, indices, delta);
+
+        Nd4j.getExecutioner().exec(scatterAdd);
 
         Gradient ret = new DefaultGradient();
         ret.gradientForVariable().put(DefaultParamInitializer.WEIGHT_KEY, weightGradients);
@@ -105,6 +109,7 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
     @Override
     protected INDArray preOutput(boolean training, LayerWorkspaceMgr workspaceMgr) {
         assertInputSet(false);
+
         if(input.rank() == 1) {
             input = input.reshape(input.length(), 1,1);
         }
@@ -116,10 +121,12 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
         }
 
         INDArray in = input;
-        if(input.rank() == 3){
+
+        if(input.rank() == 3) {
             //From: [mb,1,tsLength] to [mb,tsLength]
             in = input.reshape(input.ordering(), input.size(0), input.size(2));
         }
+
 
         // if inference is true, override input length config with input data columns
         boolean inferInputLength = layerConf().isInferInputLength();
@@ -138,9 +145,10 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
         val nIn = layerConf().getNIn();
         val minibatch = in.rows();
         val inputLength = layerConf().getInputLength();
-        if (in.ordering() != 'c' || in.isView() || !hasDefaultStridesForShape(in))
+        if (in.ordering() != 'c' || in.isView() || !hasDefaultStridesForShape(in)) {
             in = workspaceMgr.dup(ArrayType.INPUT, in, 'c');
 
+        }
         indexes = in.data().asInt();   //C order: minibatch dimension changes least rapidly when iterating over buffer
 
         for (int i = 0; i < indexes.length; i++) {
@@ -156,6 +164,7 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
         val nOut = layerConf().getNOut();
         INDArray destination = workspaceMgr.createUninitialized(
                 ArrayType.ACTIVATIONS, weights.dataType(), new long[]{minibatch * inputLength, nOut}, 'c');
+
         INDArray rows = Nd4j.pullRows(weights, destination, 1, indexes);
 
         if (hasBias()) {
@@ -165,16 +174,18 @@ public class EmbeddingSequenceLayer extends BaseLayer<org.deeplearning4j.nn.conf
 
         val shape = new long[]{minibatch, inputLength, nOut};
         INDArray ret = rows.reshape('c', shape);
+
         if(layerConf().getOutputFormat() == RNNFormat.NCW) {
             ret = ret.permute(0, 2, 1); //[minibatch, seqLen, nOut] -> [minibatch, nOut, seqLen] i.e., NWC -> NCW
         }
-        return workspaceMgr.leverageTo(ArrayType.ACTIVATIONS, ret);
+
+        INDArray ret2 =  workspaceMgr.leverageTo(ArrayType.ACTIVATIONS, ret);
+        return ret2;
     }
 
     @Override
     public INDArray activate(boolean training, LayerWorkspaceMgr workspaceMgr) {
         INDArray rows = preOutput(training, workspaceMgr);
-
         INDArray ret = layerConf().getActivationFn().getActivation(rows, training);
         if (maskArray != null) {
             if(maskArray.rank() != 2 ||

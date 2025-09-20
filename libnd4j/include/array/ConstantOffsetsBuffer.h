@@ -43,9 +43,9 @@ class SD_LIB_EXPORT ConstantOffsetsBuffer {
   ConstantOffsetsBuffer() = default;
   ~ConstantOffsetsBuffer() = default;
 
-  const sd::LongType *primary() const;
-  const sd::LongType *special() const;
-  const sd::LongType *platform() const;
+  LongType *primary();
+  LongType *special();
+  LongType *platform();
 };
 
 }  // namespace sd

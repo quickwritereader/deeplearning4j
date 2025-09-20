@@ -41,9 +41,8 @@ CUSTOM_OP_IMPL(unique, 1, 2, false, 0, 0) {
 DECLARE_SHAPE_FN(unique) {
   auto in = inputShape->at(0);
   auto source = INPUT_VARIABLE(0);
-  //            auto shapeList = SHAPELIST();
-  const sd::LongType* valuesShape;
-  const sd::LongType* indicesShape;
+   LongType* valuesShape;
+   LongType* indicesShape;
 
   int uniqueCount = helpers::uniqueCount(block.launchContext(), source);
 
@@ -54,9 +53,8 @@ DECLARE_SHAPE_FN(unique) {
     valuesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(uniqueCount, ArrayOptions::dataType(in));
   }
   // second output is always LONG
-  indicesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(shape::length(in), sd::DataType::INT64);
+  indicesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(shape::length(in), INT64);
 
-  // COPY_SHAPE_EX(in, indicesShape, block.getWorkspace());
 
   return SHAPELIST(valuesShape, indicesShape);
 }
@@ -80,17 +78,17 @@ DECLARE_SHAPE_FN(unique_with_counts) {
   auto valuesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(uniqueCount, source->dataType());
 
   // second output is always LONG
-  auto indicesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(source->lengthOf(), sd::DataType::INT64);
+  auto indicesShape = ConstantShapeHelper::getInstance().vectorShapeInfo(source->lengthOf(), INT64);
 
   // third one as well
-  auto countsShape = ConstantShapeHelper::getInstance().vectorShapeInfo(uniqueCount, sd::DataType::INT64);
+  auto countsShape = ConstantShapeHelper::getInstance().vectorShapeInfo(uniqueCount, INT64);
 
   return SHAPELIST(valuesShape, indicesShape, countsShape);
 }
 
 DECLARE_TYPES(unique) {
   getOpDescriptor()
-      ->setAllowedInputTypes(sd::DataType::ANY)
+      ->setAllowedInputTypes(ANY)
       ->setAllowedOutputTypes(0, {ALL_INTS, ALL_FLOATS})
       ->setAllowedOutputTypes(1, {ALL_INTS});
 }

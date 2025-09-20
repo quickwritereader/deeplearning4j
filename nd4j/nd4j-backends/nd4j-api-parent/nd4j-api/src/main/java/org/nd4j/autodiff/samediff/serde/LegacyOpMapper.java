@@ -23,8 +23,6 @@ package org.nd4j.autodiff.samediff.serde;
 
 
 import org.nd4j.linalg.api.ops.Op;
-import org.nd4j.linalg.api.ops.aggregates.Aggregate;
-import org.nd4j.linalg.api.ops.aggregates.impl.*;
 import org.nd4j.linalg.api.ops.impl.broadcast.BroadcastAMax;
 import org.nd4j.linalg.api.ops.impl.broadcast.BroadcastAMin;
 import org.nd4j.linalg.api.ops.impl.broadcast.BroadcastMax;
@@ -76,8 +74,8 @@ public class LegacyOpMapper {
 
     }
 
-    public static Class<?> getLegacyOpClassForId(Op.Type opType, int opNum){
-        switch (opType){
+    public static Class<?> getLegacyOpClassForId(Op.Type opType, int opNum) {
+        switch (opType) {
             case SCALAR:
                 return scalarOpClass(opNum);
             case SCALAR_BOOL:
@@ -106,8 +104,6 @@ public class LegacyOpMapper {
                 return reduce3OpClass(opNum);
             case RANDOM:
                 return randomOpClass(opNum);
-            case AGGREGATION:
-                return aggregateOpClass(opNum);
             case VARIANCE:  //Intentional fall-through
             case SUMMARYSTATS:
                 return varianceOpClass(opNum);
@@ -127,22 +123,13 @@ public class LegacyOpMapper {
             case LOOP:
             case LOOP_COND:
             case RETURN:
+            case UDF:
             default:
                 throw new UnsupportedOperationException("Unable to map op " + opNum + " of type " + opType);
         }
     }
 
-    public static Class<? extends Aggregate> aggregateOpClass(int opNum) {
-        switch (opNum) {
 
-            case 2:
-                return AggregateAxpy.class;
-            case 5:
-                return AggregateGEMM.class;
-            default:
-                throw new UnsupportedOperationException("No known aggregate op for op number: " + opNum);
-        }
-    }
 
     public static Class<?> broadcastOpClass(int opNum) {
         switch (opNum) {

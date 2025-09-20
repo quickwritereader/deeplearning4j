@@ -32,8 +32,21 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, NDArray& update, NDArray& stateH,
+static void adaGradUpdater_(NDArray& gradient, NDArray& initState, NDArray& update, NDArray& stateH,
                             const double dLr, const double dEpsilon) {
+  // Cache shape information
+  const auto gradientShapeInfo = gradient.shapeInfo();
+  const auto updateShapeInfo = update.shapeInfo();
+  const auto initStateShapeInfo = initState.shapeInfo();
+  const auto stateHShapeInfo = stateH.shapeInfo();
+  
+  const auto gradRank = shape::rank(gradientShapeInfo);
+  const auto* gradShape = shape::shapeOf(gradientShapeInfo);
+  const auto* gradStride = shape::stride(gradientShapeInfo);
+  const auto* updateStride = shape::stride(updateShapeInfo);
+  const auto* initStateStride = shape::stride(initStateShapeInfo);
+  const auto* stateHStride = shape::stride(stateHShapeInfo);
+
   const T* grad = gradient.bufferAsT<T>();
   const T* init = initState.bufferAsT<T>();
 
@@ -41,8 +54,11 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
   T* st = stateH.bufferAsT<T>();
 
   const T lr = static_cast<T>(dLr);
-  const T epsilon = static_cast<T>(dEpsilon);
-
+  T epsilon = static_cast<T>(dEpsilon);
+  //fp16 to prevent underflow
+  if(epsilon == 0.0) {
+    epsilon = static_cast<T>(1e-7);
+  }
   bool bEws1 = 1 == gradient.ews() && 1 == update.ews() && 1 == stateH.ews() && 1 == initState.ews();
   bool bSameOrdering = gradient.ordering() == update.ordering() && update.ordering() == stateH.ordering() &&
                        stateH.ordering() == initState.ordering();
@@ -59,20 +75,38 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
     return;
   }
 
-  bool bXZsame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), update.shapeInfo());
-  bool bXInSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), initState.shapeInfo());
-  bool bXStSame = shape::haveSameShapeAndStrides(gradient.shapeInfo(), stateH.shapeInfo());
+  bool bXZsame = shape::haveSameShapeAndStrides(gradientShapeInfo, updateShapeInfo);
+  bool bXInSame = shape::haveSameShapeAndStrides(gradientShapeInfo, initStateShapeInfo);
+  bool bXStSame = shape::haveSameShapeAndStrides(gradientShapeInfo, stateHShapeInfo);
 
   auto func = PRAGMA_THREADS_FOR {
-    int coords[SD_MAX_RANK];
-    for (auto i = start; i < stop; i++) {
-      shape::index2coordsCPU(start, i, gradient.shapeInfo(), coords);
+    sd::LongType coords[SD_MAX_RANK];
+    for (sd::LongType i = start; i < stop; i++) {
+      INDEX2COORDS(i, gradRank, gradShape, coords);
 
-      const auto xOffset = shape::getOffset(gradient.shapeInfo(), coords);
+      sd::LongType xOffset;
+      COORDS2INDEX(gradRank, gradStride, coords, xOffset);
 
-      const auto zOffset = bXZsame ? xOffset : shape::getOffset(update.shapeInfo(), coords);
-      const auto initOffset = bXInSame ? xOffset : shape::getOffset(initState.shapeInfo(), coords);
-      const auto stOffset = bXStSame ? xOffset : shape::getOffset(stateH.shapeInfo(), coords);
+      sd::LongType zOffset;
+      if (bXZsame) {
+        zOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, updateStride, coords, zOffset);
+      }
+
+      sd::LongType initOffset;
+      if (bXInSame) {
+        initOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, initStateStride, coords, initOffset);
+      }
+
+      sd::LongType stOffset;
+      if (bXStSame) {
+        stOffset = xOffset;
+      } else {
+        COORDS2INDEX(gradRank, stateHStride, coords, stOffset);
+      }
 
       st[stOffset] = init[initOffset] + grad[xOffset] * grad[xOffset];
       up[zOffset] = (lr * grad[xOffset]) / (math::sd_sqrt<T, T>(st[stOffset]) + epsilon);
@@ -83,7 +117,7 @@ static void adaGradUpdater_(const NDArray& gradient, const NDArray& initState, N
   return;
 }
 
-void updaterAdaGrad(sd::LaunchContext* context, const NDArray& gradient, const NDArray& initState, NDArray& update,
+void updaterAdaGrad(sd::LaunchContext* context, NDArray& gradient, NDArray& initState, NDArray& update,
                     NDArray& stateH, const double dLr, const double dEpsilon) {
   BUILD_SINGLE_SELECTOR(gradient.dataType(), adaGradUpdater_, (gradient, initState, update, stateH, dLr, dEpsilon),
                         SD_FLOAT_TYPES);

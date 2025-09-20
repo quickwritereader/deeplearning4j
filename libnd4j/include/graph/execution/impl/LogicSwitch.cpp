@@ -25,7 +25,7 @@
 
 namespace sd {
 namespace graph {
-sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
+Status LogicSwitch::processNode(Graph* graph, Node* node) {
   auto __variableSpace = graph->getVariableSpace();
   auto __flowPath = __variableSpace->flowPath();
 
@@ -34,7 +34,7 @@ sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
   // this can be either  our format, or compatible format.
   if (graph->hasScope(node->input()->at(0).first)) {
     sd_debug("Node_%i: Scoped mode.\n", node->id());
-    // first input is Scope, so it's ours
+    // first input is OpScope, so it's ours
     int scopeConditionIndex = node->input()->at(0).first;
     auto input = ctx.variable(1);
 
@@ -45,9 +45,8 @@ sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
       lastNode = v->id();
     }
 
-    // now we should take result of the Scope run, and evaluate it
+    // now we should take result of the OpScope run, and evaluate it
     auto result = __variableSpace->getVariable(lastNode)->getNDArray();
-    // result->printBuffer("Result of the last node");
 
     std::pair<int, int> pair0(node->id(), 0);
     std::pair<int, int> pair1(node->id(), 1);
@@ -68,7 +67,7 @@ sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
       __variableSpace->getVariable(pair1)->markRemovable(false);
     }
   } else {
-    // first input is NOT a Scope, so it's compatible format
+    // first input is NOT a OpScope, so it's compatible format
     sd_debug("Node_%i: Compatible mode.\n", node->id());
 
     auto input = ctx.variable(0)->getNDArray();
@@ -100,7 +99,7 @@ sd::Status LogicSwitch::processNode(Graph* graph, Node* node) {
     }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 };
 }  // namespace graph
 }  // namespace sd

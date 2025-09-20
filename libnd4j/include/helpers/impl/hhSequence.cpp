@@ -27,9 +27,9 @@ namespace ops {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-HHsequence::HHsequence(const NDArray& vectors, const NDArray& coeffs, const char type)
+HHsequence::HHsequence(NDArray& vectors, NDArray& coeffs, const char type)
     : _vectors(vectors), _coeffs(coeffs) {
-  _diagSize = sd::math::sd_min(_vectors.sizeAt(0), _vectors.sizeAt(1));
+  _diagSize = math::sd_min(_vectors.sizeAt(0), _vectors.sizeAt(1));
   _shift = 0;
   _type = type;
 }
@@ -56,19 +56,20 @@ void HHsequence::mulLeft_(NDArray& matrix) {
 NDArray HHsequence::getTail(const int idx) const {
   int first = idx + 1 + _shift;
 
-  if (_type == 'u')
+  if (_type == 'u') {
     return _vectors({first, -1, idx, idx + 1}, true);
-  else
+  } else {
     return _vectors({idx, idx + 1, first, -1}, true);
+  }
 }
-
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
 void HHsequence::applyTo_(NDArray& dest) {
   int size = _type == 'u' ? _vectors.sizeAt(0) : _vectors.sizeAt(1);
 
+  std::vector<LongType> sizeShape = {size,size};
   if (dest.rankOf() != 2 || (dest.sizeAt(0) != size && dest.sizeAt(1) != size))
-    dest = NDArray(dest.ordering(), {size, size}, dest.dataType(), dest.getContext());
+    dest = NDArray(dest.ordering(), sizeShape, dest.dataType(), dest.getContext());
   dest.setIdentity();
 
   for (int k = _diagSize - 1; k >= 0; --k) {
@@ -76,7 +77,8 @@ void HHsequence::applyTo_(NDArray& dest) {
     if (curNum < 1 || (k + 1 + _shift) >= size) continue;
     auto block = dest({dest.sizeAt(0) - curNum, dest.sizeAt(0), dest.sizeAt(1) - curNum, dest.sizeAt(1)}, true);
 
-    Householder<T>::mulLeft(block, getTail(k), _coeffs.t<T>(k));
+    NDArray tailK = getTail(k);
+    Householder<T>::mulLeft(block,tailK , _coeffs.t<T>(k));
   }
 }
 

@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.nd4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <artifactId>nd4j-serde</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -47,31 +47,57 @@
         </plugins>
     </build>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.flatbuffers</groupId>
+                <artifactId>flatbuffers-java</artifactId>
+                <version>25.2.10</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-memory-unsafe</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-vector</artifactId>
             <exclusions>
                 <exclusion>
+                    <groupId>com.google.flatbuffers</groupId>
+                    <artifactId>flatbuffers-java</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
 
         <dependency>
-            <groupId>org.nd4j</groupId>
+            <groupId>org.eclipse.deeplearning4j</groupId>
             <artifactId>nd4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.nd4j</groupId>
+            <groupId>org.eclipse.deeplearning4j</groupId>
             <artifactId>nd4j-common</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-common-tests</artifactId>
-        </dependency>
 
     </dependencies>
 

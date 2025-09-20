@@ -46,7 +46,7 @@ CUSTOM_OP_IMPL(space_to_batch_nd, 3, 1, false, 0, 0) {
                "SpaceToBatchND: rank of blockShape array must be equal to one, but got %i instead !",
                blockShape->rankOf());
 
-  const sd::Unsigned numOfSpatialDims = blockShape->sizeAt(0);
+  const LongType numOfSpatialDims = blockShape->sizeAt(0);
 
   REQUIRE_TRUE(input->rankOf() == output->rankOf(), 0,
                "SpaceToBatchND: rank of input and output array must be the same, but got %i and %i correspondingly !",
@@ -59,26 +59,27 @@ CUSTOM_OP_IMPL(space_to_batch_nd, 3, 1, false, 0, 0) {
   }
 
   // FIXME - should we use this time-consuming validation ?
-  for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i) {
-    const sd::Unsigned padLeft = padding->e<sd::Unsigned>(i, 0);
-    const sd::Unsigned padRight = padding->e<sd::Unsigned>(i, 1);
-    const sd::LongType blockSize = blockShape->e<sd::LongType>(i);
+  for (LongType i = 0; i < numOfSpatialDims; ++i) {
+    const LongType padLeft = padding->e<LongType>(i, 0);
+    const LongType padRight = padding->e<LongType>(i, 1);
+    const LongType blockSize = blockShape->e<LongType>(i);
     REQUIRE_TRUE((input->sizeAt(i + 1) + padLeft + padRight) % blockSize == 0, 0,
                  "SpaceToBatchND: after padding, spatial dimensions of input array must be divisible by blockSize !");
   }
 
   if (shape::strideDescendingCAscendingF(input->shapeInfo()))
     helpers::spaceToBatchND(block.launchContext(), *input, *blockShape, *padding, *output);
-  else
-    helpers::spaceToBatchND(block.launchContext(), input->dup(), *blockShape, *padding, *output);
-
-  return sd::Status::OK;
+  else {
+    NDArray inputDup = input->dup(input->ordering());
+    helpers::spaceToBatchND(block.launchContext(), inputDup, *blockShape, *padding, *output);
+  }
+  return Status::OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 DECLARE_TYPES(space_to_batch_nd) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, sd::DataType::ANY)
+      ->setAllowedInputTypes(0, ANY)
       ->setAllowedInputTypes(1, {ALL_INTS})
       ->setAllowedInputTypes(2, {ALL_INTS})
       ->setSameMode(true);
@@ -94,7 +95,7 @@ DECLARE_SHAPE_FN(space_to_batch_nd) {
                "SpaceToBatchND: rank of blockShape array must be equal to one, but got %i instead !",
                blockShapeInfo[0]);
 
-  const sd::Unsigned numOfSpatialDims = blockShapeInfo[1];
+  const LongType numOfSpatialDims = blockShapeInfo[1];
 
   if (paddingShapeInfo[1] != numOfSpatialDims || paddingShapeInfo[2] != 2) {
     const std::string expectedpaddingShape = "[" + std::to_string(numOfSpatialDims) + ", 2]";  // [numOfSpatialDims, 2]
@@ -102,14 +103,14 @@ DECLARE_SHAPE_FN(space_to_batch_nd) {
                  expectedpaddingShape.c_str(), ShapeUtils::shapeAsString(paddingShapeInfo).c_str());
   }
 
-  std::vector<sd::LongType> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
+  std::vector<LongType> outShape(inputShapeInfo + 1, inputShapeInfo + 1 + inputShapeInfo[0]);
 
-  outShape[0] *= INPUT_VARIABLE(1)->reduceNumber(sd::reduce::Prod).e<sd::LongType>(0);
+  outShape[0] *= INPUT_VARIABLE(1)->reduceNumber(reduce::Prod).e<LongType>(0);
 
-  for (sd::Unsigned i = 0; i < numOfSpatialDims; ++i)
+  for (LongType i = 0; i < numOfSpatialDims; ++i)
     outShape[i + 1] =
-        (outShape[i + 1] + INPUT_VARIABLE(2)->e<sd::Unsigned>(i, 0) + INPUT_VARIABLE(2)->e<sd::Unsigned>(i, 1)) /
-        INPUT_VARIABLE(1)->e<sd::LongType>(i);
+        (outShape[i + 1] + INPUT_VARIABLE(2)->e<LongType>(i, 0) + INPUT_VARIABLE(2)->e<LongType>(i, 1)) /
+        INPUT_VARIABLE(1)->e<LongType>(i);
 
   return SHAPELIST(
       ConstantShapeHelper::getInstance().createShapeInfo(ArrayOptions::dataType(inputShapeInfo), 'c', outShape));

@@ -23,16 +23,18 @@ package org.nd4j.linalg.api.ops;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.Collections;
 import java.util.List;
 
 public abstract class BaseReduceLongOp extends BaseReduceOp implements ReduceLongOp {
-    public BaseReduceLongOp(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions) {
+    public BaseReduceLongOp(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions) {
         super(sameDiff, i_v, i_v2, dimensions);
     }
 
@@ -48,11 +50,11 @@ public abstract class BaseReduceLongOp extends BaseReduceOp implements ReduceLon
         super(sameDiff, i_v, i_v2);
     }
 
-    protected BaseReduceLongOp(SameDiff sameDiff, SDVariable input, int[] dimensions, boolean keepDims) {
+    protected BaseReduceLongOp(SameDiff sameDiff, SDVariable input, long[] dimensions, boolean keepDims) {
         super(sameDiff, input, dimensions, keepDims);
     }
 
-    public BaseReduceLongOp(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, boolean keepDims) {
+    public BaseReduceLongOp(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, boolean keepDims) {
         super(sameDiff, i_v, i_v2, dimensions, keepDims);
     }
 
@@ -60,23 +62,23 @@ public abstract class BaseReduceLongOp extends BaseReduceOp implements ReduceLon
         super(sameDiff, i_v);
     }
 
-    protected BaseReduceLongOp(SameDiff sameDiff, SDVariable input, int... dimensions) {
+    protected BaseReduceLongOp(SameDiff sameDiff, SDVariable input, long... dimensions) {
         super(sameDiff, input, dimensions);
     }
 
-    public BaseReduceLongOp(INDArray x, int... dimensions) {
+    public BaseReduceLongOp(INDArray x, long... dimensions) {
         super(x, dimensions);
     }
 
-    public BaseReduceLongOp(INDArray x, boolean keepDims, int... dimensions) {
+    public BaseReduceLongOp(INDArray x, boolean keepDims, long... dimensions) {
         super(x, keepDims, dimensions);
     }
 
-    public BaseReduceLongOp(INDArray x, INDArray z, int... dimensions) {
+    public BaseReduceLongOp(INDArray x, INDArray z, long... dimensions) {
         super(x, z, dimensions);
     }
 
-    public BaseReduceLongOp(INDArray x, INDArray y, INDArray z, int... dimensions) {
+    public BaseReduceLongOp(INDArray x, INDArray y, INDArray z, long... dimensions) {
         super(x, y, z, dimensions);
     }
 
@@ -92,7 +94,7 @@ public abstract class BaseReduceLongOp extends BaseReduceOp implements ReduceLon
         super();
     }
 
-    public BaseReduceLongOp(INDArray x, INDArray y, INDArray z, boolean keepDims, int[] dimensions) {
+    public BaseReduceLongOp(INDArray x, INDArray y, INDArray z, boolean keepDims, long[] dimensions) {
         super(x, y, z, keepDims, dimensions);
     }
 
@@ -132,19 +134,19 @@ public abstract class BaseReduceLongOp extends BaseReduceOp implements ReduceLon
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         return calculateOutputShape(null);
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc) {
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray x = oc != null ? oc.getInputArray(0) : x();
         if(x == null)
             return Collections.emptyList();
 
         //Calculate reduction shape. Note that reduction on scalar - returns a scalar
         long[] reducedShape = x.rank() == 0 ? x.shape() : Shape.getReducedShape(x.shape(),dimensions, isKeepDims());
-        return Collections.singletonList(LongShapeDescriptor.fromShape(reducedShape, DataType.LONG));
+        return Collections.singletonList(Nd4j.createBuffer(LongShapeDescriptor.fromShape(reducedShape, DataType.LONG).toShapeInfo()));
     }
 
     @Override

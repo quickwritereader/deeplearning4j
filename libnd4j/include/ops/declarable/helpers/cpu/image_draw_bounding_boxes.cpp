@@ -55,7 +55,7 @@ static ColorTable_t DefaultColorTable(int depth) {
   colorTable.emplace_back(std::vector<float>({1, 0, 1, 1}));      // 9: fuchsia
 
   if (depth == 1) {
-    for (sd::LongType i = 0; i < colorTable.size(); i++) {
+    for (size_t i = 0; i < colorTable.size(); i++) {
       colorTable[i][0] = 1;
     }
   }
@@ -76,9 +76,7 @@ void drawBoundingBoxesFunctor(sd::LaunchContext* context, NDArray* images, NDArr
   auto height = images->sizeAt(1);
   auto width = images->sizeAt(2);
   auto channels = images->sizeAt(3);
-  // auto imageList = images->allTensorsAlongDimension({1, 2, 3}); // split images by batch
-  //        auto boxList = boxes->allTensorsAlongDimension({1, 2}); // split boxes by batch
-  // auto colorSet = colors->allTensorsAlongDimension({0});
+
   output->assign(images);  // fill up all output with input images, then fill up boxes
   ColorTable_t colorTable;
   if (colors) {

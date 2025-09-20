@@ -24,17 +24,15 @@ import lombok.val;
 import onnx.Onnx;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
-
 import org.nd4j.common.base.Preconditions;
 import org.nd4j.imports.descriptors.properties.AttributeAdapter;
 import org.nd4j.imports.descriptors.properties.PropertyMapping;
 import org.nd4j.imports.descriptors.properties.adapters.BooleanAdapter;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
 import org.nd4j.linalg.api.ops.impl.reduce.bp.CumSumBp;
-import org.nd4j.shade.guava.primitives.Ints;
+import org.nd4j.shade.guava.primitives.Longs;
 import org.tensorflow.framework.AttrValue;
 import org.tensorflow.framework.GraphDef;
 import org.tensorflow.framework.NodeDef;
@@ -45,17 +43,17 @@ public class CumSum extends DynamicCustomOp {
 
     protected boolean exclusive = false;
     protected boolean reverse = false;
-    protected int[] jaxis = new int[0];
+    protected long[] jaxis = new long[0];
 
     public CumSum() {
     }
 
 
-    public CumSum(SameDiff sameDiff, SDVariable x, int... axis) {
+    public CumSum(SameDiff sameDiff, SDVariable x, long... axis) {
         this(sameDiff, x, false, false, axis);
     }
 
-    public CumSum(SameDiff sameDiff, SDVariable x,  boolean exclusive, boolean reverse, int... axis) {
+    public CumSum(SameDiff sameDiff, SDVariable x,  boolean exclusive, boolean reverse, long... axis) {
         super(null, sameDiff, new SDVariable[]{x});
         this.sameDiff = sameDiff;
         this.exclusive = exclusive;
@@ -64,15 +62,15 @@ public class CumSum extends DynamicCustomOp {
         addArgs();
     }
 
-    public CumSum(INDArray in, INDArray result, boolean exclusive, boolean reverse, int... axis) {
-        super(null, new INDArray[]{in}, wrapOrNull(result), null, (List<Integer>)null);
+    public CumSum(INDArray in, INDArray result, boolean exclusive, boolean reverse, long... axis) {
+        super(null, new INDArray[]{in}, wrapOrNull(result), null, (List<Long>)null);
         this.exclusive = exclusive;
         this.reverse = reverse;
         this.jaxis = axis;
         addArgs();
     }
 
-    public CumSum(INDArray in, boolean exclusive, boolean reverse, int... axis) {
+    public CumSum(INDArray in, boolean exclusive, boolean reverse, long... axis) {
         this(in, null, exclusive, reverse, axis);
     }
 
@@ -126,8 +124,8 @@ public class CumSum extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        TFGraphMapper.initFunctionFromProperties(nodeDef.getOp(), this, attributesForNode, nodeDef, graph);
-        addArgs();
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
+
     }
 
     protected void addArgs() {
@@ -139,7 +137,7 @@ public class CumSum extends DynamicCustomOp {
     @Override
     public void configureFromArguments() {
         if(!iArguments.isEmpty()) {
-            this.jaxis = Ints.toArray(iArguments.subList(1,iArguments.size()));
+            this.jaxis = Longs.toArray(iArguments.subList(1,iArguments.size()));
             this.exclusive = iArguments.get(0) > 0;
         }
 
@@ -150,7 +148,7 @@ public class CumSum extends DynamicCustomOp {
     public void setPropertiesForFunction(Map<String, Object> properties) {
         if(properties.containsKey("jaxis")) {
             Long dimensions = getLongValueFromProperty("jaxis",properties);
-            this.jaxis = new int[] {dimensions.intValue()};
+            this.jaxis = new long[] {dimensions.longValue()};
         }
 
         if(properties.containsKey("exclusive")) {

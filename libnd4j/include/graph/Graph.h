@@ -26,7 +26,6 @@
 #include <list>
 #include <map>
 #include <unordered_map>
-//#include <NDArray.h>
 #include <graph/ExecutorConfiguration.h>
 #include <graph/Node.h>
 #include <graph/Scope.h>
@@ -52,10 +51,10 @@ class SD_LIB_EXPORT Graph {
 
   // vector holds ID's of top nodes only
   std::vector<int> *_nodes;
-  SD_MAP_IMPL<int, sd::graph::Node *> *_mapped;
+  SD_MAP_IMPL<int, Node *> *_mapped;
 
-  SD_MAP_IMPL<int, std::vector<sd::graph::Node *> *> *_onion;
-  SD_MAP_IMPL<int, sd::graph::Node *> _unmapped;
+  SD_MAP_IMPL<int, std::vector<Node *> *> *_onion;
+  SD_MAP_IMPL<int, Node *> _unmapped;
   std::vector<int> _unmappedMap;  // macOS?
 
   std::mutex _mutexPreprocessing;
@@ -67,12 +66,9 @@ class SD_LIB_EXPORT Graph {
   SD_MAP_IMPL<int, Scope *> _mappedScopes;
   std::vector<Scope *> _scopes;
 
-  ////////////////////////////////////////
-  sd::Status validateNode(sd::graph::Node *node);
-
   void expandOnion(int newLayer);
 
-  void injectNode(sd::graph::Node *node);
+  void injectNode(Node *node);
 
   void pushToOutputOnce(int id);
 
@@ -81,7 +77,7 @@ class SD_LIB_EXPORT Graph {
   void prepareOutputs();
 
  public:
-  Graph(const FlatGraph *flatGraph = nullptr, VariableSpace *variableSpace = nullptr);
+  Graph(const ::graph::FlatGraph *flatGraph = nullptr, VariableSpace *variableSpace = nullptr);
 
   ~Graph();
 
@@ -89,13 +85,13 @@ class SD_LIB_EXPORT Graph {
   void toposortNodes();
 
   // method that'll print out graph
-  sd::Status validate();
+  Status validate();
 
   // this method will build structured representation of graph
-  sd::Status buildGraph();
+  Status buildGraph();
 
   // this method will return estimated memory size (in bytes) required for 1 full graph execution round
-  sd::LongType estimateRequiredMemory();
+  LongType estimateRequiredMemory();
 
   // this method returns number of root nodes in this graph
   int rootNodes();
@@ -105,39 +101,39 @@ class SD_LIB_EXPORT Graph {
 
   int numberOfPlaceholders();
 
-  std::vector<sd::graph::Variable *> *getPlaceholders();
+  std::vector<Variable *> *getPlaceholders();
 
   /**
    * This method returns pointer to thread_local VariableSpace
    * @return
    */
-  sd::graph::VariableSpace *getVariableSpace();
+  VariableSpace *getVariableSpace();
 
   /**
    * This method adds given node to the graph
    *
    * @param node
    */
-  void addNode(sd::graph::Node *node);
+  void addNode(Node *node);
 
   /**
    * This method returns layered representation of the graph
    *
    * @return
    */
-  SD_MAP_IMPL<int, std::vector<sd::graph::Node *> *> *getOnion();
+  SD_MAP_IMPL<int, std::vector<Node *> *> *getOnion();
 
   /**
    * This method returns map of all nodes of the graph
    * @return
    */
-  SD_MAP_IMPL<int, sd::graph::Node *> *getMapped();
+  SD_MAP_IMPL<int, Node *> *getMapped();
 
   /**
    * This method returns outputs of this graph
    * @return
    */
-  std::vector<sd::graph::Variable *> *fetchOutputs();
+  std::vector<Variable *> *fetchOutputs();
 
   /**
    * This method returns pointer to ExecutorConfiguration
@@ -147,16 +143,10 @@ class SD_LIB_EXPORT Graph {
   ExecutorConfiguration *getExecutorConfiguration();
 
   /**
-   * This method adds specified node (by ID) to de
-   * @param id
-   */
-  void addOutput(int id);
-
-  /**
    * This method returns all nodes at once (order is NOT guaranteed)
    * @return
    */
-  std::vector<sd::graph::Node *> *getAllNodes();
+  std::vector<Node *> *getAllNodes();
 
   /**
    * This method prints out Graph op-by-op, and respective inputs
@@ -164,12 +154,7 @@ class SD_LIB_EXPORT Graph {
   void printOut();
 
   /**
-   * This method collect all ops from the graph into ops vector
-   */
-  std::vector<sd::ops::OpDescriptor> getOperations();
-
-  /**
-   * This method returns Scope ptr specified with id
+   * This method returns OpScope ptr specified with id
    *
    * @param id
    * @return
@@ -177,7 +162,7 @@ class SD_LIB_EXPORT Graph {
   Scope *scopeById(int id);
 
   /**
-   * This method returns TRUE if specified ID refers to Scope, and false otherwise
+   * This method returns TRUE if specified ID refers to OpScope, and false otherwise
    * @param id
    * @return
    */
@@ -213,7 +198,7 @@ class SD_LIB_EXPORT Graph {
   /**
    * This method returns hash of given Graph instance
    */
-  sd::LongType hashCode();
+  LongType hashCode();
 
   /**
    * PLEASE NOTE: This method will be moved to private section
@@ -224,43 +209,10 @@ class SD_LIB_EXPORT Graph {
 
   SD_INLINE std::vector<int> *nodes() { return _nodes; }
 
-  SD_INLINE std::vector<int> *autos() { return &_autos; }
 
   SD_INLINE std::vector<int> *output() { return &_output; }
 
-  SD_INLINE SD_MAP_IMPL<int, Scope *> *scopes() { return &_mappedScopes; }
 
-  SD_INLINE bool built() { return _built.load(); }
-
-  SD_INLINE void pullState(Graph *other) {
-    for (int e = 0; e < other->nodes()->size(); e++) this->_nodes->emplace_back(other->nodes()->at(e));
-
-    for (int e = 0; e < other->output()->size(); e++) this->_output.emplace_back(other->output()->at(e));
-
-    for (int e = 0; e < other->autos()->size(); e++) this->_autos.emplace_back(other->autos()->at(e));
-
-    for (auto &v : *other->scopes()) {
-      auto scp = v.second->clone();
-      this->_mappedScopes[v.first] = scp;
-      this->_scopes.emplace_back(scp);
-    }
-
-    for (auto &v : *other->getOnion()) {
-      auto vec = this->_onion->count(v.first) > 0 ? this->_onion->at(v.first) : new std::vector<Node *>();
-
-      auto ovec = (*other->getOnion())[v.first];
-      for (auto x : *(ovec)) {
-        auto n = x->clone();
-        vec->emplace_back(n);
-        _handles.emplace_back(n);
-        (*this->_mapped)[n->id()] = n;
-      }
-
-      if (this->_onion->count(v.first) < 1) (*this->_onion)[v.first] = vec;
-    }
-
-    this->_built.store(other->built());
-  }
 };
 }  // namespace graph
 }  // namespace sd

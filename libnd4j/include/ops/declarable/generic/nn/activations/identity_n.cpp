@@ -28,31 +28,28 @@
 namespace sd {
 namespace ops {
 CUSTOM_OP_IMPL(identity_n, 1, 1, true, 0, 0) {
-  // just for lulz
   if (!block.isInplace()) {
-    for (sd::LongType i = 0; i < block.width(); ++i) {
+    for (size_t i = 0; i < block.width(); ++i) {
       auto x = INPUT_VARIABLE(i);
       auto z = OUTPUT_VARIABLE(i);
 
-      x->applyTransform(transform::Identity, *z);
+      x->applyTransform(transform::Identity, z);
     }
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(identity_n) {
   auto shapes = SHAPELIST();
-  for (size_t i = 0; i < inputShape->size(); ++i) {
-    sd::LongType* shape;
-    COPY_SHAPE_EX(inputShape->at(i), shape, block.getWorkspace());
-    shapes->push_back(CONSTANT(shape));
+  for (int i = 0; i < inputShape->size(); ++i) {
+    shapes->push_back(CONSTANT(inputShape->at(i)));
   }
   return shapes;
 }
 
 DECLARE_TYPES(identity_n) {
-  getOpDescriptor()->setAllowedInputTypes(sd::DataType::ANY)->setAllowedOutputTypes(sd::DataType::ANY);
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes(ANY);
 }
 
 }  // namespace ops

@@ -36,30 +36,44 @@ CUSTOM_OP_IMPL(reshape, 1, 1, false, 0, -2) {
   // Special case: empty.reshape(<other empty shape>) -> return empty
   if (x->isEmpty()) {
     REQUIRE_TRUE(z->isEmpty(), 0, "Reshape: when input is empty, output must also be empty");
-    return sd::Status::OK;  // No op
+    return Status::OK;  // No op
   }
+  x->syncToHost();
 
+  //scalars can either be 0 or 1
+  if(!x->isScalar() && !x->isEmpty())
   REQUIRE_TRUE(x->lengthOf() == z->lengthOf(), 0,
                "Reshape: lengths before and after reshape should match, but "
                "got %i vs %i",
                x->lengthOf(), z->lengthOf());
 
   if (Environment::getInstance().isDebugAndVerbose()) sd_printv("Reshape: new shape", z->getShapeAsVector());
+  if(z->ordering() != 'c' && z->ordering() != 'f') {
+    std::string errorMessage;
+    errorMessage += "Reshape: new shape has unknown order: [";
+    errorMessage += z->ordering();
+    errorMessage += "]";
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
 
-  z->assign(x->reshape(z->ordering(), z->getShapeAsVector()));
+  //only perform assign when we aren't using a view
+  if(x->dataBuffer() != z->dataBuffer()) {
+    std::vector<sd::LongType> shape = z->getShapeAsVector();
+    NDArray &reshapedX = x->reshape(z->ordering(), shape,true);
+    z->assign(&reshapedX);
+  }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_TYPES(reshape) {
-  getOpDescriptor()->setAllowedInputTypes(0, sd::DataType::ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
+  getOpDescriptor()->setAllowedInputTypes(0, ANY)->setAllowedInputTypes(1, {ALL_INTS})->setSameMode(true);
 }
 
-bool handleOptionalOrder(std::vector<int> &reshapeArgs, char &ordering) {
+bool handleOptionalOrder(std::vector<LongType> &reshapeArgs, char &ordering) {
   if (reshapeArgs.size() > 0) {
     // check if any optional negative ordering value is passed
     auto optional = reshapeArgs[0];
-    sd_debug("Reshape: Optional reshape arg was %d\n", optional);
     if (optional < 0) {
       optional = abs(optional);
       // check if passed option is allowed. (-1 -> dynamic shape)
@@ -78,9 +92,8 @@ bool handleOptionalOrder(std::vector<int> &reshapeArgs, char &ordering) {
 
 DECLARE_SHAPE_FN(reshape) {
   const auto x = INPUT_VARIABLE(0);
-
-  std::vector<int> reshapeArgs;
-  std::vector<sd::LongType> shapeNew;
+  std::vector<LongType> reshapeArgs;
+  std::vector<LongType> shapeNew;
   char orderNew = 'c';
   /**
    * NOTE: The value here is negative as a flag.
@@ -93,7 +106,7 @@ DECLARE_SHAPE_FN(reshape) {
   if (block.width() == 1) {
     reshapeArgs = *block.getIArguments();
     if (!handleOptionalOrder(reshapeArgs, orderNew)) {
-      throw std::runtime_error(
+      THROW_EXCEPTION(
           "reshape:: Value passed in must be -99 or -102 for the ordering if "
           "an int array is present. -99 represents c ordering and -102 "
           "represents f ordering. This number is negative for the long array "
@@ -101,15 +114,15 @@ DECLARE_SHAPE_FN(reshape) {
           "being specified.");
     };
   } else {
-    reshapeArgs = INPUT_VARIABLE(1)->getBufferAsVector<int>();
+    reshapeArgs = INPUT_VARIABLE(1)->getBufferAsVector<LongType>();
     if (block.numI() > 0) {
       // Note here that the ordering for this case can not be negative.
       // Negative is used in the long array case to be used as a flag to
       // differentiate between a 99 or 102 shaped array and
       // the ordering. You can't have a -99 or -102 shaped array.
-      char potentialOrdering = (char) I_ARG(0);
+      char potentialOrdering = (char)I_ARG(0);
       if (!handleOptionalOrder(reshapeArgs, orderNew)) {
-        throw std::runtime_error(
+        THROW_EXCEPTION(
             "reshape:: Value passed in must be -99 or -102 for the ordering if "
             "an int array is present. -99 represents c ordering and -102 "
             "represents f ordering. This number is negative for the long array "
@@ -118,19 +131,14 @@ DECLARE_SHAPE_FN(reshape) {
       };
 
       orderNew = -potentialOrdering;
-    } else
-      orderNew = 'c';
-
-
+    }
   }
 
-  REQUIRE_TRUE(!reshapeArgs.empty() || x->lengthOf() == 1, 0, "Reshape buffer should have at least 1 dimension !");
-
-  sd::LongType newShapeLen = 1;
+  LongType newShapeLen = 1;
   int pos = -1;
   bool newShapeEmpty = false;
 
-  for (int i = 0; i < reshapeArgs.size(); ++i) {
+  for (size_t i = 0; i < reshapeArgs.size(); i++) {
     const int dim = reshapeArgs[i];
     if (dim == -1) {
       REQUIRE_TRUE(pos == -1, 0, "Reshape : Only one unknown dimension (-1) is allowed.");
@@ -146,17 +154,27 @@ DECLARE_SHAPE_FN(reshape) {
   }
 
   if (pos != -1) {
-    sd::LongType xLen = x->lengthOf();
+    LongType xLen = x->lengthOf();
     if (x->isEmpty()) {
       xLen = 1;
-      for (sd::Unsigned i = 0; i < x->rankOf(); ++i)  // take into account possible empty shapes
+      for (LongType i = 0; i < x->rankOf(); ++i)  // take into account possible empty shapes
         if (x->sizeAt(i) > 0 || !newShapeEmpty) xLen *= x->sizeAt(i);
     }
 
     shapeNew[pos] = xLen / newShapeLen;
   }
 
+  if(newShapeEmpty) {
+    for(size_t i = 0; i < reshapeArgs.size(); i++) {
+      if(reshapeArgs[i] < 0)
+        reshapeArgs[i] = 1;
+    }
+    return SHAPELIST(ConstantShapeHelper::getInstance().emptyShapeInfoWithShape(x->dataType(), reshapeArgs));
+  }
+
+
   auto len = shape::prodLong(shapeNew.data(), shapeNew.size());
+  if(!x->isScalar() && !x->isEmpty())
   REQUIRE_TRUE(x->lengthOf() == len, 0,
                "Reshape: lengths before and after reshape should match, but "
                "got %i vs %i",

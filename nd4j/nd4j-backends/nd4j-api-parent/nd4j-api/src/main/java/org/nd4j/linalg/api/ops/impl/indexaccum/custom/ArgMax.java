@@ -23,19 +23,10 @@ package org.nd4j.linalg.api.ops.impl.indexaccum.custom;
 import lombok.Data;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
-import org.nd4j.common.base.Preconditions;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
-import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.api.ops.DynamicCustomOp;
 import org.nd4j.linalg.api.ops.impl.reduce.custom.BaseDynamicCustomIndexReduction;
-import org.tensorflow.framework.AttrValue;
-import org.tensorflow.framework.GraphDef;
-import org.tensorflow.framework.NodeDef;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Data
 public class ArgMax extends BaseDynamicCustomIndexReduction {
@@ -43,7 +34,7 @@ public class ArgMax extends BaseDynamicCustomIndexReduction {
         super(sameDiff, args, keepDims);
     }
 
-    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, int[] dimensions) {
+    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, long[] dimensions) {
         super(sameDiff, args, keepDims, dimensions);
     }
 
@@ -51,7 +42,7 @@ public class ArgMax extends BaseDynamicCustomIndexReduction {
         super(sameDiff, args, keepDims, isComplex);
     }
 
-    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, int[] dimensions) {
+    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, long[] dimensions) {
         super(sameDiff, args, keepDims, isComplex, dimensions);
     }
 
@@ -69,74 +60,74 @@ public class ArgMax extends BaseDynamicCustomIndexReduction {
         super(inputs, outputs, keepDims);
     }
 
-    public ArgMax(INDArray[] inputs, INDArray[] outputs, boolean keepDims, int... dimensions) {
+    public ArgMax(INDArray[] inputs, INDArray[] outputs, boolean keepDims, long... dimensions) {
         super(inputs, outputs, keepDims, dimensions);
     }
 
-    public ArgMax(INDArray[] inputs, boolean keepDims, int[] dimensions) {
+    public ArgMax(INDArray[] inputs, boolean keepDims, long[] dimensions) {
         super(inputs, keepDims, dimensions);
     }
 
-    public ArgMax(boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(SameDiff sameDiff, SDVariable arg, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(SameDiff sameDiff, SDVariable arg, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(sameDiff, arg, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(sameDiff, args, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, SameDiff sameDiff, SDVariable[] args, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, sameDiff, args, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, INDArray input, INDArray output, List<Double> tArguments, int[] iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, INDArray input, INDArray output, List<Double> tArguments, long[] iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, input, output, tArguments, iArguments, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, List<Double> tArguments, int[] iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, List<Double> tArguments, long[] iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, inputs, outputs, tArguments, iArguments, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, List<Double> tArguments, List<Integer> iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, List<Double> tArguments, List<Long> iArguments, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, inputs, outputs, tArguments, iArguments, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(INDArray[] inputs, INDArray[] outputs, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(INDArray[] inputs, INDArray[] outputs, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(inputs, outputs, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, INDArray[] inputs, INDArray[] outputs, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, inputs, outputs, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, SameDiff sameDiff, SDVariable[] args, boolean inPlace, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, SameDiff sameDiff, SDVariable[] args, boolean inPlace, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, sameDiff, args, inPlace, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean inPlace, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(SameDiff sameDiff, SDVariable[] args, boolean inPlace, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(sameDiff, args, inPlace, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(String opName, boolean keepDims, boolean isComplex, boolean isEmptyReduce, int[] dimensions) {
+    public ArgMax(String opName, boolean keepDims, boolean isComplex, boolean isEmptyReduce, long[] dimensions) {
         super(opName, keepDims, isComplex, isEmptyReduce, dimensions);
     }
 
-    public ArgMax(INDArray[] input, INDArray[] output, boolean keepDims, boolean isComplex, int[] dimensions) {
+    public ArgMax(INDArray[] input, INDArray[] output, boolean keepDims, boolean isComplex, long[] dimensions) {
         super(input, output, keepDims, isComplex, dimensions);
     }
 
     public ArgMax() {
     }
 
-    public ArgMax(SameDiff sd, SDVariable in, boolean keepDims, int[] dimensions) {
+    public ArgMax(SameDiff sd, SDVariable in, boolean keepDims, long[] dimensions) {
         this(sd,new SDVariable[]{in},keepDims,dimensions);
     }
 
-    public ArgMax(INDArray in, boolean keepDims, int[] dimensions) {
+    public ArgMax(INDArray in, boolean keepDims, long[] dimensions) {
         this(new INDArray[]{in},keepDims,dimensions);
     }
 

@@ -29,18 +29,21 @@
 
 #include <numeric>
 
+#include "execution/cuda/LaunchDims.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_KERNEL void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx, const sd::LongType ews,
-                                      const sd::LongType len, const int power) {
+static SD_KERNEL void fisherYatesCuda(graph::RandomGenerator* rng, void* vx, const LongType ews,
+                                      const LongType len, const int power) {
   T* x = reinterpret_cast<T*>(vx);
 
   __shared__ T *shmem, temp;
-  __shared__ sd::LongType ind, blockOffset, lenPerBlock;
+  __shared__ LongType ind, blockOffset, lenPerBlock;
 
   if (threadIdx.x == 0) {
     extern __shared__ unsigned char sharedMemory[];
@@ -58,8 +61,8 @@ static SD_KERNEL void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx,
 
   // *** apply Fisher-Yates shuffle to lenPerBlock number of elements
   if (threadIdx.x == 0) {
-    for (sd::LongType i = lenPerBlock - 1; i > 0; --i) {
-      const sd::LongType j = rng->relativeLong(ind++) % (i + 1);
+    for (LongType i = lenPerBlock - 1; i > 0; --i) {
+      const LongType j = rng->relativeLong(ind++) % (i + 1);
       if (i != j) {
         temp = shmem[i];
         shmem[i] = shmem[j];
@@ -74,11 +77,11 @@ static SD_KERNEL void fisherYatesCuda(sd::graph::RandomGenerator* rng, void* vx,
 }
 
 template <typename T>
-static SD_KERNEL void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx, const sd::LongType ews,
-                                       const sd::LongType len, const int power, const sd::LongType iterNum) {
+static SD_KERNEL void mergeShuffleCuda(graph::RandomGenerator* rng, void* vx, const LongType ews,
+                                       const LongType len, const int power, const LongType iterNum) {
   T* x = reinterpret_cast<T*>(vx);
 
-  __shared__ sd::LongType ind, blockOffset, factor, beg, mid, totLen, iterExp;
+  __shared__ LongType ind, blockOffset, factor, beg, mid, totLen, iterExp;
 
   // *** apply mergeShuffle algorithm
   if (threadIdx.x == 0) {
@@ -90,12 +93,14 @@ static SD_KERNEL void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx
     ind = iterNum * len + blockOffset;
     beg = 0;  // beginning
 
-    // printf("m %lld, blockIdx.x %lld, factor %lld, blockOffset %lld, mid %lld, totLen %lld \n",
-    // m,k,factor,blockOffset,mid,totLen);
-
     while (true) {
       if (rng->relativeLong(ind++) % 2) {
         if (mid == totLen) break;
+        int first = (blockOffset + beg) * ews;
+        int second = blockOffset + mid * ews;
+        if(first >= len || second >= len) {
+          break;
+        }
         math::sd_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + mid++) * ews]);
       } else {
         if (beg == mid) break;
@@ -105,7 +110,12 @@ static SD_KERNEL void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx
 
     // Fisher-Yates
     while (beg < totLen) {
-      const sd::LongType e = rng->relativeLong(ind++) % (beg + 1);
+      const LongType e = rng->relativeLong(ind++) % (beg + 1);
+      int first = (blockOffset + beg) * ews;
+      int second = blockOffset + e * ews;
+      if(first >= len || second >= len) {
+        break;
+      }
       if (beg != e) math::sd_swap<T>(x[(blockOffset + beg) * ews], x[(blockOffset + e) * ews]);
       ++beg;
     }
@@ -115,62 +125,70 @@ static SD_KERNEL void mergeShuffleCuda(sd::graph::RandomGenerator* rng, void* vx
 //////////////////////////////////////////////////////////////////////////
 // Fisher-Yates shuffle
 template <typename T>
-static void fisherYates(sd::graph::RandomGenerator& rng, T* buff, const sd::LongType& len, const sd::LongType& ews,
-                        sd::LongType ind) {
-  for (sd::LongType i = len - 1; i > 0; --i) {
-    const sd::LongType j = rng.relativeLong(ind++) % (i + 1);
+static void fisherYates(graph::RandomGenerator& rng, T* buff, const LongType& len, const LongType& ews, LongType ind) {
+  for (LongType i = len - 1; i > 0; --i) {
+    const LongType j = rng.relativeLong(ind++) % (i + 1);
     if (i != j) math::sd_swap<T>(buff[i * ews], buff[j * ews]);
   }
 }
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng,
+static void randomShuffle_(LaunchContext* context, NDArray& input, NDArray& output, graph::RandomGenerator& rng,
                            const bool isInplace) {
   const int firstDim = input.sizeAt(0);
-  int temp;
+  LongType temp;
 
   if (input.lengthOf() == 1 || firstDim == 1) {
-    if (!isInplace) output.assign(input);
+    if (!isInplace) output.assign(&input);
   } else if (shape::isCommonVector(input.shapeInfo(), temp)) {
     NDArray* arr = &input;
 
     if (!isInplace) {
-      output.assign(input);
+      output.assign(&input);
       arr = &output;
     }
 
-    const sd::LongType len = arr->lengthOf();
+    const LongType len = arr->lengthOf();
 
     const int threadsPerBlock = SD_MAX_NUM_THREADS;
 
     int power = 0;
     while ((len >> power) > threadsPerBlock) ++power;
 
-    const int blocksPerGrid = 1 << power;
-    const int sharedMem = threadsPerBlock * input.sizeOfT() + 256;
+    dim3 fisherDims = randomShuffleFisherDims(power,input.sizeOfT());
+    const int blocksPerGrid = fisherDims.y;
+    const int sharedMem = fisherDims.z;
 
     PointersManager manager(context, "NDArray::randomShuffle cuda");
 
-    sd::graph::RandomGenerator* pRng = reinterpret_cast<sd::graph::RandomGenerator*>(
-        manager.replicatePointer(&rng, sizeof(sd::graph::RandomGenerator)));
+    graph::RandomGenerator* pRng = reinterpret_cast<graph::RandomGenerator*>(
+        manager.replicatePointer(&rng, sizeof(graph::RandomGenerator)));
 
     NDArray::prepareSpecialUse({arr}, {arr});
-    fisherYatesCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *context->getCudaStream()>>>(
-        pRng, arr->specialBuffer(), arr->ews(), len, power);
-    for (sd::LongType j = 1, i = 1; j < blocksPerGrid; j += j, ++i)
-      mergeShuffleCuda<T><<<blocksPerGrid / (2 * j), threadsPerBlock, 256, *context->getCudaStream()>>>(
-          pRng, arr->specialBuffer(), arr->ews(), len, power, i);
-    NDArray::registerSpecialUse({arr}, {arr});
 
-    manager.synchronize();
+    fisherYatesCuda<T><<<fisherDims.y, fisherDims.x, fisherDims.z, *context->getCudaStream()>>>(
+        pRng, arr->specialBuffer(),0, len, power);
+    sd::DebugHelper::checkErrorCode(context->getCudaStream(), "fisherYatesCuda failed");
 
-    rng.rewindH((len + 1) * power);
+    for (LongType j = 1, i = 1; j < blocksPerGrid; j += j, ++i) {
+      dim3 mergeShuffleDims = randomShuffleMergeDims(j, power);
+      mergeShuffleCuda<T><<<mergeShuffleDims.x, mergeShuffleDims.y, mergeShuffleDims.z, *context->getCudaStream()>>>(
+          pRng, arr->specialBuffer(), 0, len, power, i);
+      sd::DebugHelper::checkErrorCode(context->getCudaStream(), "mergeShuffleCuda failed");
+
+      NDArray::registerSpecialUse({arr}, {arr});
+
+      manager.synchronize();
+
+      rng.rewindH((len + 1) * power);
+    }
   } else {
-    auto dimsToExclude = ShapeUtils::evalDimsToExclude(input.rankOf(), {0});
+    LongType dim = 0;
+    auto dimsToExclude = ShapeUtils::evalDimsToExclude(input.rankOf(),1 ,&dim);
 
     if (isInplace) {
-      auto subArrsList = input.allTensorsAlongDimension(dimsToExclude);
+      auto subArrsList = input.allTensorsAlongDimension(*dimsToExclude);
 
       // Fisher-Yates shuffle
       for (int i = firstDim - 1; i > 0; --i) {
@@ -178,8 +196,8 @@ static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& 
         if (i != j) subArrsList.at(i)->swapUnsafe(*subArrsList.at(j));
       }
     } else {
-      auto subArrsListIn = input.allTensorsAlongDimension(dimsToExclude);
-      auto subArrsListOut = output.allTensorsAlongDimension(dimsToExclude);
+      auto subArrsListIn = input.allTensorsAlongDimension(*dimsToExclude);
+      auto subArrsListOut = output.allTensorsAlongDimension(*dimsToExclude);
 
       std::vector<int> indices(firstDim);
       std::iota(indices.begin(), indices.end(), 0);  // 0,1,2,3, ... firstDim-1
@@ -195,18 +213,16 @@ static void randomShuffle_(sd::LaunchContext* context, NDArray& input, NDArray& 
     }
 
     rng.rewindH(firstDim - 1);
+
+    delete dimsToExclude;
   }
 }
 
 /////////////////////////////////////////////////////////////////////////
-void randomShuffle(sd::LaunchContext* context, NDArray& input, NDArray& output, sd::graph::RandomGenerator& rng,
+void randomShuffle(LaunchContext* context, NDArray& input, NDArray& output, graph::RandomGenerator& rng,
                    const bool isInplace) {
   BUILD_SINGLE_SELECTOR(input.dataType(), randomShuffle_, (context, input, output, rng, isInplace), SD_COMMON_TYPES);
 }
-
-// BUILD_SINGLE_TEMPLATE(template void randomShuffle_, (sd::LaunchContext* context, NDArray& input, NDArray& output,
-// sd::graph::RandomGenerator& rng, const bool isInplace), SD_COMMON_TYPES);
-
 }  // namespace helpers
 }  // namespace ops
 }  // namespace sd

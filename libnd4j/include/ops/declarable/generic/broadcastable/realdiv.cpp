@@ -36,26 +36,25 @@ BROADCASTABLE_OP_IMPL(realdiv, 0, 0) {
   BROADCAST_CHECK_EMPTY(x, y, z);
   auto tZ = BroadcastHelper::broadcastApply(BroadcastOpsTuple::Divide(), x, y, z);
   if (tZ == nullptr) {
-    sd_printf("Failed to execute, null pointer \n",0);
-    return sd::Status::KERNEL_FAILURE;
+    return Status::KERNEL_FAILURE;
   }
   else if (tZ != z) {
     OVERWRITE_RESULT(tZ);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 DECLARE_SYN(RealDiv, realdiv);
 
 DECLARE_TYPES(realdiv) {
   getOpDescriptor()
-      ->setAllowedInputTypes(0, DataType::ANY)
-      ->setAllowedInputTypes(1, DataType::ANY)
-      ->setAllowedOutputTypes(0, {DataType::FLOAT32, DataType::HALF, DataType::DOUBLE});
+      ->setAllowedInputTypes(0, ANY)
+      ->setAllowedInputTypes(1, ANY)
+      ->setAllowedOutputTypes(0, {FLOAT32, HALF, DOUBLE});
 }
 
 DECLARE_TYPES(realdiv_bp) {
-  getOpDescriptor()->setAllowedInputTypes(DataType::ANY)->setAllowedOutputTypes({ALL_FLOATS});
+  getOpDescriptor()->setAllowedInputTypes(ANY)->setAllowedOutputTypes({ALL_FLOATS});
 }
 
 CUSTOM_OP_IMPL(realdiv_bp, 3, 2, false, 0, 0) {
@@ -70,49 +69,50 @@ CUSTOM_OP_IMPL(realdiv_bp, 3, 2, false, 0, 0) {
     // PWT case case
 
     // X gradient
-    // epsNext->applyPairwiseLambda(y, lambdaX, gradX);
-    epsNext->applyPairwiseTransform(pairwise::Divide, *y, *gradX);
+    epsNext->applyPairwiseTransform(pairwise::Divide, y, gradX);
 
     // Y gradient
-    // epsNext->applyTriplewiseLambda(x, y, lambdaY, gradY);
 
-    gradY->assign((*epsNext) * -(*x) / ((*y) * (*y)));
+    // First case
+    NDArray gradYTemp = (*epsNext) * -(*x) / ((*y) * (*y));
+    gradY->assign(&gradYTemp);
 
   } else if (y->isScalar()) {
     // scalar case
 
     auto tmp = epsNext->reduceNumber(reduce::Sum);
     auto tmpX = x->reduceNumber(reduce::Sum);
-    gradY->assign(tmp * -tmpX / ((*y) * (*y)));
 
-    // epsNext->applyLambda(lambdaS, gradX);
-    epsNext->applyScalarArr(scalar::Divide, *y, *gradX);
+    NDArray gradYTemp = tmp * -tmpX / ((*y) * (*y));
+    gradY->assign(&gradYTemp);
+
+    epsNext->applyScalarArr(scalar::Divide, y, gradX);
   } else {
     // broadcast case
 
     auto preX = *epsNext / *y;
 
     NDArray negX(*x);
-    x->applyTransform(transform::Neg, negX);
+    x->applyTransform(transform::Neg, &negX);
     auto preY = *epsNext * negX / ((*y) * (*y));
 
     auto axisX = ShapeUtils::evalBroadcastBackwardAxis(x->shapeInfo(), epsNext->shapeInfo());
     auto axisY = ShapeUtils::evalBroadcastBackwardAxis(y->shapeInfo(), epsNext->shapeInfo());
 
     if (axisX.size() > 0) {
-      auto sum = preX.reduceAlongDimension(reduce::Sum, axisX);
-      gradX->assign(sum);
+      auto sum = preX.reduceAlongDimension(reduce::Sum, &axisX);
+      gradX->assign(&sum);
     } else
-      gradX->assign(preX);
+      gradX->assign(&preX);
 
     if (axisY.size() > 0) {
-      auto sum = preY.reduceAlongDimension(reduce::Sum, axisY);
-      gradY->assign(sum);
+      auto sum = preY.reduceAlongDimension(reduce::Sum, &axisY);
+      gradY->assign(&sum);
     } else
-      gradY->assign(preY);
+      gradY->assign(&preY);
   }
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(realdiv_bp) {
@@ -123,13 +123,7 @@ DECLARE_SHAPE_FN(realdiv_bp) {
   // eps always has shape of x
   // grad always has shape of y
 
-  sd::LongType *shapeE;
-  sd::LongType *shapeG;
-
-  COPY_SHAPE(x, shapeE);
-  COPY_SHAPE(y, shapeG);
-
-  auto shapeList = SHAPELIST(CONSTANT(shapeE), CONSTANT(shapeG));
+  auto shapeList = SHAPELIST(CONSTANT(x), CONSTANT(y));
 
   return shapeList;
 }

@@ -28,52 +28,45 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
+
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void tileBP_(const NDArray& gradO /*input*/, NDArray& gradI /*output*/, const std::vector<sd::LongType> reps) {
+static void tileBP_(NDArray& gradO /*input*/, NDArray& gradI /*output*/, const std::vector<sd::LongType> reps) {
   T* gradIBuff = reinterpret_cast<T*>(gradI.buffer());
   auto gradOBuff = reinterpret_cast<T const*>(gradO.buffer());
   const sd::LongType gradILen = gradI.lengthOf();
   const sd::LongType gradOLen = gradO.lengthOf();  // gradOLen >= gradILen
-  const sd::LongType gradIEWS = sd::math::sd_abs<sd::LongType>(gradI.ews());
-  const sd::LongType gradOEWS = gradO.ews();
 
   // initial zeroing of gradI content
-  if (gradIEWS == 1)
-    memset(gradIBuff, 0, gradILen * sizeof(T));
-  else {
-    // PRAGMA_OMP_PARALLEL_FOR_SIMD
-    for (sd::LongType i = 0; i < gradILen * gradIEWS; i += gradIEWS) gradIBuff[i] = static_cast<T>(0.f);
-  }
+  sd::ops::safe_zero(gradIBuff, static_cast<size_t>(gradILen));
 
-  if (gradO.ordering() == 'c' && gradOEWS == 1) {
-    // PRAGMA_OMP_PARALLEL_FOR_SIMD
-    for (sd::LongType i = 0; i < gradOLen; ++i) {
-      auto idx = shape::subArrayIndex(i, gradO.shapeInfo(), gradI.shapeInfo());
-      gradI.p(idx, gradI.e<T>(idx) + gradOBuff[i]);
-    }
-  } else if (gradO.ordering() == 'c' && gradOEWS > 1) {
-    // PRAGMA_OMP_PARALLEL_FOR_SIMD
-    for (sd::LongType i = 0; i < gradOLen; ++i) {
-      auto idx = shape::subArrayIndex(i, gradO.shapeInfo(), gradI.shapeInfo());
-      gradI.p(idx, gradI.e<T>(idx) + gradOBuff[i * gradOEWS]);
-    }
-  } else {
-    // PRAGMA_OMP_PARALLEL_FOR_SIMD
-    for (sd::LongType i = 0; i < gradOLen; ++i) {
-      auto fidx = shape::subArrayIndex(i, gradO.shapeInfo(), gradI.shapeInfo());
-      gradI.p(fidx, gradI.e<T>(fidx) + gradOBuff[shape::getIndexOffset(i, gradO.shapeInfo())]);
-    }
+  LongType gradOCoords[SD_MAX_RANK];
+  LongType gradICoords[SD_MAX_RANK];
+  LongType gradOOffset;
+  LongType gradIOffset;
+
+  sd::LongType gradORank = gradO.rankOf();
+  sd::LongType *gradOShape = shape::shapeOf(gradO.shapeInfo());
+  sd::LongType *gradOStride = shape::stride(gradO.shapeInfo());
+  sd::LongType gradIRank = gradI.rankOf();
+  sd::LongType *gradIShape = shape::shapeOf(gradI.shapeInfo());
+  sd::LongType *gradIStride = shape::stride(gradI.shapeInfo());
+  for (sd::LongType i = 0; i < gradOLen; ++i) {
+    INDEX2COORDS(i,gradORank, gradOShape, gradOCoords);
+    COORDS2INDEX(gradORank, gradOStride, gradOCoords, gradOOffset);
+    INDEX2COORDS(i, gradIRank, gradIShape, gradICoords);
+    COORDS2INDEX(gradIRank, gradIStride, gradICoords, gradIOffset);
+    gradI.p(gradIOffset, gradI.e<T>(gradIOffset) + gradOBuff[gradOOffset]);
   }
 }
 
-void tileBP(sd::LaunchContext* context, const NDArray& gradO /*input*/, NDArray& gradI /*output*/,
-            const std::vector<sd::LongType> reps) {
+void tileBP(LaunchContext* context, NDArray gradO /*input*/, NDArray& gradI /*output*/,
+            const std::vector<LongType> reps) {
   BUILD_SINGLE_SELECTOR(gradI.dataType(), tileBP_, (gradO, gradI, reps), SD_FLOAT_TYPES);
 }
 
 BUILD_SINGLE_TEMPLATE(template void tileBP_,
-                      (const NDArray& gradO /*input*/, NDArray& gradI /*output*/, const std::vector<sd::LongType> reps),
+                      (NDArray& gradO /*input*/, NDArray& gradI /*output*/, const std::vector<sd::LongType> reps),
                       SD_FLOAT_TYPES);
 
 }  // namespace helpers

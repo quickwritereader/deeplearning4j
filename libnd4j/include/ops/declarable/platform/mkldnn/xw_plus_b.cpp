@@ -36,16 +36,16 @@ namespace ops {
 namespace platforms {
 
 //////////////////////////////////////////////////////////////////////
-static void xwPlusBiasMKLDNN(const NDArray* x, const NDArray* weights, const NDArray* bias, NDArray* z,
+static void xwPlusBiasMKLDNN(NDArray* x, NDArray* weights, NDArray* bias, NDArray* z,
                              const bool bShouldTransp) {
   // mkl works with following
   // [M,K]     x [N,K]^T  + [N]   = [M,N]
   const auto xRank = x->rankOf();
 
   // [M,K] x [K,N] = [M,N]
-  const int M = x->sizeAt(0);
-  const int K = x->sizeAt(1);  // K == wK
-  const int N = z->sizeAt(1);
+  const sd::LongType M = x->sizeAt(0);
+  const sd::LongType K = x->sizeAt(1);  // K == wK
+  const sd::LongType N = z->sizeAt(1);
 
   dnnl::memory::dims xShape = dnnl::memory::dims({M, K});
   dnnl::memory::dims wShape = dnnl::memory::dims({N, K});
@@ -146,16 +146,16 @@ static void xwPlusBiasMKLDNN(const NDArray* x, const NDArray* weights, const NDA
 }
 
 //////////////////////////////////////////////////////////////////////
-static void xwPlusBiasBp(const NDArray* x, const NDArray* weights, const NDArray* bias, const NDArray* dLdz,
+static void xwPlusBiasBp(NDArray* x, NDArray* weights, NDArray* bias, NDArray* dLdz,
                          NDArray* dLdx, NDArray* dLdw, NDArray* dLdb, const bool bShouldTransp) {
   // mkl works with following
   // [M,K]     x [N,K]^T  + [N]   = [M,N]
   const auto xRank = x->rankOf();
 
   // [M,K] x [K,N] = [M,N]
-  const int M = x->sizeAt(0);
-  const int K = x->sizeAt(1);  // K == wK
-  const int N = dLdz->sizeAt(1);
+  const sd::LongType M = x->sizeAt(0);
+  const sd::LongType K = x->sizeAt(1);  // K == wK
+  const sd::LongType N = dLdz->sizeAt(1);
   // input dims
   dnnl::memory::dims xShape = dnnl::memory::dims({M, K});
   dnnl::memory::dims wShape = dnnl::memory::dims({N, K});

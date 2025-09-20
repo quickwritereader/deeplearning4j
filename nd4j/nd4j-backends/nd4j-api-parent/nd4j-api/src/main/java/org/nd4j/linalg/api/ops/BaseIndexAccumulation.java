@@ -26,10 +26,12 @@ import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.util.SameDiffUtils;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,7 +44,7 @@ public abstract class BaseIndexAccumulation extends BaseOp implements IndexAccum
     public BaseIndexAccumulation(SameDiff sameDiff,
                                  SDVariable i_v,
                                  boolean keepDims,
-                                 int[] dimensions) {
+                                 long[] dimensions) {
         super(sameDiff,null);
         if (i_v != null) {
             this.dimensions = dimensions;
@@ -60,7 +62,7 @@ public abstract class BaseIndexAccumulation extends BaseOp implements IndexAccum
                                  SDVariable i_v,
                                  SDVariable i_v2,
                                  boolean keepDims,
-                                 int[] dimensions) {
+                                 long[] dimensions) {
         super(sameDiff,null);
         if (i_v != null) {
             this.dimensions = dimensions;
@@ -80,35 +82,36 @@ public abstract class BaseIndexAccumulation extends BaseOp implements IndexAccum
     public BaseIndexAccumulation() {}
 
 
-    public BaseIndexAccumulation(INDArray x, int[] dimensions) {
+    public BaseIndexAccumulation(INDArray x, long[] dimensions) {
         this(x, null, dimensions);
     }
 
-    public BaseIndexAccumulation(INDArray x, boolean keepDims, int[] dimensions) {
+    public BaseIndexAccumulation(INDArray x, boolean keepDims, long[] dimensions) {
         this(x, null, dimensions);
         this.keepDims = keepDims;
         defineDimensions(dimensions);
     }
 
-    public BaseIndexAccumulation(INDArray x, INDArray z, int[] dimensions) {
+    public BaseIndexAccumulation(INDArray x, INDArray z, long[] dimensions) {
         super(x, z);
         defineDimensions(dimensions);
     }
 
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         return calculateOutputShape(null);
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc){
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray x = oc != null ? oc.getInputArray(0) : x();
         if(x == null)
             return Collections.emptyList();
 
+
         long[] reducedShape = Shape.getReducedShape(x.shape(), dimensions, keepDims);
-        return Collections.singletonList(LongShapeDescriptor.fromShape(reducedShape, DataType.LONG));
+        return Collections.singletonList(Nd4j.createBuffer(LongShapeDescriptor.fromShape(reducedShape, DataType.INT64).toShapeInfo()));
     }
 
     @Override

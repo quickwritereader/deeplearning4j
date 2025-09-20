@@ -24,8 +24,11 @@
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
 #include <helpers/ShapeUtils.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/helpers/stack.h>
+
+#include "execution/cuda/LaunchDims.h"
+#include <legacy/NativeOpExecutioner.h>
 
 namespace sd {
 namespace ops {
@@ -33,43 +36,76 @@ namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_KERNEL void stackScalarsCuda(void* pVx, void* vz, const sd::LongType* zShapeInfo) {
+__global__ static void stackScalarsCuda(void* pVx, void* vz, const LongType* zShapeInfo) {
   T* z = reinterpret_cast<T*>(vz);
 
-  __shared__ sd::LongType zLen, totalThreads;
+  // Shared memory for caching shape information of z
+  __shared__ LongType shared_zRank;
+  __shared__ const LongType* shared_zShape;
+  __shared__ const LongType* shared_zStride;
 
+  __shared__ LongType zLen;
+  __shared__ LongType totalThreads;
+
+  // Initialize shared memory with shape information and other parameters
   if (threadIdx.x == 0) {
+    // Cache the rank of the output tensor
+    shared_zRank = shape::rank(zShapeInfo);
+
+    // Cache the shape and stride pointers of the output tensor
+    shared_zShape = shape::shapeOf(zShapeInfo);
+    shared_zStride = shape::stride(zShapeInfo);
+
+    // Cache the total length of the output tensor
     zLen = shape::length(zShapeInfo);
+
+    // Calculate the total number of threads across all blocks
     totalThreads = gridDim.x * blockDim.x;
   }
-  __syncthreads();
+  __syncthreads(); // Ensure all threads have access to the cached values
 
-  const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
+  // Calculate the global thread ID
+  const LongType tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-  for (sd::LongType i = tid; i < zLen; i += totalThreads) {
+  // Temporary variables for coordinates and offset
+  LongType zCoords[SD_MAX_RANK];
+  LongType zOffset;
+
+  // Iterate over the elements assigned to this thread
+  for (LongType i = tid; i < zLen; i += totalThreads) {
+    // Retrieve the pointer to the input scalar
     const T* x = reinterpret_cast<const T*>(reinterpret_cast<void**>(pVx)[i]);
-    z[shape::getIndexOffset(i, zShapeInfo)] = *x;
+
+    // Convert the linear index 'i' to multi-dimensional coordinates using cached shape
+    INDEX2COORDS(i, shared_zRank, shared_zShape, zCoords);
+
+    // Convert the multi-dimensional coordinates back to a linear index using cached stride
+    COORDS2INDEX(shared_zRank, shared_zStride, zCoords, zOffset);
+
+    // Assign the scalar value to the output tensor at the computed offset
+    z[zOffset] = *x;
   }
 }
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_HOST static void stackScalarsCudaLauncher(const int blocksPerGrid, const int threadsPerBlock,
+SD_HOST static void stackScalarsCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
                                              const cudaStream_t* stream, void* pVx, void* vz,
-                                             const sd::LongType* zShapeInfo) {
-  stackScalarsCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(pVx, vz, zShapeInfo);
+                                             const LongType* zShapeInfo) {
+  stackScalarsCuda<T><<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(pVx, vz, zShapeInfo);
+  DebugHelper::checkGlobalErrorCode("stackScalar failed(...) failed");
 }
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void stack_(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output,
+static void stack_(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output,
                    const int dim) {
   const int numOfSubArrs = inArrs.size();
 
   NDArray::prepareSpecialUse({&output}, inArrs);
 
-  if (inArrs[0]->rankOf() == 0) {
-    std::vector<void const*> hInBuffers(numOfSubArrs);
+  if (inArrs[0]->rankOf() < 1 && !inArrs[0]->isEmpty()) {
+    std::vector<void *> hInBuffers(numOfSubArrs);
 
     for (int i = 0; i < numOfSubArrs; ++i) hInBuffers[i] = inArrs[i]->specialBuffer();
 
@@ -77,25 +113,25 @@ static void stack_(sd::LaunchContext* context, const std::vector<const NDArray*>
 
     void* dInBuffers = manager.replicatePointer(hInBuffers.data(), hInBuffers.size() * sizeof(void*));
 
-    const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-    const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-
-    stackScalarsCudaLauncher<T>(blocksPerGrid, threadsPerBlock, context->getCudaStream(), dInBuffers,
+    dim3 stackDims2 = stackDims(output.lengthOf());
+    stackScalarsCudaLauncher<T>(stackDims2.y, stackDims2.x, stackDims2.z, context->getCudaStream(), dInBuffers,
                                 output.specialBuffer(), output.specialShapeInfo());
 
     manager.synchronize();
-  } else {
+  } else if (!inArrs[0]->isEmpty()) {
+    std::vector<LongType> dims = {dim};
     auto zTadPack = ConstantTadHelper::getInstance().tadForDimensions(
-        output.shapeInfo(), ShapeUtils::evalDimsToExclude(output.rankOf(), {dim}));
-    auto zTadShapeInfo = zTadPack.primaryShapeInfo();
+        output.shapeInfo(), ShapeUtils::evalDimsToExclude(output.rankOf(),1, dims.data()));
+    auto zTadShapeInfo = zTadPack->primaryShapeInfo();
 
-    for (sd::Unsigned i = 0; i < numOfSubArrs; ++i) {
-      void* zBuff = output.specialBufferWithOffset(zTadPack.primaryOffsets()[i]);
+    for (LongType i = 0; i < numOfSubArrs; ++i) {
+      void* zBuff = const_cast<void*>(output.specialBufferWithOffset(zTadPack->primaryOffsets()[i]));
 
       NativeOpExecutioner::execTransformAny(context, transform::Assign, nullptr, inArrs[i]->shapeInfo(),
                                             inArrs[i]->specialBuffer(), inArrs[i]->specialShapeInfo(), nullptr,
-                                            zTadShapeInfo, zBuff, zTadPack.specialShapeInfo(), nullptr, nullptr,
-                                            nullptr, false /*allowParallelism*/);
+                                            zTadShapeInfo, zBuff, zTadPack->specialShapeInfo(),
+                                            nullptr,
+                                            false);
     }
   }
 
@@ -103,32 +139,64 @@ static void stack_(sd::LaunchContext* context, const std::vector<const NDArray*>
 }
 
 ////////////////////////////////////////////////////////////////////////
-void stack(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int dim) {
+void stack(LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output, const int dim) {
   BUILD_SINGLE_SELECTOR(output.dataType(), stack_, (context, inArrs, output, dim), SD_COMMON_TYPES);
 }
 BUILD_SINGLE_TEMPLATE(template void stack_,
-                      (sd::LaunchContext * context, const std::vector<const NDArray*>& inArrs, NDArray& output,
-                       const int dim),
+                      (LaunchContext* context, const std::vector<NDArray*>& inArrs, NDArray& output,
+                          const int dim),
                       SD_COMMON_TYPES);
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static SD_KERNEL void unstackScalarsCuda(const void* vx, const sd::LongType* xShapeInfo, void* pVz) {
+__global__ static void unstackScalarsCuda(const void* vx, const LongType* xShapeInfo, void* pVz) {
   const T* x = reinterpret_cast<const T*>(vx);
 
-  __shared__ sd::LongType xLen, totalThreads;
+  // Shared memory for caching shape information
+  __shared__ LongType shared_xRank;
+  __shared__ const LongType* shared_xShape;
+  __shared__ const LongType* shared_xStride;
 
+  __shared__ LongType xLen;
+  __shared__ LongType totalThreads;
+
+  // Initialize shared memory with shape information and other parameters
   if (threadIdx.x == 0) {
+    // Cache the rank of the input tensor
+    shared_xRank = shape::rank(xShapeInfo);
+
+    // Cache the shape and stride pointers
+    shared_xShape = shape::shapeOf(xShapeInfo);
+    shared_xStride = shape::stride(xShapeInfo);
+
+    // Cache the total length of the input tensor
     xLen = shape::length(xShapeInfo);
+
+    // Calculate the total number of threads across all blocks
     totalThreads = gridDim.x * blockDim.x;
   }
-  __syncthreads();
+  __syncthreads(); // Ensure all threads have access to the cached values
 
-  const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
+  // Calculate the global thread ID
+  const LongType tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-  for (sd::LongType i = tid; i < xLen; i += totalThreads) {
+  // Temporary variables for coordinates and offset
+  LongType xCoords[SD_MAX_RANK];
+  LongType xOffset;
+
+  // Iterate over the elements assigned to this thread
+  for (LongType i = tid; i < xLen; i += totalThreads) {
+    // Retrieve the pointer to the output location
     T* z = reinterpret_cast<T*>(reinterpret_cast<void**>(pVz)[i]);
-    *z = x[shape::getIndexOffset(i, xShapeInfo)];
+
+    // Convert the linear index to multi-dimensional coordinates using cached shape
+    INDEX2COORDS(i, shared_xRank, shared_xShape, xCoords);
+
+    // Convert the multi-dimensional coordinates back to a linear index using cached stride
+    COORDS2INDEX(shared_xRank, shared_xStride, xCoords, xOffset);
+
+    // Assign the value from the input tensor to the output location
+    *z = x[xOffset];
   }
 }
 
@@ -136,17 +204,18 @@ static SD_KERNEL void unstackScalarsCuda(const void* vx, const sd::LongType* xSh
 template <typename T>
 SD_HOST static void unstackScalarsCudaLauncher(const int blocksPerGrid, const int threadsPerBlock,
                                                const cudaStream_t* stream, const void* vx,
-                                               const sd::LongType* xShapeInfo, void* pVz) {
+                                               const LongType* xShapeInfo, void* pVz) {
   unstackScalarsCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, pVz);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "unstackScalarsCudaLauncher failed");
+
 }
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-static void unstack_(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs,
+static void unstack_(LaunchContext* context, NDArray& input, const std::vector<NDArray*>& outArrs,
                      const int dim) {
   const int numOfSubArrs = outArrs.size();
 
-  // NDArray::prepareSpecialUse(outArrs, {&input});
   input.syncToDevice();
   for (const auto a : outArrs) a->getDataBuffer()->allocateSpecial();
 
@@ -167,198 +236,36 @@ static void unstack_(sd::LaunchContext* context, const NDArray& input, const std
 
     manager.synchronize();
   } else {
+    std::vector<LongType> dims = {dim};
     auto xTadPack = ConstantTadHelper::getInstance().tadForDimensions(
-        input.shapeInfo(), ShapeUtils::evalDimsToExclude(input.rankOf(), {dim}));
-    auto xTadShapeInfo = xTadPack.primaryShapeInfo();
+        input.shapeInfo(), ShapeUtils::evalDimsToExclude(input.rankOf(), 1,dims.data()));
+    auto xTadShapeInfo = xTadPack->primaryShapeInfo();
 
-    for (sd::Unsigned i = 0; i < numOfSubArrs; ++i) {
-      auto xBuff = input.specialBufferWithOffset(xTadPack.primaryOffsets()[i]);
+    for (LongType i = 0; i < numOfSubArrs; ++i) {
+      auto xBuff = input.specialBufferWithOffset(xTadPack->primaryOffsets()[i]);
 
       NativeOpExecutioner::execTransformAny(input.getContext(), transform::Assign, nullptr, xTadShapeInfo, xBuff,
-                                            xTadPack.specialShapeInfo(), nullptr, outArrs[i]->shapeInfo(),
+                                            xTadPack->specialShapeInfo(), nullptr, outArrs[i]->shapeInfo(),
                                             outArrs[i]->specialBuffer(), outArrs[i]->specialShapeInfo(), nullptr,
-                                            nullptr, nullptr, false /*allowParallelism*/);
+                                            false);
     }
   }
 
-  // NDArray::registerSpecialUse(outArrs, {&input});
+   NDArray::registerSpecialUse(outArrs, {&input});
   input.tickReadDevice();
   for (const auto p : outArrs) p->tickWriteDevice();
 }
 
 ////////////////////////////////////////////////////////////////////////
-void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
+void unstack(LaunchContext* context, NDArray& input, const std::vector<NDArray*>& outArrs, const int dim) {
   BUILD_SINGLE_SELECTOR(input.dataType(), unstack_, (context, input, outArrs, dim), SD_COMMON_TYPES);
 }
 BUILD_SINGLE_TEMPLATE(template void unstack_,
-                      (sd::LaunchContext * context, const NDArray& input, const std::vector<NDArray*>& outArrs,
-                       const int dim),
+                      (LaunchContext * context, NDArray& input, const std::vector<NDArray*>& outArrs,
+                          const int dim),
                       SD_COMMON_TYPES);
 
-///////////////////////////////////////////////////////////////////
-// template <typename T>
-// static SD_KERNEL void unstackCuda(const void* vx, const sd::LongType* xShapeInfo, void* pVz, const sd::LongType*
-// zTadShapeInfo, const int axis) {
 
-//     const T* x = reinterpret_cast<const T*>(vx);
-//     __shared__ sd::LongType xLen, totalThreads;
-//     __shared__ int xRank;
-
-//     if (threadIdx.x == 0) {
-//         xLen  = shape::length(xShapeInfo);
-//         xRank = shape::rank(xShapeInfo);
-//         totalThreads = gridDim.x * blockDim.x;
-//     }
-//     __syncthreads();
-
-//     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-//     sd::LongType coords[SD_MAX_RANK];
-
-//     for (uint64_t i = tid; i < xLen; i += totalThreads) {
-
-//         shape::index2coords(i, xShapeInfo, coords);
-
-//         const auto xOffset = shape::getOffset(xShapeInfo, coords);
-
-//         T *z = reinterpret_cast<T*>(reinterpret_cast<void **>(pVz)[coords[axis]]);
-
-//         for (sd::Unsigned j = axis; j < xRank - 1; ++j)    // shift coords staring from axis position
-//             coords[j] = coords[j + 1];
-
-//         const auto zOffset = shape::getOffset(zTadShapeInfo, coords);
-
-//         z[zOffset] = x[xOffset];
-//     }
-// }
-
-// ///////////////////////////////////////////////////////////////////
-// template<typename T>
-// SD_HOST static void unstackCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t
-// *stream,
-//                                          const void* vx, const sd::LongType* xShapeInfo, void* pVz, const
-//                                          sd::LongType* zTadShapeInfo, const int axis) {
-
-//     unstackCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(vx, xShapeInfo, pVz, zTadShapeInfo, axis);
-// }
-// BUILD_SINGLE_TEMPLATE(template void unstackCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const
-// cudaStream_t *stream, const void* vx, const sd::LongType* xShapeInfo, void* pVz, const sd::LongType* zTadShapeInfo,
-// const int axis), SD_COMMON_TYPES);
-
-// ///////////////////////////////////////////////////////////////////
-// void unstack(sd::LaunchContext* context, const NDArray& input, const std::vector<const NDArray*>& outArrs, const int
-// axis) {
-
-//     const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-//     const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-
-//     const int numOfSubArrs = outArrs.size();
-
-//     std::vector<void*> hOutBuffers(numOfSubArrs);
-
-//     for(int i = 0; i < numOfSubArrs; ++i)
-//         hOutBuffers[i] = outArrs[i]->specialBuffer();
-
-//     PointersManager manager(context, "helpers::unstack");
-
-//     void* dOutBuffers = manager.replicatePointer(hOutBuffers.data(), hOutBuffers.size() * sizeof(void*));
-
-//     for(sd::Unsigned i = 0; i < numOfSubArrs; ++i)
-//         outArrs[i]->syncToDevice();
-//     input.syncToDevice();
-
-//     BUILD_SINGLE_SELECTOR(input.dataType(), unstackCudaLauncher, (blocksPerGrid, threadsPerBlock,
-//     context->getCudaStream(), input.specialBuffer(), input.specialShapeInfo(), dOutBuffers, outArrs[0]->special(),
-//     axis), SD_COMMON_TYPES);
-
-//     manager.synchronize();
-
-//     for(sd::Unsigned i = 0; i < numOfSubArrs; ++i)
-//         outArrs[i]->tickReadDevice();
-//     input.tickWriteDevice();
-// }
-
-// ///////////////////////////////////////////////////////////////////
-// template <typename T>
-// static SD_KERNEL void stackCuda(void* pVx, const sd::LongType* xTadShapeInfo, void* vz, const sd::LongType*
-// zShapeInfo, const int axis) {
-
-//     T* z = reinterpret_cast<T*>(vz);
-
-//     __shared__ sd::LongType zLen, totalThreads;
-//     __shared__ int zRank;
-
-//     if (threadIdx.x == 0) {
-//         zLen  = shape::length(zShapeInfo);
-//         zRank = shape::rank(zShapeInfo);
-//         totalThreads = gridDim.x * blockDim.x;
-//     }
-//     __syncthreads();
-
-//     const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-//     sd::LongType coords[SD_MAX_RANK];
-
-//     for (uint64_t i = tid; i < zLen; i += totalThreads) {
-
-//         shape::index2coords(i, zShapeInfo, coords);
-
-//         const auto zOffset = shape::getOffset(zShapeInfo, coords);
-
-//         const T *x = reinterpret_cast<const T*>(reinterpret_cast<void**>(pVx)[coords[axis]]);
-
-//         for (sd::Unsigned j = axis; j < zRank - 1; ++j)    // shift coords staring from axis position
-//             coords[j] = coords[j + 1];
-
-//         const auto xOffset = shape::getOffset(xTadShapeInfo, coords);
-
-//         z[zOffset] = x[xOffset];
-//     }
-// }
-
-// ///////////////////////////////////////////////////////////////////
-// template<typename T>
-// SD_HOST static void stackCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const cudaStream_t *stream,
-//                                         void* pVx, const sd::LongType* xTadShapeInfo, void* vz, const sd::LongType*
-//                                         zShapeInfo, const int axis) {
-
-//     stackCuda<T><<<blocksPerGrid, threadsPerBlock, 256, *stream>>>(pVx, xTadShapeInfo, vz, zShapeInfo, axis);
-// }
-// BUILD_SINGLE_TEMPLATE(template void stackCudaLauncher, (const int blocksPerGrid, const int threadsPerBlock, const
-// cudaStream_t *stream, void* pVx, const sd::LongType* xTadShapeInfo, void* vz, const sd::LongType* zShapeInfo, const
-// int axis), SD_COMMON_TYPES);
-
-// ///////////////////////////////////////////////////////////////////
-// void stack(sd::LaunchContext* context, const std::vector<const NDArray*>& inArrs, NDArray& output, const int axis) {
-
-//     const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
-//     const int blocksPerGrid = (output.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-
-//     const int numOfSubArrs = inArrs.size();
-
-//     std::vector<void*> hInBuffers(numOfSubArrs);
-
-//     for(int i = 0; i < numOfSubArrs; ++i)
-//         hInBuffers[i] = inArrs[i]->specialBuffer();
-
-//     PointersManager manager(context, "helpers::stack");
-
-//     void* dInBuffers = manager.replicatePointer(hInBuffers.data(), hInBuffers.size() * sizeof(void*));
-
-//     for(sd::Unsigned i = 0; i < numOfSubArrs; ++i)
-//         inArrs[i]->syncToDevice();
-//     output.syncToDevice();
-
-//     BUILD_SINGLE_SELECTOR(output.dataType(), stackCudaLauncher, (blocksPerGrid, threadsPerBlock,
-//     context->getCudaStream(), dInBuffers, inArrs[0]->specialShapeInfo(), output.specialBuffer(), output.special(),
-//     axis), SD_COMMON_TYPES);
-
-//     manager.synchronize();
-
-//     for(sd::Unsigned i = 0; i < numOfSubArrs; ++i)
-//         inArrs[i]->tickReadDevice();
-//     output.tickWriteDevice();
-// }
 
 }  // namespace helpers
 }  // namespace ops

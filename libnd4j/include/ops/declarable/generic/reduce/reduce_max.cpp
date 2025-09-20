@@ -35,8 +35,13 @@ namespace ops {
 CUSTOM_OP_IMPL(reduce_max, -1, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
   auto output = OUTPUT_VARIABLE(0);
-
-  std::vector<int> dimensions = *block.getIArguments();
+  //numpy compat: default is 1 for 0 length arrays https://stackoverflow.com/questions/66746566/numpy-explanation-of-numpy-prod
+  if(input->lengthOf() == 0) {
+    int one = 1;
+    output->assign(one);
+    return sd::Status::OK;
+  }
+  std::vector<sd::LongType> dimensions = *block.getIArguments();
 
   if (block.width() > 1) {
     auto axesVector = INPUT_VARIABLE(1);
@@ -44,7 +49,7 @@ CUSTOM_OP_IMPL(reduce_max, -1, 1, false, 0, 0) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_MAX OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -59,7 +64,7 @@ CUSTOM_OP_IMPL(reduce_max, -1, 1, false, 0, 0) {
   else if (block.getTArguments()->size() > 0)
     keepDims = (bool)T_ARG(0);
 
-  input->reduceAlongDimension(reduce::Max, *output, dimensions, keepDims);
+  input->reduceAlongDimension(reduce::Max, output, &dimensions, keepDims);
 
   return sd::Status::OK;
 }
@@ -79,7 +84,7 @@ DECLARE_SHAPE_FN(reduce_max) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= inputShape->at(0)[0], 0,
+      dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
       "REDUCE_MAX OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -88,7 +93,7 @@ DECLARE_SHAPE_FN(reduce_max) {
                  "REDUCE_MAX OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
                  inputShape->at(0)[0], inputShape->at(0)[0], item);
 
-  auto outShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), dimensions, inputShape->at(0),
+  auto outShapeInfo = ShapeUtils::evalReduceShapeInfo(shape::order(inputShape->at(0)), &dimensions, inputShape->at(0),
                                                       keepDims, false, block.getWorkspace());
 
   return SHAPELIST(outShapeInfo);
@@ -103,7 +108,7 @@ CUSTOM_OP_IMPL(reduce_max_bp, -1, 1, false, 0, 0) {
   auto gradO = INPUT_VARIABLE(1);
   auto gradI = OUTPUT_VARIABLE(0);
 
-  std::vector<int> dimensions = *block.getIArguments();
+  std::vector<sd::LongType> dimensions = *block.getIArguments();
 
   if (block.width() > 2) {
     auto axesVector = INPUT_VARIABLE(2);
@@ -111,7 +116,7 @@ CUSTOM_OP_IMPL(reduce_max_bp, -1, 1, false, 0, 0) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= input->rankOf(), 0,
+      dimensions.size() <= static_cast<size_t>(input->rankOf()), 0,
       "REDUCE_MAX_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -127,19 +132,22 @@ CUSTOM_OP_IMPL(reduce_max_bp, -1, 1, false, 0, 0) {
 
   if (gradO->lengthOf() == 1) {
     auto indOfMaxElem = input->indexReduceNumber(sd::indexreduce::IndexMax);
-    gradI->p(indOfMaxElem.t<sd::LongType>(0), gradO->e(0));
+    NDArray right2 = gradO->e(0);
+    gradI->p(indOfMaxElem.t<sd::LongType>(0),&right2);
   } else {
-    auto indicesArr = input->applyIndexReduce(sd::indexreduce::IndexMax, dimensions);
+    auto indicesArr = input->applyIndexReduce(sd::indexreduce::IndexMax, &dimensions);
+  auto vec = ShapeUtils::evalDimsToExclude(gradI->rankOf(), dimensions.size(),dimensions.data());
     helpers::scatterSimple(
         block.launchContext(), 6, *gradI, *gradO, indicesArr,
-        ShapeUtils::evalDimsToExclude(gradI->rankOf(), dimensions));  // 6 corresponds to copy operation
+        *vec);  // 6 corresponds to copy operation
+    delete vec;
   }
 
   return sd::Status::OK;
 }
 
 DECLARE_SHAPE_FN(reduce_max_bp) {
-  std::vector<int> dimensions = *block.getIArguments();
+  std::vector<sd::LongType> dimensions = *block.getIArguments();
 
   if (block.width() > 2) {
     auto axesVector = INPUT_VARIABLE(2);
@@ -147,7 +155,7 @@ DECLARE_SHAPE_FN(reduce_max_bp) {
   }
 
   REQUIRE_TRUE(
-      dimensions.size() <= inputShape->at(0)[0], 0,
+      dimensions.size() <= static_cast<size_t>(inputShape->at(0)[0]), 0,
       "REDUCE_MAX_BP OP: the number of dimensions to reduce along must be <= input array rank, but got %i instead",
       dimensions.size());
 
@@ -156,11 +164,7 @@ DECLARE_SHAPE_FN(reduce_max_bp) {
         item >= -inputShape->at(0)[0] && item < inputShape->at(0)[0], 0,
         "REDUCE_MAX_BP OP: the input dimension to reduce along must be in range [-%i, %i), but got %i instead !",
         inputShape->at(0)[0], inputShape->at(0)[0], item);
-
-  sd::LongType* outShapeInfo;
-  COPY_SHAPE(inputShape->at(0), outShapeInfo);
-
-  return SHAPELIST(CONSTANT(outShapeInfo));
+  return SHAPELIST(CONSTANT(inputShape->at(0)));
 }
 
 DECLARE_TYPES(reduce_max_bp) {

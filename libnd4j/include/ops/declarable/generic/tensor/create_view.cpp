@@ -31,38 +31,33 @@ namespace ops {
 
 CUSTOM_OP_IMPL(create_view, -2, -1, true, 0, -2) {
   auto inputBase = INPUT_VARIABLE(0);
-  auto numInterval = 0;
-  auto numAll = 0;
   auto numNewAxis = 0;
   auto numPoint = 0;
-  auto indicesPerIndex = std::vector<std::vector<sd::LongType>>();
-  auto indexTypes = std::vector<sd::LongType>();
-  auto numIndicesPerIndex = std::vector<sd::LongType>();
-  auto inclusive = std::vector<sd::LongType>();
-  auto outRank = inputBase->rankOf() + numNewAxis - numPoint;
-  auto outputShape = std::vector<sd::LongType>();
-  auto outputStrides = std::vector<sd::LongType>();
-  auto baseOffset = inputBase->bufferOffset();
+  auto indicesPerIndex = std::vector<std::vector<LongType>>();
+  auto indexTypes = std::vector<LongType>();
+  auto numIndicesPerIndex = std::vector<LongType>();
+  auto inclusive = std::vector<LongType>();
+
+
+  auto baseOffset = inputBase->offset();
   auto outIdx = 0;
   auto inIdx = 0;
-  std::vector<std::vector<sd::LongType>> indexVectors;
+  std::vector<std::vector<LongType>> indexVectors;
   //note we iterate from i + 1 for each input so we only go to block input size - 1
-  for(sd::LongType i = 0; i < block.fastpath_in().size() - 1; i++) {
+  for (size_t i = 0; i < block.width() - 1; i++) {
     //first element is the input we are creating the view from
     auto inputIndex = INPUT_VARIABLE(i + 1);
-    auto indexVector = inputIndex->asVectorT<sd::LongType>();
+    auto indexVector = inputIndex->asVectorT<LongType>();
     indexVectors.push_back(indexVector);
     auto indexType = indexVector[0];
 
     if(indexType == POINT_TYPE) {
       numPoint++;
       inclusive.push_back(1);
-    } else if(indexType == 1) {
-      numInterval++;
+    } else if(indexType == INTERVAL_TYPE) {
       //the end indicates inclusive or not
       inclusive.push_back(indexVector[indexVector.size() - 1]);
     } else if(indexType == ALL_TYPE) {
-      numAll++;
       inclusive.push_back(1);
     } else if(indexType == NEW_AXIS) {
       numNewAxis++;
@@ -70,41 +65,53 @@ CUSTOM_OP_IMPL(create_view, -2, -1, true, 0, -2) {
     }
   }
 
-  auto numIndices = block.fastpath_in().size() - 1;
+  auto outRank = inputBase->rankOf() + numNewAxis - numPoint;
+  auto outputShape = std::vector<LongType>(outRank);
+  auto outputStrides = std::vector<LongType>(outRank);
+
+
+
+  auto numIndices = block.width() - 1;
 
   // Padding remaining dimensions with all() index if too few indices provided
-  if (numIndices - numNewAxis < inputBase->rankOf()) {
+  if (numIndices - numNewAxis < static_cast<size_t>(inputBase->rankOf())) {
     for (int e = numIndices; e < inputBase->rankOf() + numNewAxis; e++) {
-      numAll++;
       indexTypes.push_back(ALL_TYPE);
-      indexVectors.push_back(NDIndexUtils::createAll().asVectorT<sd::LongType>());
+      indexVectors.push_back(NDIndexUtils::createAll().asVectorT<LongType>());
     }
   }
 
-  for(sd::LongType i = 0; i < indexVectors.size(); i++) {
+  for (size_t i = 0; i < indexVectors.size(); i++) {
     auto indexVector = indexVectors[i];
     auto indexType = indexVector[0];
     auto currDimension = i;
 
     indexTypes.push_back(indexType);
     auto stride = indexVector[2];
-    auto indexIndices = std::vector<sd::LongType>();
+    //point should start at 3 for indices, interval is 4 (start,end)
+    auto indexIndices = std::vector<LongType>();
+    int indexOffset = 3;
+
+
     //accumulate the target indices
-    for(sd::LongType j = 0; j < numIndices; j++) {
-      indexIndices.push_back(indexVector[j + 3]);
+    //prevent out of bounds
+    for (size_t j = 0; j < indexVector.size() - indexOffset; j++) {
+      indexIndices.push_back(indexVector[j + indexOffset]);
     }
+
 
     indicesPerIndex.push_back(indexVector);
 
     if(indexType ==  POINT_TYPE) { //point index
       //Point indexes don't appear in output
-      auto pointOffset = indexIndices[0];
+      auto pointOffset = indexIndices[i];
       baseOffset += pointOffset * ( inputBase->strideAt(inIdx));
       inIdx++;
+
     } else if(indexType ==  ALL_TYPE) { // all index
       //All index: doesn't change offset. Axis is in both in and output arrays
-      outputShape.push_back(inputBase->sizeAt(inIdx));
-      outputStrides.push_back(inputBase->strideAt(inIdx));
+      outputShape[outIdx] = inputBase->sizeAt(inIdx);
+      outputStrides[outIdx] = inputBase->strideAt(inIdx);
       inIdx++;
       outIdx++;
     } else if(indexType == INTERVAL_TYPE) { //interval index
@@ -112,28 +119,38 @@ CUSTOM_OP_IMPL(create_view, -2, -1, true, 0, -2) {
       auto start = indexIndices[0];
       auto end = indexIndices[1];
       auto endInc = end - (inclusive[currDimension] > 0 ? 0 : 1);
-      if (endInc >= inputBase->sizeAt(inIdx)) {
-        throw std::runtime_error("CREATE_VIEW: Indices are out of range: Cannot get interval index ");
+      if (endInc > inputBase->sizeAt(inIdx)) {
+        std::string errorMessage;
+        errorMessage += "CREATE_VIEW: Indices are out of range: Cannot get interval index ";
+        errorMessage += std::to_string(endInc);
+        errorMessage += " on dimension ";
+        errorMessage += std::to_string(inputBase->sizeAt(inIdx));
+        THROW_EXCEPTION(errorMessage.c_str());
       }
 
       auto length = (endInc - start) / stride + 1;
 
       baseOffset += start * inputBase->strideAt(inIdx);
-      outputShape.push_back(length);
-      outputStrides.push_back(stride *  inputBase->strideAt(inIdx));
+      outputShape[outIdx] = length;
+      outputStrides[outIdx] = stride *  inputBase->strideAt(inIdx);
+
       inIdx++;
       outIdx++;
     } else if(indexType == NEW_AXIS) {
       //New axis: appends a 1 in shape. Axis not present in input, but is present in output
-      outputShape.push_back(1);
+      outputShape[outIdx] = 1;
       if (outIdx > 0) { //Stride doesn't matter for 1 size axis anyway...
-        outputStrides.push_back(outputStrides[outIdx - 1]);
+        outputStrides[outIdx] = outputStrides[outIdx - 1];
       } else {
-        outputStrides.push_back(1);
+        outputStrides[outIdx] = 1;
       }
       outIdx++;
     }
   }
+
+
+  auto outputLength = shape::prodLong(outputShape.data(),outRank);
+
 
   auto newResult = new NDArray(inputBase->dataBuffer(),'c',outputShape,inputBase->dataType(),inputBase->getContext(),false,true,baseOffset);
   //note we pass in delete false here so we don't cause a double free
@@ -144,7 +161,7 @@ CUSTOM_OP_IMPL(create_view, -2, -1, true, 0, -2) {
   } else if(block.isFastPath() && block.fastpath_out().size() < 1) {
     STORE_RESULT(newResult);
   }
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(create_view) {
@@ -152,7 +169,7 @@ DECLARE_SHAPE_FN(create_view) {
   return SHAPELIST(shapeInput->shapeInfo());
 }
 
-DECLARE_TYPES(create_view) { getOpDescriptor()->setAllowedInputTypes({sd::DataType::ANY})->setAllowedOutputTypes(sd::DataType::ANY); }
+DECLARE_TYPES(create_view) { getOpDescriptor()->setAllowedInputTypes({ANY})->setAllowedOutputTypes(ANY); }
 }  // namespace ops
 }  // namespace sd
 

@@ -23,9 +23,11 @@ package org.nd4j.linalg.api.ops;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.common.base.Preconditions;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.Collections;
 import java.util.List;
@@ -52,8 +54,8 @@ public abstract class BaseTransformBoolOp extends BaseTransformOp implements Tra
         super(sameDiff, i_v1, i_v2, extraArgs);
     }
 
-    public BaseTransformBoolOp(SameDiff sameDiff, SDVariable i_v, long[] shape, boolean inPlace, Object[] extraArgs) {
-        super(sameDiff, i_v, shape, inPlace, extraArgs);
+    public BaseTransformBoolOp(SameDiff sameDiff, SDVariable i_v,  boolean inPlace, Object[] extraArgs) {
+        super(sameDiff, i_v, inPlace, extraArgs);
     }
 
     public BaseTransformBoolOp(SameDiff sameDiff, SDVariable i_v, Object[] extraArgs) {
@@ -113,20 +115,24 @@ public abstract class BaseTransformBoolOp extends BaseTransformOp implements Tra
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         return calculateOutputShape(null);
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape(OpContext oc) {
+    public List<DataBuffer> calculateOutputShape(OpContext oc) {
         INDArray x = oc != null ? oc.getInputArray(0) : x();
         if(x == null)
             return Collections.emptyList();
-        return Collections.singletonList(LongShapeDescriptor.fromShape(x.shape(), DataType.BOOL));
+
+        LongShapeDescriptor desc = x.isEmpty() ? LongShapeDescriptor.emptyWithShape(x.shape(),DataType.BOOL) :
+                LongShapeDescriptor.fromShape(x.shape(), DataType.BOOL);
+        //Calculate reduction shape. Note that reduction on scalar - returns a scalar
+        return Collections.singletonList(Nd4j.createBuffer(desc.toShapeInfo()));
     }
 
     @Override
-    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes){
+    public List<DataType> calculateOutputDataTypes(List<DataType> dataTypes) {
         //All bool tranform ops: always bool output type
         SDVariable[] args = args();
         Preconditions.checkState(dataTypes != null && dataTypes.size() == args.length, "Expected exactly %s input datatype(s) for %s, got input %s", args.length, getClass(), dataTypes);

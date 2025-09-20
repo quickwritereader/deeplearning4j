@@ -35,10 +35,11 @@ import org.deeplearning4j.nn.graph.vertex.VertexIndices;
 import org.deeplearning4j.nn.layers.BaseOutputLayer;
 import org.deeplearning4j.nn.layers.FrozenLayer;
 import org.deeplearning4j.nn.layers.FrozenLayerWithBackprop;
+import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
+import org.nd4j.common.primitives.Pair;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.common.primitives.Pair;
-import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
+import org.nd4j.linalg.api.shape.Shape;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -55,13 +56,13 @@ public class LayerVertex extends BaseGraphVertex {
      * Create a network input vertex:
      */
     public LayerVertex(ComputationGraph graph, String name, int vertexIndex, Layer layer,
-                    InputPreProcessor layerPreProcessor, boolean outputVertex, DataType dataType) {
+                       InputPreProcessor layerPreProcessor, boolean outputVertex, DataType dataType) {
         this(graph, name, vertexIndex, null, null, layer, layerPreProcessor, outputVertex, dataType);
     }
 
     public LayerVertex(ComputationGraph graph, String name, int vertexIndex, VertexIndices[] inputVertices,
-                    VertexIndices[] outputVertices, Layer layer, InputPreProcessor layerPreProcessor,
-                    boolean outputVertex, DataType dataType) {
+                       VertexIndices[] outputVertices, Layer layer, InputPreProcessor layerPreProcessor,
+                       boolean outputVertex, DataType dataType) {
         super(graph, name, vertexIndex, inputVertices, outputVertices, dataType);
         this.graph = graph;
         this.vertexName = name;
@@ -107,16 +108,19 @@ public class LayerVertex extends BaseGraphVertex {
     public INDArray doForward(boolean training, LayerWorkspaceMgr workspaceMgr) {
         if (!canDoForward())
             throw new IllegalStateException("Cannot do forward pass: all inputs not set");
-        return layer.activate(training, workspaceMgr);
+        INDArray ret =  layer.activate(training, workspaceMgr);
+        return ret;
     }
 
-    public void applyPreprocessorAndSetInput(LayerWorkspaceMgr workspaceMgr){
+    public void applyPreprocessorAndSetInput(LayerWorkspaceMgr workspaceMgr) {
         //Apply preprocessor
         INDArray currInput = inputs[0];
         if (layerPreProcessor != null) {
             currInput = layerPreProcessor.preProcess(currInput, graph.batchSize(), workspaceMgr);
         }
+
         layer.setInput(currInput, workspaceMgr);
+
         setLayerInput = true;
     }
 
@@ -134,7 +138,7 @@ public class LayerVertex extends BaseGraphVertex {
         }
 
         //Edge case: output layer - never did forward pass hence layer.setInput was never called...
-        if(!setLayerInput){
+        if(!setLayerInput) {
             applyPreprocessorAndSetInput(workspaceMgr);
         }
 
@@ -142,7 +146,7 @@ public class LayerVertex extends BaseGraphVertex {
         if (tbptt && layer instanceof RecurrentLayer) {
             //Truncated BPTT for recurrent layers
             pair = ((RecurrentLayer) layer).tbpttBackpropGradient(epsilon,
-                            graph.getConfiguration().getTbpttBackLength(), workspaceMgr);
+                    graph.getConfiguration().getTbpttBackLength(), workspaceMgr);
         } else {
             //Normal backprop
             pair = layer.backpropGradient(epsilon, workspaceMgr); //epsTotal may be null for OutputLayers
@@ -162,8 +166,8 @@ public class LayerVertex extends BaseGraphVertex {
     public void setInput(int inputNumber, INDArray input, LayerWorkspaceMgr workspaceMgr) {
         if (inputNumber > 0)
             throw new IllegalArgumentException(
-                            "Invalid input number: LayerVertex instances have only 1 input (got inputNumber = "
-                                            + inputNumber + ")");
+                    "Invalid input number: LayerVertex instances have only 1 input (got inputNumber = "
+                            + inputNumber + ")");
         inputs[inputNumber] = input;
         setLayerInput = false;
         applyPreprocessorAndSetInput(workspaceMgr);
@@ -176,14 +180,14 @@ public class LayerVertex extends BaseGraphVertex {
 
     @Override
     public Pair<INDArray, MaskState> feedForwardMaskArrays(INDArray[] maskArrays, MaskState currentMaskState,
-                    int minibatchSize) {
+                                                           int minibatchSize) {
         if (maskArrays == null || maskArrays.length == 0) {
             return new Pair<>(null, currentMaskState);
         }
 
         if (layerPreProcessor != null) {
             Pair<INDArray, MaskState> pair =
-                            layerPreProcessor.feedForwardMaskArray(maskArrays[0], currentMaskState, minibatchSize);
+                    layerPreProcessor.feedForwardMaskArray(maskArrays[0], currentMaskState, minibatchSize);
             if (pair == null) {
                 maskArrays[0] = null;
                 currentMaskState = null;
@@ -201,8 +205,8 @@ public class LayerVertex extends BaseGraphVertex {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("LayerVertex(id=").append(vertexIndex).append(",name=\"").append(vertexName).append("\",inputs=")
-                        .append(Arrays.toString(inputVertices)).append(",outputs=")
-                        .append(Arrays.toString(outputVertices)).append(")");
+                .append(Arrays.toString(inputVertices)).append(",outputs=")
+                .append(Arrays.toString(outputVertices)).append(")");
         return sb.toString();
     }
 
@@ -237,13 +241,13 @@ public class LayerVertex extends BaseGraphVertex {
         return true;
     }
 
-    public double computeScore(double r, boolean training, LayerWorkspaceMgr workspaceMgr){
-        if(!(layer instanceof IOutputLayer)){
+    public double computeScore(double r, boolean training, LayerWorkspaceMgr workspaceMgr) {
+        if(!(layer instanceof IOutputLayer)) {
             throw new UnsupportedOperationException("Cannot compute score: layer is not an output layer (layer class: "
                     + layer.getClass().getSimpleName());
         }
         //Edge case: output layer - never did forward pass hence layer.setInput was never called...
-        if(!setLayerInput){
+        if(!setLayerInput) {
             applyPreprocessorAndSetInput(LayerWorkspaceMgr.noWorkspaces()); //TODO
         }
 
@@ -251,13 +255,13 @@ public class LayerVertex extends BaseGraphVertex {
         return ol.computeScore(r, training, workspaceMgr);
     }
 
-    public INDArray computeScoreForExamples(double r, LayerWorkspaceMgr workspaceMgr){
-        if(!(layer instanceof IOutputLayer)){
+    public INDArray computeScoreForExamples(double r, LayerWorkspaceMgr workspaceMgr) {
+        if(!(layer instanceof IOutputLayer)) {
             throw new UnsupportedOperationException("Cannot compute score: layer is not an output layer (layer class: "
                     + layer.getClass().getSimpleName());
         }
         //Edge case: output layer - never did forward pass hence layer.setInput was never called...
-        if(!setLayerInput){
+        if(!setLayerInput) {
             applyPreprocessorAndSetInput(workspaceMgr);
         }
 

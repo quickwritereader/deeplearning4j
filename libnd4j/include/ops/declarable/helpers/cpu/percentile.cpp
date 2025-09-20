@@ -29,19 +29,19 @@ namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
 template <typename T>
-static void _percentile(const NDArray& input, NDArray& output, std::vector<int>& axises, const float q,
+static void _percentile(NDArray& input, NDArray& output, std::vector<LongType>& axises, const float q,
                         const int interpolation) {
   const int inputRank = input.rankOf();
 
   if (axises.empty())
     for (int i = 0; i < inputRank; ++i) axises.push_back(i);
   else
-    shape::checkDimensions(inputRank, axises);  // check, sort dimensions and remove duplicates if they are present
+    shape::checkDimensions(inputRank, &axises);  // check, sort dimensions and remove duplicates if they are present
 
   auto listOfSubArrs = input.allTensorsAlongDimension(axises);
 
   std::vector<sd::LongType> shapeOfSubArr(listOfSubArrs.at(0)->rankOf());
-  for (int i = 0; i < shapeOfSubArr.size(); ++i) shapeOfSubArr[i] = listOfSubArrs.at(0)->shapeOf()[i];
+  for (size_t i = 0; i < shapeOfSubArr.size(); ++i) shapeOfSubArr[i] = listOfSubArrs.at(0)->shapeOf()[i];
 
   auto flattenedArr = NDArrayFactory::create('c', shapeOfSubArr, input.dataType(), input.getContext());
   const int len = flattenedArr.lengthOf();
@@ -72,13 +72,13 @@ static void _percentile(const NDArray& input, NDArray& output, std::vector<int>&
   }
 }
 
-void percentile(sd::LaunchContext* context, const NDArray& input, NDArray& output, std::vector<int>& axises,
+void percentile(sd::LaunchContext* context, NDArray& input, NDArray& output, std::vector<LongType>& axises,
                 const float q, const int interpolation) {
   BUILD_SINGLE_SELECTOR(input.dataType(), _percentile, (input, output, axises, q, interpolation), SD_COMMON_TYPES);
 }
 
 BUILD_SINGLE_TEMPLATE(template void _percentile,
-                      (const NDArray& input, NDArray& output, std::vector<int>& axises, const float q,
+                      (NDArray& input, NDArray& output, std::vector<LongType>& axises, const float q,
                        const int interpolation),
                       SD_COMMON_TYPES);
 

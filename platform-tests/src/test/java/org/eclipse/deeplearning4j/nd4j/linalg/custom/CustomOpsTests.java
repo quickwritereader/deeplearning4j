@@ -23,8 +23,6 @@ package org.eclipse.deeplearning4j.nd4j.linalg.custom;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.nd4j.autodiff.samediff.SDVariable;
@@ -32,49 +30,20 @@ import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.autodiff.validation.OpValidation;
 import org.nd4j.autodiff.validation.TestCase;
 import org.nd4j.common.tests.tags.NativeTag;
-import org.nd4j.common.tests.tags.TagNames;
 import org.nd4j.linalg.BaseNd4jTestWithBackends;
 import org.nd4j.linalg.api.blas.params.MMulTranspose;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.CustomOp;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
-import org.nd4j.linalg.api.ops.custom.AdjustContrast;
-import org.nd4j.linalg.api.ops.custom.AdjustHue;
-import org.nd4j.linalg.api.ops.custom.AdjustSaturation;
-import org.nd4j.linalg.api.ops.custom.BetaInc;
-import org.nd4j.linalg.api.ops.custom.BitCast;
-import org.nd4j.linalg.api.ops.custom.DivideNoNan;
-import org.nd4j.linalg.api.ops.custom.DrawBoundingBoxes;
-import org.nd4j.linalg.api.ops.custom.FakeQuantWithMinMaxVarsPerChannel;
-import org.nd4j.linalg.api.ops.custom.Flatten;
-import org.nd4j.linalg.api.ops.custom.FusedBatchNorm;
-import org.nd4j.linalg.api.ops.custom.HsvToRgb;
-import org.nd4j.linalg.api.ops.custom.KnnMinDistance;
-import org.nd4j.linalg.api.ops.custom.Lgamma;
-import org.nd4j.linalg.api.ops.custom.LinearSolve;
-import org.nd4j.linalg.api.ops.custom.Logdet;
-import org.nd4j.linalg.api.ops.custom.Lstsq;
-import org.nd4j.linalg.api.ops.custom.Lu;
-import org.nd4j.linalg.api.ops.custom.MatrixBandPart;
-import org.nd4j.linalg.api.ops.custom.Polygamma;
-import org.nd4j.linalg.api.ops.custom.RandomCrop;
-import org.nd4j.linalg.api.ops.custom.RgbToGrayscale;
-import org.nd4j.linalg.api.ops.custom.RgbToHsv;
-import org.nd4j.linalg.api.ops.custom.RgbToYiq;
-import org.nd4j.linalg.api.ops.custom.RgbToYuv;
-import org.nd4j.linalg.api.ops.custom.Roll;
-import org.nd4j.linalg.api.ops.custom.ToggleBits;
-import org.nd4j.linalg.api.ops.custom.TriangularSolve;
-import org.nd4j.linalg.api.ops.custom.YiqToRgb;
-import org.nd4j.linalg.api.ops.custom.YuvToRgb;
+import org.nd4j.linalg.api.ops.custom.*;
 import org.nd4j.linalg.api.ops.executioner.OpExecutioner;
 import org.nd4j.linalg.api.ops.executioner.OpStatus;
 import org.nd4j.linalg.api.ops.impl.controlflow.Where;
 import org.nd4j.linalg.api.ops.impl.image.NonMaxSuppression;
 import org.nd4j.linalg.api.ops.impl.image.ResizeArea;
 import org.nd4j.linalg.api.ops.impl.image.ResizeBilinear;
-import org.nd4j.linalg.api.ops.impl.reduce.MmulBp;
 import org.nd4j.linalg.api.ops.impl.shape.Create;
 import org.nd4j.linalg.api.ops.impl.shape.Linspace;
 import org.nd4j.linalg.api.ops.impl.shape.OnesLike;
@@ -86,14 +55,12 @@ import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.AddOp;
 import org.nd4j.linalg.api.ops.impl.transforms.pairwise.arithmetic.ModOp;
 import org.nd4j.linalg.api.ops.random.compat.RandomStandardNormal;
 import org.nd4j.linalg.api.ops.random.impl.DropOut;
-import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.factory.Nd4jBackend;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.indexing.conditions.Conditions;
-import org.nd4j.nativeblas.NativeOpsHolder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,18 +85,22 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         Nd4j.getExecutioner().enableDebugMode(true);
         Nd4j.getExecutioner().enableVerboseMode(true);
 
-        INDArray classes = Nd4j.createFromArray(0, 0, 0, 1, 1, 2);
-        INDArray clusters = Nd4j.createFromArray(0, 0, 0, 1, 1, 1);
+        INDArray classes = Nd4j.createFromArray(new long[]{0, 0, 0, 1, 1, 2});
+        INDArray clusters = Nd4j.createFromArray(new long[]{0, 0, 0, 1, 1, 1});
+        classes.data().opaqueBuffer().syncToSpecial();
+        clusters.data().opaqueBuffer().syncToSpecial();
+       Nd4j.getNativeOps().printDeviceBuffer(clusters.data().opaqueBuffer(),0);
+       Nd4j.getNativeOps().printDeviceBuffer(classes.data().opaqueBuffer(),0);
 
         INDArray confMatrix = Nd4j.math().confusionMatrix(
-              classes,clusters,3
+                classes,clusters,3
         );
 
-        INDArray assertion = Nd4j.create(new double[][]{
+        INDArray assertion = Nd4j.create(new int[][] {
                 {3,0,0},
                 {0,2,0},
                 {0,1,0}
-        }).castTo(DataType.INT32);
+        });
         assertEquals(assertion,confMatrix);
 
     }
@@ -158,6 +129,19 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         assertEquals(exp, arrayZ);
     }
 
+
+    @ParameterizedTest
+    @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
+    public void testSameDiffDropout(Nd4jBackend backend) {
+        INDArray in = Nd4j.ones(4, 8);
+        INDArray res1 = Nd4j.nn.dropout(in, false, 0.2);
+        for(int i = 0; i < res1.rows(); i++) {
+            for(int j = 0;  j < res1.columns(); j++) {
+                assertTrue(res1.getInt(i,j) == 0 || res1.getInt(i,j) == 1);
+            }
+        }
+    }
+
     /**
      * This test works inplace, but without inplace declaration
      */
@@ -183,7 +167,6 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         assertEquals(exp, arrayX);
     }
 
-    @Test
     @Disabled // it's noop, we dont care anymore
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -443,7 +426,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         val shapes = Nd4j.getExecutioner().calculateOutputShape(op);
 
         assertEquals(1, shapes.size());
-        assertArrayEquals(new long[]{5, 2}, shapes.get(0).getShape());
+        assertArrayEquals(new long[]{5, 2}, Shape.shape(shapes.get(0).asLong()));
     }
 
 
@@ -507,7 +490,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         context.setOutputArray(0, arrayZ);
 
         val addOp = new AddOp();
-        NativeOpsHolder.getInstance().getDeviceNativeOps().execCustomOp2(null, addOp.opHash(), context.contextPointer());
+       Nd4j.getNativeOps().execCustomOp2(null, addOp.opHash(), context.contextPointer());
 
         assertEquals(exp, arrayZ);
     }
@@ -638,17 +621,15 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                         1,  //End mask
                         0,  //New axis mask
                         0)  //Shrink axis mask
-                //.addOutputs(Nd4j.empty(DataType.INT))
                 .build();
 
-        List<LongShapeDescriptor> l = op.calculateOutputShape();
+        List<DataBuffer> l = op.calculateOutputShape();
         assertEquals(1, l.size());
         assertEquals(DataType.DOUBLE, l.get(0).dataType());
-        assertTrue(l.get(0).isEmpty()); //Should be empty array, is rank 0 scalar
+        assertTrue(Shape.isEmpty(l.get(0).asLong())); //Should be empty array, is rank 0 scalar
 
         Nd4j.exec(op);  //Execution is OK
     }
-
 
 
 
@@ -672,8 +653,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                 .callInplace(false)
                 .build();
 
-        for( int i=0; i<1000; i++ ) {
-//            System.out.println(i);
+        for( int i = 0; i < 1000; i++ ) {
             Nd4j.getExecutioner().exec(op);
         }
     }
@@ -736,7 +716,6 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                     .build();
 
             Nd4j.exec(op);
-//        System.out.println(out);
         });
 
     }
@@ -766,14 +745,6 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                 }
             }
         }
-
-//        System.out.println("Eps:");
-//        System.out.println(eps.shapeInfoToString());
-//        System.out.println(Arrays.toString(eps.data().asFloat()));
-
-//        System.out.println("Expected:");
-//        System.out.println(exp.shapeInfoToString());
-//        System.out.println(Arrays.toString(exp.data().asFloat()));
 
         DynamicCustomOp op = DynamicCustomOp.builder("upsampling2d_bp")
                 .addInputs(input, eps)
@@ -941,7 +912,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testAdjustContrast(Nd4jBackend backend) {
-        INDArray in = Nd4j.linspace(DataType.DOUBLE, 1.0, 1.0, 4*4*3).reshape(4,4,3);
+        INDArray in = Nd4j.linspace( 1.0, 48.0, 4 * 4* 3,DataType.DOUBLE).reshape(4,4,3);
         INDArray out = Nd4j.zeros(DataType.DOUBLE,4, 4, 3);
 
         INDArray expected = Nd4j.createFromArray(new double[]{-21.5, -20.5, -19.5,  -15.5, -14.5, -13.5,  -9.5,  -8.5,  -7.5,  -3.5,  -2.5,  -1.5,
@@ -962,21 +933,19 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         DynamicCustomOp op = DynamicCustomOp.builder("adjust_contrast_v2")
                 .addInputs(Nd4j.create(DataType.FLOAT, 256, 256,3), Nd4j.scalar(0.5f))
                 .build();
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
-        assertArrayEquals(new long[]{256, 256, 3}, lsd.get(0).getShape());
+        assertArrayEquals(new long[]{256, 256, 3}, Shape.shape(lsd.get(0).asLong()));
     }
-
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testBitCastShape(Nd4jBackend backend) {
         INDArray out = Nd4j.createUninitialized(1,10);
         BitCast op = new BitCast(Nd4j.zeros(1,10), DataType.FLOAT.toInt(), out);
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
-        assertArrayEquals(new long[]{1,10,2}, lsd.get(0).getShape());
+        assertArrayEquals(new long[]{1,10,2}, Shape.shape(lsd.get(0).asLong()));
     }
 
 
@@ -1007,7 +976,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testBitCast(Nd4jBackend backend) {
-        INDArray in = Nd4j.linspace(DataType.FLOAT, 1.0f, 1.0f, 8).reshape(2,2,2);
+        INDArray in = Nd4j.linspace( 1.0f, 8.0f, 8,DataType.FLOAT).reshape(2,2,2);
         INDArray out = Nd4j.createUninitialized(2,2);
 
         Nd4j.exec(new BitCast(in, DataType.DOUBLE.toInt(), out));
@@ -1103,7 +1072,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testResizeArea2(Nd4jBackend backend) {
 
-        INDArray image = Nd4j.linspace(DataType.FLOAT, 1.0f, 1.0f, 9 ).reshape(1,3,3,1);
+        INDArray image = Nd4j.linspace( 1.0f, 9.0f, 9,DataType.FLOAT ).reshape(1,3,3,1);
         INDArray output = Nd4j.createUninitialized(DataType.FLOAT, 1, 6, 6, 1);
         INDArray expected = Nd4j.createFromArray(new float[]{
                 1.f, 1.f, 2.f, 2.f, 3.f, 3.f,
@@ -1142,19 +1111,19 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                 0.3f, 0.3f, 0.7f, 0.7f,
                 0.4f, 0.4f, 0.6f, 0.6f}).reshape(2,2,4);
         INDArray colors = Nd4j.createFromArray(new float[]{
-                201.0f, 202.0f, 203.0f, 127.0f, 128.0f, 129.0f}).
+                        201.0f, 202.0f, 203.0f, 127.0f, 128.0f, 129.0f}).
                 reshape(2,3);
         INDArray output = Nd4j.create(DataType.FLOAT, images.shape());
         INDArray expected = Nd4j.createFromArray(new float[]{127.f, 128.f, 129.f,    127.f, 128.f, 129.f,    127.f, 128.f, 129.f,
-                127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
-                127.f, 128.f,  129.f,    19.f,  20.f,  21.f,     22.f,  23.f,  24.f,    127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
-                127.f, 128.f,  129.f,   127.f, 128.f, 129.f,    127.f, 128.f, 129.f,    127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
-                201.f, 202.f,  203.f,    201.f ,202.f ,203.f,   201.f, 202.f, 203.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,
+                        127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
+                        127.f, 128.f,  129.f,    19.f,  20.f,  21.f,     22.f,  23.f,  24.f,    127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
+                        127.f, 128.f,  129.f,   127.f, 128.f, 129.f,    127.f, 128.f, 129.f,    127.f, 128.f, 129.f,    201.f, 202.f, 203.f,
+                        201.f, 202.f,  203.f,    201.f ,202.f ,203.f,   201.f, 202.f, 203.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,
 
-                61.f,  62.f,   63.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,     70.f,  71.f,  72.f,     73.f,  74.f,  75.f,
-                76.f,  77.f,   78.f,    127.f, 128.f, 129.f,    127.f, 128.f, 129.f,     85.f,  86.f,  87.f,     88.f,  89.f,  90.f,
-                91.f,  92.f,   93.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,    100.f, 101.f, 102.f,    103.f, 104.f, 105.f,
-                106.f, 107.f,  108.f,    109.f, 110.f, 111.f,    112.f, 113.f, 114.f,    115.f, 116.f, 117.f,    118.f, 119.f, 120.f}).
+                        61.f,  62.f,   63.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,     70.f,  71.f,  72.f,     73.f,  74.f,  75.f,
+                        76.f,  77.f,   78.f,    127.f, 128.f, 129.f,    127.f, 128.f, 129.f,     85.f,  86.f,  87.f,     88.f,  89.f,  90.f,
+                        91.f,  92.f,   93.f,    201.f, 202.f, 203.f,    201.f, 202.f, 203.f,    100.f, 101.f, 102.f,    103.f, 104.f, 105.f,
+                        106.f, 107.f,  108.f,    109.f, 110.f, 111.f,    112.f, 113.f, 114.f,    115.f, 116.f, 117.f,    118.f, 119.f, 120.f}).
                 reshape(2,4,5,3);
 
         Nd4j.exec(new DrawBoundingBoxes(images, boxes, colors, output));
@@ -1214,9 +1183,9 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                 .addFloatingPointArguments(-1.0, 1.0, 0.01)
                 .build();
 
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         //System.out.println("Calculated output shape: " + Arrays.toString(lsd.get(0).getShape()));
-        op.setOutputArgument(0, Nd4j.create(lsd.get(0)));
+        op.setOutputArgument(0, Nd4j.createFromDescriptor(lsd.get(0)));
 
         Nd4j.exec(op);
     }
@@ -1227,22 +1196,20 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     public void testBitCastShape_1(Nd4jBackend backend) {
         val out = Nd4j.createUninitialized(1,10);
         BitCast op = new BitCast(Nd4j.zeros(DataType.FLOAT,1,10), DataType.INT.toInt(), out);
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
-        assertArrayEquals(new long[]{1,10}, lsd.get(0).getShape());
+        assertArrayEquals(new long[]{1,10}, Shape.shape(lsd.get(0).asLong()));
     }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testBitCastShape_2(Nd4jBackend backend) {
         val out = Nd4j.createUninitialized(1,10);
         BitCast op = new BitCast(Nd4j.zeros(DataType.DOUBLE,1,10), DataType.INT.toInt(), out);
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
-        assertArrayEquals(new long[]{1,10, 2}, lsd.get(0).getShape());
+        assertArrayEquals(new long[]{1,10, 2}, Shape.shape(lsd.get(0).asLong()));
     }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1345,7 +1312,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testPolygamma(Nd4jBackend backend) {
-        INDArray n = Nd4j.linspace(DataType.DOUBLE, 1.0, 1.0, 9).reshape(3,3);
+        INDArray n = Nd4j.linspace( 1.0, 9.0, 9,DataType.DOUBLE).reshape(3,3);
         INDArray x = Nd4j.create(DataType.DOUBLE, 3,3);
         x.assign(0.5);
         INDArray expected = Nd4j.createFromArray(new double[]{4.934802, -16.828796, 97.409088, -771.474243,
@@ -1385,7 +1352,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testRoll(Nd4jBackend backend) {
         INDArray x = Nd4j.createFromArray(new double[]{    11.11, 11.12, 11.21, 11.22, 11.31, 11.32, 11.41, 11.42,     12.11, 12.12, 12.21, 12.22, 12.31, 12.32, 12.41, 12.42,
-                21.11, 21.12, 21.21, 21.22, 21.31, 21.32, 21.41, 21.42,     22.11, 22.12, 22.21, 22.22, 22.31, 22.32, 22.41, 22.42}).
+                        21.11, 21.12, 21.21, 21.22, 21.31, 21.32, 21.41, 21.42,     22.11, 22.12, 22.21, 22.22, 22.31, 22.32, 22.41, 22.42}).
                 reshape(2,2,4,2);
 
         INDArray expected = Nd4j.createFromArray(new double[]{    22.21, 22.22, 22.31, 22.32, 22.41, 22.42, 11.11, 11.12, 11.21, 11.22, 11.31, 11.32, 11.41, 11.42,
@@ -1408,7 +1375,6 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         assertEquals(expected, result[0]);
     }
 
-    @Disabled("AS 11.28.2019 - https://github.com/eclipse/deeplearning4j/issues/8449")
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1419,7 +1385,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         INDArray scores = Nd4j.createFromArray(new float[]{0.0029f,    0.8135f,    0.4873f});
         val op = new NonMaxSuppression(boxes,scores,2,0.5,0.5);
         val res = Nd4j.exec(op);
-        assertEquals(new long[]{1}, res[0].shape());
+        assertArrayEquals(new long[]{1}, res[0].shape());
     }
 
 
@@ -1430,11 +1396,10 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
                 0.7271f,0.1804f,0.5056f,0.8925f,
                 0.5461f,0.9234f,0.0856f,0.7938f}).reshape(3,4);
         MatrixBandPart op = new MatrixBandPart(input,1,-1);
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
     }
 
-    @Disabled("Failed AS 11.26.2019 - https://github.com/eclipse/deeplearning4j/issues/8450")
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1448,7 +1413,6 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         assertEquals(expected, ret[0]);
     }
 
-    @Disabled("Failure AS 11.28.2019 - https://github.com/eclipse/deeplearning4j/issues/8452")
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1462,7 +1426,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
         INDArray expected = Nd4j.createFromArray(new float[]{NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN, }).reshape(3,4);
         Polygamma op = new Polygamma(a,b);
         INDArray[] ret = Nd4j.exec(op);
-        assertEquals(expected, ret[0]);
+        assertEquals(expected.isNaN(), ret[0].isNaN());
     }
 
 
@@ -1520,12 +1484,10 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
 
         AdjustHue op = new AdjustHue(image, 0.2f);
         INDArray[] res = Nd4j.exec(op);
-//        System.out.println(res[0]);
-        List<LongShapeDescriptor> lsd = op.calculateOutputShape();
+        List<DataBuffer> lsd = op.calculateOutputShape();
         assertEquals(1, lsd.size());
-        assertArrayEquals(new long[]{8, 8, 3}, lsd.get(0).getShape());
+        assertArrayEquals(new long[]{8, 8, 3}, Shape.shape(lsd.get(0).asLong()));
     }
-
 
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
@@ -1543,14 +1505,14 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testMatch_1(Nd4jBackend backend) {
         INDArray x = Nd4j.ones(DataType.FLOAT, 3,3);
-        INDArray y = Nd4j.linspace(DataType.FLOAT, -5, 9, 1).reshape(3, 3);
+        INDArray y = Nd4j.linspace( -5, 9, 9,DataType.FLOAT).reshape(3, 3);
         val c =  Conditions.equals(0.0);
 
         INDArray z = x.match(y, c);
         INDArray exp = Nd4j.createFromArray(new boolean[][]{
                 {false, false, false},
                 {false, false, false},
-                {true,  false, false}
+                {false,  false, false}
         });
 
         assertEquals(exp, z);
@@ -1885,7 +1847,7 @@ public class CustomOpsTests extends BaseNd4jTestWithBackends {
     @ParameterizedTest
     @MethodSource("org.nd4j.linalg.BaseNd4jTestWithBackends#configs")
     public void testLinSpaceEdge_1(Nd4jBackend backend) {
-        val x = Nd4j.linspace(1,10,1, DataType.FLOAT);
+        val x = Nd4j.linspace(DataType.FLOAT,1,1,1);
         val e = Nd4j.scalar(1.0f);
 
         assertEquals(e, x);

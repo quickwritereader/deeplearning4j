@@ -29,7 +29,7 @@
       </modules>
 
     <parent>
-        <groupId>org.nd4j</groupId>
+        <groupId>org.eclipse.deeplearning4j</groupId>
         <artifactId>nd4j-backends</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -97,11 +97,7 @@
                             <OMP_NUM_THREADS>1</OMP_NUM_THREADS>
                             <LD_LIBRARY_PATH>${env.LD_LIBRARY_PATH}:${user.dir}</LD_LIBRARY_PATH>
                         </environmentVariables>
-                        <!--<excludes>
-                            <exclude>**/Test*.java</exclude>
-                            <exclude>**/*Test.java</exclude>
-                            <exclude>**/*TestCase.java</exclude>
-                        </excludes>-->
+
                         <!--
                             Maximum heap size was set to 8g, as a minimum required value for tests run.
                             Depending on a build machine, default value is not always enough.
@@ -171,6 +167,7 @@
                <activeByDefault>false</activeByDefault>
            </activation>
             <modules>
+                <module>../../../libnd4j</module>
                 <module>nd4j-native</module>
                 <module>nd4j-native-preset</module>
                 <module>nd4j-native-platform</module>
@@ -181,13 +178,8 @@
         </profile>
         <profile>
             <id>cuda</id>
-            <activation>
-                <property>
-                    <name>libnd4j.chip</name>
-                    <value>cuda</value>
-                </property>
-            </activation>
             <modules>
+                <module>../../../libnd4j</module>
                 <module>nd4j-cuda</module>
                 <module>nd4j-cuda-preset</module>
                 <module>nd4j-cuda-platform</module>

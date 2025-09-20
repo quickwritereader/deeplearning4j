@@ -27,13 +27,11 @@
 #define PAIRWISE_BOOL_H_
 
 #include <helpers/DebugHelper.h>
-#include <helpers/shape.h>
 #include <loops/legacy_ops.h>
 #include <math/templatemath.h>
 #include <ops/ops.h>
 #include <stdio.h>
 #include <system/op_boilerplate.h>
-#include <system/pairwise_util.h>
 
 using namespace simdOps;
 
@@ -61,19 +59,15 @@ class PairWiseBoolTransform {
 
   static void exec(int opNum, const void *dx, const sd::LongType *xShapeBuffer, const void *y,
                    const sd::LongType *yShapeBuffer, void *result, const sd::LongType *resultShapeBuffer,
-                   void *extraParams, uint64_t start, uint64_t stop);
+                   void *extraParams, sd::LongType start,sd::LongType stop);
 
-  static void exec(int opNum, const void *dx, sd::LongType xStride, const void *y, sd::LongType yStride, void *result,
-                   sd::LongType resultStride, void *extraParams, sd::LongType n, uint64_t start, uint64_t stop);
+
 
   template <typename OpType>
   static void exec(const void *vx, const sd::LongType *xShapeBuffer, const void *vy, const sd::LongType *yShapeBuffer,
-                   void *vresult, const sd::LongType *resultShapeBuffer, void *vextraParams, uint64_t start,
-                   uint64_t stop);
+                   void *vresult, const sd::LongType *resultShapeBuffer, void *vextraParams, sd::LongType start,
+                   sd::LongType stop);
 
-  template <typename OpType>
-  static void exec(const void *vx, sd::LongType xStride, const void *vy, sd::LongType yStride, void *vresult,
-                   sd::LongType resultStride, void *vextraParams, sd::LongType n, uint64_t start, uint64_t stop);
 #endif
 };
 }  // namespace pairwise_transforms

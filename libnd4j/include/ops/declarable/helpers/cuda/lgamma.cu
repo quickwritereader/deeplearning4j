@@ -22,8 +22,8 @@
 // @author George A. Shulinok <sgazeos@gmail.com>
 //
 #include <ops/declarable/helpers/lgamma.h>
-//#include <execution/Threads.h>
-//#include <helper_math.h>
+
+
 
 namespace sd {
 namespace ops {
@@ -32,22 +32,20 @@ namespace helpers {
 //////////////////////////////////////////////////////////////////////////
 // calculate digamma function for array elements
 template <typename T>
-void lgamma_(NDArray& x, NDArray& z) {
-  // auto dtype = x.dataType();
-  auto lgammaProc = LAMBDA_T(x_, dtype) {
-    return T(DataTypeUtils::fromT<T>() == DataType::DOUBLE
-                 ? ::lgamma(x_)
-                 : ::lgammaf(x_));  // math::sd_log<T,T>(math::sd_gamma<T,T>(x));
-  };
+void lgamma_(NDArray* x, NDArray* z) {
+  auto lgammaProc = LAMBDA_T(x_) {
+    return T(DataTypeUtils::fromT<T>() == DOUBLE ? ::lgamma(x_)
+                 : ::lgammaf(x_));
+  });
 
-  x.applyLambda(lgammaProc, z);
+  x->applyLambda(lgammaProc, z);
 }
 
-void lgamma(sd::LaunchContext* context, NDArray& x, NDArray& z) {
-  BUILD_SINGLE_SELECTOR(x.dataType(), lgamma_, (x, z), SD_FLOAT_TYPES);
+void lgamma(LaunchContext* context, NDArray* x, NDArray* z) {
+  BUILD_SINGLE_SELECTOR(x->dataType(), lgamma_, (x, z), SD_FLOAT_TYPES);
 }
 
-BUILD_SINGLE_TEMPLATE(template void lgamma_, (NDArray & x, NDArray& z), SD_FLOAT_TYPES);
+BUILD_SINGLE_TEMPLATE(template void lgamma_, (NDArray * x, NDArray* z), SD_FLOAT_TYPES);
 
 }  // namespace helpers
 }  // namespace ops

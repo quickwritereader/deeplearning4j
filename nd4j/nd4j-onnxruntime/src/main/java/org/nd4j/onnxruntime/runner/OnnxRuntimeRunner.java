@@ -49,12 +49,15 @@ public class OnnxRuntimeRunner implements Closeable  {
     private Session session;
     private RunOptions runOptions;
     private MemoryInfo memoryInfo;
-    private AllocatorWithDefaultOptions allocator;
+    private OrtAllocator allocator;
     private SessionOptions sessionOptions;
     private   static Env env;
     private Pointer bp;
     private Onnx.ModelProto modelProto;
-
+    @Getter
+    private List<Onnx.TensorProto> initializers = new ArrayList<>();
+    @Getter
+    private List<Onnx.ValueInfoProto> inputs = new ArrayList<>();
     @Builder
     public OnnxRuntimeRunner(String modelUri) {
         if(env == null) {
@@ -67,7 +70,7 @@ public class OnnxRuntimeRunner implements Closeable  {
         sessionOptions.SetIntraOpNumThreads(1);
         sessionOptions.SetLogSeverityLevel(ORT_LOGGING_LEVEL_VERBOSE);
         sessionOptions.retainReference();
-        allocator = new AllocatorWithDefaultOptions();
+        allocator = new OrtAllocator();
         allocator.retainReference();
         if(modelUri != null) {
             bp = Loader.getPlatform().toLowerCase().startsWith("windows") ? new CharPointer(modelUri) : new BytePointer(modelUri);
@@ -79,6 +82,17 @@ public class OnnxRuntimeRunner implements Closeable  {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            for(int i = 0; i < modelProto.getGraph().getInitializerCount(); i++) {
+                Onnx.TensorProto initializer = modelProto.getGraph().getInitializer(i);
+                initializers.add(initializer);
+            }
+
+            for(int i = 0; i < modelProto.getGraph().getInputCount(); i++) {
+                inputs.add(modelProto.getGraph().getInput(i));
+            }
+
+
         }
         runOptions = new RunOptions();
         memoryInfo = MemoryInfo.CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -116,7 +130,7 @@ public class OnnxRuntimeRunner implements Closeable  {
 
         Value inputVal = new Value(numInputNodes);
         for (long i = 0; i < numInputNodes; i++) {
-            BytePointer inputName = session.GetInputNameAllocated(i, allocator.asOrtAllocator());
+            BytePointer inputName = session.GetInputNameAllocated(i, allocator);
             inputNodeNames.put(i, inputName);
             ONNXType typeForInput = getTypeForInput(session, i);
             List<INDArray> arr = input.get(inputName.getString()).getListValue();
@@ -128,7 +142,7 @@ public class OnnxRuntimeRunner implements Closeable  {
             }
             //empty sequence
             else if(arr.size() == 0) {
-                    throw new IllegalArgumentException("Onnx Runtime does not support empty sequences! Found at input name " + inputName.getString());
+                throw new IllegalArgumentException("Onnx Runtime does not support empty sequences! Found at input name " + inputName.getString());
             } else if(arr.size() > 1 || typeForInput == ONNXType.ONNX_TYPE_SEQUENCE) {
                 ValueVector inputTensor = getSequence(arr, memoryInfo);
                 inputVal.position(i).put(Value.CreateSequence(inputTensor));
@@ -142,7 +156,7 @@ public class OnnxRuntimeRunner implements Closeable  {
 
 
         for (int i = 0; i < numOutputNodes; i++) {
-            BytePointer outputName = session.GetOutputNameAllocated(i, allocator.asOrtAllocator());
+            BytePointer outputName = session.GetOutputNameAllocated(i, allocator);
             outputNodeNames.put(i, outputName);
         }
 
@@ -165,7 +179,7 @@ public class OnnxRuntimeRunner implements Closeable  {
                 INDArray arr = getArray(outValue);
                 ret.put((outputNodeNames.get(BytePointer.class, i)).getString(), SDValue.create(arr));
             } else  {
-                INDArray[] seq = ndarraysFromSequence(outValue,allocator.asOrtAllocator());
+                INDArray[] seq = ndarraysFromSequence(outValue,allocator);
                 ret.put((outputNodeNames.get(BytePointer.class, i)).getString(), SDValue.create(Arrays.asList(seq)));
             }
 
@@ -194,7 +208,7 @@ public class OnnxRuntimeRunner implements Closeable  {
         Value inputVal = new Value(numInputNodes);
 
         for (int i = 0; i < numInputNodes; i++) {
-            BytePointer inputName = session.GetInputNameAllocated(i, allocator.asOrtAllocator());
+            BytePointer inputName = session.GetInputNameAllocated(i, allocator);
             inputNodeNames.put(i, inputName);
             INDArray arr = input.get(inputName.getString());
             Value inputTensor = getTensor(arr, memoryInfo);
@@ -208,7 +222,7 @@ public class OnnxRuntimeRunner implements Closeable  {
 
 
         for (long i = 0; i < numOutputNodes; i++) {
-            BytePointer outputName = session.GetOutputNameAllocated(i, allocator.asOrtAllocator());
+            BytePointer outputName = session.GetOutputNameAllocated(i, allocator);
             outputNodeNames.put(i, outputName);
         }
 
@@ -233,11 +247,13 @@ public class OnnxRuntimeRunner implements Closeable  {
                     break;
                 case ONNX_TYPE_TENSOR:
                     DataBuffer buffer = getDataBuffer(outValue);
-                    LongPointer longPointer = outValue.GetTensorTypeAndShapeInfo().GetShape();
+                    LongVector longPointer = outValue.GetTensorTypeAndShapeInfo().GetShape();
                     //shape info can be null
                     if(longPointer != null) {
                         long[] shape = new long[(int) longPointer.capacity()];
-                        longPointer.get(shape);
+                        for(int j = 0; j < shape.length; j++) {
+                            shape[j] = longPointer.get(j);
+                        }
                         ret.put((outputNodeNames.get(BytePointer.class, i)).getString(), Nd4j.create(buffer).reshape(shape));
                     } else {
                         ret.put((outputNodeNames.get(BytePointer.class, i)).getString(), Nd4j.create(buffer));

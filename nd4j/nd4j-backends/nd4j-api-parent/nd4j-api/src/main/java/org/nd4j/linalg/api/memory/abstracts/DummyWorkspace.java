@@ -27,10 +27,33 @@ import org.nd4j.linalg.api.memory.conf.WorkspaceConfiguration;
 import org.nd4j.linalg.api.memory.enums.MemoryKind;
 import org.nd4j.linalg.api.memory.pointers.PagedPointer;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.profiler.data.eventlogger.LogEvent;
+import org.nd4j.linalg.workspace.WorkspaceMgr;
 
 public class DummyWorkspace implements MemoryWorkspace {
 
     protected MemoryWorkspace parentWorkspace;
+    protected WorkspaceMgr workspaceMgr;
+
+    @Override
+    public StackTraceElement[] lastEntered() {
+        return new StackTraceElement[0];
+    }
+
+    @Override
+    public StackTraceElement[] lastClosed() {
+        return new StackTraceElement[0];
+    }
+
+    @Override
+    public StackTraceElement[] lastBorrowed() {
+        return new StackTraceElement[0];
+    }
+
+    @Override
+    public void setWorkspaceMgr(WorkspaceMgr mgr) {
+        this.workspaceMgr = mgr;
+    }
 
     /**
      * This method returns WorkspaceConfiguration bean that was used for given Workspace instance
@@ -39,6 +62,16 @@ public class DummyWorkspace implements MemoryWorkspace {
      */
     @Override
     public WorkspaceConfiguration getWorkspaceConfiguration() {
+        return null;
+    }
+
+    @Override
+    public void setAssociatedEnumType(Enum enumType) {
+
+    }
+
+    @Override
+    public Enum getAssociatedEnumType() {
         return null;
     }
 
@@ -259,8 +292,8 @@ public class DummyWorkspace implements MemoryWorkspace {
     }
 
     @Override
-    public String getUniqueId() {
-        return java.util.UUID.randomUUID().toString();
+    public long getUniqueId() {
+        return 0;
     }
 
     @Override
@@ -269,6 +302,11 @@ public class DummyWorkspace implements MemoryWorkspace {
             @Override
             public void deallocate() {
                 // no-op
+            }
+
+            @Override
+            public boolean isConstant() {
+                return false;
             }
         };
     }

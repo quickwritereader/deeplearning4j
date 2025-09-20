@@ -33,7 +33,7 @@ constexpr int numLayers = 1;
 
 // we will copy without using cudnnGetRNNLinLayerMatrixParams : 1 pseudo layer , isBidirectional : 2 pseudo layer
 void copyWeights(const cudaStream_t &stream, bool isBidirectional, uint8_t *weightsSpace, size_t weightsSize,
-                 uint8_t *inputWeightsData, uint8_t *recurrentWeightsData, uint8_t *biasesData, int inputSize,
+                 uint8_t *inputWeightsData, uint8_t *recurrentWeightsData, uint8_t *biasesData, LongType inputSize,
                  int hiddenSize, int dataTypeSize) {
   int pseudo_layer_count = isBidirectional ? 2 : 1;
   uint8_t *wptr = weightsSpace;
@@ -43,7 +43,7 @@ void copyWeights(const cudaStream_t &stream, bool isBidirectional, uint8_t *weig
   // in bidirectional 1 layer consist of 2 pseduo layers
   auto input_pseudo_size = 4 * inputSize * hiddenSize * dataTypeSize;
   auto hidden_pseudo_size = 4 * hiddenSize * hiddenSize * dataTypeSize;
-  for (int i = 0; i < pseudo_layer_count; i++) {
+  for (LongType i = 0; i < pseudo_layer_count; i++) {
     if (wptr + input_pseudo_size + hidden_pseudo_size > wEnd) return;
     // copy input weights
     if (inputWeightsData) {
@@ -81,7 +81,7 @@ void copyWeights(const cudaStream_t &stream, bool isBidirectional, uint8_t *weig
 void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, NDArray *inputWeights,
                    NDArray *recurrentWeights, NDArray *biases, NDArray *prevAct, NDArray *prevMemCell,
                    NDArray *outputActivations, NDArray *finalTimeStepActivations, NDArray *finalMemCellState,
-                   int maxSeqLength, int batchSize, int inputSize, int hiddenSize, double cellClip,
+                   LongType maxSeqLength, LongType batchSize, LongType inputSize, LongType hiddenSize, double cellClip,
                    bool isBidirectional) {
   sd_debug("cudnn rnn api %s \n", "v6");
 
@@ -102,20 +102,17 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
   constexpr int rankOf = 3;
   const int numDirections = isBidirectional ? 2 : 1;
 
-  const int dimsX[rankOf] = {batchSize, inputSize, 1};
-  const int stridesX[rankOf] = {inputSize, 1, 1};
+  const int dimsX[rankOf] = {static_cast<int>(batchSize), static_cast<int>(inputSize), 1};
+  const int stridesX[rankOf] = {static_cast<int>(inputSize), 1, 1};
 
-  const int dimsY[rankOf] = {batchSize, hiddenSize * numDirections, 1};
-  const int stridesY[rankOf] = {hiddenSize * numDirections, 1, 1};
+  const int dimsY[rankOf] = {static_cast<int>(batchSize), static_cast<int>(hiddenSize * numDirections), 1};
+  const int stridesY[rankOf] = {static_cast<int>(hiddenSize * numDirections), 1, 1};
 
-  const int dimC[rankOf] = {numLayers * numDirections, batchSize, hiddenSize};
-  const int strideC[rankOf] = {batchSize * hiddenSize, hiddenSize, 1};
-
+  const int dimC[rankOf] = {static_cast<int>(numLayers * numDirections), static_cast<int>(batchSize), static_cast<int>(hiddenSize)};
+  const int strideC[rankOf] = {static_cast<int>(batchSize * hiddenSize), static_cast<int>(hiddenSize), 1};
   for (int i = 0; i < maxSeqLength; i++) {
     xDescList.set(i, cudnnType, rankOf, dimsX, stridesX);
-    // dxDescList.set(i, cudnnType, rankOf, dimsX, stridesX);
     yDescList.set(i, cudnnType, rankOf, dimsY, stridesY);
-    // dyDescList.set(i, cudnnType, rankOf, dimsY, stridesY);
   }
 
   auto xDesc0 = xDescList.get(0);
@@ -164,7 +161,7 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
                           cudnnGetRNNParamsSize(handle, rnnDesc, xDesc0, &weightsSize, cudnnType));
 
   FilterDesc wDesc;
-  int dimW[] = {(int)weightsSize / dataTypeSize, 1, 1};
+  int dimW[] = {static_cast<int>(weightsSize / dataTypeSize), 1, 1};
 
   wDesc.set(cudnnType, CUDNN_TENSOR_NCHW, 3, dimW);
   // allocation
@@ -205,11 +202,11 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
   uint8_t *recurrentWeightsData = nullptr;
   if (inputWeights) {
     inputWeightsT =
-        inputWeights->rankOf() == 3 ? inputWeights->permute({0, 2, 1}).dup('c') : inputWeights->transpose().dup('c');
+        inputWeights->rankOf() == 3 ? inputWeights->permute({0, 2, 1}, 0, false).dup('c') : inputWeights->transpose().dup('c');
     inputWeightsData = (uint8_t *)inputWeightsT.specialBuffer();
   }
   if (recurrentWeights) {
-    recurrentWeightsT = recurrentWeights->rankOf() == 3 ? recurrentWeights->permute({0, 2, 1}).dup('c')
+    recurrentWeightsT = recurrentWeights->rankOf() == 3 ? recurrentWeights->permute({0, 2, 1}, 0, false).dup('c')
                                                         : recurrentWeights->transpose().dup('c');
     recurrentWeightsData = (uint8_t *)recurrentWeightsT.specialBuffer();
   }
@@ -224,13 +221,13 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
   NDArray permutedX, outputH;
 
   if (outputActivations != nullptr && (dataFormat != 0 || outputActivations->ordering() != 'c')) {
-    outputH = NDArray('c', std::vector<sd::LongType>{maxSeqLength, batchSize, (numDirections * hiddenSize)},
+    outputH = NDArray('c', std::vector<LongType>{maxSeqLength, batchSize, (numDirections * hiddenSize)},
                       outputActivations->dataType(), contextPtr);
     argOutput = &outputH;
   }
 
   if (dataFormat == 1) {
-    permutedX = input->permute({1, 0, 2}).dup('c');
+    permutedX = input->permute({1, 0, 2}, 0, false).dup('c');
     argX = &permutedX;
   }
 
@@ -257,7 +254,9 @@ void cudnn_rnn_old(LaunchContext *contextPtr, int dataFormat, NDArray *input, ND
   if (outputActivations != nullptr && argOutput != outputActivations) {
     // refill output
     if (dataFormat == 1) {
-      outputActivations->assign(argOutput->permute({1, 0, 2}));
+      std::vector<sd::LongType> permute = {1,0,2};
+      NDArray assign = argOutput->permute(permute, 0, false);
+      outputActivations->assign(&assign);
     }
   }
   NDArray::registerSpecialUse({outputActivations, finalTimeStepActivations, finalMemCellState},
@@ -278,11 +277,11 @@ void cudnn_rnn_v8(LaunchContext *contextPtr, int dataFormat, NDArray *input, NDA
   NDArray *argSeqNdArray = nullptr;
   NDArray seqArrIntData;
   if (seqLengthArray) {
-    if (seqLengthArray->ews() == 1 && seqLengthArray->dataType() == DataType::INT32) {
+    if (seqLengthArray->ews() == 1 && seqLengthArray->dataType() == INT32) {
       argSeqNdArray = seqLengthArray;
     } else {
-      if (seqLengthArray->dataType() != DataType::INT32) {
-        seqArrIntData = seqLengthArray->cast(DataType::INT32);
+      if (seqLengthArray->dataType() != INT32) {
+        seqArrIntData = seqLengthArray->cast(INT32);
         if (seqArrIntData.ews() != 1) seqArrIntData = seqArrIntData.dup('c');
       } else {
         seqArrIntData = seqLengthArray->dup('c');
@@ -290,7 +289,7 @@ void cudnn_rnn_v8(LaunchContext *contextPtr, int dataFormat, NDArray *input, NDA
       argSeqNdArray = &seqArrIntData;
     }
   } else {
-    seqArrIntData = NDArray('c', std::vector<sd::LongType>{batchSize}, DataType::INT32, contextPtr);
+    seqArrIntData = NDArray('c', std::vector<LongType>{batchSize}, INT32, contextPtr);
     seqArrIntData.assign(maxSeqLength);
     argSeqNdArray = &seqArrIntData;
   }
@@ -442,7 +441,7 @@ void cudnn_rnn_v8(LaunchContext *contextPtr, int dataFormat, NDArray *input, NDA
 PLATFORM_IMPL(lstmLayer, ENGINE_CUDA) {
   const auto dataFormat = INT_ARG(0);  // for unidirectional: 0 = [sL, bS, nIn], 1 = [bS, sL ,nIn], 2 = [bS, nIn, sL],
                                        // for bidirectional: 3 = [sL, 2, bS, nOut] (for ONNX)
-  const auto directionMode =
+  const LongType directionMode =
       INT_ARG(1);  // direction: 0 = fwd, 1 = bwd, 2 = bidirectional sum, 3 = bidirectional concat, 4 = bidirectional
                    // extra output dim (in conjunction with format dataFormat = 3)
 
@@ -479,11 +478,11 @@ PLATFORM_IMPL(lstmLayer, ENGINE_CUDA) {
   REQUIRE_TRUE(retFullSeq || retLastH || retLastC, 0,
                "LSTM_LAYER operation: please specify what output arrays to produce !");
   // evaluate dimensions
-  const sd::LongType seqLength = dataFormat == 3 ? x->sizeAt(0) : x->sizeAt(dataFormat);
-  const sd::LongType bS = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
-  const sd::LongType nIn = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
-  const sd::LongType nOut = Wx->sizeAt(-1) / 4;
-  const sd::LongType hiddenSize = nOut;
+  const LongType seqLength = dataFormat == 3 ? x->sizeAt(0) : x->sizeAt(dataFormat);
+  const LongType bS = dataFormat == 1 || dataFormat == 2 ? x->sizeAt(0) : x->sizeAt(1);
+  const LongType nIn = dataFormat == 2 ? x->sizeAt(1) : x->sizeAt(2);
+  const LongType nOut = Wx->sizeAt(-1) / 4;
+  const LongType hiddenSize = nOut;
 
   auto contextPtr = block.launchContext();
   bool isBidirectional = directionMode >= 2;
@@ -551,7 +550,7 @@ PLATFORM_IMPL(lstmLayer, ENGINE_CUDA) {
   }
 #endif
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 // Cudnn Lstm:
@@ -641,7 +640,6 @@ PLATFORM_CHECK(lstmLayer, ENGINE_CUDA) {
   // restriction that comes either from not setting Descriptor or not handling manipulation:
   // restrict0: the same types
   req.expectEq(makeInfoVariable(x->ordering(), ORDERING_MSG_INPUT0), 'c') &&
-      req.expectEq(makeInfoVariable(x->ews(), EWS_MSG_INPUT0), 1) &&
       req.expectEq(makeInfoVariable(WxType, TYPE_MSG_INPUT1), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
       req.expectEq(makeInfoVariable(WrType, TYPE_MSG_INPUT2), makeInfoVariable(xType, TYPE_MSG_INPUT0));
   if (b)
@@ -649,27 +647,22 @@ PLATFORM_CHECK(lstmLayer, ENGINE_CUDA) {
   if (hI) {
     req.expectEq(makeInfoVariable(hI->dataType(), TYPE_MSG_INPUT_ "#hI"), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
         req.expectEq(makeInfoVariable(hI->ordering(), ORDERING_MSG_INPUT_ "#hI"), 'c') &&
-        req.expectEq(makeInfoVariable(hI->ews(), EWS_MSG_INPUT_ "#hI"), 1);
   }
   if (cI) {
     req.expectEq(makeInfoVariable(cI->dataType(), TYPE_MSG_INPUT_ "#cI"), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
         req.expectEq(makeInfoVariable(cI->ordering(), ORDERING_MSG_INPUT_ "#cI"), 'c') &&
-        req.expectEq(makeInfoVariable(cI->ews(), EWS_MSG_INPUT_ "#cI"), 1);
   }
   if (h) {
     req.expectEq(makeInfoVariable(h->dataType(), TYPE_MSG_OUTPUT_ "#h"), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
         req.expectEq(makeInfoVariable(h->ordering(), ORDERING_MSG_OUTPUT_ "#h"), 'c') &&
-        req.expectEq(makeInfoVariable(h->ews(), EWS_MSG_OUTPUT_ "#h"), 1);
   }
   if (hL) {
     req.expectEq(makeInfoVariable(hL->dataType(), TYPE_MSG_OUTPUT_ "#hL"), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
         req.expectEq(makeInfoVariable(hL->ordering(), ORDERING_MSG_OUTPUT_ "#hL"), 'c') &&
-        req.expectEq(makeInfoVariable(hL->ews(), EWS_MSG_OUTPUT_ "#hL"), 1);
   }
   if (cL) {
     req.expectEq(makeInfoVariable(cL->dataType(), TYPE_MSG_OUTPUT_ "#cL"), makeInfoVariable(xType, TYPE_MSG_INPUT0)) &&
         req.expectEq(makeInfoVariable(cL->ordering(), ORDERING_MSG_OUTPUT_ "#cL"), 'c') &&
-        req.expectEq(makeInfoVariable(cL->ews(), EWS_MSG_OUTPUT_ "#cL"), 1);
   }
   req.logTheSuccess();
   return req;

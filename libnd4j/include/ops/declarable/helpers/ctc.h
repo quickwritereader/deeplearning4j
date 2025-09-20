@@ -29,7 +29,6 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-//#define LOGIT_SOFTMAX_NORMALIZATION 1
 
 template <typename T>
 constexpr T negative_infinity() {
@@ -51,7 +50,7 @@ typename std::enable_if<HasStride == false, Type &>::type element(Type *ptr, int
 template <typename T>
 T local_log(T x) {
   if (x > 0) {
-    return (sd::math::p_log<T>(x));
+    return (math::p_log<T>(x));
   }
   return (negative_infinity<T>());
 }
@@ -62,10 +61,10 @@ T log_sum_exp(T x1, T x2) {
   // if arg1==cMax : std::log(1 + std::exp(arg2 - cMax)) + cMax
   if (x1 >= x2) {
     // x1 is max
-    return (x1 + local_log(1 + sd::math::p_exp<T>(x2 - x1)));
+    return (x1 + local_log(1 + math::p_exp<T>(x2 - x1)));
   }
   // x2 is max
-  return (x2 + local_log(1 + sd::math::p_exp<T>(x1 - x2)));
+  return (x2 + local_log(1 + math::p_exp<T>(x1 - x2)));
 }
 
 template <typename T>
@@ -75,23 +74,22 @@ T log_sum_exp(T arg1, T arg2, T arg3) {
   if (negative_infinity<T>() == c_max) {
     c_max = 0;
   }
-  return sd::math::p_log(sd::math::p_exp(arg1 - c_max) + sd::math::p_exp(arg2 - c_max) +
-                         sd::math::p_exp(arg3 - c_max)) +
+  return math::p_log(math::p_exp(arg1 - c_max) + math::p_exp(arg2 - c_max) + math::p_exp(arg3 - c_max)) +
          c_max;
 }
 
 template <bool HasElementStride, typename Type, typename IndexType>
 Type softmax_normalization_term(const Type *log_p, const uint64_t len_c, const uint64_t element_stride) {
   Type max_p;
-  for (auto c = 0; c < len_c; ++c) {
+  for (uint64_t c = 0; c < len_c; ++c) {
     max_p = std::max(max_p, element<HasElementStride>(log_p, c, element_stride));
   }
   // Get normalization term of softmax: log(sum(exp(logit[j]-max_p))).
   Type logsumexp = Type(0.0);
-  for (auto c = 0; c < len_c; ++c) {
-    logsumexp += sd::math::p_exp(element<HasElementStride>(log_p, c, element_stride) - max_p);
+  for (uint64_t c = 0; c < len_c; ++c) {
+    logsumexp += math::p_exp(element<HasElementStride>(log_p, c, element_stride) - max_p);
   }
-  logsumexp = sd::math::p_log(logsumexp);
+  logsumexp = math::p_log(logsumexp);
   return max_p + logsumexp;
 }
 
@@ -113,8 +111,8 @@ Type softmax_normalization_term(const Type *log_p, const uint64_t len_c, const u
  * @param gradients NDArray {BATCH_LEN, MAX_FRAME_LEN, CLASS_LEN } or EMPTY. gradients
  * @param blankIndex index of the blank label in logits
  */
-SD_LIB_HIDDEN void ctcLoss(graph::Context &block, const NDArray &logitsInput, const NDArray &targetLabels,
-                           const NDArray &logitsLengths, const NDArray &targetLabelLengths, NDArray &logLosses,
+SD_LIB_HIDDEN void ctcLoss(sd::graph::Context &block, NDArray&logitsInput, NDArray&targetLabels,
+                           NDArray&logitsLengths, NDArray&targetLabelLengths, NDArray &logLosses,
                            NDArray &gradients, int blankIndex);
 
 /**
@@ -137,7 +135,7 @@ SD_LIB_HIDDEN void ctcLoss(graph::Context &block, const NDArray &logitsInput, co
  * normalized log-probabilities NOTE: maximum value of integer type  should be >= CLASS_LEN to make sense. And also user
  * should consider frame lengthes as well.
  */
-SD_LIB_HIDDEN void beamSearch(const NDArray &logit, const NDArray &sequence_length, NDArray &result_sequences,
+SD_LIB_HIDDEN void beamSearch(NDArray&logit, NDArray&sequence_length, NDArray &result_sequences,
                               NDArray &result_probs, NDArray &result_sequences_length, int blank_index, int beam_width,
                               int nbest_len, bool normalize_logits);
 }  // namespace helpers

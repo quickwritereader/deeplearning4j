@@ -20,14 +20,12 @@
 
 package org.nd4j.linalg.api.ops.impl.shape.tensorops;
 
-import lombok.val;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.imports.NoOpNameFoundException;
-import org.nd4j.imports.graphmapper.tf.TFGraphMapper;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.ops.DynamicCustomOp;
 import org.nd4j.linalg.api.ops.Op;
-import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.factory.Nd4j;
 import org.tensorflow.framework.AttrValue;
 import org.tensorflow.framework.GraphDef;
@@ -49,14 +47,7 @@ public abstract class BaseTensorOp extends DynamicCustomOp {
 
     @Override
     public void initFromTensorFlow(NodeDef nodeDef, SameDiff initWith, Map<String, AttrValue> attributesForNode, GraphDef graph) {
-        val inputOne = nodeDef.getInput(1);
-        val varFor = initWith.getVariable(inputOne);
-        val nodeWithIndex = TFGraphMapper.getNodeWithNameFromGraph(graph,inputOne);
-        val var = TFGraphMapper.getArrayFrom(nodeWithIndex,graph);
-        if(var != null) {
-            val idx = var.getInt(0);
-            addIArgument(idx);
-        }
+        throw new UnsupportedOperationException("Use the new Tensorflow Importer instead. This method is now removed.");
     }
 
     @Override
@@ -81,7 +72,7 @@ public abstract class BaseTensorOp extends DynamicCustomOp {
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         throw new UnsupportedOperationException("calculateOutputShape() is not supported for tensor ops.");
     }
 

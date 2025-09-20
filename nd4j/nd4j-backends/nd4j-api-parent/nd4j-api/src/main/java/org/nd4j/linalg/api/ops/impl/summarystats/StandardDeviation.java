@@ -24,12 +24,14 @@ import lombok.val;
 import org.nd4j.autodiff.samediff.SDVariable;
 import org.nd4j.autodiff.samediff.SameDiff;
 import org.nd4j.imports.NoOpNameFoundException;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.api.buffer.DataType;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.api.ops.impl.reduce.bp.StandardDeviationBp;
 import org.nd4j.linalg.api.shape.LongShapeDescriptor;
 import org.nd4j.linalg.api.shape.Shape;
 import org.nd4j.linalg.exception.ND4JIllegalStateException;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,17 +39,17 @@ import java.util.List;
 import java.util.Map;
 
 public class StandardDeviation extends Variance {
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, boolean biasCorrected, boolean keepDims, int[] dimensions) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, boolean biasCorrected, boolean keepDims, long[] dimensions) {
         super(sameDiff, i_v, biasCorrected, keepDims, dimensions);
         this.keepDims = keepDims;
     }
 
-    public StandardDeviation(INDArray x, boolean biasCorrected, boolean keepDims, int... dimension) {
+    public StandardDeviation(INDArray x, boolean biasCorrected, boolean keepDims, long... dimension) {
         super(x, biasCorrected, dimension);
         this.keepDims = keepDims;
     }
 
-    public StandardDeviation(INDArray x, boolean biasCorrected, int... dimension) {
+    public StandardDeviation(INDArray x, boolean biasCorrected, long... dimension) {
         super(x, biasCorrected, dimension);
     }
 
@@ -59,7 +61,7 @@ public class StandardDeviation extends Variance {
         super(biasCorrected);
     }
 
-    public StandardDeviation(INDArray x, int... dimension) {
+    public StandardDeviation(INDArray x, long... dimension) {
         super(x, dimension);
     }
 
@@ -67,19 +69,19 @@ public class StandardDeviation extends Variance {
         super(x);
     }
 
-    public StandardDeviation(INDArray x, INDArray z, boolean biasCorrected, int... dimension) {
+    public StandardDeviation(INDArray x, INDArray z, boolean biasCorrected, long... dimension) {
         super(x, z, biasCorrected, dimension);
     }
 
-    public StandardDeviation(INDArray x, INDArray z, boolean newFormat, boolean keepDims, int[] dimensions) {
+    public StandardDeviation(INDArray x, INDArray z, boolean newFormat, boolean keepDims, long[] dimensions) {
         super(x, z, newFormat, keepDims, dimensions);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, boolean keepDims, double mean) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, boolean keepDims, double mean) {
         super(sameDiff, i_v, dimensions, keepDims, mean);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, boolean keepDims, double mean) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, boolean keepDims, double mean) {
         super(sameDiff, i_v, i_v2, dimensions, keepDims, mean);
     }
 
@@ -87,11 +89,11 @@ public class StandardDeviation extends Variance {
         super(sameDiff, i_v, mean);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, double mean) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, double mean) {
         super(sameDiff, i_v, dimensions, mean);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, double mean) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, double mean) {
         super(sameDiff, i_v, i_v2, dimensions, mean);
     }
 
@@ -111,23 +113,23 @@ public class StandardDeviation extends Variance {
         super(mean);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, int[] dimensions, double mean) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, long[] dimensions, double mean) {
         super(x, y, z, keepDims, dimensions, mean);
     }
 
-    public StandardDeviation(INDArray x, double mean, int... dimensions) {
+    public StandardDeviation(INDArray x, double mean, long... dimensions) {
         super(x, mean, dimensions);
     }
 
-    public StandardDeviation(INDArray x, boolean keepDims, double mean, int... dimensions) {
+    public StandardDeviation(INDArray x, boolean keepDims, double mean, long... dimensions) {
         super(x, keepDims, mean, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, double mean, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, double mean, long... dimensions) {
         super(x, y, mean, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, long... dimensions) {
         super(x, y, z, mean, dimensions);
     }
 
@@ -139,11 +141,11 @@ public class StandardDeviation extends Variance {
         super(sameDiff, i_v, i_v2, dimensions, mean);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, boolean keepDims, double mean, double bias) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, boolean keepDims, double mean, double bias) {
         super(sameDiff, i_v, dimensions, keepDims, mean, bias);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, boolean keepDims, double mean, double bias) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, boolean keepDims, double mean, double bias) {
         super(sameDiff, i_v, i_v2, dimensions, keepDims, mean, bias);
     }
 
@@ -151,11 +153,11 @@ public class StandardDeviation extends Variance {
         super(sameDiff, i_v, mean, bias);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, double mean, double bias) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, double mean, double bias) {
         super(sameDiff, i_v, dimensions, mean, bias);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, double mean, double bias) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, double mean, double bias) {
         super(sameDiff, i_v, i_v2, dimensions, mean, bias);
     }
 
@@ -175,23 +177,23 @@ public class StandardDeviation extends Variance {
         super(mean, bias);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, int[] dimensions, double mean, double bias) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, long[] dimensions, double mean, double bias) {
         super(x, y, z, keepDims, dimensions, mean, bias);
     }
 
-    public StandardDeviation(INDArray x, double mean, double bias, int... dimensions) {
+    public StandardDeviation(INDArray x, double mean, double bias, long... dimensions) {
         super(x, mean, bias, dimensions);
     }
 
-    public StandardDeviation(INDArray x, boolean keepDims, double mean, double bias, int... dimensions) {
+    public StandardDeviation(INDArray x, boolean keepDims, double mean, double bias, long... dimensions) {
         super(x, keepDims, mean, bias, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, double mean, double bias, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, double mean, double bias, long... dimensions) {
         super(x, y, mean, bias, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, double bias, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, double bias, long... dimensions) {
         super(x, y, z, mean, bias, dimensions);
     }
 
@@ -203,11 +205,11 @@ public class StandardDeviation extends Variance {
         super(sameDiff, i_v, i_v2, dimensions, mean, bias);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, boolean keepDims, double mean, double bias, boolean biasCorrected) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, boolean keepDims, double mean, double bias, boolean biasCorrected) {
         super(sameDiff, i_v, dimensions, keepDims, mean, bias, biasCorrected);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, boolean keepDims, double mean, double bias, boolean biasCorrected) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, boolean keepDims, double mean, double bias, boolean biasCorrected) {
         super(sameDiff, i_v, i_v2, dimensions, keepDims, mean, bias, biasCorrected);
     }
 
@@ -215,11 +217,11 @@ public class StandardDeviation extends Variance {
         super(sameDiff, i_v, mean, bias, biasCorrected);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, int[] dimensions, double mean, double bias, boolean biasCorrected) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, long[] dimensions, double mean, double bias, boolean biasCorrected) {
         super(sameDiff, i_v, dimensions, mean, bias, biasCorrected);
     }
 
-    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, int[] dimensions, double mean, double bias, boolean biasCorrected) {
+    public StandardDeviation(SameDiff sameDiff, SDVariable i_v, SDVariable i_v2, long[] dimensions, double mean, double bias, boolean biasCorrected) {
         super(sameDiff, i_v, i_v2, dimensions, mean, bias, biasCorrected);
     }
 
@@ -239,23 +241,23 @@ public class StandardDeviation extends Variance {
         super(mean, bias, biasCorrected);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, int[] dimensions, double mean, double bias, boolean biasCorrected) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, boolean keepDims, long[] dimensions, double mean, double bias, boolean biasCorrected) {
         super(x, y, z, keepDims, dimensions, mean, bias, biasCorrected);
     }
 
-    public StandardDeviation(INDArray x, double mean, double bias, boolean biasCorrected, int... dimensions) {
+    public StandardDeviation(INDArray x, double mean, double bias, boolean biasCorrected, long... dimensions) {
         super(x, mean, bias, biasCorrected, dimensions);
     }
 
-    public StandardDeviation(INDArray x, boolean keepDims, double mean, double bias, boolean biasCorrected, int... dimensions) {
+    public StandardDeviation(INDArray x, boolean keepDims, double mean, double bias, boolean biasCorrected, long... dimensions) {
         super(x, keepDims, mean, bias, biasCorrected, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, double mean, double bias, boolean biasCorrected, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, double mean, double bias, boolean biasCorrected, long... dimensions) {
         super(x, y, mean, bias, biasCorrected, dimensions);
     }
 
-    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, double bias, boolean biasCorrected, int... dimensions) {
+    public StandardDeviation(INDArray x, INDArray y, INDArray z, double mean, double bias, boolean biasCorrected, long... dimensions) {
         super(x, y, z, mean, bias, biasCorrected, dimensions);
     }
 
@@ -349,7 +351,7 @@ public class StandardDeviation extends Variance {
     }
 
     @Override
-    public List<LongShapeDescriptor> calculateOutputShape() {
+    public List<DataBuffer> calculateOutputShape() {
         if(args().length < 1) {
             throw new ND4JIllegalStateException("Unable to compute input shape. No arguments found.");
         }
@@ -360,9 +362,9 @@ public class StandardDeviation extends Variance {
         }
         long[] inputShape = (argShape == null || Shape.isPlaceholderShape(argShape) ? x().shape() : argShape);
 
-        val ret = new ArrayList<LongShapeDescriptor>(1);
+        val ret = new ArrayList<DataBuffer>(1);
         val reducedShape = Shape.getReducedShape(inputShape,dimensions, isKeepDims());
-        ret.add(LongShapeDescriptor.fromShape(reducedShape, resultType()));
+        ret.add(Nd4j.createBuffer(LongShapeDescriptor.fromShape(reducedShape, resultType()).toShapeInfo()));
         return ret;
     }
 }

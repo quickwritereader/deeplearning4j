@@ -27,42 +27,42 @@ namespace sd {
 namespace ops {
 CUSTOM_OP_IMPL(segment_mean, 2, 1, false, 0, 0) {
   auto input = INPUT_VARIABLE(0);
-  auto idxSegments = INPUT_VARIABLE(1);
+  auto idxSegments = INPUT_VARIABLE(1)->cast(INT64);
   auto segmentedOutput = OUTPUT_VARIABLE(0);
-  REQUIRE_TRUE(idxSegments->isVector(), 0, "segment_mean: segment indexes array should be a vector, but it rank is %i.",
-               idxSegments->rankOf());
-  REQUIRE_TRUE(idxSegments->lengthOf() == input->sizeAt(0), 0,
+  REQUIRE_TRUE(idxSegments.isVector(), 0, "segment_mean: segment indexes array should be a vector, but it rank is %i.",
+               idxSegments.rankOf());
+  REQUIRE_TRUE(idxSegments.lengthOf() == input->sizeAt(0), 0,
                "segment_mean: segment indexes array length should be equal to the input first dimension, but %i != %i.",
-               idxSegments->lengthOf(), input->sizeAt(0));
+               idxSegments.lengthOf(), input->sizeAt(0));
 
   auto expected = NDArrayFactory::create(input->dataType(), 0.f, block.launchContext());
   auto wrong = NDArrayFactory::create(input->dataType(), 0.f, block.launchContext());
 
-  REQUIRE_TRUE(helpers::segmentIndicesValidate(block.launchContext(), idxSegments, expected, wrong), 0,
+  REQUIRE_TRUE(helpers::segmentIndicesValidate(block.launchContext(), &idxSegments, expected, wrong), 0,
                "segment_mean: segment indices should be arranged, but %2.1f > %2.1f", expected.e<float>(0),
                wrong.e<float>(0));
 
   segmentedOutput->nullify();
-  helpers::segmentMeanFunctor(block.launchContext(), input, idxSegments, segmentedOutput);
+  helpers::segmentMeanFunctor(block.launchContext(), input, &idxSegments, segmentedOutput);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 DECLARE_SHAPE_FN(segment_mean) {
   auto idxVector = INPUT_VARIABLE(1);
 
   auto in = inputShape->at(0);
-  int outRank = shape::rank(in);
-  sd::LongType* outputShape = nullptr;
-  int val = (*idxVector).e<int>(idxVector->lengthOf() - 1);
+  LongType outRank = shape::rank(in);
+  LongType* outputShape = nullptr;
+  LongType val = (*idxVector).e<LongType>(idxVector->lengthOf() - 1);
 
-  int numOfClasses = val + 1;
+  LongType numOfClasses = val + 1;
 
   ALLOCATE(outputShape, block.getWorkspace(), shape::shapeInfoLength(outRank), sd::LongType);
 
   outputShape[0] = outRank;
   outputShape[1] = numOfClasses;
-  for (int i = 1; i < outRank; ++i) outputShape[i + 1] = shape::sizeAt(in, i);
+  for (LongType i = 1; i < outRank; ++i) outputShape[i + 1] = shape::sizeAt(in, i);
 
   ShapeUtils::updateStridesAndType(outputShape, in, shape::order(in));
 
@@ -89,17 +89,11 @@ CUSTOM_OP_IMPL(segment_mean_bp, 3, 2, false, 0, 0) {
 DECLARE_SHAPE_FN(segment_mean_bp) {
   auto in = inputShape->at(0);
   auto inIdx = inputShape->at(1);
-
-  sd::LongType* outShape;
-  sd::LongType* outIndex;
-  COPY_SHAPE(in, outShape);
-  COPY_SHAPE(inIdx, outIndex);
-  return SHAPELIST(CONSTANT(outShape), CONSTANT(outIndex));
-  //            return SHAPELIST(in, inIdx);
+  return SHAPELIST(CONSTANT(in), CONSTANT(inIdx));
 }
 DECLARE_TYPES(segment_mean_bp) {
   getOpDescriptor()
-      ->setAllowedInputTypes(sd::DataType::ANY)
+      ->setAllowedInputTypes(ANY)
       ->setAllowedOutputTypes(0, {ALL_FLOATS})
       ->setAllowedOutputTypes(1, {ALL_INTS})
       ->setSameMode(false);

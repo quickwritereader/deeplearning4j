@@ -23,82 +23,92 @@
 #include <helpers/PointersManager.h>
 #include <ops/declarable/helpers/matrixSetDiag.h>
 
+#include "execution/cuda/LaunchDims.h"
+
+
 namespace sd {
 namespace ops {
 namespace helpers {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-SD_KERNEL static void matrixSetDiagCuda(const void* vx, const sd::LongType* xShapeInfo, const void* vy,
-                                        const sd::LongType* yShapeInfo, void* vz, const sd::LongType* zShapeInfo,
+SD_KERNEL static void matrixSetDiagCuda(const void* vx, const LongType* xShapeInfo, const void* vy,
+                                        const LongType* yShapeInfo, void* vz, const LongType* zShapeInfo,
                                         const bool zeroPad) {
   // x - input,    shape [A,B,C]
   // y - diagonal, shape [A,B]
   // z - output,   shape [A,B,C]
-  // input and output are the same array (x == z) when zeroPad = true
 
   const auto x = reinterpret_cast<const T*>(vx);
   const auto y = reinterpret_cast<const T*>(vy);
   auto z = reinterpret_cast<T*>(vz);
 
-  __shared__ int xRank, *sharedMem;  // xRank = zRank, xRank = yRank + 1
-  __shared__ sd::LongType xLen;      // xLen = zLen
+  __shared__ int xRank;
+  __shared__ LongType xLen;
+  __shared__ const LongType *shapeX, *strideX, *strideY, *strideZ;
   __shared__ bool areSameOffsets;
 
   if (threadIdx.x == 0) {
-    extern __shared__ unsigned char shmem[];
-    sharedMem = reinterpret_cast<int*>(shmem);
-
-    areSameOffsets = shape::haveSameShapeAndStrides(
-        xShapeInfo, zShapeInfo);  // shapes are definitely the same, but strides might not
-
     xRank = shape::rank(xShapeInfo);
     xLen = shape::length(xShapeInfo);
+    shapeX = shape::shapeOf(xShapeInfo);
+    strideX = shape::stride(xShapeInfo);
+    strideY = shape::stride(yShapeInfo);
+    strideZ = shape::stride(zShapeInfo);
+    areSameOffsets = shape::haveSameShapeAndStrides(xShapeInfo, zShapeInfo);
   }
-
   __syncthreads();
 
-  auto coords =
-      sharedMem +
-      threadIdx.x * xRank;  // we provide (xRank * sizeof(int) * threadIdx.x) amount of shared memory per each thread
+  LongType coords[SD_MAX_RANK];
   const auto tid = blockIdx.x * blockDim.x + threadIdx.x;
+  const auto step = gridDim.x * blockDim.x;
 
-  for (sd::LongType i = tid; i < xLen; i += gridDim.x * blockDim.x) {
-    shape::index2coords(i, xShapeInfo, coords);
+  for (LongType i = tid; i < xLen; i += step) {
+    // Compute coordinates and offsets
+    INDEX2COORDS(i, xRank, shapeX, coords);
+    LongType xOffset, zOffset, yOffset;
 
-    const auto xOffset = shape::getOffset(xShapeInfo, coords);
-    const auto zOffset = areSameOffsets ? xOffset : shape::getOffset(zShapeInfo, coords);
+    COORDS2INDEX(xRank, strideX, coords, xOffset);
+    zOffset = areSameOffsets ? xOffset : 0;
+    if (!areSameOffsets) {
+      COORDS2INDEX(xRank, strideZ, coords, zOffset);
+    }
 
-    // condition to be on diagonal of innermost matrix
-    if (coords[xRank - 2] == coords[xRank - 1])
-      z[zOffset] = y[shape::getOffset(yShapeInfo, coords)];
-    else
+    // Check if on the diagonal
+    if (coords[xRank - 2] == coords[xRank - 1]) {
+      COORDS2INDEX(xRank - 1, strideY, coords, yOffset);
+      z[zOffset] = y[yOffset];
+    } else {
       z[zOffset] = zeroPad ? static_cast<T>(0) : x[xOffset];
+    }
   }
 }
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
 static void matrixSetDiagCudaLauncher(const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
-                                      const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo,
-                                      const void* vy, const sd::LongType* yShapeInfo, void* vz,
-                                      const sd::LongType* zShapeInfo, const bool zeroPad) {
+                                      const cudaStream_t* stream, const void* vx, const LongType* xShapeInfo,
+                                      const void* vy, const LongType* yShapeInfo, void* vz,
+                                      const LongType* zShapeInfo, const bool zeroPad) {
   matrixSetDiagCuda<T>
       <<<blocksPerGrid, threadsPerBlock, sharedMem, *stream>>>(vx, xShapeInfo, vy, yShapeInfo, vz, zShapeInfo, zeroPad);
+  sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "matrixSetDiagCuda failed");
+
 }
 
 ///////////////////////////////////////////////////////////////////
-void matrixSetDiag(sd::LaunchContext* context, const NDArray& input, const NDArray& diagonal, NDArray& output,
+void matrixSetDiag(LaunchContext* context, NDArray& input, NDArray& diagonal, NDArray& output,
                    const bool zeroPad) {
   const int threadsPerBlock = SD_MAX_NUM_THREADS / 2;
   const int blocksPerGrid = (input.lengthOf() + threadsPerBlock - 1) / threadsPerBlock;
-  const int sharedMem = threadsPerBlock * sizeof(int) * input.rankOf() + 128;
+  const int sharedMem = threadsPerBlock * sizeof(LongType) * input.rankOf() + 128;
 
+  dim3 launchDims = matrixSetDiagDims(input.lengthOf(),input.rankOf());
   PointersManager manager(context, "matrixSetDiag");
 
   NDArray::prepareSpecialUse({&output}, {&input, &diagonal});
   BUILD_SINGLE_SELECTOR(input.dataType(), matrixSetDiagCudaLauncher,
-                        (blocksPerGrid, threadsPerBlock, sharedMem, context->getCudaStream(), input.specialBuffer(),
+                        (launchDims.y, launchDims.x, launchDims.z, context->getCudaStream(), input.specialBuffer(),
                          input.specialShapeInfo(), diagonal.specialBuffer(), diagonal.specialShapeInfo(),
                          output.specialBuffer(), output.specialShapeInfo(), zeroPad),
                         SD_COMMON_TYPES);

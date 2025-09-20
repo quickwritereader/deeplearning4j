@@ -28,11 +28,11 @@ namespace sd {
 namespace ops {
 namespace helpers {
 
-SD_LIB_HIDDEN sd::Status topKFunctor(sd::LaunchContext* context, const NDArray* input, NDArray* values,
-                                     NDArray* indices, const sd::Unsigned k, bool needSort);
+SD_LIB_HIDDEN Status topKFunctor(LaunchContext* context, NDArray* input, NDArray* values,
+                                     NDArray* indices, const LongType k, bool needSort);
 
-SD_LIB_HIDDEN sd::Status inTopKFunctor(sd::LaunchContext* context, const NDArray* predictions, const NDArray* targets,
-                                       NDArray* output, const sd::Unsigned k);
+SD_LIB_HIDDEN Status inTopKFunctor(LaunchContext* context, NDArray* predictions, NDArray* targets,
+                                       NDArray* output, const LongType k);
 
 }  // namespace helpers
 }  // namespace ops

@@ -20,6 +20,7 @@
 
 package org.nd4j.common.util;
 
+import org.nd4j.common.primitives.Pair;
 import org.nd4j.shade.guava.primitives.Ints;
 import org.nd4j.shade.guava.primitives.Longs;
 import lombok.val;
@@ -30,6 +31,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.*;
 
@@ -41,6 +43,601 @@ public class ArrayUtil {
 
     private ArrayUtil() {}
 
+
+
+    /**
+     * Flattens a potentially multi-dimensional primitive array into a 1D primitive array
+     * and returns it along with the original shape. Assumes a regular (non-jagged) array.
+     *
+     * @param multiDimArray The input array (e.g., int[][], double[][][]). Must not be null
+     * and must be an array with a primitive component type.
+     * @return A Pair where:
+     * - First element: int[] representing the original shape of the input array.
+     * - Second element: Object representing the flattened 1D primitive array
+     * (e.g., int[], double[], boolean[]). The caller needs to cast this.
+     * @throws IllegalArgumentException if the input is not a supported array type or is jagged.
+     */
+    public static Pair<int[], Object> flattenDeep(Object multiDimArray) {
+        Preconditions.checkNotNull(multiDimArray, "Input array cannot be null");
+        Preconditions.checkArgument(multiDimArray.getClass().isArray(), "Input must be an array");
+
+        List<Integer> shapeList = new ArrayList<>();
+        Object currentLevel = multiDimArray;
+        Class<?> componentType = null;
+
+        // 1. Determine shape and component type
+        while (currentLevel.getClass().isArray()) {
+            int length = Array.getLength(currentLevel);
+            shapeList.add(length);
+            if (length == 0) {
+                // Handle empty dimension - find component type and stop dimension search
+                componentType = currentLevel.getClass().getComponentType();
+                while(componentType.isArray()){
+                    shapeList.add(0); // Add zero for remaining dimensions
+                    componentType = componentType.getComponentType();
+                }
+                break; // Shape determined
+            }
+            currentLevel = Array.get(currentLevel, 0); // Get first element to descend
+            if (currentLevel == null) {
+                // Handle null elements if necessary, assume non-jagged for now
+                throw new IllegalArgumentException("Array contains null elements, cannot determine shape reliably.");
+            }
+            componentType = currentLevel.getClass(); // Update component type guess
+        }
+
+        // Final component type check
+        if(componentType.isArray()) {
+            // This happens for things like int[2][0][] - needs careful handling
+            // For simplicity, let's assume regular arrays for now
+            throw new IllegalArgumentException("Deep component type determination failed or jagged array encountered.");
+        }
+        if (!componentType.isPrimitive()) {
+            throw new IllegalArgumentException("Only arrays with primitive component types are supported (e.g., int, double, boolean). Found: " + componentType);
+        }
+
+        int[] shape = Ints.toArray(shapeList); // Convert List<Integer> to int[]
+        long totalElementsLong = 1;
+        for (int dim : shape) {
+            try { totalElementsLong = Math.multiplyExact(totalElementsLong, dim); }
+            catch (ArithmeticException e) { throw new IllegalArgumentException("Array size exceeds Long.MAX_VALUE"); }
+        }
+
+        if (totalElementsLong > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Flattened array size exceeds Integer.MAX_VALUE, not supported by standard Java array indexing.");
+        }
+        int totalElements = (int) totalElementsLong;
+
+
+        // 2. Create flattened array
+        Object flattenedArray = Array.newInstance(componentType, totalElements);
+
+        // 3. Flatten data (recursive helper)
+        if (totalElements > 0) { // Avoid recursion if array is empty
+            flattenRecursive(multiDimArray, shape, new int[shape.length], flattenedArray, 0);
+        }
+
+        // 4. Return shape and flattened data
+        return Pair.create(shape, flattenedArray);
+    }
+
+    // Recursive helper to copy elements in C-order
+    private static int flattenRecursive(Object sourceArray, int[] shape, int[] indices, Object flatArray, int flatIndex) {
+        if (indices.length == shape.length) { // Base case: reached individual element
+            Array.set(flatArray, flatIndex, sourceArray);
+            return flatIndex + 1;
+        }
+
+        int currentDim = indices.length; // The dimension we are currently iterating over
+        int dimSize = shape[currentDim];
+
+        for (int i = 0; i < dimSize; i++) {
+            indices[currentDim] = i; // Set index for current dimension
+            Object subArray = Array.get(sourceArray, i); // Get sub-array or element
+
+            // Create a copy of indices for recursive call if needed (or manage index restoration)
+            // For simplicity, we can pass indices down and rely on the loop structure.
+            // However, passing a copy might be safer if modifications were complex.
+            // Let's assume direct passing works here.
+
+            // Recurse to the next dimension
+            flatIndex = flattenRecursive(subArray, shape, Arrays.copyOf(indices, currentDim + 1), flatArray, flatIndex);
+        }
+        return flatIndex;
+    }
+
+    // Overload for initial call without indices array needed externally
+    private static int flattenRecursive(Object sourceArray, int[] shape, Object flatArray, int flatIndex) {
+        return flattenRecursive(sourceArray, shape, new int[0], flatArray, flatIndex);
+    }
+
+    /**
+     * Converts a byte array to a boolean array.
+     * @param input the input byte array
+     * @return a boolean array with true values for nonzero bytes and false values for zero bytes
+     */
+    public static boolean[] toBooleanArray(byte[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a short array to a boolean array.
+     * @param input the input short array
+     * @return a boolean array with true values for nonzero shorts and false values for zero shorts
+     */
+    public static boolean[] toBooleanArray(short[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0;
+        }
+        return output;
+    }
+
+    /**
+     * Converts an int array to a boolean array.
+     * @param input the input int array
+     * @return a boolean array with true values for nonzero integers and false values for zero integers
+     */
+    public static boolean[] toBooleanArray(int[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a long array to a boolean array.
+     * @param input the input long array
+     * @return a boolean array with true values for nonzero longs and false values for zero longs
+     */
+    public static boolean[] toBooleanArray(long[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0L;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a float array to a boolean array.
+     * @param input the input float array
+     * @return a boolean array with true values for nonzero floats and false values for zero floats
+     */
+    public static boolean[] toBooleanArray(float[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0.0f;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a double array to a boolean array.
+     * @param input the input double array
+     * @return a boolean array with true values for nonzero doubles and false values for zero doubles
+     */
+    public static boolean[] toBooleanArray(double[] input) {
+        boolean[] output = new boolean[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] != 0.0;
+        }
+        return output;
+    }
+
+
+    /**
+     * Create a boolean array from a float array.
+     * @param elements the elements to create
+     * @return the returned float array
+     */
+    public static boolean[] fromFloat(float[] elements) {
+        boolean[] ret = new boolean[elements.length];
+        for(int i = 0; i < elements.length; i++) {
+            ret[i] = elements[i] == 0.0f ? false : true;
+        }
+
+        return ret;
+    }
+
+    /**
+     * Generate an array with n elements of the same specified value.
+     * @param element the element to create n copies of
+     * @param n the number of elements
+     * @return the created array
+     */
+    public static boolean[] nTimes(boolean element,int n) {
+        boolean[] ret = new boolean[n];
+        //boolean values  default to false. Only need to iterate when true.
+        if(element) {
+            for (int i = 0; i < n; i++) {
+                ret[i] = element;
+            }
+        }
+        return ret;
+    }
+
+
+
+
+    /**
+     * Converts a short array to an int array.
+     * @param input the input short array
+     * @return an int array with each element equal to the corresponding short value
+     */
+    public static int[] toIntArray(short[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a short array to an int array.
+     * @param input the input short array
+     * @return an int array with each element equal to the corresponding int value
+     */
+    public static int[] toIntArray(boolean[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] ? 1 : 0;
+        }
+        return output;
+    }
+
+
+
+    /**
+     * Converts a char array to an int array.
+     * @param input the input char array
+     * @return an int array with each element equal to the corresponding char value
+     */
+    public static int[] toIntArray(char[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts an int array to an int array (i.e., returns a copy of the input array).
+     * @param input the input int array
+     * @return a new int array with the same values as the input array
+     */
+    public static int[] toIntArray(int[] input) {
+        int[] output = new int[input.length];
+        System.arraycopy(input, 0, output, 0, input.length);
+        return output;
+    }
+
+    /**
+     * Converts a long array to an int array.
+     * @param input the input long array
+     * @return an int array with each element equal to the corresponding long value cast to an int
+     */
+    public static int[] toIntArray(long[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (int) input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a float array to an int array.
+     * @param input the input float array
+     * @return an int array with each element equal to the corresponding float value cast to an int
+     */
+    public static int[] toIntArray(float[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (int) input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a double array to an int array.
+     * @param input the input double array
+     * @return an int array with each element equal to the corresponding double value cast to an int
+     */
+    public static int[] toIntArray(double[] input) {
+        int[] output = new int[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (int) input[i];
+        }
+        return output;
+    }
+
+
+
+    /**
+     * Converts a short array to a double array.
+     * @param input the input short array
+     * @return a double array with each element equal to the corresponding short value
+     */
+    public static double[] toDoubleArray(short[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a char array to a double array.
+     * @param input the input char array
+     * @return a double array with each element equal to the corresponding char value
+     */
+    public static double[] toDoubleArray(char[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a boolean array to a double array.
+     * @param input the input boolean array
+     * @return a double array with each element equal to the corresponding double value
+     */
+    public static double[] toDoubleArray(boolean[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] ? 1.0 : 0.0;
+        }
+        return output;
+    }
+
+
+    /**
+     * Converts an int array to a double array.
+     * @param input the input int array
+     * @return a double array with each element equal to the corresponding int value
+     */
+    public static double[] toDoubleArray(int[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a long array to a double array.
+     * @param input the input long array
+     * @return a double array with each element equal to the corresponding long value
+     */
+    public static double[] toDoubleArray(long[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a float array to a double array.
+     * @param input the input float array
+     * @return a double array with each element equal to the corresponding float value
+     */
+    public static double[] toDoubleArray(float[] input) {
+        double[] output = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a double array to a double array (i.e., returns a copy of the input array).
+     * @param input the input double array
+     * @return a new double array with the same values as the input array
+     */
+    public static double[] toDoubleArray(double[] input) {
+        double[] output = new double[input.length];
+        System.arraycopy(input, 0, output, 0, input.length);
+        return output;
+    }
+
+    /**
+     * Converts a byte array to a long array.
+     * @param input the input byte array
+     * @return a long array with each element equal to the corresponding byte value
+     */
+    public static long[] toLongArray(byte[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a byte array to a long array.
+     * @param input the input boolean array
+     * @return a long array with each element equal to the corresponding long value
+     */
+    public static long[] toLongArray(boolean[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] ? 1 : 0;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a short array to a long array.
+     * @param input the input short array
+     * @return a long array with each element equal to the corresponding short value
+     */
+    public static long[] toLongArray(short[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a char array to a long array.
+     * @param input the input char array
+     * @return a long array with each element equal to the corresponding char value
+     */
+    public static long[] toLongArray(char[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts an int array to a long array.
+     * @param input the input int array
+     * @return a long array with each element equal to the corresponding int value
+     */
+    public static long[] toLongArrayInt(int[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a float array to a long array.
+     * @param input the input float array
+     * @return a long array with each element equal to the corresponding float value
+     */
+    public static long[] toLongArrayFloat(float[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (long) input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a double array to a long array.
+     * @param input the input double array
+     * @return a long array with each element equal to the corresponding double value
+     */
+    public static long[] toLongArray(double[] input) {
+        long[] output = new long[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (long) input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a long array to a long array (i.e., returns a copy of the input array).
+     * @param input the input long array
+     * @return a new long array with the same values as the input array
+     */
+    public static long[] toLongArray(long[] input) {
+        long[] output = new long[input.length];
+        System.arraycopy(input, 0, output, 0, input.length);
+        return output;
+    }
+
+
+    /**
+     * Converts a short array to a float array.
+     * @param input the input short array
+     * @return a float array with each element equal to the corresponding short value
+     */
+    public static float[] toFloatArray(short[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a boolean array to a float array.
+     * @param input the input boolean array
+     * @return a float array with each element equal to the corresponding boolean value
+     */
+    public static float[] toFloatArray(boolean[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i] ? 1.0f : 0.0f;
+        }
+        return output;
+    }
+
+    /**
+     * Converts a char array to a float array.
+     * @param input the input char array
+     * @return a float array with each element equal to the corresponding char value
+     */
+    public static float[] toFloatArray(char[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts an int array to a float array.
+     * @param input the input int array
+     * @return a float array with each element equal to the corresponding int value
+     */
+    public static float[] toFloatArray(int[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a long array to a float array.
+     * @param input the input long array
+     * @return a float array with each element equal to the corresponding long value
+     */
+    public static float[] toFloatArray(long[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a double array to a float array.
+     * @param input the input double array
+     * @return a float array with each element equal to the corresponding double value
+     */
+    public static float[] toFloatArray(double[] input) {
+        float[] output = new float[input.length];
+        for (int i = 0; i < input.length; i++) {
+            output[i] = (float) input[i];
+        }
+        return output;
+    }
+
+    /**
+     * Converts a float array to a float array (i.e., returns a copy of the input array).
+     * @param input the input float array
+     * @return a new float array with the same values as the input array
+     */
+    public static float[] toFloatArray(float[] input) {
+        float[] output = new float[input.length];
+        System.arraycopy(input, 0, output, 0, input.length);
+        return output;
+    }
 
     /**
      * Concat all the elements
@@ -225,9 +822,9 @@ public class ArrayUtil {
 
     /**
      * Credit to mikio braun from jblas
-     * <p/>
+     * <p>
      * Create a random permutation of the numbers 0, ..., size - 1.
-     * <p/>
+     * </p>
      * see Algorithm P, D.E. Knuth: The Art of Computer Programming, Vol. 2, p. 145
      */
     public static int[] randomPermutation(int size) {
@@ -248,9 +845,98 @@ public class ArrayUtil {
         return result;
     }
 
+    public static short toBFloat16(short data) {
+        // Assume the short is already a float in 16-bit half-precision format
+        int sign = data >>> 15;
+        int exp = (data >>> 10) & 0x1F;
+        int fraction = data & 0x3FF;
+
+        // Adjust exponent from half-precision bias (15) to bfloat16 bias (127)
+        exp = exp - 15 + 127;
+
+        // Check for underflow and overflow
+        if (exp < 0) {  // Underflow
+            exp = 0;
+            fraction = 0;
+        } else if (exp > 255) {  // Overflow
+            exp = 255;
+            fraction = 0;
+        }
+
+        // Truncate fraction to fit into 7 bits
+        fraction >>>= 3;
+
+        // Recombine bits
+        short bfloat16 = (short) ((sign << 15) | (exp << 7) | fraction);
+
+        return bfloat16;
+    }
+
+
+    public static float bfloat16ToFloat(short b) {
+        int sign = b >>> 15;
+        int exp = (b >>> 7) & 0xFF;
+        int fraction = b & 0x7F;
+
+        // Extend fraction part to 23 bits
+        fraction <<= 16;
+
+        // Recombine bits
+        int floatBits = (sign << 31) | (exp << 23) | fraction;
+
+        return Float.intBitsToFloat(floatBits);
+    }
+
+    public static double bfloat16ToDouble(short b) {
+        // Convert bfloat16 to float then to double
+        return (double) bfloat16ToFloat(b);
+    }
+
+
+    public static short longToBFloat16(long l) {
+        // Convert long to float then to bfloat16
+        return toBFloat16((double) l);
+    }
+
+    // Reverse conversions from bfloat16 to types
+
+    public static long bfloat16ToLong(short b) {
+        // Convert bfloat16 to float then to long
+        return (long) bfloat16ToFloat(b);
+    }
+
+    public static int bfloat16ToInt(short b) {
+        // Convert bfloat16 to float then to int
+        return (int) bfloat16ToFloat(b);
+    }
+
+    public static short bfloat16ToShort(short b) {
+        // Convert the bfloat16 to a half-precision float
+        int sign = b >>> 15;
+        int exp = (b >>> 7) & 0xFF;
+        int fraction = b & 0x7F;
+
+        // Truncate the exponent and extend fraction to fit half-precision
+        exp >>>= 3;
+        fraction <<= 3;
+
+        // Recombine bits
+        return (short) ((sign << 15) | (exp << 10) | fraction);
+    }
 
     public static short toBFloat16(float data) {
-        return (short) (Float.floatToIntBits(data) << 16);
+        int floatBits = Float.floatToRawIntBits(data);
+        int sign = floatBits >>> 31;
+        int exp = (floatBits >>> 23) & 0xFF;
+        int fraction = floatBits & 0x7FFFFF;
+
+        // Truncate fraction part to 7 bits
+        fraction >>>= 16;
+
+        // Recombine bits
+        short bfloat16 = (short) ((sign << 15) | (exp << 7) | fraction);
+
+        return bfloat16;
     }
 
     public static short toBFloat16(double data) {
@@ -263,6 +949,28 @@ public class ArrayUtil {
 
     public static short toHalf(double data) {
         return fromFloat((float) data);
+    }
+
+    public static short[] toHalfs(boolean[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = fromFloat(data[i] ? 1 : 0);
+        }
+        return ret;
+    }
+    public static short[] toHalfs(byte[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = fromFloat(data[i]);
+        }
+        return ret;
+    }
+    public static short[] toHalfs(short[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = fromFloat(data[i]);
+        }
+        return ret;
     }
 
     public static short[] toHalfs(float[] data) {
@@ -289,6 +997,35 @@ public class ArrayUtil {
         return ret;
     }
 
+    public static short[] toBfloats(double[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = toBFloat16(data[i]);
+        }
+        return ret;
+    }
+    public static short[] toBfloats(boolean[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = toBFloat16(data[i] ? 1.0 : 0.0);
+        }
+        return ret;
+    }
+    public static short[] toBfloats(byte[] data) {
+        short[] ret = new short[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = toBFloat16(data[i]);
+        }
+        return ret;
+    }
+    public static short[] toBfloats(short[] data) {
+        float[] ret = new float[data.length];
+        for (int i = 0; i < ret.length; i++) {
+            ret[i] = toBFloat16((float) data[i]);
+        }
+        return ArrayUtil.toShorts(ret);
+    }
+
     public static short[] toBfloats(float[] data) {
         short[] ret = new short[data.length];
         for (int i = 0; i < ret.length; i++) {
@@ -300,7 +1037,7 @@ public class ArrayUtil {
     public static short[] toBfloats(int[] data) {
         short[] ret = new short[data.length];
         for (int i = 0; i < ret.length; i++) {
-            ret[i] = toBFloat16((float) data[i]);
+            ret[i] = toBFloat16(data[i]);
         }
         return ret;
     }
@@ -392,7 +1129,29 @@ public class ArrayUtil {
         final int f = Float.floatToIntBits(v);
 
         return (short) (((f >> 16) & 0x8000) | ((((f & 0x7f800000) - 0x38000000) >> 13) & 0x7c00)
-                        | ((f >> 13) & 0x03ff));
+                | ((f >> 13) & 0x03ff));
+    }
+
+
+    public static int[] toInts(boolean[] data) {
+        int[] ret = new int[data.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = (int) (data[i] ? 1 : 0);
+        return ret;
+    }
+
+    public static int[] toInts(byte[] data) {
+        int[] ret = new int[data.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = (int) data[i];
+        return ret;
+    }
+
+    public static int[] toInts(short[] data) {
+        int[] ret = new int[data.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = (int) data[i];
+        return ret;
     }
 
     public static int[] toInts(float[] data) {
@@ -413,6 +1172,22 @@ public class ArrayUtil {
         val retVal = new byte[array.length];
         for (int i = 0; i < array.length; i++) {
             retVal[i] = (byte) array[i];
+        }
+        return retVal;
+    }
+
+    public static byte[] toBytes(short[] array) {
+        val retVal = new byte[array.length];
+        for (int i = 0; i < array.length; i++) {
+            retVal[i] = (byte) array[i];
+        }
+        return retVal;
+    }
+
+    public static byte[] toBytes(boolean[] array) {
+        val retVal = new byte[array.length];
+        for (int i = 0; i < array.length; i++) {
+            retVal[i] = (byte)  (array[i] ? 1 : 0);
         }
         return retVal;
     }
@@ -1006,7 +1781,19 @@ public class ArrayUtil {
         return ret;
     }
 
-    public static List<Integer> toList(int... ints){
+    public static List<Long> toList(long... ints) {
+        if(ints == null){
+            return null;
+        }
+        List<Long> ret = new ArrayList<>();
+        for (long anInt : ints) {
+            ret.add(anInt);
+        }
+        return ret;
+    }
+
+
+    public static List<Integer> toList(int... ints) {
         if(ints == null){
             return null;
         }
@@ -1144,18 +1931,52 @@ public class ArrayUtil {
         return ret;
     }
 
+
+
     public static float[] toFloats(int[][] ints) {
         return toFloats(Ints.concat(ints));
+    }
+
+
+    public static float[] toFloats(boolean[] ints) {
+        float[] ret = new float[ints.length];
+        for (int i = 0; i < ints.length; i++)
+            ret[i] = (float) (ints[i] ? 1 : 0);
+        return ret;
+    }
+
+
+    public static float[] toFloats(byte[] ints) {
+        float[] ret = new float[ints.length];
+        for (int i = 0; i < ints.length; i++)
+            ret[i] = (float) ints[i];
+        return ret;
     }
 
     public static double[] toDoubles(int[][] ints) {
         return toDoubles(Ints.concat(ints));
     }
 
+
     public static short[] toShorts(long[] ints) {
         val ret = new short[ints.length];
         for (int i = 0; i < ints.length; i++)
             ret[i] = (short) ints[i];
+        return ret;
+    }
+
+    public static short[] toShorts(byte[] ints) {
+        val ret = new short[ints.length];
+        for (int i = 0; i < ints.length; i++)
+            ret[i] = (short) ints[i];
+        return ret;
+    }
+
+
+    public static short[] toShorts(boolean[] ints) {
+        val ret = new short[ints.length];
+        for (int i = 0; i < ints.length; i++)
+            ret[i] = (short) (ints[i] ? 1 : 0);
         return ret;
     }
 
@@ -1180,6 +2001,14 @@ public class ArrayUtil {
         return ret;
     }
 
+
+    public static float[] toFloats(short[] ints) {
+        float[] ret = new float[ints.length];
+        for (int i = 0; i < ints.length; i++)
+            ret[i] = (float) ints[i];
+        return ret;
+    }
+
     public static float[] toFloats(int[] ints) {
         float[] ret = new float[ints.length];
         for (int i = 0; i < ints.length; i++)
@@ -1200,6 +2029,8 @@ public class ArrayUtil {
             ret[i] = (float) ints[i];
         return ret;
     }
+
+
 
     public static int[] cutBelowZero(int[] data) {
         val ret = new int[data.length];
@@ -1224,6 +2055,22 @@ public class ArrayUtil {
 
     public static byte[] cutBelowZero(byte[] data) {
         val ret = new byte[data.length];
+        for (int i = 0; i < data.length; i++)
+            ret[i] = data[i] < 0 ? 0 : data[i];
+        return ret;
+    }
+
+
+    public static float[] cutBelowZero(float[] data) {
+        val ret = new float[data.length];
+        for (int i = 0; i < data.length; i++)
+            ret[i] = data[i] < 0 ? 0 : data[i];
+        return ret;
+    }
+
+
+    public static double[] cutBelowZero(double[] data) {
+        val ret = new double[data.length];
         for (int i = 0; i < data.length; i++)
             ret[i] = data[i] < 0 ? 0 : data[i];
         return ret;
@@ -1276,6 +2123,28 @@ public class ArrayUtil {
      * @return the new array with the omitted
      * item
      */
+    public static long[] keep(long[] data, long... index) {
+        if (index.length == data.length)
+            return data;
+
+        long[] ret = new long[index.length];
+        int count = 0;
+        for (int i = 0; i < data.length; i++)
+            if (Longs.contains(index, i))
+                ret[count++] = data[i];
+
+        return ret;
+    }
+
+    /**
+     * Return a copy of this array with only the
+     * given index(es) remaining
+     *
+     * @param data  the data to copy
+     * @param index the index of the item to remove
+     * @return the new array with the omitted
+     * item
+     */
     public static long[] keep(long[] data, int... index) {
         if (index.length == data.length)
             return data;
@@ -1285,6 +2154,41 @@ public class ArrayUtil {
         for (int i = 0; i < data.length; i++)
             if (Ints.contains(index, i))
                 ret[count++] = data[i];
+
+        return ret;
+    }
+
+
+
+    /**
+     * Return a copy of this array with the
+     * given index omitted
+     *
+     * PLEASE NOTE: index to be omitted must exist in source array.
+     *
+     * @param data  the data to copy
+     * @param index the index of the item to remove
+     * @return the new array with the omitted
+     * item
+     */
+    public static long[] removeIndex(long[] data, long... index) {
+        if(data.length < 1)
+            return data;
+
+        if (index.length >= data.length) {
+            throw new IllegalStateException("Illegal remove: indexes.length > data.length (index.length="
+                    + index.length + ", data.length=" + data.length + ")");
+        }
+
+        int offset = 0;
+
+
+        long[] ret = new long[data.length - index.length + offset];
+        int count = 0;
+        for (int i = 0; i < data.length; i++)
+            if (!Longs.contains(index, i)) {
+                ret[count++] = data[i];
+            }
 
         return ret;
     }
@@ -1307,14 +2211,7 @@ public class ArrayUtil {
                     + index.length + ", data.length=" + data.length + ")");
         }
         int offset = 0;
-        /*
-            workaround for non-existent indexes (such as Integer.MAX_VALUE)
 
-
-        for (int i = 0; i < index.length; i ++) {
-            if (index[i] >= data.length || index[i] < 0) offset++;
-        }
-        */
 
         int[] ret = new int[data.length - index.length + offset];
         int count = 0;
@@ -1373,7 +2270,7 @@ public class ArrayUtil {
         for (int i = 0; i < validationLength; i++) {
             if (aShape[axes[0][i]] != bShape[axes[1][i]])
                 throw new IllegalArgumentException(
-                                "Size of the given axes a" + " t each dimension must be the same size.");
+                        "Size of the given axes a" + " t each dimension must be the same size.");
             if (axes[0][i] < 0)
                 axes[0][i] += aShape.length;
             if (axes[1][i] < 0)
@@ -1402,8 +2299,8 @@ public class ArrayUtil {
             n2 *= aShape[axes[0][i]];
         }
 
-        //if listA and listB are empty these donot initialize.
-        //so initializing with {1} which will then get overriden if not empty
+        //if listA and listB are empty these do not initialize.
+        //so initializing with {1} which will then get overridden if not empty
         long[] oldShapeA;
         if (listA.size() == 0) {
             oldShapeA = new long[] {1};
@@ -1453,7 +2350,14 @@ public class ArrayUtil {
     }
 
 
+    public static long[] permute(long[] shape, long[] dimensions) {
+        val ret = new long[shape.length];
+        for (int i = 0; i < shape.length; i++) {
+            ret[i] = shape[(int) dimensions[i]];
+        }
 
+        return ret;
+    }
     public static long[] permute(long[] shape, int[] dimensions) {
         val ret = new long[shape.length];
         for (int i = 0; i < shape.length; i++) {
@@ -1551,6 +2455,46 @@ public class ArrayUtil {
     }
 
     /**
+     * Note this byte array conversion is a simple cast and not a true
+     * cast. Use {@link #toByteArraySimple(long[])} for a true cast.
+     * @param longArray
+     * @return
+     */
+    public static byte[] toByteArraySimple(long[] longArray) {
+        byte[] bytes = new byte[longArray.length];
+        for (int i = 0; i < longArray.length; i++) {
+            bytes[i] = (byte) longArray[i];
+        }
+        return bytes;
+    }
+    /**
+     *
+     * @param longArray
+     * @return
+     */
+    public static byte[] toByteArray(long[] longArray) {
+        int times = Long.SIZE / Byte.SIZE;
+        byte[] bytes = new byte[longArray.length * times];
+        for (int i = 0; i < longArray.length; i++) {
+            ByteBuffer.wrap(bytes, i * times, times).putLong(longArray[i]);
+        }
+        return bytes;
+    }
+
+
+    /**
+     *
+     * @param byteArray
+     * @return
+     */
+    public static double[] toDoubleArraySimple(byte[] byteArray) {
+        double[] doubles = new double[byteArray.length];
+        for (int i = 0; i < doubles.length; i++) {
+            doubles[i] = (double) byteArray[i];
+        }
+        return doubles;
+    }
+    /**
      *
      * @param byteArray
      * @return
@@ -1580,6 +2524,8 @@ public class ArrayUtil {
     }
 
     public static long[] toLongArray(int[] intArray) {
+        if(intArray == null)
+            return null;
         long[] ret = new long[intArray.length];
         for (int i = 0; i < intArray.length; i++) {
             ret[i] = intArray[i];
@@ -1609,6 +2555,21 @@ public class ArrayUtil {
         return doubles;
     }
 
+
+    /**
+     *
+     * @param byteArray
+     * @return
+     */
+    public static float[] toFloatArraySimple(byte[] byteArray) {
+        float[] doubles = new float[byteArray.length];
+        for (int i = 0; i < doubles.length; i++) {
+            doubles[i] = byteArray[i];
+        }
+        return doubles;
+    }
+
+
     /**
      *
      * @param intArray
@@ -1621,6 +2582,20 @@ public class ArrayUtil {
             ByteBuffer.wrap(bytes, i * times, times).putInt(intArray[i]);
         }
         return bytes;
+    }
+
+
+    /**
+     *
+     * @param byteArray
+     * @return
+     */
+    public static int[] toIntArraySimple(byte[] byteArray) {
+        int[] ints = new int[byteArray.length];
+        for (int i = 0; i < ints.length; i++) {
+            ints[i] =   byteArray[i];
+        }
+        return ints;
     }
 
     /**
@@ -1636,6 +2611,8 @@ public class ArrayUtil {
         }
         return ints;
     }
+
+
 
 
     /**
@@ -1663,6 +2640,11 @@ public class ArrayUtil {
         System.arraycopy(data, 0, result, 0, index);
         System.arraycopy(data, index + 1, result, index, len - index - 1);
         return result;
+    }
+
+
+    public static long[] removeIndex(long[] data, long index) {
+        return removeIndex(data,(int) index);
     }
 
     public static long[] removeIndex(long[] data, int index) {
@@ -1717,6 +2699,60 @@ public class ArrayUtil {
         return ret;
     }
 
+    public static BigInteger[] toBigInteger(byte[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf(input[i]);
+        }
+        return ret;
+    }
+    public static BigInteger[] toBigInteger(short[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf(input[i]);
+        }
+        return ret;
+    }
+
+    public static BigInteger[] toBigInteger(long[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf(input[i]);
+        }
+        return ret;
+    }
+    public static BigInteger[] toBigInteger(boolean[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf(BigInteger.valueOf(input[i] ? 1 : 0).longValue());
+        }
+        return ret;
+    }
+
+
+    public static BigInteger[] toBigInteger(float[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf((long) input[i]);
+        }
+        return ret;
+    }
+
+    public static BigInteger[] toBigInteger(double[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf((long) input[i]);
+        }
+        return ret;
+    }
+
+    public static BigInteger[] toBigInteger(int[] input) {
+        BigInteger[] ret = new BigInteger[input.length];
+        for (int i = 0; i < input.length; i++) {
+            ret[i] = BigInteger.valueOf(input[i]);
+        }
+        return ret;
+    }
 
 
     /**
@@ -1841,6 +2877,8 @@ public class ArrayUtil {
      * @return the strides for a matrix of n dimensions
      */
     public static long[] calcStrides(long[] shape, int startValue) {
+        if(shape == null)
+            return null;
         if (shape.length == 2 && (shape[0] == 1 || shape[1] == 1)) {
             long[] ret = new long[2];
             Arrays.fill(ret, startValue);
@@ -2113,6 +3151,33 @@ public class ArrayUtil {
         for (int i = 0; i < arr.length; i++) {
             System.arraycopy(arr[i], 0, ret, count, arr[i].length);
             count += arr[i].length;
+        }
+        return ret;
+    }
+
+    public static String[] flatten(String[][] arr) {
+        if(arr.length == 0 || arr[0].length == 0)
+            return new String[0];
+        String[] ret = new String[arr.length * arr[0].length];
+        int count = 0;
+        for (int i = 0; i < arr.length; i++) {
+            System.arraycopy(arr[i], 0, ret, count, arr[i].length);
+            count += arr[i].length;
+        }
+        return ret;
+    }
+
+    public static String[] flatten(String[][][] arr) {
+        if(arr.length == 0 || arr[0].length == 0 || arr[0][0].length == 0)
+            return new String[0];
+        String[] ret = new String[arr.length * arr[0].length * arr[0][0].length];
+
+        int count = 0;
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr[0].length; j++) {
+                System.arraycopy(arr[i][j], 0, ret, count, arr[0][0].length);
+                count += arr[0][0].length;
+            }
         }
         return ret;
     }
@@ -2747,6 +3812,19 @@ public class ArrayUtil {
         return nums;
     }
 
+    public static double[] toDouble(boolean[] data) {
+        double[] ret = new double[data.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = data[i] ? 1.0 : 0.0;
+        return ret;
+    }
+
+    public static double[] toDouble(byte[] data) {
+        double[] ret = new double[data.length];
+        for (int i = 0; i < ret.length; i++)
+            ret[i] = data[i];
+        return ret;
+    }
     public static double[] toDouble(int[] data) {
         double[] ret = new double[data.length];
         for (int i = 0; i < ret.length; i++)
@@ -3596,7 +4674,7 @@ public class ArrayUtil {
      * @param shape Shape to check
      * @return True if shape contains zeros
      */
-    public static boolean isEmptyShape(long[] shape){
+    public static boolean isEmptyShape(long[] shape) {
         for( long l : shape){
             if(l == 0)
                 return true;
@@ -3611,7 +4689,7 @@ public class ArrayUtil {
      * @param shape Shape to check
      * @return True if shape contains zeros
      */
-    public static boolean isEmptyShape(int[] shape){
+    public static boolean isEmptyShape(int[] shape) {
         for( int i : shape){
             if(i == 0)
                 return true;
@@ -3619,19 +4697,65 @@ public class ArrayUtil {
         return false;
     }
 
-    public static <T> T[] filterNull(T... in){
+    public static <T> T[] filterNull(T... in) {
         int count = 0;
         for( int i=0; i<in.length; i++ ) {
             if (in[i] != null) count++;
         }
         T[] out = (T[]) Array.newInstance(in.getClass().getComponentType(), count);
         int j=0;
-        for( int i=0; i<in.length; i++ ){
-            if(in[i] != null){
+        for( int i=0; i<in.length; i++) {
+            if(in[i] != null) {
                 out[j++] = in[i];
             }
         }
         return out;
     }
 
+    public static int indexOf(String[] outNames, String varName) {
+        int ret = -1;
+        for(int i = 0; i < outNames.length; i++) {
+            if(outNames[i].equals(varName)) {
+                ret = i;
+                break;
+            }
+        }
+        return ret;
+    }
+
+    public static int[] toInt(short[] v) {
+        int[] ret = new int[v.length];
+        for(int i = 0; i < v.length; i++) {
+            ret[i] = v[i];
+        }
+
+        return ret;
+    }
+
+    public static int[] toInt(byte[] v) {
+        int[] ret = new int[v.length];
+        for(int i = 0; i < v.length; i++) {
+            ret[i] = v[i];
+        }
+
+        return ret;
+    }
+
+    public static int[] toInt(char[] v) {
+        int[] ret = new int[v.length];
+        for(int i = 0; i < v.length; i++) {
+            ret[i] = v[i];
+        }
+
+        return ret;
+    }
+
+    public static double[] toDouble(float[] v) {
+        double[] ret = new double[v.length];
+        for(int i = 0; i < v.length; i++) {
+            ret[i] = v[i];
+        }
+
+        return ret;
+    }
 }

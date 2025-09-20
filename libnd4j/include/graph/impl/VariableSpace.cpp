@@ -43,7 +43,7 @@ sd::graph::VariableSpace* sd::graph::VariableSpace::clone() {
 }
 
 void VariableSpace::setWorkspace(sd::memory::Workspace* workspace) {
-  //_workspace = *workspace;
+  _workspace = workspace;
 }
 
 sd::graph::VariableSpace* sd::graph::VariableSpace::asT() {
@@ -52,9 +52,7 @@ sd::graph::VariableSpace* sd::graph::VariableSpace::asT() {
   for (auto const& x : _paired) {
     std::pair<int, int> pair(x.first.first, x.first.second);
 
-    // Variable* clonedVar = x.second->template asT<N>();
 
-    // result->injectVariable(pair, clonedVar);
   }
 
   return result;
@@ -122,7 +120,8 @@ sd::graph::Variable* sd::graph::VariableSpace::getVariable(std::pair<int, int>& 
     return _paired.at(pair);
   }
   sd_printf("Unknown variable requested: [%i,%i]\n", pair.first, pair.second);
-  throw std::runtime_error("Unknown variable requested");
+  THROW_EXCEPTION("Unknown variable requested");
+  return nullptr;
 }
 
 bool sd::graph::VariableSpace::hasVariable(int id) { return _variables.count(id) == 1 || _temporary.count(id) == 1; }
@@ -130,7 +129,6 @@ bool sd::graph::VariableSpace::hasVariable(int id) { return _variables.count(id)
 bool sd::graph::VariableSpace::hasVariable(std::pair<int, int>& id) { return _paired.count(id) > 0; }
 
 void sd::graph::VariableSpace::putOutputVariable(Variable* variable) {
-  // putVariable(_auto_counter--, variable);
   putVariable(variable->id(), variable);
 }
 
@@ -189,7 +187,6 @@ void sd::graph::VariableSpace::putVariable(int node, int idx, Variable* variable
 void sd::graph::VariableSpace::silentPutVariable(std::pair<int, int>& pair, Variable* variable) {
   _varmap.lock();
 
-  // std::pair<std::pair<int, int>, sd::graph::Variable *> p(pair, variable);
   _paired[pair] = variable;
 
   _varmap.unlock();
@@ -243,14 +240,12 @@ void sd::graph::VariableSpace::putVariable(int id, Variable* variable) {
   variable->setId(id);
 
   if (variable->getName() != nullptr && variable->getName()->length() != 0) {
-    // std::pair<std::string, sd::graph::Variable *> pair(*(variable->getName()), variable);
     _symbolic[*(variable->getName())] = variable;
   }
 
   // we have special list for external variables to ensure graph completeness
 
   if (id < 0) {
-    // if (variable->isExternal())
     _external.push_back(variable);
 
     _variables[id] = variable;
@@ -290,12 +285,9 @@ void sd::graph::VariableSpace::putVariable(int id, NDArray* array) {
 }
 
 sd::graph::Variable* sd::graph::VariableSpace::getVariable(int id) {
-  sd_debug("Getting variable with id %d\n",id);
   if (id < 0) {
-    sd_debug("Getting the variables at %d\n",id);
     return _variables.at(id);
   } else {
-    sd_debug("Returning temporary id %d\n",id);
     return _temporary.at(id);
   }
 }
@@ -315,11 +307,6 @@ sd::graph::VariableSpace::~VariableSpace() {
 
   delete _handles;
 
-  //_internal.clear();
-  //_external.clear();
-  //_temporary.clear();
-
-  // sd_printf("Number of NDArrayLists in this space: [%i]\n", _lists.size())
   for (auto p : _lists) delete p;
 
   _lists.clear();
@@ -361,7 +348,7 @@ void VariableSpace::replaceVariable(Variable* variable) {
       auto vs = getVariable(variable->getName());
       dropVariable(vs->id(), vs->index());
       putVariable(vs->id(), vs->index(), variable);
-      // delete vs;
+      delete vs;
       replaced = true;
     }
   } else {
@@ -371,7 +358,7 @@ void VariableSpace::replaceVariable(Variable* variable) {
       auto vs = getVariable(variable->id(), variable->index());
       dropVariable(variable->id(), variable->index());
       putVariable(vs->id(), vs->index(), variable);
-      // delete vs;
+      delete vs;
       replaced = true;
     }
   }

@@ -37,7 +37,7 @@ __constant__ char deviceConstantMemory[CONSTANT_LIMIT];
 
 namespace sd {
 static void *getConstantSpace() {
-  sd::Pointer dConstAddr;
+  Pointer dConstAddr;
   auto dZ = cudaGetSymbolAddress(reinterpret_cast<void **>(&dConstAddr), deviceConstantMemory);
 
   if (dZ != 0) throw cuda_exception::build("cudaGetSymbolAddress(...) failed", dZ);
@@ -94,8 +94,8 @@ void *ConstantHelper::replicatePointer(void *src, size_t numBytes, memory::Works
   std::lock_guard<std::mutex> lock(_mutex);
 
   auto deviceId = getCurrentDevice();
-  sd::Pointer constantPtr = nullptr;
-  sd::LongType constantOffset = 0L;
+  Pointer constantPtr = nullptr;
+  LongType constantOffset = 0L;
   if (_devicePointers[deviceId] == 0) {
     auto constant = getConstantSpace();
 
@@ -108,29 +108,25 @@ void *ConstantHelper::replicatePointer(void *src, size_t numBytes, memory::Works
     constantOffset = _deviceOffsets[deviceId];
   }
 
-  if (constantOffset + numBytes >= CONSTANT_LIMIT) {
-    int8_t *ptr = nullptr;
-    ALLOCATE_SPECIAL(ptr, workspace, numBytes, int8_t);
-    auto res = cudaMemcpy(ptr, src, numBytes, cudaMemcpyHostToDevice);
-    if (res != 0) throw cuda_exception::build("cudaMemcpy failed", res);
+  int8_t *ptr = nullptr;
+  ALLOCATE_SPECIAL(ptr, workspace, numBytes, int8_t);
+  auto res = cudaMemcpy(ptr, src, numBytes, cudaMemcpyHostToDevice);
+  if (res != 0) {
+    std::string errorMessage = "cudaMemcpy failed with error code " + std::to_string(res);
+    auto lastError = cudaGetLastError(); // get last error
+    if (lastError != cudaSuccess) {
+      errorMessage += "; last error: " + std::string(cudaGetErrorString(lastError));
+    }
 
-    return ptr;
-  } else {
-    auto originalBytes = numBytes;
-    auto rem = numBytes % 8;
-    if (rem != 0) numBytes += 8 - rem;
+    THROW_EXCEPTION(errorMessage.c_str());
 
-    _deviceOffsets[deviceId] += numBytes;
-
-    auto res = cudaMemcpyToSymbol(deviceConstantMemory, const_cast<const void *>(src), originalBytes, constantOffset,
-                                  cudaMemcpyHostToDevice);
-    if (res != 0) throw cuda_exception::build("cudaMemcpyToSymbol failed", res);
-
-    return reinterpret_cast<int8_t *>(constantPtr) + constantOffset;
   }
+
+  constantPtr = ptr;
+  return reinterpret_cast<int8_t *>(constantPtr) + constantOffset;
 }
 
-ConstantDataBuffer *ConstantHelper::constantBuffer(const ConstantDescriptor &descriptor, sd::DataType dataType) {
+ConstantDataBuffer *ConstantHelper::constantBuffer(const ConstantDescriptor &descriptor, DataType dataType) {
   const auto deviceId = getCurrentDevice();
 
   // all cache modifications are synchronous
@@ -153,7 +149,7 @@ ConstantDataBuffer *ConstantHelper::constantBuffer(const ConstantDescriptor &des
     result = holder->getConstantDataBuffer(dataType);
   } else {
     auto numBytes = descriptor.length() * DataTypeUtils::sizeOf(dataType);
-    auto cbuff = std::make_shared<PointerWrapper>(new int8_t[numBytes], std::make_shared<PrimaryPointerDeallocator>());
+    auto cbuff = std::make_shared<PointerWrapper>(new int8_t[numBytes], std::make_shared<PointerDeallocator>());
     _counters[deviceId] += numBytes;
 
     // create buffer with this dtype
@@ -165,7 +161,7 @@ ConstantDataBuffer *ConstantHelper::constantBuffer(const ConstantDescriptor &des
     } else if (descriptor.isInteger()) {
       BUILD_DOUBLE_SELECTOR(sd::DataType::INT64, dataType, sd::SpecialTypeConverter::convertGeneric,
                             (nullptr, const_cast<sd::LongType *>(descriptor.integerValues().data()),
-                             descriptor.length(), cbuff->pointer()),
+                                descriptor.length(), cbuff->pointer()),
                             (sd::DataType::INT64, sd::LongType), SD_COMMON_TYPES);
     }
 
@@ -174,16 +170,16 @@ ConstantDataBuffer *ConstantHelper::constantBuffer(const ConstantDescriptor &des
     auto dbuff = std::make_shared<PointerWrapper>(
         replicatePointer(cbuff->pointer(), descriptor.length() * DataTypeUtils::sizeOf(dataType)));
 
-    ConstantDataBuffer dataBuffer(cbuff, dbuff, descriptor.length(), dataType);
+    ConstantDataBuffer *dataBuffer = new ConstantDataBuffer(cbuff, dbuff, descriptor.length(), dataType);
 
-    holder->addBuffer(dataBuffer, dataType);
+    holder->addBuffer(*dataBuffer, dataType);
     result = holder->getConstantDataBuffer(dataType);
   }
 
   return result;
 }
 
-sd::LongType ConstantHelper::getCachedAmount(int deviceId) {
+LongType ConstantHelper::getCachedAmount(int deviceId) {
   int numDevices = getNumberOfDevices();
   if (deviceId > numDevices || deviceId < 0)
     return 0L;

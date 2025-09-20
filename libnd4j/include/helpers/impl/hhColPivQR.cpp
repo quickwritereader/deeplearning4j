@@ -27,12 +27,14 @@ namespace ops {
 namespace helpers {
 
 //////////////////////////////////////////////////////////////////////////
-HHcolPivQR::HHcolPivQR(const NDArray& matrix) {
-  _qr = matrix.dup();
+HHcolPivQR::HHcolPivQR(NDArray &matrix) {
+  _qr = matrix.dup(matrix.ordering());
+  std::vector<LongType> coeffsShape = {1,_diagSize};
   _diagSize = math::sd_min<int>(matrix.sizeAt(0), matrix.sizeAt(1));
-  _coeffs = NDArray(matrix.ordering(), {1, _diagSize}, matrix.dataType(), matrix.getContext());
+  std::vector<LongType> permShape = {matrix.sizeAt(1), matrix.sizeAt(1)};
+  _coeffs = NDArray(matrix.ordering(),coeffsShape, matrix.dataType(), matrix.getContext());
 
-  _permut = NDArray(matrix.ordering(), {matrix.sizeAt(1), matrix.sizeAt(1)}, matrix.dataType(), matrix.getContext());
+  _permut = NDArray(matrix.ordering(), permShape, matrix.dataType(), matrix.getContext());
 
   evalData();
 }
@@ -45,11 +47,10 @@ void HHcolPivQR::_evalData() {
   const int rows = _qr.sizeAt(0);
   const int cols = _qr.sizeAt(1);
 
-  NDArray transp(_qr.ordering(), {cols} /*{1, cols}*/, _qr.dataType(), _qr.getContext());
-  NDArray normsUpd(_qr.ordering(), {cols} /*{1, cols}*/, _qr.dataType(), _qr.getContext());
-  NDArray normsDir(_qr.ordering(), {cols} /*{1, cols}*/, _qr.dataType(), _qr.getContext());
-
-  int transpNum = 0;
+  std::vector<LongType> colsShape = {cols};
+  NDArray transp(_qr.ordering(), colsShape, _qr.dataType(), _qr.getContext());
+  NDArray normsUpd(_qr.ordering(), colsShape , _qr.dataType(), _qr.getContext());
+  NDArray normsDir(_qr.ordering(),colsShape , _qr.dataType(), _qr.getContext());
 
   for (int k = 0; k < cols; ++k)
     normsDir.r<T>(k) = normsUpd.r<T>(k) = _qr({0, 0, k, k + 1}).reduceNumber(reduce::Norm2).t<T>(0);
@@ -79,7 +80,6 @@ void HHcolPivQR::_evalData() {
       math::sd_swap<T>(normsUpd.r<T>(k), normsUpd.r<T>(biggestColIndex));
       math::sd_swap<T>(normsDir.r<T>(k), normsDir.r<T>(biggestColIndex));
 
-      ++transpNum;
     }
 
     T normX, c;
@@ -90,18 +90,18 @@ void HHcolPivQR::_evalData() {
 
     _qr.r<T>(k, k) = normX;
 
-    T max = math::sd_abs<T>(normX);
+    T max = math::sd_abs<T,T>(normX);
     if (max > maxPivot) maxPivot = max;
 
     if (k < rows && (k + 1) < cols) {
-      NDArray qrBlock = _qr({k, rows, k + 1, cols}, true);
+      NDArray qrBlock2 = _qr({k, rows, k + 1, cols}, true);
       NDArray tail = _qr({k + 1, rows, k, k + 1}, true);
-      Householder<T>::mulLeft(qrBlock, tail, _coeffs.t<T>(k));
+      Householder<T>::mulLeft(qrBlock2, tail, _coeffs.t<T>(k));
     }
 
     for (int j = k + 1; j < cols; ++j) {
       if (normsUpd.t<T>(j) != (T)0.f) {
-        T temp = math::sd_abs<T>(_qr.t<T>(k, j)) / normsUpd.t<T>(j);
+        T temp = math::sd_abs<T,T>(_qr.t<T>(k, j)) / normsUpd.t<T>(j);
         temp = ((T)1. + temp) * ((T)1. - temp);
         temp = temp < (T)0. ? (T)0. : temp;
         T temp2 = temp * normsUpd.t<T>(j) * normsUpd.t<T>(j) / (normsDir.t<T>(j) * normsDir.t<T>(j));

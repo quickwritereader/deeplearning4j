@@ -23,6 +23,7 @@ package org.deeplearning4j.nn.layers.feedforward.embedding;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.nd4j.linalg.api.buffer.DataType;
+import org.nd4j.linalg.api.ops.impl.scatter.ScatterAdd;
 import org.nd4j.linalg.exception.ND4JArraySizeException;
 import org.nd4j.common.primitives.Pair;
 import org.deeplearning4j.exception.DL4JInvalidInputException;
@@ -38,7 +39,7 @@ import org.deeplearning4j.nn.workspace.ArrayType;
 
 @Slf4j
 public class EmbeddingLayer extends BaseLayer<org.deeplearning4j.nn.conf.layers.EmbeddingLayer> {
-    private static final int[] DIM_1 = new int[]{1};
+    private static final long[] DIM_1 = new long[]{1};
 
     public EmbeddingLayer(NeuralNetConfiguration conf, DataType dataType) {
         super(conf, dataType);
@@ -64,7 +65,8 @@ public class EmbeddingLayer extends BaseLayer<org.deeplearning4j.nn.conf.layers.
         }
 
         INDArray indices = Nd4j.createFromArray(indexes);
-        Nd4j.scatterUpdate(org.nd4j.linalg.api.ops.impl.scatter.ScatterUpdate.UpdateOp.ADD, weightGradients, indices, delta, DIM_1);
+        ScatterAdd op = new ScatterAdd(weightGradients, indices, delta);
+        Nd4j.getExecutioner().exec(op);
 
 
         Gradient ret = new DefaultGradient();

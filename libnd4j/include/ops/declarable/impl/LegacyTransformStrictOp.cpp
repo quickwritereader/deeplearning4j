@@ -21,20 +21,21 @@
 //
 #include <legacy/NativeOpExecutioner.h>
 #include <ops/declarable/LegacyTransformStrictOp.h>
+#include <ops/declarable/OpRegistrator.h>
 
 namespace sd {
 namespace ops {
-LegacyTransformStrictOp::LegacyTransformStrictOp() : LegacyOp::LegacyOp(1) {
+LegacyTransformStrictOp::LegacyTransformStrictOp() : LegacyOp(1) {
   this->getOpDescriptor()->allowInplace(true);
 }
 
-LegacyTransformStrictOp::LegacyTransformStrictOp(int opNum) : LegacyOp::LegacyOp(1, opNum) {
+LegacyTransformStrictOp::LegacyTransformStrictOp(int opNum) : LegacyOp(1, opNum) {
   this->getOpDescriptor()->allowInplace(true);
 }
 
 LegacyOp *LegacyTransformStrictOp::clone() { return new LegacyTransformStrictOp(this->_opNum); }
 
-sd::Status LegacyTransformStrictOp::validateAndExecute(Context &block) {
+Status LegacyTransformStrictOp::validateAndExecute(Context &block) {
   auto input = INPUT_VARIABLE(0);
   auto z = OUTPUT_VARIABLE(0);
 
@@ -48,12 +49,13 @@ sd::Status LegacyTransformStrictOp::validateAndExecute(Context &block) {
   NativeOpExecutioner::execTransformStrict(block.launchContext(), opNum, input->buffer(), input->shapeInfo(),
                                            input->specialBuffer(), input->specialShapeInfo(), z->buffer(),
                                            z->shapeInfo(), z->specialBuffer(), z->specialShapeInfo(),
-                                           extras.argumentsAsT(z->dataType()), nullptr, nullptr);
+                                           extras.argumentsAsT(z->dataType()));
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
 /**
@@ -61,13 +63,9 @@ sd::Status LegacyTransformStrictOp::validateAndExecute(Context &block) {
  * col2im. But these ops already have CustomOp implementations.
  *
  */
-ShapeList *LegacyTransformStrictOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyTransformStrictOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
-
-  sd::LongType *newShape;
-  COPY_SHAPE(inShape, newShape);
-
-  return SHAPELIST(CONSTANT(newShape));
+  return SHAPELIST(CONSTANT(inShape));
 }
 }  // namespace ops
 }  // namespace sd

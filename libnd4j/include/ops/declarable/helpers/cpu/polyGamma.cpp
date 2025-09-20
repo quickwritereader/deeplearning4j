@@ -32,7 +32,7 @@ namespace helpers {
 // calculate factorial
 template <typename T>
 static SD_INLINE T getFactorial(const int n) {
-  if (n < 0) throw std::runtime_error("factorial is not defined for negative number !");
+  if (n < 0) THROW_EXCEPTION("factorial is not defined for negative number !");
 
   if (n == 0 || n == 1) return (T)1.f;
 
@@ -63,7 +63,7 @@ static SD_INLINE T polyGammaScalar(sd::LaunchContext* context, const int n, cons
 //////////////////////////////////////////////////////////////////////////
 // calculate polygamma function for arrays
 template <typename T>
-static void polyGamma_(sd::LaunchContext* context, const NDArray& n, const NDArray& x, NDArray& output) {
+static void polyGamma_(sd::LaunchContext* context, NDArray& n, NDArray& x, NDArray& output) {
   auto func = PRAGMA_THREADS_FOR {
     for (auto i = start; i < stop; i++) {
       const T order = n.e<T>(i);
@@ -79,12 +79,12 @@ static void polyGamma_(sd::LaunchContext* context, const NDArray& n, const NDArr
   samediff::Threads::parallel_for(func, 0, x.lengthOf());
 }
 
-void polyGamma(sd::LaunchContext* context, const NDArray& n, const NDArray& x, NDArray& output) {
+void polyGamma(sd::LaunchContext* context, NDArray& n, NDArray& x, NDArray& output) {
   BUILD_SINGLE_SELECTOR(x.dataType(), polyGamma_, (context, n, x, output), SD_FLOAT_TYPES);
 }
 
 BUILD_SINGLE_TEMPLATE(template void polyGamma_,
-                      (sd::LaunchContext * context, const NDArray& n, const NDArray& x, NDArray& output),
+                      (sd::LaunchContext * context, NDArray& n, NDArray& x, NDArray& output),
                       SD_FLOAT_TYPES);
 
 }  // namespace helpers

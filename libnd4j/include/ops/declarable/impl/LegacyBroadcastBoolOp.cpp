@@ -21,39 +21,39 @@
 //
 #include <helpers/ConstantTadHelper.h>
 #include <helpers/PointersManager.h>
-#include <helpers/TAD.h>
+
 #include <ops/declarable/LegacyBroadcastBoolOp.h>
+#include <ops/declarable/OpRegistrator.h>
+#include <legacy/NativeOpExecutioner.h>
 
 namespace sd {
 namespace ops {
-sd::Status LegacyBroadcastBoolOp::validateAndExecute(Context &block) {
+Status LegacyBroadcastBoolOp::validateAndExecute(Context &block) {
   auto x = INPUT_VARIABLE(0);
   auto y = INPUT_VARIABLE(1);
 
   auto z = OUTPUT_VARIABLE(0);
 
-  std::vector<int> dims(*block.getIArguments());
+  std::vector<LongType> dims(*block.getIArguments());
   if (dims.size() > 0) std::sort(dims.begin(), dims.end());
 
   NDArray::prepareSpecialUse({z}, {x, y});
 
   int opNum = block.opNum() < 0 ? this->_opNum : block.opNum();
 
-  auto packX = sd::ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), dims);
+  auto packX = ConstantTadHelper::getInstance().tadForDimensions(x->shapeInfo(), &dims);
 
   PointersManager manager(block.launchContext(), "LegacyBroadcastBoolOp");
   auto pTadShape = Environment::getInstance().isCPU()
-                       ? packX.primaryShapeInfo()
-                       : packX.specialShapeInfo();  //(sd::LongType *) manager.replicatePointer(tad.tadOnlyShapeInfo,
-                                                    //shape::shapeInfoByteLength(tad.tadOnlyShapeInfo));
+                   ? packX->primaryShapeInfo()
+                   : packX->specialShapeInfo();
   auto pTadOffsets = Environment::getInstance().isCPU()
-                         ? packX.primaryOffsets()
-                         : packX.specialOffsets();  //(sd::LongType *) manager.replicatePointer(tad.tadOffsets,
-                                                    //tad.numTads * sizeof(sd::LongType));
+                     ? packX->primaryOffsets()
+                     : packX->specialOffsets();
 
-  REQUIRE_TRUE(shape::length(packX.primaryShapeInfo()) == y->lengthOf(), 0,
+  REQUIRE_TRUE(shape::length(packX->primaryShapeInfo()) == y->lengthOf(), 0,
                "Length of broadcast TAD should be equal to length of Y operand, but got [%i] vs [%i]",
-               (int)shape::length(packX.primaryShapeInfo()), (int)y->lengthOf());
+               (int)shape::length(packX->primaryShapeInfo()), (int)y->lengthOf());
 
   if (x == z)
     NativeOpExecutioner::execBroadcast(block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(),
@@ -65,16 +65,14 @@ sd::Status LegacyBroadcastBoolOp::validateAndExecute(Context &block) {
     // this is rare, but possible use case - X and Z might have different shapes/strides/orders. In this case we prepare
     // and pass separate TAD info
 
-    auto packZ = sd::ConstantTadHelper::getInstance().tadForDimensions(z->shapeInfo(), dims);
+    auto packZ = ConstantTadHelper::getInstance().tadForDimensions(z->shapeInfo(), &dims);
 
     auto zTadShape = Environment::getInstance().isCPU()
-                         ? packZ.primaryShapeInfo()
-                         : packZ.specialShapeInfo();  //(sd::LongType *) manager.replicatePointer(tadZ.tadOnlyShapeInfo,
-                                                      //shape::shapeInfoByteLength(tadZ.tadOnlyShapeInfo));
+                     ? packZ->primaryShapeInfo()
+                     : packZ->specialShapeInfo();
     auto zTadOffsets = Environment::getInstance().isCPU()
-                           ? packZ.primaryOffsets()
-                           : packZ.specialOffsets();  //(sd::LongType *) manager.replicatePointer(tadZ.tadOffsets,
-                                                      //tadZ.numTads * sizeof(sd::LongType));
+                       ? packZ->primaryOffsets()
+                       : packZ->specialOffsets();  //(sd::LongType *) manager.replicatePointer(tadZ.tadOffsets,
 
     NativeOpExecutioner::execBroadcast(block.launchContext(), opNum, x->buffer(), x->shapeInfo(), x->specialBuffer(),
                                        x->specialShapeInfo(), y->buffer(), y->shapeInfo(), y->specialBuffer(),
@@ -85,15 +83,16 @@ sd::Status LegacyBroadcastBoolOp::validateAndExecute(Context &block) {
 
   manager.synchronize();
   STORE_RESULT(*z);
+  traceExecIfNeeded(block);
 
-  return sd::Status::OK;
+  return Status::OK;
 }
 
-LegacyBroadcastBoolOp::LegacyBroadcastBoolOp() : LegacyOp::LegacyOp(2) {
+LegacyBroadcastBoolOp::LegacyBroadcastBoolOp() : LegacyOp(2) {
   //
 }
 
-LegacyBroadcastBoolOp::LegacyBroadcastBoolOp(int opNum) : LegacyOp::LegacyOp(2, opNum) {
+LegacyBroadcastBoolOp::LegacyBroadcastBoolOp(int opNum) : LegacyOp(2, opNum) {
   //
 }
 
@@ -102,9 +101,10 @@ LegacyOp *LegacyBroadcastBoolOp::clone() { return new LegacyBroadcastBoolOp(this
 /**
  *   If external NDArray wasn't specified - the same shape is returned by all broadcast ops.
  */
-ShapeList *LegacyBroadcastBoolOp::calculateOutputShape(ShapeList *inputShape, sd::graph::Context &block) {
+ShapeList *LegacyBroadcastBoolOp::calculateOutputShape(ShapeList *inputShape, Context &block) {
   auto inShape = inputShape->at(0);
-  return SHAPELIST(ConstantShapeHelper::getInstance().createShapeInfo(ShapeDescriptor(inShape, DataType::BOOL)));
+  auto ret = SHAPELIST(ConstantShapeHelper::getInstance().castToDataType(inShape, BOOL));
+  return ret;
 }
 }  // namespace ops
 }  // namespace sd

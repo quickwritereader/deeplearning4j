@@ -133,10 +133,10 @@ static void _compare_elem(LaunchContext *context, NDArray *input, bool isStrictl
       input->specialBuffer(), input->specialShapeInfo(), input->lengthOf(), isStrictlyIncreasing,
       context->getReductionPointer(), reinterpret_cast<bool *>(z.specialBuffer()));
 
-  z.tickWriteDevice();
+  z->tickWriteDevice();
   DebugHelper::checkErrorCode(context->getCudaStream(), "is_strictly_increasing");
 
-  output = z.e<bool>(0);
+  output = z->e<bool>(0);
 }
 
 void compare_elem(LaunchContext *context, NDArray *input, bool isStrictlyIncreasing, bool &output) {
@@ -146,7 +146,7 @@ void compare_elem(LaunchContext *context, NDArray *input, bool isStrictlyIncreas
   BUILD_SINGLE_SELECTOR(xType, _compare_elem, (context, input, isStrictlyIncreasing, output), SD_COMMON_TYPES);
 }
 
-BUILD_SINGLE_TEMPLATE(template void _compare_elem,
+BUILD_SINGLE_TEMPLATE( void _compare_elem,
                       (sd::LaunchContext * context, NDArray *A, bool isStrictlyIncreasing, bool &output);
 , SD_COMMON_TYPES);
 }  // namespace helpers

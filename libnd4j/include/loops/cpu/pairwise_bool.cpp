@@ -31,8 +31,8 @@ namespace functions {
 namespace pairwise_transforms {
 
 
-template <typename X, typename Y>
-void PairWiseBoolTransform<X, Y>::exec(int opNum, const void *x, const sd::LongType *xShapeInfo, const void *y,
+template <typename X, typename Z>
+void PairWiseBoolTransform<X, Z>::exec(int opNum, const void *x, const sd::LongType *xShapeInfo, const void *y,
                                        const sd::LongType *yShapeInfo, void *z, const sd::LongType *zShapeInfo,
                                        void *extraParams, sd::LongType start, sd::LongType stop) {
   DISPATCH_BY_OPNUM_TT(exec, PARAMS(x, xShapeInfo, y, yShapeInfo, z, zShapeInfo, extraParams, start, stop),
@@ -70,7 +70,7 @@ void PairWiseBoolTransform<X, Z>::exec(const void *vx, const sd::LongType *xShap
         INDEX2COORDS(i, xRank, zShape, coords);
         sd::LongType offset;
         COORDS2INDEX(xRank, xStride, coords, offset);
-        z[offset] = OpType::op(x[offset], y[0], extraParams);
+        z[offset] = OpType::op(x[offset], static_cast<X>(y[0]), static_cast<X*>(extraParams));
       };
     } else {
       PRAGMA_OMP_SIMD
@@ -146,6 +146,6 @@ void PairWiseBoolTransform<X, Z>::exec(const void *vx, const sd::LongType *xShap
 
 }
 
-BUILD_DOUBLE_TEMPLATE(template class PairWiseBoolTransform, , SD_COMMON_TYPES, SD_BOOL_TYPES);
+BUILD_DOUBLE_TEMPLATE( class PairWiseBoolTransform, , SD_COMMON_TYPES, SD_BOOL_TYPES);
 }  // namespace pairwise_transforms
 }  // namespace functions

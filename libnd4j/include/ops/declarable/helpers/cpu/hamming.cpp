@@ -22,7 +22,7 @@
 #include <execution/Threads.h>
 #include <ops/declarable/helpers/hamming.h>
 #include <ops/declarable/helpers/helpers.h>
-
+#include <system/selective_rendering.h>
 namespace sd {
 namespace ops {
 namespace helpers {
@@ -94,7 +94,9 @@ static void _hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &z)
 }
 
 void hamming(LaunchContext *context, NDArray &x, NDArray &y, NDArray &output) {
-  BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (context, x, y, output), SD_INTEGER_TYPES, SD_INDEXING_TYPES);
+  auto xDType = x.dataType();
+  auto outputDType = output.dataType();
+  BUILD_DOUBLE_SELECTOR(x.dataType(), output.dataType(), _hamming, (context, x, y, output), SD_INTEGER_TYPES, SD_INTEGER_TYPES);
 }
 }  // namespace helpers
 }  // namespace ops

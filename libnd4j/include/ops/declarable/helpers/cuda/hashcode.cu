@@ -121,6 +121,8 @@ void hashCode_(LaunchContext* context, NDArray& array, NDArray& result) {
                                    length, blockSize);
   DebugHelper::checkErrorCode(context->getCudaStream(),"lastStep failed");
 
+  delete tempA;
+  delete tempB;
   NDArray::registerSpecialUse({&result}, {&array});
 }
 
@@ -128,7 +130,7 @@ void hashCode(LaunchContext* context, NDArray& array, NDArray& result) {
   BUILD_SINGLE_SELECTOR(array.dataType(), hashCode_, (context, array, result), SD_COMMON_TYPES);
 }
 
-BUILD_SINGLE_TEMPLATE(template void hashCode_, (LaunchContext * context, NDArray& array, NDArray& result),
+BUILD_SINGLE_TEMPLATE( void hashCode_, (LaunchContext * context, NDArray& array, NDArray& result),
                       SD_COMMON_TYPES);
 }  // namespace helpers
 }  // namespace ops

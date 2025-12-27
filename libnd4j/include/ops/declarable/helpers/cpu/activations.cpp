@@ -39,7 +39,7 @@ void static _softMaxDerivForVector(sd::LaunchContext* context, const void* input
   T* outBuff = reinterpret_cast<T*>(output);
 
   T max = -DataTypeUtils::max<T>();
-  T sum = 0.;
+  T sum = static_cast<T>(0.);
   const sd::LongType length = shape::length(inShapeInfo);
 
   const sd::LongType rank = shape::rank(inShapeInfo);
@@ -84,10 +84,15 @@ void softmaxDerivative(sd::LaunchContext* context, NDArray& input, NDArray& outp
   } else {
     std::vector<sd::LongType> dimVec = {dimension};
     auto maxAlongDim = const_cast<NDArray&>(input).reduceAlongDimension(reduce::Max, &dimVec, true);
-    (input - maxAlongDim).applyTransform(transform::Exp, &output);  // output contains exponents temporarily
+    auto minus = (input - *maxAlongDim);
+     minus->applyTransform(transform::Exp, &output);  // output contains exponents temporarily
     auto sumAlongDim = output.reduceAlongDimension(reduce::Sum, &dimVec, true);
-    output /= sumAlongDim;
-    output *= (1.f - output);  // derivative
+    output /= *sumAlongDim;
+    auto oneMinus = (1.f - output);
+    output *= *oneMinus;  // derivative
+    delete sumAlongDim;
+    delete minus;
+    delete oneMinus;
   }
 }
 
@@ -99,7 +104,7 @@ void logSoftMaxForVector_(void const* input, sd::LongType const* inShapeInfo, vo
   auto outBuff = reinterpret_cast<T*>(output);
 
   T max = -DataTypeUtils::max<T>();
-  T sum = 0;
+  T sum = static_cast<T>(0);
 
   auto length = shape::length(inShapeInfo);
   sd::LongType  inRank = shape::rank(inShapeInfo);
@@ -240,22 +245,25 @@ void logSoftmax(LaunchContext* context, NDArray* input, NDArray* output, const i
   } else {
     std::vector<sd::LongType> dimVector = {dimension};
     auto maxAlongDim = input->reduceAlongDimension(reduce::Max, &dimVector, true);
-    auto maxMinusDim = *input - maxAlongDim;
-    maxMinusDim.applyTransform(transform::Exp, output);  // output contains exponents temporarily
+    auto maxMinusDim = *input - *maxAlongDim;
+    maxMinusDim->applyTransform(transform::Exp, output);  // output contains exponents temporarily
     auto sumAlongDim = output->reduceAlongDimension(reduce::Sum, &dimVector, true);
-    *output /= sumAlongDim;
+    *output /= *sumAlongDim;
     output->applyTransform(transform::Log, output);
+    delete maxAlongDim;
+    delete maxMinusDim;
+    delete sumAlongDim;
   }
 }
 
-BUILD_SINGLE_TEMPLATE(template void thresholdReluDerivative_,
+BUILD_SINGLE_TEMPLATE( void thresholdReluDerivative_,
                       (sd::LaunchContext * context, NDArray* input, double threshold, NDArray* dLdO, NDArray* output),
                       SD_FLOAT_TYPES);
-BUILD_SINGLE_TEMPLATE(template void logSoftMaxForVector_,
+BUILD_SINGLE_TEMPLATE( void logSoftMaxForVector_,
                       (void const* input, sd::LongType const* inShapeInfo, void* output,
                           sd::LongType const* outShapeInfo),
                       SD_FLOAT_TYPES);
-BUILD_SINGLE_TEMPLATE(template void _softMaxDerivForVector,
+BUILD_SINGLE_TEMPLATE( void _softMaxDerivForVector,
                       (sd::LaunchContext * context, const void* input, const sd::LongType* inShapeInfo, void* output),
                       SD_FLOAT_TYPES);
 

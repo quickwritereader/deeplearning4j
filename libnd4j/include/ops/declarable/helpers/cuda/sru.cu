@@ -106,6 +106,8 @@ void sruTimeLoop(LaunchContext* context, NDArray* x, NDArray* c0, NDArray* w, ND
     sruCell(context, &xt, &ct_1, &wT, b, &ht, &ct);
     ct_1.assign(&ct);
   }
+
+  delete wT;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -555,7 +557,7 @@ static void sruBIBPCudaLauncher(
   sd::DebugHelper::checkErrorCode(const_cast<cudaStream_t *>(stream), "sruBIBPCuda failed");
 
 }
-BUILD_SINGLE_TEMPLATE(template void sruBIBPCudaLauncher,
+BUILD_SINGLE_TEMPLATE( void sruBIBPCudaLauncher,
                       (const int blocksPerGrid, const int threadsPerBlock, const int sharedMem,
                           const cudaStream_t* stream, const void* vx, const sd::LongType* xShapeInfo, const void* vwi,
                           const sd::LongType* wiShapeInfo, const void* vb, const sd::LongType* bShapeInfo, const void* vc0,

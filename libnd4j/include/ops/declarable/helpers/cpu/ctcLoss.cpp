@@ -26,6 +26,7 @@
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
+#include <system/selective_rendering.h>
 #if NOT_EXCLUDED(OP_ctc_loss)
 namespace sd {
 namespace ops {
@@ -276,13 +277,12 @@ Type unitLossAndGrad(const Type *logP, int incP, Type *gradPtr, int incG, const 
   // create temp Array for holding bettaArr [lenT,lenSB]
   // create temp Array for holding alphaArr [lenT,lenSB]
   int bufferC = gradPtr ? 2 : 1;
-  NDArray bufferArr = NDArrayFactory::create<Type>('c', {bufferC, lenT, lenSB});
-  auto bufferPtr = bufferArr.bufferAsT<Type>();
-  auto incA = bufferArr.stridesOf()[1];
-  auto bettaBufferPtr = bufferPtr + bufferArr.stridesOf()[0];
+  NDArray *bufferArr = NDArrayFactory::create<Type>('c', {bufferC, lenT, lenSB});
+  auto bufferPtr = bufferArr->bufferAsT<Type>();
+  auto incA = bufferArr->stridesOf()[1];
+  auto bettaBufferPtr = bufferPtr + bufferArr->stridesOf()[0];
   Type negInf = negative_infinity<Type>();
 
-#if 1
   if (gradPtr) {
     if (elwiseG == 1) {
       PRAGMA_OMP_SIMD
@@ -297,7 +297,6 @@ Type unitLossAndGrad(const Type *logP, int incP, Type *gradPtr, int incG, const 
       }
     }
   }
-#endif
 
   // set all vals to neginf
   PRAGMA_OMP_SIMD
@@ -313,6 +312,8 @@ Type unitLossAndGrad(const Type *logP, int incP, Type *gradPtr, int incG, const 
     backwardAndGrad<IsLogPStrided, IsLblStrided, IsGradStrided>(logLoss, bufferPtr, bettaBufferPtr, incA, logP, incP,
                                                                 gradPtr, incG, lbl, lenS, lenT, lenK, blankIndex,
                                                                 elwiseP, elwiseS, elwiseG);
+
+  delete bufferArr;
   return logLoss;
 }
 
@@ -414,12 +415,14 @@ void ctc_loss_(NDArray&logits, NDArray&targetLabels, NDArray&logitsLengths,
 
 void ctcLoss(graph::Context &block, NDArray&logits, NDArray&targetLabels, NDArray&logitsLengths,
              NDArray&targetLabelLengths, NDArray &logLosses, NDArray &gradients, int blankIndex) {
+  auto logitsDType = logits.dataType();
+  auto targetLabelsDType = targetLabels.dataType();
   BUILD_DOUBLE_SELECTOR(logits.dataType(), targetLabels.dataType(), ctc_loss_,
                         (logits, targetLabels, logitsLengths, targetLabelLengths, logLosses, gradients, blankIndex),
                         SD_FLOAT_TYPES, SD_INDEXING_TYPES);
 }
 
-BUILD_DOUBLE_TEMPLATE(template void ctc_loss_,
+BUILD_DOUBLE_TEMPLATE( void ctc_loss_,
                       (NDArray&logits, NDArray&targetLabels, NDArray&logitsLengths,
                        NDArray&targetLabelLengths, NDArray &logLosses, NDArray &gradients, int blankIndex),
                       SD_FLOAT_TYPES, SD_INDEXING_TYPES);

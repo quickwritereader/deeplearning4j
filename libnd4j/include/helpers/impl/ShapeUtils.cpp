@@ -1,20 +1,20 @@
 /* ******************************************************************************
- *
- *
- * This program and the accompanying materials are made available under the
- * terms of the Apache License, Version 2.0 which is available at
- * https://www.apache.org/licenses/LICENSE-2.0.
- *
- *  See the NOTICE file distributed with this work for additional
- *  information regarding copyright ownership.
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- ******************************************************************************/
+*
+*
+* This program and the accompanying materials are made available under the
+* terms of the Apache License, Version 2.0 which is available at
+* https://www.apache.org/licenses/LICENSE-2.0.
+*
+*  See the NOTICE file distributed with this work for additional
+*  information regarding copyright ownership.
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+* WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+* License for the specific language governing permissions and limitations
+* under the License.
+*
+* SPDX-License-Identifier: Apache-2.0
+******************************************************************************/
 
 //
 // @author Yurii Shyrma (iuriish@yahoo.com)
@@ -202,6 +202,7 @@ LongType* ShapeUtils::evalReduceShapeInfoEmpty(const char order, std::vector<Lon
 
 
   auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(outShapeInfo)->primary();
+  delete[] outShapeInfo;
   return ret;
 }
 
@@ -212,7 +213,55 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
       evalReduceShapeInfo(order, dimsToExclude, arr, arr.dataType(), keepDims, supportOldShapes, workspace));
 }
 
+//////////////////////////////////////////////////////////////////////////
+// return new (shorter) sorted dimensions array without dimensions that are present in input vector
+std::vector<LongType>* ShapeUtils::evalDimsToExclude(const LongType rank, const LongType dimsLen, const LongType* dimensions) {
+  std::vector<LongType> * ret = new std::vector<LongType>();
 
+
+
+  // Validate input parameters
+  if (rank <= 0) {
+    THROW_EXCEPTION("ShapeUtils::evalDimsToExclude: rank must be positive");
+  }
+  if (dimsLen < 0) {
+    THROW_EXCEPTION("ShapeUtils::evalDimsToExclude: dimsLen cannot be negative");
+  }
+  if (dimsLen > 0 && dimensions == nullptr) {
+    THROW_EXCEPTION("ShapeUtils::evalDimsToExclude: dimensions array is null but dimsLen > 0");
+  }
+
+  if (dimsLen == 0) {  // if input vector is empty then return whole shape range
+    ret->resize(rank);
+    std::iota(ret->begin(), ret->end(), 0);  // fill with 0, 1, ... rank-1
+  } else {
+    // Validate dimensions are within bounds
+    for (LongType j = 0; j < dimsLen; j++) {
+      LongType dim = dimensions[j] >= 0 ? dimensions[j] : dimensions[j] + rank;
+      if (dim < 0 || dim >= rank) {
+        delete ret;
+        THROW_EXCEPTION("ShapeUtils::evalDimsToExclude: dimension index is out of bounds");
+      }
+    }
+
+    bool isAbsent;
+    for (LongType i = 0; i < rank; i++) {
+      isAbsent = true;
+      for (LongType j = 0; j < dimsLen; j++) {
+        LongType dim = dimensions[j] >= 0 ? dimensions[j] : dimensions[j] + rank;
+        if (i == dim) {
+          isAbsent = false;
+          break;
+        }
+      }
+      if (isAbsent) ret->emplace_back(i);
+    }
+  }
+
+  // Note: We keep the original behavior - if ret is empty, it means all dimensions
+  // were excluded, which is a valid case that the caller (gather operation) should handle
+  return ret;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // evaluate shape resulting from reduce operation
@@ -236,15 +285,17 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
       updateStridesAndType(newShapeInfo, shapeInfo, order);
       ArrayOptions::setDataType(newShapeInfo, dataType);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else if (supportOldShapes) {
-      newShapeInfo = new LongType[shape::shapeInfoLength(2)];
-      shape::shapeOldScalar(dataType, newShapeInfo, 'c');
+      newShapeInfo = ShapeBuilders::createScalarShapeInfo(dataType, workspace);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else {
       newShapeInfo = ShapeBuilders::createScalarShapeInfo(dataType, workspace);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     }
   }
@@ -266,6 +317,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
     }
     updateStridesAndType(newShapeInfo, shapeInfo, order);
     auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+    delete[] newShapeInfo;
     return ret;
   }
 
@@ -278,11 +330,13 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
       newShapeInfo = new LongType[shape::shapeInfoLength(2)];
       shape::shapeOldScalar(ArrayOptions::dataType(shapeInfo), newShapeInfo, 'c');
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else {
 
       newShapeInfo = ShapeBuilders::createScalarShapeInfo(ArrayOptions::dataType(shapeInfo), workspace);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     }
   }
@@ -298,6 +352,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
   // ensure whether vector has proper shape for old shape type
   if (newRank == 1 && supportOldShapes) {
     LongType oldValue = newShapeInfo[1];
+    delete[] newShapeInfo;
     newShapeInfo = new LongType[shape::shapeInfoLength(2)];
     newShapeInfo[0] = 2;
     if (dimsToExclude->at(0) == 0) {
@@ -312,6 +367,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
   updateStridesAndType(newShapeInfo, shapeInfo, order);
 
   auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+  delete[] newShapeInfo;
   return ret;
 }
 
@@ -420,6 +476,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(const char order, std::vector<LongType
   updateStridesAndType(newShapeInfo, shapeInfo, order);
 
   auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+  RELEASE(newShapeInfo, workspace);
   return ret;
 
 
@@ -444,15 +501,18 @@ LongType* ShapeUtils::evalReduceShapeInfo(char order, std::vector<LongType>* dim
       updateStridesAndType(newShapeInfo, shapeInfo, order);
       ArrayOptions::setDataType(newShapeInfo, dataType);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else if (supportOldShapes) {
       newShapeInfo = ShapeBuilders::createScalarShapeInfo(dataType, workspace);
       shape::shapeOldScalar(dataType, newShapeInfo, 'c');
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else {
       newShapeInfo = ShapeBuilders::createScalarShapeInfo(dataType, workspace);
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     }
   }
@@ -487,6 +547,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(char order, std::vector<LongType>* dim
       newShapeInfo = new sd::LongType[shape::shapeInfoLength(2)];
       shape::shapeOldScalar(ArrayOptions::dataType(shapeInfo), newShapeInfo, 'c');
       auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+      delete[] newShapeInfo;
       return ret;
     } else {
 
@@ -508,6 +569,7 @@ LongType* ShapeUtils::evalReduceShapeInfo(char order, std::vector<LongType>* dim
   // ensure whether vector has proper shape for old shape type
   if (newRank == 1 && supportOldShapes) {
     LongType oldValue = newShapeInfo[1];
+    delete[] newShapeInfo;
     newShapeInfo = new sd::LongType[shape::shapeInfoLength(2)];
     newShapeInfo[0] = 2;
     if (dimsToExclude->at(0) == 0) {
@@ -537,7 +599,9 @@ std::vector<LongType> ShapeUtils::evalRepeatShape(LongType axis, const std::vect
     THROW_EXCEPTION(
         "ShapeUtils::evalRepeatShape: size of repeats vector must be 1 or equal to dimension at given axis !");
 
-  std::vector<LongType> outShape = arr.getShapeAsVector();
+  auto* shapeVec = arr.getShapeAsVector();
+  std::vector<LongType> outShape = *shapeVec;
+  delete shapeVec;
 
   if (repeats.size() == 1)
     outShape[axis] *= repeats[0];
@@ -577,13 +641,6 @@ LongType* ShapeUtils::evalPermShapeInfo(LongType* dimensions, LongType rank, NDA
 }
 
 //////////////////////////////////////////////////////////////////////////
-// evaluate shapeInfo of permuted array
-
-//////////////////////////////////////////////////////////////////////////
-// evaluate shapeInfo of transposed array
-
-
-//////////////////////////////////////////////////////////////////////////
 bool ShapeUtils::copyVectorPart(std::vector<LongType>& target, std::vector<LongType>& source, LongType rank,
                                 LongType offset) {
   if (static_cast<sd::LongType>(source.size()) < offset + rank) return false;
@@ -594,32 +651,6 @@ bool ShapeUtils::copyVectorPart(std::vector<LongType>& target, std::vector<LongT
 }
 
 //////////////////////////////////////////////////////////////////////////
-// return new (shorter) sorted dimensions array without dimensions that are present in input vector
-std::vector<LongType>* ShapeUtils::evalDimsToExclude(const LongType rank, const LongType dimsLen, const LongType* dimensions) {
-  std::vector<LongType>* newDimensions = new std::vector<LongType>();
-  if (dimsLen == 0) {  // if input vector is empty then return whole shape range
-    newDimensions->resize(rank);
-    std::iota(newDimensions->begin(), newDimensions->end(), 0);  // fill with 0, 1, ... rank-1
-  } else {
-    bool isAbsent;
-    for (LongType i = 0; i < rank; i++) {
-      isAbsent = true;
-      for (LongType j = 0; j < dimsLen; j++) {
-        LongType dim = dimensions[j] >= 0 ? dimensions[j] : dimensions[j] + rank;
-        if (i == dim) {
-          isAbsent = false;
-          break;
-        }
-      }
-      if (isAbsent) newDimensions->emplace_back(i);
-    }
-  }
-  return newDimensions;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////
 // check whether 2 arrays have mutually broadcastable shapes
 // shape comparison starts from the end
 bool ShapeUtils::areShapesBroadcastable(NDArray& arr1, NDArray& arr2) {
@@ -627,6 +658,10 @@ bool ShapeUtils::areShapesBroadcastable(NDArray& arr1, NDArray& arr2) {
 }
 
 bool ShapeUtils::areShapesBroadcastable(const LongType* shapeInfo1, const LongType* shapeInfo2) {
+  // Scalars can be broadcast with anything
+  if (shape::isScalar(shapeInfo1) || shape::isScalar(shapeInfo2))
+    return true;
+
   LongType minRank =
       shape::rank(shapeInfo1) < shape::rank(shapeInfo2) ? shape::rank(shapeInfo1) : shape::rank(shapeInfo2);
 
@@ -641,6 +676,11 @@ bool ShapeUtils::areShapesBroadcastable(const LongType* shapeInfo1, const LongTy
 bool ShapeUtils::areShapesBroadcastable(const std::vector<LongType>& shape1, const std::vector<LongType>& shape2) {
   const auto rank1 = shape1.size();
   const auto rank2 = shape2.size();
+
+  // Scalars can be broadcast with anything
+  if (rank1 == 0 || rank2 == 0)
+    return true;
+
   const LongType minRank = rank1 < rank2 ? rank1 : rank2;
 
   for (LongType i = 1; i <= minRank; ++i)
@@ -654,8 +694,34 @@ bool ShapeUtils::areShapesBroadcastable(const std::vector<LongType>& shape1, con
 // if evalMinMax == false the array with larger rank has to be passed as first argument
 
 
+bool ShapeUtils::evalBroadcastShapeInfo(NDArray& x, NDArray& y, const bool evalMinMax,
+                                        LongType*& resultShapeInfo, memory::Workspace* workspace) {
+  return evalBroadcastShapeInfo(x.shapeInfo(), y.shapeInfo(), evalMinMax, resultShapeInfo, workspace);
+}
+
+
+
 bool ShapeUtils::evalBroadcastShapeInfo( LongType* max,  LongType* min, const bool evalMinMax,
                                          LongType*& resultShapeInfo, memory::Workspace* workspace) {
+
+  // Scalars can be broadcast with anything - result shape is the non-scalar
+  if (shape::isScalar(max) || shape::isScalar(min)) {
+    if (shape::isScalar(max) && shape::isScalar(min)) {
+      // Both scalars - use max
+      resultShapeInfo = ConstantShapeHelper::getInstance().createFromExisting(max);
+    } else if (shape::isScalar(max)) {
+      // max is scalar, min is not - result is min's shape
+      resultShapeInfo = ConstantShapeHelper::getInstance().createFromExisting(min);
+    } else {
+      // min is scalar, max is not - result is max's shape
+      resultShapeInfo = ConstantShapeHelper::getInstance().createFromExisting(max);
+    }
+    return true;
+  }
+  // Handle empty arrays early - if either input has a dimension of size 0, result should be empty
+  bool maxEmpty = shape::isEmptyConst(max);
+  bool minEmpty = shape::isEmptyConst(min);
+
   if (shape::shapeEquals(max, min)) {
     const int len = shape::shapeInfoLength(shape::rank(max));
     resultShapeInfo = new LongType[len];
@@ -679,7 +745,16 @@ bool ShapeUtils::evalBroadcastShapeInfo( LongType* max,  LongType* min, const bo
   }
 
   // check whether broadcast operation is possible for input arrays
-  if (!areShapesBroadcastable(max, min)) return false;
+  if (!areShapesBroadcastable(max, min)) {
+    std::string errorMessage;
+    errorMessage += "ShapeUtils::evalBroadcastShapeInfo: shapes are not broadcastable!\n";
+    errorMessage += "Shape 1: ";
+    errorMessage += ShapeUtils::shapeAsString(max);
+    errorMessage += "\nShape 2: ";
+    errorMessage += ShapeUtils::shapeAsString(min);
+    errorMessage += "\n";
+    THROW_EXCEPTION(errorMessage.c_str());
+  }
 
   auto maxShapeInfo = max;
   auto minShapeInfo = min;
@@ -700,22 +775,35 @@ bool ShapeUtils::evalBroadcastShapeInfo( LongType* max,  LongType* min, const bo
   LongType* tmpShapeInfo = nullptr;
   ALLOCATE(tmpShapeInfo, workspace, shape::shapeInfoLength(maxRank), sd::LongType);
 
-  // FIXME: get rid of memcpy here
   memcpy(tmpShapeInfo, maxShapeInfo, shape::shapeInfoByteLength(maxRank));
-  for (LongType i = 0; i < minRank; ++i)
-    if ((maxShapeInfo[maxRank - i] != 0 && maxShapeInfo[maxRank - i] < minShapeInfo[minRank - i]) ||
-        minShapeInfo[minRank - i] == 0)
-      tmpShapeInfo[maxRank - i] = minShapeInfo[minRank - i];
+
+  // Handle dimension broadcasting - dimension size 0 should be preserved (empty arrays)
+  // Compare dimensions from right to left (broadcasting semantics)
+  for (LongType i = 0; i < minRank; ++i) {
+    // Get dimensions from the end: -1 means last dim, -2 means second-to-last, etc.
+    LongType maxDim = shape::sizeAt(maxShapeInfo, -1 - i);
+    LongType minDim = shape::sizeAt(minShapeInfo, -1 - i);
+
+    // If either dimension is 0, result should be 0 (empty array)
+    if (maxDim == 0 || minDim == 0) {
+      tmpShapeInfo[1 + maxRank - 1 - i] = 0;
+    }
+      // Otherwise follow standard broadcasting rules
+    else if (maxDim < minDim) {
+      tmpShapeInfo[1 + maxRank - 1 - i] = minDim;
+    }
+  }
 
   updateStridesAndType(tmpShapeInfo, DataTypeUtils::pickPairwiseResultType(maxShapeInfo, minShapeInfo),
                        shape::order(maxShapeInfo));
 
-  if (shape::isEmptyConst(max) || shape::isEmptyConst(min)) {
+  if (maxEmpty || minEmpty) {
     ArrayOptions::setPropertyBit(tmpShapeInfo, ARRAY_EMPTY);
     memset(shape::stride(tmpShapeInfo), 0, shape::rank(tmpShapeInfo) * sizeof(LongType));
   }
 
   resultShapeInfo = (ConstantShapeHelper::getInstance().bufferForShapeInfo(tmpShapeInfo)->primary());
+  delete[] tmpShapeInfo;
   return true;
 }
 
@@ -756,6 +844,7 @@ LongType* ShapeUtils::evalTileShapeInfo(NDArray& arr, const std::vector<LongType
   ArrayOptions::setDataType(newShapeInfo, arr.dataType());
 
   auto ret = ConstantShapeHelper::getInstance().bufferForShapeInfo(newShapeInfo)->primary();
+  RELEASE(newShapeInfo, workspace);
   return ret;
 }
 
@@ -820,18 +909,18 @@ std::string ShapeUtils::shapeAsString(const LongType* shapeInfo) {
 std::string ShapeUtils::shapeInfoAsString(const LongType* shapeInfo) {
   if (!shapeInfo) THROW_EXCEPTION("ShapeUtils::shapeAsString method: input shapeInfo must not be nullptr !");
 
-  std::string *result = new std::string();
+  std::string result;  // Stack allocation instead of heap
 
   LongType len = shape::shapeInfoLength(shapeInfo[0]);
 
-  result->append("[");
+  result.append("[");
   for (LongType e = 0; e < len; e++) {
-    result->append(flatbuffers::NumToString(shapeInfo[e]));
-    if (e < len - 1) result->append(", ");
+    result.append(flatbuffers::NumToString(shapeInfo[e]));
+    if (e < len - 1) result.append(", ");
   }
-  result->append("]");
+  result.append("]");
 
-  return *result;
+  return result;  // Return by value (move semantics will optimize)
 }
 
 std::string ShapeUtils::shapeAsString(const LongType rank, const LongType* shapeInfo) {
@@ -1039,12 +1128,108 @@ std::vector<LongType> ShapeUtils::evalShapeForMatmul(const LongType* xShapeInfo,
   }
 
   // rest cases - usual 2Dx2D or batched mmul
+  // Handle rank mismatch when one input has singleton leading dimensions
+  // This supports ONNX Gemm patterns like [1,1,1,768] x [768,768] -> [1,1,1,768]
   if (xRank != yRank) {
-    sd_printf(
-        "ShapeUtils::evalShapeForMatmul static method: the ranks of arrays must be the same, but got xRank = %i and "
-        "yRank = %i ! \n",
-        xRank, yRank);
-    THROW_EXCEPTION("");
+    // Check if higher-rank input has all singleton leading dims that can be squeezed
+    const LongType* higherRankInfo = xRank > yRank ? xShapeInfo : yShapeInfo;
+    const LongType* lowerRankInfo = xRank > yRank ? yShapeInfo : xShapeInfo;
+    const auto higherRank = xRank > yRank ? xRank : yRank;
+    const auto lowerRank = xRank > yRank ? yRank : xRank;
+    const auto rankDiff = higherRank - lowerRank;
+
+    // Check if all leading dimensions are singletons (size 1)
+    bool allLeadingSingleton = true;
+    for (LongType i = 0; i < rankDiff; ++i) {
+      if (higherRankInfo[i + 1] != 1) {
+        allLeadingSingleton = false;
+        break;
+      }
+    }
+
+    if (allLeadingSingleton && lowerRank == 2) {
+      // Can treat as 2D matmul with singleton batch dims preserved in output
+      // For x having higher rank: x[1,1,...,M,K] @ y[K,N] -> [1,1,...,M,N]
+      // For y having higher rank: x[M,K] @ y[1,1,...,K,N] -> [1,1,...,M,N]
+
+      LongType outM, outN, xK, yK;
+
+      if (xRank > yRank) {
+        // x is higher rank [1,1,...,M,K], y is 2D [K,N]
+        // Get M and K from x's last 2 dimensions
+        const LongType xSecondLast = higherRankInfo[higherRank - 1];  // M (or K if transposed)
+        const LongType xLast = higherRankInfo[higherRank];            // K (or M if transposed)
+        // Get K and N from y
+        const LongType yFirst = lowerRankInfo[1];   // K (or N if transposed)
+        const LongType ySecond = lowerRankInfo[2];  // N (or K if transposed)
+
+        if (transX) {
+          outM = xLast;
+          xK = xSecondLast;
+        } else {
+          outM = xSecondLast;
+          xK = xLast;
+        }
+
+        if (transY) {
+          yK = ySecond;
+          outN = yFirst;
+        } else {
+          yK = yFirst;
+          outN = ySecond;
+        }
+      } else {
+        // y is higher rank [1,1,...,K,N], x is 2D [M,K]
+        // Get M and K from x
+        const LongType xFirst = lowerRankInfo[1];   // M (or K if transposed)
+        const LongType xSecond = lowerRankInfo[2];  // K (or M if transposed)
+        // Get K and N from y's last 2 dimensions
+        const LongType ySecondLast = higherRankInfo[higherRank - 1];  // K (or N if transposed)
+        const LongType yLast = higherRankInfo[higherRank];            // N (or K if transposed)
+
+        if (transX) {
+          outM = xSecond;
+          xK = xFirst;
+        } else {
+          outM = xFirst;
+          xK = xSecond;
+        }
+
+        if (transY) {
+          yK = yLast;
+          outN = ySecondLast;
+        } else {
+          yK = ySecondLast;
+          outN = yLast;
+        }
+      }
+
+      // Validate K dimensions match
+      if (xK != yK) {
+        std::string errorMessage;
+        errorMessage += "ShapeUtils::evalShapeForMatmul static method: the dimensions of arrays are inconsistent: ";
+        errorMessage += "xShape = " + shapeAsString(xShapeInfo) + ", ";
+        errorMessage += "yShape = " + shapeAsString(yShapeInfo);
+        errorMessage += " (xK=" + std::to_string(xK) + ", yK=" + std::to_string(yK) + ") ! \n";
+        THROW_EXCEPTION(errorMessage.c_str());
+      }
+
+      std::vector<LongType> cShape;
+      // Preserve leading singleton dimensions from the higher-rank input
+      for (LongType i = 0; i < rankDiff; ++i) {
+        cShape.push_back(1);
+      }
+      // Add the matrix dimensions [M, N]
+      cShape.push_back(outM);
+      cShape.push_back(outN);
+      return cShape;
+    } else {
+      sd_printf(
+          "ShapeUtils::evalShapeForMatmul static method: the ranks of arrays must be the same, but got xRank = %i and "
+          "yRank = %i ! \n",
+          xRank, yRank);
+      THROW_EXCEPTION("");
+    }
   }
 
   if (x1Dim != y0Dim) {
